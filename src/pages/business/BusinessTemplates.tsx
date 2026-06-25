@@ -18,6 +18,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
 import { toast } from "sonner";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 
 interface TplRow {
   id: string;
@@ -69,7 +70,7 @@ export default function BusinessTemplates() {
       config: {},
     });
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(safeErrorMessage(error, "Couldn't save template.")); return; }
     toast.success("Template saved");
     setOpen(false); setName(""); setDescription(""); setCategory("");
     load();
@@ -78,7 +79,7 @@ export default function BusinessTemplates() {
   const remove = async (row: TplRow) => {
     if (!await confirmAsync(`Delete template "${row.name}"?`)) return;
     const { error } = await supabase.from("org_templates").delete().eq("id", row.id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(safeErrorMessage(error, "Couldn't delete template.")); return; }
     toast.success("Template deleted");
     load();
   };

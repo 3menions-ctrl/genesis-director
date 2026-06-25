@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { WorkspacePage, EmptyState } from '@/components/workspace/PageShell';
 import { Surface, CmdButton, DataInput, DataTextarea, Field, Pill } from '@/components/workspace/command-ui';
 import { toast } from 'sonner';
+import { safeErrorMessage } from '@/lib/safeErrorMessage';
 
 import { confirmAsync } from '@/components/ui/global-confirm';
 import { usePageMeta } from '@/hooks/usePageMeta';
@@ -59,7 +60,7 @@ export default function WorkspaceTemplates() {
       config: {},
     });
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(safeErrorMessage(error, "Couldn't save the template. Please try again.")); return; }
     toast.success('Template saved');
     setOpen(false); setName(''); setDescription(''); setCategory('');
     load();
@@ -68,7 +69,7 @@ export default function WorkspaceTemplates() {
   const remove = async (row: TplRow) => {
     if (!await confirmAsync(`Delete template "${row.name}"?`)) return;
     const { error } = await supabase.from('org_templates').delete().eq('id', row.id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(safeErrorMessage(error, "Couldn't delete the template. Please try again.")); return; }
     toast.success('Template deleted');
     load();
   };

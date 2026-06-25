@@ -39,6 +39,7 @@ import {
   RectangleHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import { IconFilterTile, IconFilterRow } from "@/components/ui/IconFilterTile";
 import { toast } from "sonner";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
@@ -655,7 +656,7 @@ function CrossoverContent() {
         <div className="text-center py-20 max-w-md mx-auto">
           <Sparkles className="w-8 h-8 mx-auto mb-4 text-rose-300/60" />
           <h3 className="font-display italic text-[22px] text-foreground/95 mb-2">Couldn't load crossovers</h3>
-          <p className="text-[12px] text-foreground/55">{error.message}</p>
+          <p className="text-[12px] text-foreground/55">{safeErrorMessage(error, "Please try again in a moment.")}</p>
         </div>
       ) : categoryFilter === "all" ? (
         <section className="pb-16 space-y-12">

@@ -16,6 +16,7 @@ import { BusinessPage, SectionHead, SkeletonRows } from "@/components/business/B
 import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
 import { toast } from "sonner";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 
 type ChannelKey = "email" | "in_app";
 
@@ -88,7 +89,7 @@ export function NotificationsContent() {
       .from("org_notification_prefs")
       .upsert({ organization_id: currentOrg.id, prefs: prefs as unknown as Record<string, unknown>, updated_by: user.id }, { onConflict: "organization_id" });
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(safeErrorMessage(error, "Couldn't save notification settings.")); return; }
     toast.success("Notification routing saved");
     setOriginal(prefs);
     await supabase.from("workspace_audit_events").insert({

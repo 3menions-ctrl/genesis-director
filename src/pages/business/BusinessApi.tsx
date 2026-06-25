@@ -17,6 +17,7 @@ import { confirmAsync } from "@/components/ui/global-confirm";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { BusinessPage, StatCard, SectionHead, EmptyState, SkeletonRows, Badge } from "@/components/business/BusinessPage";
 import { toast } from "sonner";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
 
@@ -166,7 +167,7 @@ export default function BusinessApi() {
       });
       void load();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to generate key");
+      toast.error(safeErrorMessage(err, "Failed to generate key"));
     } finally {
       setCreating(false);
     }
@@ -178,7 +179,7 @@ export default function BusinessApi() {
       .from("org_api_keys")
       .update({ revoked_at: new Date().toISOString() })
       .eq("id", row.id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(safeErrorMessage(error, "Couldn't revoke key.")); return; }
     toast.success("Key revoked");
     if (currentOrg && user) {
       await supabase.from("workspace_audit_events").insert({
@@ -317,7 +318,7 @@ function WebhooksSection({ canManage, hooks, loading, reload }: {
   const remove = async (row: WebhookRow) => {
     if (!(await confirmAsync(`Delete webhook for ${row.url}? Future events will not be delivered to this endpoint.`))) return;
     const { error } = await supabase.from("webhook_endpoints").delete().eq("id", row.id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(safeErrorMessage(error, "Couldn't delete webhook.")); return; }
     toast.success("Webhook deleted");
     if (currentOrg && user) {
       await supabase.from("workspace_audit_events").insert({
@@ -335,7 +336,7 @@ function WebhooksSection({ canManage, hooks, loading, reload }: {
       .from("webhook_endpoints")
       .update({ active: !row.active })
       .eq("id", row.id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(safeErrorMessage(error, "Couldn't update webhook.")); return; }
     toast.success(row.active ? "Webhook paused" : "Webhook resumed");
     reload();
   };
@@ -370,7 +371,7 @@ function WebhooksSection({ canManage, hooks, loading, reload }: {
       reload();
     } catch (e) {
       toast.dismiss("wh-test");
-      toast.error(e instanceof Error ? e.message : "Test failed");
+      toast.error(safeErrorMessage(e, "Test failed"));
     }
   };
 
@@ -445,7 +446,7 @@ function WebhooksSection({ canManage, hooks, loading, reload }: {
               });
               reload();
             } catch (e) {
-              toast.error(e instanceof Error ? e.message : "Failed to create webhook");
+              toast.error(safeErrorMessage(e, "Failed to create webhook"));
             } finally {
               setCreating(false);
             }

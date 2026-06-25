@@ -20,6 +20,7 @@ import { TYPE_META } from "@/lib/design-system";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import { ingestRemoteUrl, insertWithNextShotIndex, validateUploadFile, describeIngestError } from "@/lib/editor/upload-ingest";
 import { appendPendingClip, resolvePendingClip } from "@/lib/editor/store";
 import { getDocumentState, flushNow } from "@/lib/editor/document-store";
@@ -263,7 +264,7 @@ export function MyLibraryPanel({ project }: { project: EditorProject | null }) {
       .update({ is_favorite: next })
       .eq("id", u.id);
     if (error) {
-      toast.error("Couldn't update favorite", { description: error.message });
+      toast.error("Couldn't update favorite", { description: safeErrorMessage(error, "Please try again.") });
       // Revert the optimistic write.
       setUploads((list) =>
         list ? list.map((x) => (x.id === u.id ? { ...x, is_favorite: !next } : x)) : list,

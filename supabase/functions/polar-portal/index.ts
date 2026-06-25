@@ -32,6 +32,7 @@ Deno.serve(async (req) => {
     if (!url) return json({ error: "No Polar customer portal available yet" }, 404);
     return json({ url });
   } catch (err) {
-    return json({ error: err instanceof Error ? err.message : String(err) }, 500);
+    console.error("[polar-portal] error", err);
+    return json({ error: "portal_failed", message: "We couldn't open the billing portal. Please try again." }, 500);
   }
 });

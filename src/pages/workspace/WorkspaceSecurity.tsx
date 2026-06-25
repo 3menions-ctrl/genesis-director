@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { WorkspacePage } from '@/components/workspace/PageShell';
 import { Section, Pill, CmdButton, Field, DataInput } from '@/components/workspace/command-ui';
 import { toast } from 'sonner';
+import { safeErrorMessage } from '@/lib/safeErrorMessage';
 
 import { confirmAsync } from '@/components/ui/global-confirm';
 import { usePageMeta } from '@/hooks/usePageMeta';
@@ -50,7 +51,7 @@ export default function WorkspaceSecurity() {
       p_org: currentOrg.id, p_require_2fa: next,
     } as any);
     setBusy(null);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(safeErrorMessage(error, "Couldn't update the 2FA policy. Please try again."));
     setRequire2fa(next);
     toast.success(next ? '2FA is now required for every member' : '2FA enforcement disabled');
   };
@@ -62,7 +63,7 @@ export default function WorkspaceSecurity() {
     setBusy('add');
     const { error } = await supabase.rpc('add_org_domain', { p_org: currentOrg.id, p_domain: d } as any);
     setBusy(null);
-    if (error) return toast.error(error.message.includes('duplicate') ? 'Domain already added' : error.message);
+    if (error) return toast.error(error.message.includes('duplicate') ? 'Domain already added' : safeErrorMessage(error, "Couldn't add the domain. Please try again."));
     setNewDomain('');
     toast.success('Domain added — publish DNS TXT to verify');
     load();
@@ -72,7 +73,7 @@ export default function WorkspaceSecurity() {
     setBusy(d.id);
     const { data, error } = await supabase.functions.invoke('verify-org-domain', { body: { domain_id: d.id } });
     setBusy(null);
-    if (error || (data as any)?.error) return toast.error((data as any)?.error || error?.message || 'Verification failed');
+    if (error || (data as any)?.error) return toast.error((data as any)?.error || safeErrorMessage(error, 'Verification failed'));
     toast.success(`${d.domain} verified`);
     load();
   };
@@ -80,7 +81,7 @@ export default function WorkspaceSecurity() {
   const remove = async (d: OrgDomain) => {
     if (!await confirmAsync(`Remove ${d.domain}?`)) return;
     const { error } = await supabase.from('org_domains').delete().eq('id', d.id);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(safeErrorMessage(error, "Couldn't remove the domain. Please try again."));
     load();
   };
 

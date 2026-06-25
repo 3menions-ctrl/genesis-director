@@ -7,6 +7,7 @@ import { WorkspacePage } from '@/components/workspace/PageShell';
 import { Surface, MetricCard, CmdButton, Pill, Field, DataInput } from '@/components/workspace/command-ui';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { safeErrorMessage } from '@/lib/safeErrorMessage';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 export default function WorkspaceCredits() {
@@ -57,7 +58,7 @@ export default function WorkspaceCredits() {
       p_org: currentOrg.id, p_daily: d, p_weekly: w,
     } as any);
     setSavingAlerts(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(safeErrorMessage(error, "Couldn't save spend alerts. Please try again."));
     toast.success('Spend alerts saved');
   };
 
@@ -68,7 +69,7 @@ export default function WorkspaceCredits() {
       p_org: currentOrg.id, p_enabled: turnOn, p_threshold: threshold, p_amount: amount,
     } as any);
     setSaving(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(safeErrorMessage(error, "Couldn't update auto-recharge. Please try again."));
     setEnabled(turnOn);
     setOpen(false);
     toast.success(turnOn ? 'Auto-recharge armed' : 'Auto-recharge disabled');

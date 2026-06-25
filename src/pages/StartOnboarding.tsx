@@ -12,6 +12,7 @@ import { useSafeNavigation } from '@/lib/navigation';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { safeErrorMessage } from '@/lib/safeErrorMessage';
 import { Logo } from '@/components/ui/Logo';
 import { BetaHero } from '@/components/ui/BetaHero';
 import { OAuthProviders } from '@/components/auth/OAuthProviders';
@@ -365,7 +366,7 @@ export default function StartOnboarding() {
       const { error } = await supabase.auth.verifyOtp({
         email: form.email.trim(), token: code, type: 'signup',
       });
-      if (error) { toast.error(error.message || 'Invalid code.'); return; }
+      if (error) { toast.error(safeErrorMessage(error, 'That code is invalid or expired. Please try again.')); return; }
       toast.success('Email verified.');
       await persistIntentAndConsume();
       void finish();
@@ -397,7 +398,7 @@ export default function StartOnboarding() {
             void finish();
             return;
           }
-          toast.error(error.message || 'Could not create your account.');
+          toast.error(safeErrorMessage(error, 'Could not create your account. Please try again.'));
           return;
         }
         toast.success('Check your email — we sent a 6-digit code.');
@@ -460,7 +461,7 @@ export default function StartOnboarding() {
       navigate(target, { replace: true });
     } catch (e) {
       console.error('[start] finish', e);
-      toast.error((e as Error)?.message ?? 'Could not save your choices.');
+      toast.error(safeErrorMessage(e, 'Could not save your choices. Please try again.'));
     } finally { setSubmitting(false); }
   };
 
@@ -794,7 +795,7 @@ export default function StartOnboarding() {
                           setResending(true);
                           try {
                             const { error } = await supabase.auth.resend({ type: 'signup', email: form.email.trim() });
-                            if (error) toast.error(error.message);
+                            if (error) toast.error(safeErrorMessage(error, "Couldn't resend the code. Please try again."));
                             else toast.success('Code re-sent.');
                           } finally { setResending(false); }
                         }}

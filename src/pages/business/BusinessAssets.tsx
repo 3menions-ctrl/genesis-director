@@ -14,6 +14,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import { cn } from "@/lib/utils";
 import { ListPagination, usePagination } from "@/components/ui/list-pagination";
 import { confirmAsync } from "@/components/ui/global-confirm";
@@ -157,7 +158,7 @@ export default function BusinessAssets() {
     const { error } = await (supabase as unknown as {
       from: (t: string) => { delete: () => { eq: (k: string, v: string) => Promise<{ error: { message: string } | null }> } };
     }).from("organization_brand_assets").delete().eq("id", asset.id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(safeErrorMessage(error, "Couldn't purge asset.")); return; }
     toast.success("Asset purged");
     void load();
   };

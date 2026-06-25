@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { WorkspacePage } from '@/components/workspace/PageShell';
 import { Surface, CmdButton, Pill, Field, DataInput } from '@/components/workspace/command-ui';
 import { toast } from 'sonner';
+import { safeErrorMessage } from '@/lib/safeErrorMessage';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 type ReportKey = 'usage_summary' | 'member_burn' | 'project_ledger' | 'spend_events';
@@ -49,7 +50,7 @@ export default function WorkspaceReports() {
       URL.revokeObjectURL(url);
       toast.success(`${label} exported`);
     } catch (e: any) {
-      toast.error(e?.message || 'Export failed');
+      toast.error(safeErrorMessage(e, 'Export failed'));
     } finally {
       setBusy(null);
     }

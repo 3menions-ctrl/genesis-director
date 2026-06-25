@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/compone
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { BusinessPage, SectionHead, StaggerList, StaggerItem } from "@/components/business/BusinessPage";
 import { toast } from "sonner";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
@@ -73,7 +74,7 @@ export function DangerContent() {
       setXferOpen(false);
       await refresh();
     } catch (e) {
-      toast.error((e as { message?: string })?.message ?? "Transfer failed");
+      toast.error(safeErrorMessage(e, "Transfer failed"));
     } finally { setBusy(false); }
   };
 
@@ -118,7 +119,7 @@ export function DangerContent() {
       try { localStorage.removeItem("smallbridges.currentOrgId"); } catch { /* ignore */ }
       navigate("/projects");
     } catch (e) {
-      toast.error((e as { message?: string })?.message ?? "Delete failed");
+      toast.error(safeErrorMessage(e, "Delete failed"));
     } finally { setBusy(false); setDelOpen(false); }
   };
 

@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.error("[VERIFY-CINEMA-CHECKOUT] Error", err);
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Unexpected error" }),
+      JSON.stringify({ error: "verify_failed", message: "We couldn't verify your purchase. Please refresh and try again." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }

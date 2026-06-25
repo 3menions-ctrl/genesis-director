@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode, useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { AlertTriangle, RefreshCw, Home, WifiOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { safeErrorMessage } from '@/lib/safeErrorMessage';
 
 interface GlobalStabilityBoundaryProps {
   children: ReactNode;
@@ -240,11 +241,15 @@ class GlobalStabilityBoundaryClass extends Component<GlobalStabilityBoundaryProp
               </p>
             </div>
 
-            {/* Show error message (truncated) to help debugging */}
+            {/* Show a sanitized error message — raw internals (stack, DB, SQL)
+                are only revealed in development, never to end users. */}
             {this.state.error && (
               <div className="text-left bg-zinc-800/50 rounded-lg p-4 text-sm border border-zinc-700">
                 <p className="font-mono text-red-400/70 break-all text-xs">
-                  {this.state.error.message?.substring(0, 200)}
+                  {(process.env.NODE_ENV === 'development'
+                    ? this.state.error.message
+                    : safeErrorMessage(this.state.error, 'An unexpected error occurred.')
+                  )?.substring(0, 200)}
                 </p>
                 {process.env.NODE_ENV === 'development' && this.state.error.stack && (
                   <details className="mt-2">

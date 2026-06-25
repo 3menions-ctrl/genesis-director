@@ -87,6 +87,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import { CenterLine } from "@/components/ui/CenterLine";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -628,7 +629,7 @@ export default function ProfileDashboard() {
         /auth.required/i.test(raw)         ? "Sign in to follow."
         : /cannot_follow_self/i.test(raw)  ? "You can't follow yourself."
         : /permission denied/i.test(raw)   ? "Sign-in expired. Please sign in again."
-        : raw.length > 0                    ? `Couldn't follow: ${raw.slice(0, 140)}`
+        : raw.length > 0                    ? `Couldn't follow: ${safeErrorMessage(e, "please try again").slice(0, 140)}`
         :                                     "Couldn't update follow.";
       toast.error(friendly);
     } finally {
@@ -2718,7 +2719,7 @@ function CoverHero({
                     maxLength={60}
                     onSave={async (v) => {
                       try { await onSaveDisplayName(v); toast.success("Name saved"); }
-                      catch (e) { toast.error(e instanceof Error ? e.message : "Save failed"); throw e; }
+                      catch (e) { toast.error(safeErrorMessage(e, "Save failed")); throw e; }
                     }}
                   />
                 ) : (
@@ -2785,7 +2786,7 @@ function CoverHero({
                         align="right"
                         onSave={async (v) => {
                           try { await onSaveTagline(v); toast.success("Tagline saved"); }
-                          catch (e) { toast.error(e instanceof Error ? e.message : "Save failed"); throw e; }
+                          catch (e) { toast.error(safeErrorMessage(e, "Save failed")); throw e; }
                         }}
                       />
                       <InlineMicroInput
@@ -2796,7 +2797,7 @@ function CoverHero({
                         align="right"
                         onSave={async (v) => {
                           try { await onSaveLocation(v); toast.success("Location saved"); }
-                          catch (e) { toast.error(e instanceof Error ? e.message : "Save failed"); throw e; }
+                          catch (e) { toast.error(safeErrorMessage(e, "Save failed")); throw e; }
                         }}
                       />
                     </div>
@@ -3010,7 +3011,7 @@ function BioSection({
     } catch (e) {
       // eslint-disable-next-line no-console
       console.warn("[BioSection] save failed", e);
-      toast.error(e instanceof Error ? e.message : "Couldn't save bio");
+      toast.error(safeErrorMessage(e, "Couldn't save bio"));
     } finally {
       setSaving(false);
     }
@@ -3690,7 +3691,7 @@ function DirectorReelMaker({
       toast.success(reelId ? "Channel trailer set." : "Channel trailer cleared.");
       window.dispatchEvent(new CustomEvent("profile:assets-changed"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't save");
+      toast.error(safeErrorMessage(e, "Couldn't save"));
     } finally {
       setBusy(false);
     }
@@ -4368,7 +4369,7 @@ function PatronHubDialog({
         window.setTimeout(() => setTab("yours"), 900);
       }
     } catch (e) {
-      toast.error(humaniseError(e instanceof Error ? e.message : "Pledge failed"));
+      toast.error(humaniseError(safeErrorMessage(e, "Pledge failed")));
     } finally {
       setBusyTierId(null);
     }
@@ -4384,7 +4385,7 @@ function PatronHubDialog({
     } catch (e) {
       // roll back
       setPledges((prev) => prev ? [sub, ...prev] : [sub]);
-      toast.error(e instanceof Error ? e.message : "Couldn't cancel");
+      toast.error(safeErrorMessage(e, "Couldn't cancel"));
     } finally {
       setCancellingId(null);
     }
@@ -4988,7 +4989,7 @@ function SafetyMenu({ targetId, targetName }: { targetId: string; targetName: st
       setBlocked(next);
       toast.success(next ? `Blocked ${targetName}.` : `Unblocked ${targetName}.`);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Couldn't update block";
+      const msg = safeErrorMessage(e, "Couldn't update block");
       toast.error(msg.replace(/_/g, " "));
     } finally {
       setBusy(false);
@@ -5011,7 +5012,7 @@ function SafetyMenu({ targetId, targetName }: { targetId: string; targetName: st
       setDetail("");
       setReason(REPORT_REASONS[0]);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't submit report");
+      toast.error(safeErrorMessage(e, "Couldn't submit report"));
     } finally {
       setBusy(false);
     }
@@ -5222,7 +5223,7 @@ function InlineUploadOverlay({
       // Cheapest "refresh viewed" trigger: bounce a custom event the page listens for.
       window.dispatchEvent(new CustomEvent("profile:assets-changed"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Couldn't save image");
+      toast.error(safeErrorMessage(err, "Couldn't save image"));
     }
   };
 
@@ -6058,7 +6059,7 @@ function ProfileSettingsPanel({
       await onSaved();
     } catch (e) {
       setLinks(prev);
-      toast.error(e instanceof Error ? e.message : "Couldn't save links");
+      toast.error(safeErrorMessage(e, "Couldn't save links"));
     } finally {
       setSavingLinks(false);
     }
@@ -6076,7 +6077,7 @@ function ProfileSettingsPanel({
       toast.success("Pronouns saved");
     } catch (e) {
       setPronouns(prev);
-      toast.error(e instanceof Error ? e.message : "Couldn't save pronouns");
+      toast.error(safeErrorMessage(e, "Couldn't save pronouns"));
     }
   }, [pronouns, setPrefs]);
 
@@ -6088,7 +6089,7 @@ function ProfileSettingsPanel({
       toast.success("Accent saved");
     } catch (e) {
       setAccent(prev);
-      toast.error(e instanceof Error ? e.message : "Couldn't save accent");
+      toast.error(safeErrorMessage(e, "Couldn't save accent"));
     }
   }, [accent, setPrefs]);
 
@@ -6099,7 +6100,7 @@ function ProfileSettingsPanel({
       toast.success("Saved");
     } catch (e) {
       // setPrefs already updated local state; surface the error
-      toast.error(e instanceof Error ? e.message : "Couldn't save");
+      toast.error(safeErrorMessage(e, "Couldn't save"));
       // Revert via a second write
       try { await setPrefs({ [key]: prev } as Partial<UserPrefs>); } catch { /* swallow */ }
     }
@@ -6472,7 +6473,7 @@ function AssetUploadRow({
       toast.success(kind === "avatar" ? "Avatar updated" : "Header updated");
       window.dispatchEvent(new CustomEvent("profile:assets-changed"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Couldn't save image");
+      toast.error(safeErrorMessage(err, "Couldn't save image"));
     }
   };
   return (

@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Section, Field, CmdButton, DataInput, Pill } from '@/components/workspace/command-ui';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { safeErrorMessage } from '@/lib/safeErrorMessage';
 import { cn } from '@/lib/utils';
 import { ListPagination, usePagination } from '@/components/ui/list-pagination';
 
@@ -81,7 +82,7 @@ export default function WorkspaceTeam() {
       role: inviteRole, invited_by: user.id,
     });
     setInviting(false);
-    if (error) toast.error(error.message);
+    if (error) toast.error(safeErrorMessage(error, "Couldn't send the invite. Please try again."));
     else { toast.success(`Invite dispatched to ${inviteEmail}`); setInviteEmail(''); load(); }
   };
 
@@ -92,7 +93,7 @@ export default function WorkspaceTeam() {
     const oldRole = target?.role;
     const { error } = await supabase.from('organization_members').update({ role }).eq('id', memberId);
     if (error) {
-      toast.error(error.message);
+      toast.error(safeErrorMessage(error, "Couldn't update the member's role. Please try again."));
       return;
     }
     toast.success('Role updated');
@@ -123,7 +124,7 @@ export default function WorkspaceTeam() {
   const removeMember = async (memberId: string) => {
     if (!await confirmAsync('Remove this member from the workspace?')) return;
     const { error } = await supabase.from('organization_members').delete().eq('id', memberId);
-    if (error) toast.error(error.message); else { toast.success('Member removed'); load(); refresh(); }
+    if (error) toast.error(safeErrorMessage(error, "Couldn't remove the member. Please try again.")); else { toast.success('Member removed'); load(); refresh(); }
   };
 
   const setLimit = async (m: Member) => {
@@ -137,12 +138,12 @@ export default function WorkspaceTeam() {
     const { error } = await supabase.rpc('set_member_credit_limit', {
       p_org: currentOrg!.id, p_user: m.user_id, p_limit: limit,
     } as any);
-    if (error) toast.error(error.message); else { toast.success(limit === null ? 'Cap removed' : `Cap set to ${limit}`); load(); }
+    if (error) toast.error(safeErrorMessage(error, "Couldn't update the credit cap. Please try again.")); else { toast.success(limit === null ? 'Cap removed' : `Cap set to ${limit}`); load(); }
   };
 
   const revokeInvite = async (inviteId: string) => {
     const { error } = await supabase.from('organization_invites').delete().eq('id', inviteId);
-    if (error) toast.error(error.message); else { toast.success('Invite revoked'); load(); }
+    if (error) toast.error(safeErrorMessage(error, "Couldn't revoke the invite. Please try again.")); else { toast.success('Invite revoked'); load(); }
   };
 
   const copyInviteLink = (token: string, id: string) => {

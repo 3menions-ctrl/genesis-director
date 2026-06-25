@@ -79,6 +79,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserPreferences } from "@/contexts/UserPreferencesContext";
 import { cn } from "@/lib/utils";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import { TYPE_META } from "@/lib/design-system";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -287,7 +288,7 @@ export default function SettingsDashboard() {
       if (error) throw error;
       setProfile((data as ProfileRow | null) ?? null);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not load settings.");
+      toast.error(safeErrorMessage(e, "Could not load settings."));
     } finally {
       setLoading(false);
     }
@@ -335,7 +336,7 @@ export default function SettingsDashboard() {
       setLastSavedAt(Date.now());
       return true;
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Save failed.");
+      toast.error(safeErrorMessage(e, "Save failed."));
       return false;
     } finally {
       if (fieldKey) setSavingField(null);
@@ -800,7 +801,7 @@ function IdentityModule({
       const ok = await patch(kind === "avatar" ? { avatar_url: url } : { cover_url: url }, kind);
       if (ok) toast.success(`${kind === "avatar" ? "Avatar" : "Cover"} updated.`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Upload failed.");
+      toast.error(safeErrorMessage(e, "Upload failed."));
     } finally {
       setUploading(null);
     }
@@ -1475,7 +1476,7 @@ function CreatorModule({ profile, onSaved }: { profile: ProfileRow; onSaved?: ()
       .select()
       .maybeSingle();
     if (error) {
-      if (!opts.silent) toast.error(error.message);
+      if (!opts.silent) toast.error(safeErrorMessage(error, "Could not add tier."));
       // eslint-disable-next-line no-console
       console.error("[creator] addTier failed:", error);
       return false;
@@ -1617,7 +1618,7 @@ function PayoutAccountBlock({ creatorId }: { creatorId: string }) {
       if (!url) throw new Error("No onboarding URL returned.");
       window.location.href = url;
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not start onboarding.");
+      toast.error(safeErrorMessage(e, "Could not start onboarding."));
       setOpening(false);
     }
   };
@@ -1971,7 +1972,7 @@ function SecurityModule({ profile }: { profile: ProfileRow }) {
     if (!verifiedFactor) return;
     if (!confirm("Disable 2FA? You'll go back to password-only sign-in.")) return;
     const { error } = await supabase.auth.mfa.unenroll({ factorId: verifiedFactor.id });
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(safeErrorMessage(error, "Could not disable 2FA.")); return; }
     toast.success("2FA disabled.");
     await loadSecurity();
   };
@@ -1986,14 +1987,14 @@ function SecurityModule({ profile }: { profile: ProfileRow }) {
     const fullIdentity = userRes?.user?.identities?.find((i: any) => i.identity_id === identity.identity_id);
     if (!fullIdentity) { toast.error("Could not find identity."); return; }
     const { error } = await supabase.auth.unlinkIdentity(fullIdentity as never);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(safeErrorMessage(error, "Could not unlink that account.")); return; }
     toast.success(`${identity.provider} unlinked.`);
     await loadSecurity();
   };
 
   const linkIdentity = async (provider: "google" | "github" | "apple") => {
     const { error } = await supabase.auth.linkIdentity({ provider, options: { redirectTo: `${window.location.origin}/account?tab=settings&m=security` } });
-    if (error) toast.error(error.message);
+    if (error) toast.error(safeErrorMessage(error, "Could not link that account."));
   };
 
   return (
@@ -2145,7 +2146,7 @@ function MfaEnrollDialog({ open, onClose, onEnrolled }: { open: boolean; onClose
       setBusy(true);
       const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp" });
       setBusy(false);
-      if (error) { toast.error(error.message); onClose(); return; }
+      if (error) { toast.error(safeErrorMessage(error, "Could not start 2FA setup.")); onClose(); return; }
       setFactorId(data.id);
       setQr(data.totp.qr_code);
       setSecret(data.totp.secret);
@@ -2160,7 +2161,7 @@ function MfaEnrollDialog({ open, onClose, onEnrolled }: { open: boolean; onClose
     if (!challenge) { setBusy(false); toast.error("Couldn't start verification."); return; }
     const { error } = await supabase.auth.mfa.verify({ factorId, challengeId: challenge.id, code });
     setBusy(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(safeErrorMessage(error, "Could not verify that code.")); return; }
     toast.success("2FA enabled.");
     await onEnrolled();
     onClose();
@@ -2213,7 +2214,7 @@ function PasswordChangeDialog({ open, onClose }: { open: boolean; onClose: () =>
     setBusy(true);
     const { error } = await supabase.auth.updateUser({ password: pw });
     setBusy(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(safeErrorMessage(error, "Could not update password.")); return; }
     toast.success("Password updated.");
     onClose();
     setPw(""); setConfirm("");
@@ -2284,7 +2285,7 @@ function DataModule({ profile }: { profile: ProfileRow }) {
       URL.revokeObjectURL(a.href);
       toast.success("Export ready.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not export your data.");
+      toast.error(safeErrorMessage(e, "Could not export your data."));
     }
   };
 
@@ -2293,7 +2294,7 @@ function DataModule({ profile }: { profile: ProfileRow }) {
     setDeactivating(true);
     const { error } = await supabase.from("profiles" as never).update({ deactivated_at: new Date().toISOString() } as never).eq("id", profile.id);
     setDeactivating(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(safeErrorMessage(error, "Could not deactivate your account.")); return; }
     await supabase.auth.signOut();
     window.location.href = "/auth?deactivated=1";
   };
@@ -2377,7 +2378,7 @@ function DeleteAccountDialog({ open, onClose }: { open: boolean; onClose: () => 
       await supabase.auth.signOut();
       window.location.href = "/auth?deleted=1";
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not delete.");
+      toast.error(safeErrorMessage(e, "Could not delete."));
       setBusy(false);
     }
   };

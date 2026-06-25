@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { WorkspacePage } from '@/components/workspace/PageShell';
 import { Surface, Section, CmdButton, Pill, Field, DataInput } from '@/components/workspace/command-ui';
 import { toast } from 'sonner';
+import { safeErrorMessage } from '@/lib/safeErrorMessage';
 
 import { confirmAsync } from '@/components/ui/global-confirm';
 import { usePageMeta } from '@/hooks/usePageMeta';
@@ -44,7 +45,7 @@ function WebhookIntegration({
       p_org: currentOrg.id, p_kind: kind, p_url: next,
     } as any);
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(safeErrorMessage(error, "Couldn't update integration. Please try again."));
     toast.success(next ? `${name} connected` : `${name} disconnected`);
     onSaved();
   };
@@ -56,7 +57,7 @@ function WebhookIntegration({
       body: { kind, event: 'test', message: `Test ping from ${name} integration on Small Bridges.` },
     });
     setBusy(false);
-    if (error || (data as any)?.error) toast.error((data as any)?.error || error?.message || 'Test failed');
+    if (error || (data as any)?.error) toast.error((data as any)?.error || safeErrorMessage(error, 'Test failed'));
     else toast.success('Test sent');
   };
 
@@ -141,7 +142,7 @@ function OAuthIntegration({
       // Redirect user to the provider's authorize page.
       window.location.href = body.authorizeUrl;
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Could not start connect flow');
+      toast.error(safeErrorMessage(e, 'Could not start connect flow'));
       setBusy(false);
     }
   };
@@ -155,7 +156,7 @@ function OAuthIntegration({
       .update({ status: 'revoked' })
       .eq('id', connection.id);
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(safeErrorMessage(error, "Couldn't disconnect integration. Please try again."));
     toast.success(`${name} disconnected`);
     onChanged();
   };

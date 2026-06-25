@@ -52,6 +52,7 @@ import { selectClip, setClipProperty, setPlayhead } from "@/lib/editor/store";
 import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
 import { toast } from "sonner";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import type { EditorProject, EditorClip, TransitionKind } from "@/lib/editor/types";
 import { TRANSITION_LABELS } from "@/lib/editor/types";
 import { TakesDrawer } from "./TakesDrawer";
@@ -1094,7 +1095,7 @@ function AspectStat({ project }: { project: EditorProject }) {
             .then(({ error }) => {
               if (error) {
                 toast.error("Aspect ratio saved locally but DB write failed", {
-                  description: error.message,
+                  description: safeErrorMessage(error, "Please try again."),
                 });
               }
             });

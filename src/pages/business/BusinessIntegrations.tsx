@@ -19,6 +19,7 @@ import { BusinessPage, SectionHead, StatCard, Badge } from "@/components/busines
 import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
 import { toast } from "sonner";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 
 type OAuthProvider = "google_drive" | "notion";
 
@@ -89,7 +90,7 @@ function WebhookIntegration({
       p_org: currentOrg.id, p_kind: kind, p_url: next,
     } as never);
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(safeErrorMessage(error, "Couldn't save integration."));
     toast.success(next ? `${name} connected` : `${name} disconnected`);
     onSaved();
   };
@@ -102,7 +103,7 @@ function WebhookIntegration({
     });
     setBusy(false);
     const dataErr = (data as { error?: string } | null)?.error;
-    if (error || dataErr) toast.error(dataErr || error?.message || "Test failed");
+    if (error || dataErr) toast.error(dataErr || safeErrorMessage(error, "Test failed"));
     else toast.success("Test sent");
   };
 
@@ -185,7 +186,7 @@ function OAuthIntegration({
       // Redirect user to the provider's authorize page.
       window.location.href = body.authorizeUrl;
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not start connect flow");
+      toast.error(safeErrorMessage(e, "Could not start connect flow"));
       setBusy(false);
     }
   };
@@ -199,7 +200,7 @@ function OAuthIntegration({
       .update({ status: "revoked" })
       .eq("id", connection.id);
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(safeErrorMessage(error, "Couldn't disconnect."));
     toast.success(`${name} disconnected`);
     onChanged();
   };

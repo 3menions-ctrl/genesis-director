@@ -14,6 +14,7 @@ import { Save, Loader2, UploadCloud, Trash2, Wand2, Download, Sparkles } from "l
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { BusinessPage, SectionHead, Badge } from "@/components/business/BusinessPage";
 import { cn } from "@/lib/utils";
@@ -101,7 +102,7 @@ export default function BusinessBrand() {
       })
       .eq("id", currentOrg.id);
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(safeErrorMessage(error, "Couldn't save brand settings.")); return; }
     toast.success("Brand kit committed — applied to all new generations");
     void refresh();
   };
@@ -355,7 +356,7 @@ function LogoUploader({ currentUrl, onChange, canEdit, orgId }: {
       onChange(publicUrl);
       toast.success("Logo uploaded");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Upload failed");
+      toast.error(safeErrorMessage(e, "Upload failed"));
     } finally {
       setUploading(false);
     }

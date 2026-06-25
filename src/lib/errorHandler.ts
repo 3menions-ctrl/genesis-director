@@ -1,4 +1,5 @@
 import { toast } from 'sonner';
+import { safeErrorMessage } from '@/lib/safeErrorMessage';
 
 /**
  * Standard error codes and their user-friendly messages
@@ -91,8 +92,11 @@ export function parseError(error: unknown): {
     }
   }
   
-  // Get user-friendly message
-  const userMessage = ERROR_MESSAGES[code] || message;
+  // Get user-friendly message. When we have no mapped message for the code,
+  // run the raw message through the sanitizer so we never surface DB/SQL/stack/
+  // secret/third-party internals to the user (the full error is still returned
+  // as `originalError` and logged by `handleError`).
+  const userMessage = ERROR_MESSAGES[code] || safeErrorMessage(error, 'Something went wrong. Please try again.');
 
   return {
     code,

@@ -14,6 +14,7 @@ import { BusinessPage, SectionHead, Badge } from "@/components/business/Business
 import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
 import { toast } from "sonner";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 
 type ReportKey = "usage_summary" | "member_burn" | "project_ledger" | "spend_events";
 
@@ -57,7 +58,7 @@ export default function BusinessReports() {
       URL.revokeObjectURL(url);
       toast.success(`${label} exported`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Export failed");
+      toast.error(safeErrorMessage(e, "Export failed"));
     } finally {
       setBusy(null);
     }

@@ -6,6 +6,7 @@ import {
   Section, Field, CmdButton, DataInput,
 } from '@/components/workspace/command-ui';
 import { toast } from 'sonner';
+import { safeErrorMessage } from '@/lib/safeErrorMessage';
 import { cn } from '@/lib/utils';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
@@ -79,7 +80,7 @@ export default function WorkspaceBrand() {
       })
       .eq('id', currentOrg.id);
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(safeErrorMessage(error, "Couldn't save your brand kit. Please try again.")); return; }
     toast.success('Brand kit committed — applied to all new generations');
     void refresh();
   };
@@ -273,7 +274,7 @@ function LogoUploader({
       onChange(publicUrl);
       toast.success('Logo uploaded');
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Upload failed');
+      toast.error(safeErrorMessage(e, 'Upload failed'));
     } finally {
       setUploading(false);
     }

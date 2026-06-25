@@ -55,7 +55,8 @@ Deno.serve(async (req) => {
     await admin.from('org_domains').update({ verified_at: new Date().toISOString() }).eq('id', row.id);
     return json({ ok: true });
   } catch (e) {
-    return json({ error: (e as Error).message }, 500);
+    console.error("[verify-org-domain] error", e);
+    return json({ error: "internal_error", message: "We couldn't verify the domain. Please try again." }, 500);
   }
 });
 

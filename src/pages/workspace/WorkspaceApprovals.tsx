@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { WorkspacePage, EmptyState } from '@/components/workspace/PageShell';
 import { Surface, Pill, CmdButton, DataTextarea } from '@/components/workspace/command-ui';
 import { toast } from 'sonner';
+import { safeErrorMessage } from '@/lib/safeErrorMessage';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 interface ApprovalRow {
@@ -80,7 +81,7 @@ export default function WorkspaceApprovals() {
       .eq('id', row.id);
     setBusyId(null);
     if (error) {
-      toast.error(error.message);
+      toast.error(safeErrorMessage(error, "Couldn't update the approval. Please try again."));
       return;
     }
     toast.success(status === 'approved' ? 'Approved' : 'Rejected');

@@ -21,6 +21,7 @@ import { useReelPublisher } from "@/hooks/useReelPublisher";
 import { useSafeNavigation } from "@/lib/navigation";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 
 interface Project {
   id: string;
@@ -146,7 +147,7 @@ export function PublishWizard({ open, projectId, onClose, onPublished }: Props) 
         // when it silently failed.
         if (error) {
           console.warn("[PublishWizard] prompt entry failed", error.message);
-          toast.error("Couldn't enter today's prompt", { description: error.message });
+          toast.error("Couldn't enter today's prompt", { description: safeErrorMessage(error, "Please try again.") });
         } else {
           toast.success("Entered today's prompt");
         }

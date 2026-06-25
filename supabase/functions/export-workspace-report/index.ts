@@ -87,7 +87,8 @@ Deno.serve(async (req) => {
 
     return json({ csv, rows: csv.split('\n').length - 1 });
   } catch (e) {
-    return json({ error: (e as Error).message }, 500);
+    console.error("[export-workspace-report] error", e);
+    return json({ error: "internal_error", message: "We couldn't generate the report. Please try again." }, 500);
   }
 });
 

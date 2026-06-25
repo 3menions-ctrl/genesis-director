@@ -187,7 +187,7 @@ serve(async (req) => {
     });
   } catch (err) {
     console.error("[get-cinema-pending-change] error", err);
-    return new Response(JSON.stringify({ error: String(err), pending: null }), {
+    return new Response(JSON.stringify({ error: "internal_error", pending: null }), {
       status: 200, headers: { ...cors, "Content-Type": "application/json" },
     });
   }

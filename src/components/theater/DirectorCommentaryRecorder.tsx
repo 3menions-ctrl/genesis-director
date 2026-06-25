@@ -12,6 +12,7 @@ import { Circle, Square, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import { toast } from "sonner";
 
 interface Props {
@@ -78,7 +79,7 @@ export function DirectorCommentaryRecorder({
         });
       }, 1000);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't start the microphone.");
+      setError(safeErrorMessage(e, "Couldn't start the microphone."));
     }
   };
 
@@ -98,7 +99,7 @@ export function DirectorCommentaryRecorder({
       const { error: upErr } = await supabase.storage
         .from("director-commentary")
         .upload(path, blob, { upsert: true, cacheControl: "31536000", contentType: mime });
-      if (upErr) { setError(upErr.message); return; }
+      if (upErr) { setError(safeErrorMessage(upErr, "Couldn't upload your commentary. Please try again.")); return; }
       const { data } = supabase.storage.from("director-commentary").getPublicUrl(path);
       const audioUrl = data?.publicUrl;
       if (!audioUrl) { setError("Couldn't resolve the public URL."); return; }
@@ -113,7 +114,7 @@ export function DirectorCommentaryRecorder({
           },
           { onConflict: "reel_id,director_id" },
         );
-      if (insErr) { setError(insErr.message); return; }
+      if (insErr) { setError(safeErrorMessage(insErr, "Couldn't save your commentary. Please try again.")); return; }
       toast.success("Commentary saved — viewers can now turn it on.");
       onDone?.();
     } finally {

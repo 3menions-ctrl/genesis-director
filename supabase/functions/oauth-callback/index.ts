@@ -209,7 +209,7 @@ serve(async (req) => {
     return bounce(returnUrl, {
       integration: "oauth",
       status: "error",
-      reason: reason.slice(0, 120),
+      reason: "connection_failed",
     });
   }
 });

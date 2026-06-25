@@ -401,7 +401,7 @@ export async function handleStripeWebhookRequest(
       }
     } catch (handlerErr) {
       log("handler error", { error: String(handlerErr) });
-      return new Response(JSON.stringify({ error: String(handlerErr) }), { status: 500 });
+      return new Response(JSON.stringify({ error: "handler_error" }), { status: 500 });
     }
 
     return new Response(JSON.stringify({ received: true }), {
@@ -410,6 +410,6 @@ export async function handleStripeWebhookRequest(
     });
   } catch (err) {
     log("FATAL", { error: String(err) });
-    return new Response(JSON.stringify({ error: String(err) }), { status: 500 });
+    return new Response(JSON.stringify({ error: "internal_error" }), { status: 500 });
   }
 }

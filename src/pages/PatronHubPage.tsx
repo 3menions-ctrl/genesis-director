@@ -22,6 +22,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { Spinner } from "@/components/ui/Spinner";
 import { CenterLine } from "@/components/ui/CenterLine";
 import { cn } from "@/lib/utils";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import { toast } from "sonner";
 
 // Same TYPE_META as the rest of the app (Mono caps with tight tracking).
@@ -211,7 +212,7 @@ export default function PatronHubPage() {
         window.setTimeout(() => setTab("yours"), 900);
       }
     } catch (e) {
-      toast.error(humaniseError(e instanceof Error ? e.message : "Pledge failed"));
+      toast.error(humaniseError(safeErrorMessage(e, "Pledge failed")));
     } finally {
       setBusyTierId(null);
     }
@@ -226,7 +227,7 @@ export default function PatronHubPage() {
       toast.success(`Cancelled pledge to ${sub.creator?.display_name ?? "creator"}.`);
     } catch (e) {
       setPledges((prev) => prev ? [sub, ...prev] : [sub]);
-      toast.error(e instanceof Error ? e.message : "Couldn't cancel");
+      toast.error(safeErrorMessage(e, "Couldn't cancel"));
     } finally {
       setCancellingId(null);
     }

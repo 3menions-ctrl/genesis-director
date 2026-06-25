@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.error("[CREATE-ORG-CHECKOUT] Error", err);
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Unexpected error" }),
+      JSON.stringify({ error: "checkout_failed", message: "We couldn't start checkout. Please try again." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }

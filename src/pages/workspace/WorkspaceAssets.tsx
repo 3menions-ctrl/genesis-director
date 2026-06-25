@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Surface, Pill } from '@/components/workspace/command-ui';
 import { toast } from 'sonner';
+import { safeErrorMessage } from '@/lib/safeErrorMessage';
 import { cn } from '@/lib/utils';
 import { ListPagination, usePagination } from '@/components/ui/list-pagination';
 
@@ -107,7 +108,7 @@ export default function WorkspaceAssets() {
     const { error: stErr } = await supabase.storage.from('brand-assets').remove([asset.storage_path]);
     if (stErr) console.warn('[assets] storage remove warning:', stErr.message);
     const { error } = await (supabase as any).from('organization_brand_assets').delete().eq('id', asset.id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(safeErrorMessage(error, "Couldn't remove asset. Please try again.")); return; }
     toast.success('Asset purged');
     void load();
   };

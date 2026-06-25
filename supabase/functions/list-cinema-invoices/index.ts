@@ -115,7 +115,7 @@ serve(async (req) => {
     });
   } catch (err) {
     console.error("[list-cinema-invoices] error", err);
-    return new Response(JSON.stringify({ error: String(err) }), {
+    return new Response(JSON.stringify({ error: "internal_error", message: "We couldn't load invoices. Please try again." }), {
       status: 500, headers: { ...cors, "Content-Type": "application/json" },
     });
   }

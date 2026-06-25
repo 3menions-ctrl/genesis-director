@@ -16,6 +16,7 @@ import {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
 } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeErrorMessage } from '@/lib/safeErrorMessage';
 import { useAuth } from '@/contexts/AuthContext';
 
 export interface CreditsState {
@@ -101,7 +102,7 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
       const s = await readState(userId);
       return s;
     } catch (e) {
-      setError((e as Error).message);
+      setError(safeErrorMessage(e, "Couldn't load your credit balance. Please refresh."));
       const b = balanceRef.current, h = heldRef.current;
       return { balance: b, held: h, available: Math.max(b - h, 0) };
     } finally {

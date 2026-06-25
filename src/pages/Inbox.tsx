@@ -26,6 +26,7 @@ import {
   Archive, MoreHorizontal, PlayCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -1444,7 +1445,7 @@ function BrandInquiryDetailDialog({
       .update({ status, updated_at: new Date().toISOString() } as never)
       .eq("id", inquiryId);
     setBusy(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(safeErrorMessage(error, "Couldn't update the inquiry. Please try again.")); return; }
     toast.success(status === "accepted" ? "Accepted. We'll DM them on your behalf." : status === "declined" ? "Declined." : "Archived.");
     if (status === "accepted" && row) {
       await supabase.rpc("send_direct_message" as never, {

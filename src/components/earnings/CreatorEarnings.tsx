@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 
 interface PayoutAccount {
   stripe_account_id: string;
@@ -77,7 +78,7 @@ export function CreatorEarnings({ className }: { className?: string }) {
         body: {},
       });
       if (error) {
-        toast.error(error.message || "Couldn't initiate the payout.");
+        toast.error(safeErrorMessage(error, "Couldn't initiate the payout."));
         return;
       }
       const cents = (data as { amount_cents?: number })?.amount_cents ?? 0;

@@ -22,6 +22,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { saveDraft } from "@/lib/sessionPersistence";
 import { toast } from "sonner";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { BusinessPage, SectionHead, Badge, EmptyState } from "@/components/business/BusinessPage";
 import { cn } from "@/lib/utils";
@@ -177,7 +178,7 @@ export default function BusinessAdStudio() {
       });
       toast.success(`${next.length} ad concept${next.length > 1 ? "s" : ""} generated.`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't generate concepts.");
+      toast.error(safeErrorMessage(e, "Couldn't generate concepts."));
     } finally {
       setGenerating(false);
     }
@@ -508,7 +509,7 @@ function VariantLab({ concept, context, canEdit, onSend }: {
       setVariants(next);
       toast.success(`${next.length} variant${next.length > 1 ? "s" : ""} generated.`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't generate variants.");
+      toast.error(safeErrorMessage(e, "Couldn't generate variants."));
     } finally {
       setGenerating(false);
     }

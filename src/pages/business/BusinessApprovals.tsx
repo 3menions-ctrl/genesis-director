@@ -15,6 +15,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { BusinessPage, StatCard, SectionHead, EmptyState, SkeletonRows, Badge, StaggerList, StaggerItem } from "@/components/business/BusinessPage";
 import { ChartCard, DonutChart, ChartLegend, CHART_AMBER, CHART_EMERALD, CHART_ROSE } from "@/components/business/BusinessCharts";
 import { toast } from "sonner";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import { cn } from "@/lib/utils";
 
 interface ApprovalRow {
@@ -96,7 +97,7 @@ export function ApprovalsContent() {
       .eq("id", row.id);
     setBusyId(null);
     if (error) {
-      toast.error(error.message);
+      toast.error(safeErrorMessage(error, "Couldn't update approval."));
       return;
     }
     toast.success(status === "approved" ? "Approved" : "Rejected");

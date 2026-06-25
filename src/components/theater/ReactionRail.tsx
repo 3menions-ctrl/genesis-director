@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSafeNavigation } from "@/lib/navigation";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 
 interface Reaction {
   id: string;
@@ -232,7 +233,7 @@ function ReactionRecorder({ reelId, onCancel, onRecorded }: RecorderProps) {
         if (videoRef.current) videoRef.current.srcObject = stream;
       } catch (e) {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : "Camera permission denied");
+          setError(safeErrorMessage(e, "Camera permission denied"));
         }
       }
     })();
@@ -294,7 +295,7 @@ function ReactionRecorder({ reelId, onCancel, onRecorded }: RecorderProps) {
       if (insertErr) throw insertErr;
       onRecorded(row as Reaction);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload failed");
+      setError(safeErrorMessage(e, "Upload failed"));
       setPhase("previewing");
     }
   };

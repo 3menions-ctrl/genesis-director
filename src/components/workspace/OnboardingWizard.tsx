@@ -5,6 +5,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { safeErrorMessage } from '@/lib/safeErrorMessage';
 import { toast } from 'sonner';
 import { AlertTriangle } from 'lucide-react';
 
@@ -181,7 +182,7 @@ export function OnboardingWizard() {
         console.debug('[OnboardingWizard] audit fetch failed', e);
       }
     } catch (err: any) {
-      const msg = err?.message || 'Could not load onboarding status.';
+      const msg = safeErrorMessage(err, 'Could not load onboarding status.');
       console.error('[OnboardingWizard] load failed:', err);
       setLoadError(msg);
       // Only toast when the modal is actually visible — silent on background polls
@@ -251,7 +252,7 @@ export function OnboardingWizard() {
     setUndoBusy(false);
     if (error) {
       setOverrides(prev);
-      toast.error('Could not undo override', { description: error.message });
+      toast.error('Could not undo override', { description: safeErrorMessage(error, 'Please try again.') });
       return;
     }
     toast.success('Override removed');
@@ -280,7 +281,7 @@ export function OnboardingWizard() {
     setReasonBusy(false);
     if (error) {
       setOverrides(prev);
-      toast.error('Could not mark step done', { description: error.message });
+      toast.error('Could not mark step done', { description: safeErrorMessage(error, 'Please try again.') });
       return;
     }
     toast.success('Step marked done');
@@ -301,7 +302,7 @@ export function OnboardingWizard() {
     if (markFinished) {
       // Fire-and-forget — wizard never blocks the UI on this.
       supabase.rpc('mark_org_onboarded', { p_org: currentOrg.id }).then(({ error }) => {
-        if (error) toast.error('Could not mark workspace ready', { description: error.message });
+        if (error) toast.error('Could not mark workspace ready', { description: safeErrorMessage(error, 'Please try again.') });
       });
     }
   };
@@ -316,7 +317,7 @@ export function OnboardingWizard() {
       toast.success('Workspace marked as ready');
       setOpen(false);
     } catch (err: any) {
-      const msg = err?.message || 'Please try again in a moment.';
+      const msg = safeErrorMessage(err, 'Please try again in a moment.');
       console.error('[OnboardingWizard] mark_org_onboarded failed:', err);
       toast.error('Could not finish setup', { description: msg });
     } finally { setBusy(false); }

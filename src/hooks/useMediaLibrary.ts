@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeErrorMessage } from '@/lib/safeErrorMessage';
 
 export type MediaKind = 'image' | 'audio' | 'video';
 
@@ -67,7 +68,7 @@ export function useMediaLibrary(opts: Options = {}) {
       if (rpcErr) throw rpcErr;
       setAssets((data ?? []) as MediaAsset[]);
     } catch (e) {
-      setError((e as Error).message);
+      setError(safeErrorMessage(e, 'Could not load your media library. Please try again.'));
       setAssets([]);
     } finally {
       setLoading(false);

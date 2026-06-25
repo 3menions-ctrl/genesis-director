@@ -21,6 +21,7 @@
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { setLoading, setProject, setError } from "@/lib/editor/store";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import {
   parseAspectRatio,
   buildDefaultTracks,
@@ -151,7 +152,7 @@ export function useProject(projectId: string | undefined) {
         if (cancelled) return;
 
         if (projectRes.error || !projectRes.data) {
-          setError(projectRes.error?.message ?? "Project not found");
+          setError(safeErrorMessage(projectRes.error, "Project not found"));
           return;
         }
         const pr = projectRes.data as MovieProjectRow;
@@ -401,7 +402,7 @@ export function useProject(projectId: string | undefined) {
       } catch (e) {
         if (cancelled) return;
         console.error("[useProject] load failed", e);
-        setError(e instanceof Error ? e.message : "Failed to load project");
+        setError(safeErrorMessage(e, "Failed to load project"));
       }
     })();
 

@@ -74,7 +74,7 @@ serve(async (req) => {
     });
   } catch (err) {
     console.error("[create-portal-session] error", err);
-    return new Response(JSON.stringify({ error: String(err) }), {
+    return new Response(JSON.stringify({ error: "portal_failed", message: "We couldn't open the billing portal. Please try again." }), {
       status: 500, headers: { ...cors, "Content-Type": "application/json" },
     });
   }

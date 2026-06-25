@@ -39,7 +39,7 @@ serve(async (req) => {
     const { data, error } = await supabase.rpc("reconcile_pipeline_credit_holds");
     if (error) {
       console.error("[reconcile-credit-holds] RPC error:", error);
-      return new Response(JSON.stringify({ success: false, error: error.message }), {
+      return new Response(JSON.stringify({ success: false, error: "reconcile_failed" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -49,7 +49,7 @@ serve(async (req) => {
     });
   } catch (e: any) {
     console.error("[reconcile-credit-holds] threw:", e);
-    return new Response(JSON.stringify({ success: false, error: e?.message ?? "unknown" }), {
+    return new Response(JSON.stringify({ success: false, error: "internal_error" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

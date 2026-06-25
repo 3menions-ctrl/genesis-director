@@ -159,6 +159,6 @@ Deno.serve(async (req) => {
     const msg = err instanceof Error ? err.message : String(err);
     log("handler error", { msg });
     // 200 so Polar doesn't infinitely retry a poison event; we logged it.
-    return new Response(JSON.stringify({ received: true, error: msg }), { status: 200 });
+    return new Response(JSON.stringify({ received: true, error: "handler_error" }), { status: 200 });
   }
 });

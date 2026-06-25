@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { WorkspacePage } from '@/components/workspace/PageShell';
 import { Section, Pill, CmdButton } from '@/components/workspace/command-ui';
 import { toast } from 'sonner';
+import { safeErrorMessage } from '@/lib/safeErrorMessage';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 type ChannelKey = 'email' | 'in_app';
@@ -81,7 +82,7 @@ export default function WorkspaceNotifications() {
       .from('org_notification_prefs')
       .upsert({ organization_id: currentOrg.id, prefs: prefs as any, updated_by: user.id }, { onConflict: 'organization_id' });
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(safeErrorMessage(error, "Couldn't save notification settings. Please try again.")); return; }
     toast.success('Notification routing saved');
     setOriginal(prefs);
     await supabase.from('workspace_audit_events').insert({

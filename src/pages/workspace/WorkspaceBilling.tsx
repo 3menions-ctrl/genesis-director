@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { WorkspacePage } from '@/components/workspace/PageShell';
 import { Section, CmdButton, DataInput, Pill } from '@/components/workspace/command-ui';
 import { toast } from 'sonner';
+import { safeErrorMessage } from '@/lib/safeErrorMessage';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 interface OrgUsageStats {
@@ -91,7 +92,7 @@ export default function WorkspaceBilling() {
     });
     setBusy(false);
     if (error) {
-      toast.error(error.message ?? 'Could not send');
+      toast.error(safeErrorMessage(error, 'Could not send'));
       return;
     }
     setSent(true);

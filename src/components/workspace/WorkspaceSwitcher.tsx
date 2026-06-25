@@ -3,6 +3,7 @@ import { Check, ChevronsUpDown, Plus, Building2, Settings as SettingsIcon, Users
 import { Link } from 'react-router-dom';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { cn } from '@/lib/utils';
+import { safeErrorMessage } from '@/lib/safeErrorMessage';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel,
@@ -34,7 +35,7 @@ export function WorkspaceSwitcher({ collapsed }: Props) {
     const { error } = await createOrg(newName.trim());
     setBusy(false);
     if (error) {
-      toast.error(error.message);
+      toast.error(safeErrorMessage(error, 'Could not create workspace. Please try again.'));
     } else {
       toast.success('Workspace created');
       setNewName('');

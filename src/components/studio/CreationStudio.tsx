@@ -33,6 +33,7 @@ import {
 } from "@/lib/video/engines";
 import { useAvatarTemplatesQuery } from "@/hooks/useAvatarTemplatesQuery";
 import { useAllCrossoverBlueprints } from "@/lib/crossovers/registry";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import { EXTENDED_ENVIRONMENTS } from "@/data/environment-extensions";
 import { ReferenceImageUpload } from "@/components/studio/ReferenceImageUpload";
 import { supabase } from "@/integrations/supabase/client";
@@ -510,7 +511,7 @@ function CastBuilder({ sel, setSel }: { sel: Selections; setSel: (s: Selections)
       setStatus("done");
     } catch (e) {
       setStatus("error");
-      setError(e instanceof Error ? e.message : "Avatar generation failed.");
+      setError(safeErrorMessage(e, "Avatar generation failed."));
     }
   };
 
@@ -874,7 +875,7 @@ function CrossoversPanel({ sel, onStartCreation, tabSwitch }: { sel: Selections;
         </div>
 
         {loading ? <p className="text-[13px] text-muted-foreground">Loading crossovers…</p>
-          : error ? <p className="text-[13px] text-red-400">Couldn't load crossovers — {error.message}</p>
+          : error ? <p className="text-[13px] text-red-400">Couldn't load crossovers — {safeErrorMessage(error, "please try again.")}</p>
           : blueprints.length === 0 ? <p className="text-[13px] text-muted-foreground">No crossovers available.</p> : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {blueprints.map((b) => {

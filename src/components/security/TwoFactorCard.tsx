@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Lock, Loader2, Smartphone, Copy, Check, ShieldCheck, X } from "lucide-react";
 import { toast } from "sonner";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import { cn } from "@/lib/utils";
 
 type Factor = { id: string; status: string; friendly_name?: string | null };
@@ -43,7 +44,7 @@ export function TwoFactorCard({ glassCard }: Props) {
       }
     } catch (e: any) {
       // listFactors fails silently if no session; surface only real errors
-      if (e?.message && !/session/i.test(e.message)) toast.error(e.message);
+      if (e?.message && !/session/i.test(e.message)) toast.error(safeErrorMessage(e, "Couldn't load your 2FA settings."));
     } finally {
       setLoading(false);
     }
@@ -72,7 +73,7 @@ export function TwoFactorCard({ glassCard }: Props) {
       });
       setCode("");
     } catch (e: any) {
-      toast.error(e?.message || "Could not start 2FA setup");
+      toast.error(safeErrorMessage(e, "Could not start 2FA setup."));
     } finally {
       setBusy(false);
     }

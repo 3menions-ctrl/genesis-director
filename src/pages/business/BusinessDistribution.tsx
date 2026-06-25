@@ -20,6 +20,7 @@ import {
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { BusinessPage, SectionHead, Badge, EmptyState } from "@/components/business/BusinessPage";
 import { cn } from "@/lib/utils";
@@ -112,7 +113,7 @@ export default function BusinessDistribution() {
       setProviders(Array.isArray(data.providers) && data.providers.length ? data.providers : FALLBACK_PROVIDERS);
       setJobs(Array.isArray(data.jobs) ? data.jobs : []);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't load distribution.");
+      toast.error(safeErrorMessage(e, "Couldn't load distribution."));
     } finally {
       setLoading(false);
     }
@@ -156,7 +157,7 @@ export default function BusinessDistribution() {
       if (data?.authUrl) { window.location.href = data.authUrl; return; }
       throw new Error("No authorization URL returned");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't start connection.");
+      toast.error(safeErrorMessage(e, "Couldn't start connection."));
     } finally {
       setBusyProvider(null);
     }
@@ -174,7 +175,7 @@ export default function BusinessDistribution() {
       toast.success(`${p.label} disconnected.`);
       void load();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't disconnect.");
+      toast.error(safeErrorMessage(e, "Couldn't disconnect."));
     } finally {
       setBusyProvider(null);
     }
@@ -209,7 +210,7 @@ export default function BusinessDistribution() {
       setAssetUrl(""); setTitle(""); setCaption(""); setHashtags(""); setCta(""); setChannels([]); setScheduledAt("");
       void load();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't publish.");
+      toast.error(safeErrorMessage(e, "Couldn't publish."));
     } finally {
       setPublishing(false);
     }

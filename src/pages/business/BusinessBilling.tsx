@@ -25,6 +25,7 @@ import {
 import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
 import { toast } from "sonner";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 
 const WINDOW_DAYS = 30;
 const MONTHS = 6;
@@ -196,7 +197,7 @@ export default function BusinessBilling() {
     });
     setBusy(false);
     if (error) {
-      toast.error(error.message ?? "Could not send");
+      toast.error(safeErrorMessage(error, "Could not send"));
       return;
     }
     setSent(true);

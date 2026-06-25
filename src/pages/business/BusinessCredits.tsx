@@ -22,6 +22,7 @@ import {
 import { ListPagination, usePagination } from "@/components/ui/list-pagination";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import { cn } from "@/lib/utils";
 
 const WINDOW_DAYS = 30;
@@ -156,7 +157,7 @@ export default function BusinessCredits() {
       "set_org_spend_alerts", { p_org: currentOrg.id, p_daily: d, p_weekly: w },
     );
     setSavingAlerts(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(safeErrorMessage(error, "Couldn't save spend alerts.")); return; }
     toast.success("Spend alerts saved");
   };
 
@@ -167,7 +168,7 @@ export default function BusinessCredits() {
       "set_org_auto_recharge", { p_org: currentOrg.id, p_enabled: turnOn, p_threshold: threshold, p_amount: amount },
     );
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(safeErrorMessage(error, "Couldn't save auto-recharge.")); return; }
     setEnabled(turnOn);
     setOpen(false);
     toast.success(turnOn ? "Auto-recharge preference saved" : "Auto-recharge disabled");

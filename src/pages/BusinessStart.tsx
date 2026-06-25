@@ -44,6 +44,7 @@ import { useSafeNavigation } from "@/lib/navigation";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/ui/Logo";
 import { AuthOtpInput } from "@/components/auth/AuthOtpInput";
@@ -423,7 +424,7 @@ export default function BusinessStart() {
   const resend = async () => {
     try {
       const { error } = await supabase.auth.resend({ type: "signup", email: form.work_email.trim() });
-      if (error) toast.error(error.message); else toast.success("New code sent.");
+      if (error) toast.error(safeErrorMessage(error, "Couldn't resend the code. Please try again.")); else toast.success("New code sent.");
     } catch { toast.error("Could not resend the code."); }
   };
 

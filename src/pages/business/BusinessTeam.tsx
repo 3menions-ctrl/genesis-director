@@ -18,6 +18,7 @@ import { confirmAsync } from "@/components/ui/global-confirm";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { BusinessPage, StatCard, SectionHead, EmptyState, SkeletonRows } from "@/components/business/BusinessPage";
 import { toast } from "sonner";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import { cn } from "@/lib/utils";
 
 interface Member {
@@ -124,7 +125,7 @@ export function TeamContent() {
       organization_id: currentOrg.id, email, role: inviteRole, invited_by: user.id,
     }).select("token").single();
     setInviting(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(safeErrorMessage(error, "Couldn't create invite.")); return; }
     setInviteEmail("");
     void load();
     const link = `${window.location.origin}/invite/${data.token}`;
@@ -140,7 +141,7 @@ export function TeamContent() {
     const target = members.find((m) => m.id === memberId);
     const oldRole = target?.role;
     const { error } = await supabase.from("organization_members").update({ role }).eq("id", memberId);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(safeErrorMessage(error, "Couldn't update role.")); return; }
     toast.success("Role updated");
     void load();
     if (target?.profile?.email && oldRole && oldRole !== role) {
@@ -156,7 +157,7 @@ export function TeamContent() {
   const removeMember = async (memberId: string) => {
     if (!(await confirmAsync("Remove this member from the workspace?"))) return;
     const { error } = await supabase.from("organization_members").delete().eq("id", memberId);
-    if (error) toast.error(error.message); else { toast.success("Member removed"); void load(); refresh(); }
+    if (error) toast.error(safeErrorMessage(error, "Couldn't remove member.")); else { toast.success("Member removed"); void load(); refresh(); }
   };
 
   const setLimit = async (m: Member) => {
@@ -167,12 +168,12 @@ export function TeamContent() {
     const { error } = await (supabase.rpc as unknown as (f: string, a: Record<string, unknown>) => Promise<{ error: { message: string } | null }>)(
       "set_member_credit_limit", { p_org: currentOrg!.id, p_user: m.user_id, p_limit: limit },
     );
-    if (error) toast.error(error.message); else { toast.success(limit === null ? "Cap removed" : `Cap set to ${limit}`); void load(); }
+    if (error) toast.error(safeErrorMessage(error, "Couldn't set credit cap.")); else { toast.success(limit === null ? "Cap removed" : `Cap set to ${limit}`); void load(); }
   };
 
   const revokeInvite = async (inviteId: string) => {
     const { error } = await supabase.from("organization_invites").delete().eq("id", inviteId);
-    if (error) toast.error(error.message); else { toast.success("Invite revoked"); void load(); }
+    if (error) toast.error(safeErrorMessage(error, "Couldn't revoke invite.")); else { toast.success("Invite revoked"); void load(); }
   };
 
   const copyInviteLink = (token: string, id: string) => {

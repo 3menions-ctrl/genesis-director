@@ -16,6 +16,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { BusinessPage, SectionHead, Badge } from "@/components/business/BusinessPage";
 import { confirmAsync } from "@/components/ui/global-confirm";
 import { toast } from "sonner";
+import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
 
@@ -97,7 +98,7 @@ export function SecurityContent() {
       p_org: currentOrg.id, p_require_2fa: next,
     } as never);
     setBusy(null);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(safeErrorMessage(error, "Couldn't update 2FA policy."));
     setRequire2fa(next);
     toast.success(next ? "2FA is now required for every member" : "2FA enforcement disabled");
   };
@@ -109,7 +110,7 @@ export function SecurityContent() {
     setBusy("add");
     const { error } = await supabase.rpc("add_org_domain", { p_org: currentOrg.id, p_domain: d } as never);
     setBusy(null);
-    if (error) return toast.error(error.message.includes("duplicate") ? "Domain already added" : error.message);
+    if (error) return toast.error(error.message.includes("duplicate") ? "Domain already added" : safeErrorMessage(error, "Couldn't add domain."));
     setNewDomain("");
     toast.success("Domain added — publish DNS TXT to verify");
     load();
@@ -120,7 +121,7 @@ export function SecurityContent() {
     const { data, error } = await supabase.functions.invoke("verify-org-domain", { body: { domain_id: d.id } });
     setBusy(null);
     const fnError = (data as { error?: string } | null)?.error;
-    if (error || fnError) return toast.error(fnError || error?.message || "Verification failed");
+    if (error || fnError) return toast.error(fnError || safeErrorMessage(error, "Verification failed"));
     toast.success(`${d.domain} verified`);
     load();
   };
@@ -128,7 +129,7 @@ export function SecurityContent() {
   const remove = async (d: OrgDomain) => {
     if (!await confirmAsync(`Remove ${d.domain}?`)) return;
     const { error } = await supabase.from("org_domains").delete().eq("id", d.id);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(safeErrorMessage(error, "Couldn't remove domain."));
     load();
   };
 

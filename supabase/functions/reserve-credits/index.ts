@@ -18,6 +18,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { newErrorId } from "../_shared/error-response.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,6 +30,14 @@ const json = (status: number, body: Record<string, unknown>) =>
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+
+// Log the full technical detail server-side; return only a stable code + a
+// short correlation id to the client. NEVER leak raw DB/RPC error text.
+const fail = (status: number, code: string, detail: unknown, extra: Record<string, unknown> = {}) => {
+  const errorId = newErrorId();
+  console.error(`[reserve-credits] ${code} errorId=${errorId} ::`, detail);
+  return json(status, { error: code, errorId, ...extra });
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -59,7 +68,7 @@ serve(async (req) => {
   try {
     if (action === "state") {
       const { data, error } = await admin.rpc("get_credit_state", { p_user_id: userId });
-      if (error) return json(500, { success: false, error: "state_lookup_failed", detail: error.message });
+      if (error) return fail(500, "state_lookup_failed", error, { success: false });
       const payload = (data || {}) as Record<string, unknown>;
       return json(payload.success === true ? 200 : 404, payload);
     }
@@ -78,8 +87,7 @@ serve(async (req) => {
         p_ttl_seconds:     Number.isInteger(body.ttlSeconds) ? body.ttlSeconds : 900,
       });
       if (error) {
-        console.error("[reserve-credits] reserve_credits RPC error:", error);
-        return json(500, { error: "rpc_failed", detail: error.message });
+        return fail(500, "rpc_failed", error);
       }
       const ok = (data as any)?.success === true;
       return json(ok ? 200 : 402, data as Record<string, unknown>);
@@ -95,7 +103,7 @@ serve(async (req) => {
         .select("id, user_id, status")
         .eq("id", holdId)
         .maybeSingle();
-      if (holdErr) return json(500, { error: "lookup_failed", detail: holdErr.message });
+      if (holdErr) return fail(500, "lookup_failed", holdErr);
       if (!hold)   return json(404, { error: "hold_not_found" });
       if (hold.user_id !== userId) return json(403, { error: "forbidden" });
 
@@ -105,7 +113,7 @@ serve(async (req) => {
           p_description:   body.description ?? null,
           p_clip_duration: Number.isInteger(body.clipDuration) ? body.clipDuration : null,
         });
-        if (error) return json(500, { error: "rpc_failed", detail: error.message });
+        if (error) return fail(500, "rpc_failed", error);
         const ok = (data as any)?.success === true;
         return json(ok ? 200 : 409, data as Record<string, unknown>);
       }
@@ -114,13 +122,12 @@ serve(async (req) => {
         p_hold_id: holdId,
         p_reason:  body.reason ?? null,
       });
-      if (error) return json(500, { error: "rpc_failed", detail: error.message });
+      if (error) return fail(500, "rpc_failed", error);
       return json(200, data as Record<string, unknown>);
     }
 
     return json(400, { error: "unknown_action", action });
   } catch (e: any) {
-    console.error("[reserve-credits] unhandled error:", e);
-    return json(500, { error: "internal_error", detail: e?.message });
+    return fail(500, "internal_error", e);
   }
 });

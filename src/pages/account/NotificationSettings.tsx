@@ -25,6 +25,7 @@ import {
   Loader2, Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { safeErrorMessage } from '@/lib/safeErrorMessage';
 import { TYPE_META } from '@/lib/design-system';
 import { FoundationShell } from '@/components/foundation/FoundationShell';
 import { supabase } from '@/integrations/supabase/client';
@@ -155,7 +156,7 @@ export default function NotificationSettings() {
       .from('notification_preferences')
       .upsert({ user_id: user.id, ...prefs }, { onConflict: 'user_id' });
     if (error) {
-      toast.error("Couldn't save preferences", { description: error.message });
+      toast.error("Couldn't save preferences", { description: safeErrorMessage(error, "Couldn't save preferences. Please try again.") });
     } else {
       toast.success('Preferences saved', { description: 'The room is tuned.' });
       setOriginal(prefs);

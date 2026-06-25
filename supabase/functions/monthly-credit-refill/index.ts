@@ -18,7 +18,7 @@ serve(async (req) => {
   const { data, error } = await sb.rpc("monthly_org_credit_refill");
   if (error) {
     console.error("[monthly-credit-refill] error", error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    return new Response(JSON.stringify({ error: "refill_failed" }), { status: 500 });
   }
   console.log("[monthly-credit-refill] result", data);
   return new Response(JSON.stringify(data), {

@@ -6,6 +6,7 @@ import { WorkspacePage } from '@/components/workspace/PageShell';
 import { Section, CmdButton, DataInput, Field } from '@/components/workspace/command-ui';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { safeErrorMessage } from '@/lib/safeErrorMessage';
 import { useNavigate } from 'react-router-dom';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
@@ -61,7 +62,7 @@ export default function WorkspaceDanger() {
       setXferOpen(false);
       await refresh();
     } catch (e: any) {
-      toast.error(e?.message ?? 'Transfer failed');
+      toast.error(safeErrorMessage(e, 'Transfer failed'));
     } finally { setBusy(false); }
   };
 
@@ -104,7 +105,7 @@ export default function WorkspaceDanger() {
       try { localStorage.removeItem('smallbridges.currentOrgId'); } catch {}
       navigate('/projects');
     } catch (e: any) {
-      toast.error(e?.message ?? 'Delete failed');
+      toast.error(safeErrorMessage(e, 'Delete failed'));
     } finally { setBusy(false); setDelOpen(false); }
   };
 

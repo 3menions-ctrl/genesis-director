@@ -68,7 +68,8 @@ Deno.serve(async (req) => {
     }
     return json({ ok: true });
   } catch (e) {
-    return json({ error: (e as Error).message }, 500);
+    console.error("[notify-org-event] error", e);
+    return json({ error: "internal_error", message: "Something went wrong. Please try again." }, 500);
   }
 });
 

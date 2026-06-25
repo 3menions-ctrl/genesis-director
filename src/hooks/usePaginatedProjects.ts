@@ -11,6 +11,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Project } from '@/types/studio';
 import { useAuth } from '@/contexts/AuthContext';
+import { safeErrorMessage } from '@/lib/safeErrorMessage';
 
 const PAGE_SIZE = 25;
 
@@ -191,7 +192,7 @@ export function usePaginatedProjects(
       if (!isMountedRef.current || controller.signal.aborted) return;
       
       if (queryError) {
-        setError(queryError.message);
+        setError(safeErrorMessage(queryError, 'Could not load your projects. Please try again.'));
         console.error('[usePaginatedProjects] Fetch error:', queryError);
         return;
       }

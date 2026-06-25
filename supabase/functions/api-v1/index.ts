@@ -251,7 +251,7 @@ Deno.serve(async (req) => {
     if (inv.error) {
       await refund(inv.error.message);
       await log(502, 0, inv.error.message);
-      return jsonResponse({ error: inv.error.message }, 502);
+      return jsonResponse({ error: "upstream_failed", message: "The generation service is temporarily unavailable. Please try again.", request_id: requestId }, 502);
     }
 
     await log(200, cost);
@@ -264,6 +264,6 @@ Deno.serve(async (req) => {
     const msg = err instanceof Error ? err.message : 'Unknown error';
     console.error('[api-v1] error:', msg);
     await log(500, 0, msg);
-    return jsonResponse({ error: msg, request_id: requestId }, 500);
+    return jsonResponse({ error: "internal_error", message: "Something went wrong processing your request.", request_id: requestId }, 500);
   }
 });

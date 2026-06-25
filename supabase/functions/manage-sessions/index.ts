@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
       if (!resp.ok) {
         const text = await resp.text()
         console.error('[manage-sessions] list failed', resp.status, text)
-        return jsonResponse({ error: 'Failed to list sessions', details: text }, 500)
+        return jsonResponse({ error: 'Failed to list sessions' }, 500)
       }
       const data = await resp.json()
       const sessions = (Array.isArray(data) ? data : data?.sessions || []).map((s: any) => ({
@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
       if (!resp.ok && resp.status !== 404) {
         const text = await resp.text()
         console.error('[manage-sessions] revoke failed', resp.status, text)
-        return jsonResponse({ error: 'Failed to revoke session', details: text }, 500)
+        return jsonResponse({ error: 'Failed to revoke session' }, 500)
       }
       return jsonResponse({ success: true, revoked_session_id: sid })
     }
@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
       const { error } = await admin.auth.admin.signOut(userId, scope as any)
       if (error) {
         console.error('[manage-sessions] signOut failed', error)
-        return jsonResponse({ error: error.message }, 500)
+        return jsonResponse({ error: 'Failed to revoke sessions' }, 500)
       }
       return jsonResponse({ success: true, scope })
     }
@@ -130,6 +130,6 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: `Unknown action: ${action}` }, 400)
   } catch (err) {
     console.error('[manage-sessions] Error:', err)
-    return jsonResponse({ error: (err as Error).message || 'Internal server error' }, 500)
+    return jsonResponse({ error: 'Internal server error' }, 500)
   }
 })

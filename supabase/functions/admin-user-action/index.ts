@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { newErrorId } from "../_shared/error-response.ts";
 // AUDIT FIX (admin lockout): import the shared auth guard STATICALLY. The
 // previous `await import("../_shared/auth-guard.ts")` (dynamic) was not bundled
 // by the edge-function deployer, so the deployed function threw
@@ -99,14 +100,14 @@ serve(async (req) => {
           "admin_pre_delete_user",
           { p_target_user: body.userId, p_reason: body.reason ?? null },
         );
-        if (preErr) return json({ ok: false, error: preErr.message }, 400);
+        if (preErr) return adminFail("delete_precheck_failed", preErr, 400);
 
         // Step 2: delete the auth user. profiles + cascades happen via the
         // ON DELETE CASCADE chains we built into every owned table.
         const { error: authErr } = await admin.auth.admin.deleteUser(
           body.userId,
         );
-        if (authErr) return json({ ok: false, error: authErr.message }, 500);
+        if (authErr) return adminFail("delete_failed", authErr, 500);
 
         return json({ ok: true, deleted: true, snapshot: pre });
       }
@@ -115,7 +116,7 @@ serve(async (req) => {
         const { error } = await admin.auth.admin.updateUserById(body.userId, {
           email_confirm: true,
         });
-        if (error) return json({ ok: false, error: error.message }, 500);
+        if (error) return adminFail("force_verify_failed", error, 500);
         await logAction(admin, auth.userId!, "force_verify_email", body.userId, body.reason);
         return json({ ok: true });
       }
@@ -139,7 +140,7 @@ serve(async (req) => {
             redirectTo: `${siteUrl}/auth/callback`,
           },
         });
-        if (error) return json({ ok: false, error: error.message }, 500);
+        if (error) return adminFail("password_reset_failed", error, 500);
         await logAction(admin, auth.userId!, "send_password_reset", body.userId, body.reason);
         return json({
           ok: true,
@@ -168,7 +169,7 @@ serve(async (req) => {
             redirectTo: `${siteUrl}/auth/callback`,
           },
         });
-        if (error) return json({ ok: false, error: error.message }, 500);
+        if (error) return adminFail("magic_link_failed", error, 500);
         await logAction(admin, auth.userId!, "send_magic_link", body.userId, body.reason);
         return json({ ok: true });
       }
@@ -195,7 +196,7 @@ serve(async (req) => {
             redirectTo: `${siteUrl}/auth/callback`,
           },
         });
-        if (error) return json({ ok: false, error: error.message }, 500);
+        if (error) return adminFail("impersonation_link_failed", error, 500);
         await logAction(
           admin,
           auth.userId!,
@@ -215,14 +216,7 @@ serve(async (req) => {
         return json({ ok: false, error: "unknown_action" }, 400);
     }
   } catch (error) {
-    console.error("[admin-user-action] Error:", error);
-    return json(
-      {
-        ok: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
-      500,
-    );
+    return adminFail("internal_error", error, 500);
   }
 });
 
@@ -251,4 +245,13 @@ function json(payload: unknown, status = 200): Response {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+// Log full technical detail server-side (visible in edge logs); return only a
+// stable code + correlation id. Keeps raw Supabase/auth error text out of the
+// response body even on the admin console.
+function adminFail(code: string, detail: unknown, status = 500): Response {
+  const errorId = newErrorId();
+  console.error(`[admin-user-action] ${code} errorId=${errorId} ::`, detail);
+  return json({ ok: false, error: code, errorId }, status);
 }

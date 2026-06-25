@@ -134,7 +134,7 @@ function EngineCard({ spec, active, disabled, costFor, onSelect }: {
                : "bg-[hsl(var(--foreground)/0.03)] ring-white/[0.05] hover:bg-[hsl(var(--foreground)/0.06)]",
         disabled ? "cursor-not-allowed opacity-40" : "hover:-translate-y-0.5",
       ].join(" ")}>
-      {active && <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full" style={{ background: ACCENT }}><Check className="h-3 w-3 text-white" /></span>}
+      {active && <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full" style={{ background: ACCENT }}><Check className="h-3 w-3 text-accent-foreground" /></span>}
       {disabled && <Lock className="absolute right-3 top-3 h-3.5 w-3.5 text-muted-foreground" />}
       <div className="flex items-center gap-2">
         <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">{spec.provider}</span>
@@ -197,6 +197,13 @@ function GenerateModule({ sel, setSel, onStartCreation, initialPrompt }: { sel: 
 
   const spec = ENGINES[engineId];
   const profile = spec.qualityProfiles.find((q) => q.id === profileId) ?? spec.qualityProfiles.find((q) => q.recommended) ?? spec.qualityProfiles[0];
+  // `duration` can lag a frame behind an engine switch: the clamp lives in a
+  // useEffect (runs post-render), but cost/runtime are computed during render.
+  // Switching from a 10s-capable engine to e.g. Veo (4/6/8s) would otherwise
+  // call baseCreditsFor(10) on the new spec and throw "Unsupported duration"
+  // mid-render → error boundary. Clamp in render so the spec and duration are
+  // always consistent on the very render the engine changes.
+  const safeDuration = clampDurationForEngine(engineId, duration);
 
   useEffect(() => {
     if (!modeAllowed(spec, mode)) {
@@ -216,8 +223,8 @@ function GenerateModule({ sel, setSel, onStartCreation, initialPrompt }: { sel: 
   };
   // Quality cores (4K upscale / 60fps) are post-processing on the FINAL film,
   // billed once per render — not per clip. So: base × scenes + surcharge once.
-  const totalCost = spec.baseCreditsFor(duration) * scenes + renderSurchargeCredits(spec, profile.options);
-  const runtime = duration * scenes;
+  const totalCost = spec.baseCreditsFor(safeDuration) * scenes + renderSurchargeCredits(spec, profile.options);
+  const runtime = safeDuration * scenes;
 
   const canCreate =
     mode === "text-to-video" ? prompt.trim().length > 4
@@ -231,8 +238,8 @@ function GenerateModule({ sel, setSel, onStartCreation, initialPrompt }: { sel: 
       prompt: buildPrompt(sel, prompt),
       aspectRatio: aspect,
       clipCount: scenes,
-      clipDuration: duration,
-      clipDurations: Array.from({ length: scenes }, () => duration),
+      clipDuration: safeDuration,
+      clipDurations: Array.from({ length: scenes }, () => safeDuration),
       enableNarration: narration,
       enableMusic: sel.music.enable,
       genre: sel.music.enable ? sel.music.genre : genre,
@@ -326,7 +333,7 @@ function GenerateModule({ sel, setSel, onStartCreation, initialPrompt }: { sel: 
           <div className="space-y-4 rounded-2xl bg-[hsl(var(--foreground)/0.035)] shadow-[0_18px_44px_-26px_rgba(0,0,0,0.75)] p-4 ring-1 ring-inset ring-white/[0.05]">
             <Row label="Aspect">{ASPECTS.map((a) => <Pill key={a.id} active={aspect === a.id} onClick={() => setAspect(a.id)}>{a.id} · {a.label}</Pill>)}</Row>
             <Row label="Quality">{spec.qualityProfiles.map((q) => <Pill key={q.id} active={profile.id === q.id} onClick={() => setProfileId(q.id)}>{q.label}</Pill>)}</Row>
-            <Row label="Duration">{spec.durations.map((d) => <Pill key={d} active={duration === d} onClick={() => setDuration(d)}>{d}s</Pill>)}</Row>
+            <Row label="Duration">{spec.durations.map((d) => <Pill key={d} active={safeDuration === d} onClick={() => setDuration(d)}>{d}s</Pill>)}</Row>
             <Row label="Scenes">
               <Stepper value={scenes} min={1} max={spec.maxScenesPerProject} onChange={setScenes} />
               <span className="font-mono text-[11px] text-muted-foreground">≈ {runtime}s total</span>
@@ -363,7 +370,7 @@ function GenerateModule({ sel, setSel, onStartCreation, initialPrompt }: { sel: 
         <div className="flex items-center gap-4">
           <span className="font-mono text-[12px]" style={{ color: ACCENT }}>{totalCost === 0 ? "Free" : `${totalCost} credits`}</span>
           <button type="button" onClick={create} disabled={!canCreate}
-            className="group inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-[14.5px] font-semibold text-white transition-all disabled:cursor-not-allowed disabled:opacity-75"
+            className="group inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-[14.5px] font-semibold text-accent-foreground transition-all disabled:cursor-not-allowed disabled:opacity-75"
             style={{ background: ACCENT, boxShadow: canCreate ? `0 16px 44px -10px ${ACCENT}` : `0 8px 26px -12px ${ACCENT}` }}>
             <Sparkles className="h-4 w-4" /> Generate <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </button>
@@ -435,7 +442,7 @@ function CastModule({ sel, setSel }: { sel: Selections; setSel: (s: Selections) 
                   className={["group relative overflow-hidden rounded-xl ring-1 ring-inset transition-all", on ? "ring-2 ring-[hsl(var(--accent)/0.85)]" : "ring-white/[0.05] hover:-translate-y-0.5"].join(" ")}>
                   <img src={t.face_image_url} alt={t.name} loading="lazy" className="aspect-square w-full object-cover" />
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-1.5 text-left text-[10px] font-medium text-white">{t.name}</div>
-                  {on && <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full" style={{ background: ACCENT }}><Check className="h-3 w-3 text-white" /></span>}
+                  {on && <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full" style={{ background: ACCENT }}><Check className="h-3 w-3 text-accent-foreground" /></span>}
                 </button>
               );
             })}
@@ -574,7 +581,7 @@ function CastBuilder({ sel, setSel }: { sel: Selections; setSel: (s: Selections)
                     <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">your generated presenter</div>
                   </div>
                   <button type="button" onClick={useAvatar}
-                    className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-semibold text-white transition-transform hover:-translate-y-0.5"
+                    className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-semibold text-accent-foreground transition-transform hover:-translate-y-0.5"
                     style={{ background: ACCENT, boxShadow: `0 12px 36px -10px ${ACCENT}` }}>
                     <Check className="h-4 w-4" /> Use this avatar
                   </button>
@@ -583,7 +590,7 @@ function CastBuilder({ sel, setSel }: { sel: Selections; setSel: (s: Selections)
 
               <div className="flex items-center gap-3 sm:col-span-2">
                 <button type="button" onClick={generate} disabled={!canSubmit}
-                  className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-semibold text-white transition-transform disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-semibold text-accent-foreground transition-transform disabled:cursor-not-allowed disabled:opacity-40"
                   style={{ background: ACCENT, boxShadow: canSubmit ? `0 12px 36px -10px ${ACCENT}` : "none" }}>
                   {status === "generating"
                     ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating…</>
@@ -614,7 +621,7 @@ function WorldsModule({ sel, setSel }: { sel: Selections; setSel: (s: Selections
               <img src={e.image} alt={e.name} loading="lazy" className="aspect-video w-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 p-2.5 text-left"><div className="text-[12px] font-semibold text-white">{e.name}</div><div className="font-mono text-[8px] uppercase tracking-[0.18em] text-white/55">{e.category}</div></div>
-              {on && <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full" style={{ background: ACCENT }}><Check className="h-3 w-3 text-white" /></span>}
+              {on && <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full" style={{ background: ACCENT }}><Check className="h-3 w-3 text-accent-foreground" /></span>}
             </button>
           );
         })}
@@ -822,7 +829,7 @@ function BreakoutsPanel({ sel, onStartCreation, tabSwitch }: { sel: Selections; 
       <div className="flex items-center justify-between gap-3 bg-gradient-to-t from-[hsl(var(--background)/0.78)] to-[hsl(var(--background)/0.42)] shadow-[0_-24px_48px_-28px_rgba(0,0,0,0.9)] px-6 py-4 backdrop-blur-xl sm:px-9">
         <span className="font-mono text-[11px] text-muted-foreground">Seedance · 3 clips · 15s · identity-locked</span>
         <button type="button" onClick={create} disabled={!canCreate}
-          className="group inline-flex items-center gap-2 rounded-full px-6 py-3 text-[14px] font-semibold text-white transition-transform disabled:cursor-not-allowed disabled:opacity-40"
+          className="group inline-flex items-center gap-2 rounded-full px-6 py-3 text-[14px] font-semibold text-accent-foreground transition-transform disabled:cursor-not-allowed disabled:opacity-40"
           style={{ background: ACCENT, boxShadow: canCreate ? `0 12px 36px -10px ${ACCENT}` : "none" }}>
           <Sparkles className="h-4 w-4" /> Break out <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
         </button>
@@ -893,7 +900,7 @@ function CrossoversPanel({ sel, onStartCreation, tabSwitch }: { sel: Selections;
                     <div className="text-[12px] font-semibold text-white">{b.name}</div>
                     {b.acceptsSubject && <div className="mt-0.5 font-mono text-[8px] uppercase tracking-[0.18em] text-white/55">subject-locked</div>}
                   </div>
-                  {on && <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full" style={{ background: ACCENT }}><Check className="h-3 w-3 text-white" /></span>}
+                  {on && <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full" style={{ background: ACCENT }}><Check className="h-3 w-3 text-accent-foreground" /></span>}
                 </button>
               );
             })}
@@ -911,7 +918,7 @@ function CrossoversPanel({ sel, onStartCreation, tabSwitch }: { sel: Selections;
             : "Pick a crossover"}
         </span>
         <button type="button" onClick={create} disabled={!canCreate}
-          className="group inline-flex items-center gap-2 rounded-full px-6 py-3 text-[14px] font-semibold text-white transition-transform disabled:cursor-not-allowed disabled:opacity-40"
+          className="group inline-flex items-center gap-2 rounded-full px-6 py-3 text-[14px] font-semibold text-accent-foreground transition-transform disabled:cursor-not-allowed disabled:opacity-40"
           style={{ background: ACCENT, boxShadow: canCreate ? `0 12px 36px -10px ${ACCENT}` : "none" }}>
           <Sparkles className="h-4 w-4" /> Create <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
         </button>

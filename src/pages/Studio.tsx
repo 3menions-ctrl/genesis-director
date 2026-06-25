@@ -389,9 +389,21 @@ function StudioContentInner() {
 
         safeSetState(setCreationStatus, "Creating project…");
 
+        // Cinematic modes write a script first — pause for the user to approve
+        // it (Production page shows the ScriptApproval gate) before any clip is
+        // rendered. Avatar / video-to-video / motion-transfer have no script
+        // step, and breakouts are forced onto seedance-pipeline (which doesn't
+        // honor approval), so those keep running straight through.
+        const usesScriptApproval =
+          !config.isBreakout &&
+          config.mode !== "avatar" &&
+          config.mode !== "video-to-video" &&
+          config.mode !== "motion-transfer";
+
         const requestBody: Record<string, unknown> = {
           mode: config.mode,
           userId: user.id,
+          requireApproval: usesScriptApproval,
           prompt: config.prompt?.trim(),
           imageUrl: config.imageUrl,
           videoUrl: config.videoUrl,

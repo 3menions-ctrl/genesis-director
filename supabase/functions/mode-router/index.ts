@@ -237,6 +237,12 @@ interface ModeRouterRequest {
   // Quality cores (4K upscale / 60fps interpolation). Forwarded to the
   // entry pipeline, which persists the intent for the finalizer to honor.
   qualityOptions?: { upscale4k?: boolean; fps60?: boolean };
+
+  // When true, the cinematic pipeline pauses at `awaiting_approval` after the
+  // script is written so the user can review/regenerate before any clip is
+  // rendered (Production page shows the ScriptApproval gate; resume-pipeline
+  // continues on approve). Only the hollywood-pipeline path honors this.
+  requireApproval?: boolean;
 }
 
 serve(async (req) => {
@@ -628,6 +634,7 @@ serve(async (req) => {
           templateStyleAnchor: request.templateStyleAnchor,
           templateCharacters: request.templateCharacters,
           templateEnvironmentLock: request.templateEnvironmentLock,
+          requireApproval: request.requireApproval,
           supabase,
         });
       }
@@ -1175,9 +1182,10 @@ async function handleCinematicMode(params: {
   templateStyleAnchor?: any;
   templateCharacters?: any[];
   templateEnvironmentLock?: any;
+  requireApproval?: boolean;
   supabase: any;
 }) {
-  const { projectId, userId, concept, referenceImageUrl, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, mode, genre, mood, videoEngine, qualityOptions, isBreakout, breakoutStartImageUrl, breakoutPlatform, breakoutDialogue, identityBible, characterLock, useTemplateShots, templateShotSequence, templateName, templateStyleAnchor, templateCharacters, templateEnvironmentLock, supabase } = params;
+  const { projectId, userId, concept, referenceImageUrl, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, mode, genre, mood, videoEngine, qualityOptions, isBreakout, breakoutStartImageUrl, breakoutPlatform, breakoutDialogue, identityBible, characterLock, useTemplateShots, templateShotSequence, templateName, templateStyleAnchor, templateCharacters, templateEnvironmentLock, requireApproval, supabase } = params;
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -1249,6 +1257,10 @@ async function handleCinematicMode(params: {
       templateStyleAnchor,
       templateCharacters,
       templateEnvironmentLock,
+      // Pause after the script is written so the user can approve it before any
+      // clip renders. Only hollywood-pipeline honors this; seedance-pipeline
+      // (and forced-seedance breakouts) auto-run, so it's a no-op there.
+      requireApproval,
     }),
   });
 

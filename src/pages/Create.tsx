@@ -11,7 +11,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Wand2, Image as ImageIcon, Scissors, Users, Mic, Music as MusicIcon, Globe2,
-  Palette, PenLine, LayoutGrid, Sparkles, Lock, Cpu, Clock, Clapperboard,
+  Palette, PenLine, LayoutGrid, Sparkles, Lock, Cpu, Clock, Clapperboard, Film,
   RectangleHorizontal, RectangleVertical, Square, UserRound, Sliders, Drama,
   type LucideIcon,
 } from 'lucide-react';
@@ -23,7 +23,7 @@ const enc = encodeURIComponent;
 
 interface Module { id: string; label: string; icon: LucideIcon; group: 'create' | 'assets' | 'finish'; }
 const MODULES: Module[] = [
-  { id: 'generate', label: 'Generate', icon: Wand2, group: 'create' },
+  { id: 'generate', label: 'Video', icon: Film, group: 'create' },
   { id: 'image', label: 'Image', icon: ImageIcon, group: 'create' },
   { id: 'photo', label: 'Photo', icon: Scissors, group: 'create' },
   { id: 'cast', label: 'Cast', icon: Users, group: 'assets' },

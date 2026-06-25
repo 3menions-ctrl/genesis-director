@@ -10,7 +10,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Flame, LogIn, Sparkles, Settings, Pencil, X, Heart, Film, Layers,
-  ChevronRight, Loader2, Trophy, Crown, Lock, Check, MessageCircle, Camera,
+  ChevronRight, Loader2, Trophy, Crown, Lock, Check, MessageCircle, Camera, Bell,
   type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -18,6 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
 import { useGamification } from '@/hooks/useGamification';
+import { useNotifications } from '@/hooks/useNotifications';
 import { useMyFilms } from '@/hooks/useMyFilms';
 import { useFollowCounts, useFollowList, useLikedReels, useDrafts, usePinnedReels, useActivityHeatmap, type GridItem, type Person } from '@/hooks/useProfileData';
 import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
@@ -40,6 +41,7 @@ export default function You() {
   const { films, totalLikes } = useMyFilms();
   const counts = useFollowCounts(user?.id);
   const gam = useGamification();
+  const { unreadCount } = useNotifications();
   const pinned = usePinnedReels((profile as { pinned_reel_ids?: string[] })?.pinned_reel_ids);
   const heat = useActivityHeatmap(user?.id);
   const [tab, setTab] = useState<Tab>('films');
@@ -89,6 +91,7 @@ export default function You() {
 
       {/* Floating actions over the shared Aurora backdrop (no cover banner) */}
       <div className="fixed right-4 z-20 flex gap-2" style={{ top: 'calc(var(--safe-top,0px) + 12px)' }}>
+        <IconBtn label="Activity" badge={unreadCount} onClick={() => { void hapticTap(); navigate('/activity'); }}><Bell className="h-[18px] w-[18px]" /></IconBtn>
         <IconBtn label="Messages" onClick={() => { void hapticTap(); navigate('/messages'); }}><MessageCircle className="h-[18px] w-[18px]" /></IconBtn>
         <IconBtn label="Edit profile" onClick={() => { void hapticTap(); setSheet('edit'); }}><Pencil className="h-[18px] w-[18px]" /></IconBtn>
         <IconBtn label="Settings" onClick={() => { void hapticTap(); navigate('/me/settings'); }}><Settings className="h-[18px] w-[18px]" /></IconBtn>
@@ -254,8 +257,13 @@ function Heatmap({ days }: { days: Record<string, number> }) {
   );
 }
 
-function IconBtn({ children, label, onClick }: { children: React.ReactNode; label: string; onClick: () => void }) {
-  return <button onClick={onClick} aria-label={label} title={label} className="grid h-9 w-9 place-items-center rounded-full bg-black/35 text-white backdrop-blur-md">{children}</button>;
+function IconBtn({ children, label, onClick, badge }: { children: React.ReactNode; label: string; onClick: () => void; badge?: number }) {
+  return (
+    <button onClick={onClick} aria-label={label} title={label} className="relative grid h-9 w-9 place-items-center rounded-full bg-black/35 text-white backdrop-blur-md">
+      {children}
+      {!!badge && badge > 0 && <span className="absolute -right-0.5 -top-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-[#ff3b6b] px-1 text-[10px] font-bold leading-none shadow-[0_0_0_2px_#0a0a0f]">{badge > 9 ? '9+' : badge}</span>}
+    </button>
+  );
 }
 
 function Count({ label, value, onClick, divider }: { label: string; value: string; onClick?: () => void; divider?: boolean }) {

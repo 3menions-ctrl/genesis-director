@@ -88,6 +88,8 @@ const Messages = lazy(() => import("./pages/Messages"));
 const MobileSettings = lazy(() => import("./pages/MobileSettings"));
 // First-run onboarding (native).
 const Welcome = lazy(() => import("./pages/Welcome"));
+// Mobile notifications / activity feed.
+const Activity = lazy(() => import("./pages/Activity"));
 // Mobile-first one-prompt create screen (hands off to Studio's engine).
 const Create = lazy(() => import("./pages/Create"));
 // Mobile-first presets "editor" (one-tap looks) + gamified profile.
@@ -349,6 +351,12 @@ const App = () => {
                 <Route path="/welcome" element={
                   <RouteContainer fallbackMessage="Loading…">
                     <Welcome />
+                  </RouteContainer>
+                } />
+                {/* Mobile notifications / activity. */}
+                <Route path="/activity" element={
+                  <RouteContainer fallbackMessage="Loading…">
+                    <Activity />
                   </RouteContainer>
                 } />
                 {/* Mobile one-prompt create screen (hands the prompt to Studio). */}

@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 
 const TABS = [
   { to: '/feed', label: 'Feed', icon: Clapperboard },
-  { to: '/search', label: 'Discover', icon: Compass },
+  { to: '/discover', label: 'Discover', icon: Compass },
   { to: '/presets', label: 'Editor', icon: SlidersHorizontal },
   { to: '/you', label: 'Profile', icon: User },
 ] as const;

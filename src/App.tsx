@@ -77,6 +77,8 @@ function QueryPreservingRedirect({ to }: { to: string }) {
 const Cinema = lazy(() => import("./pages/Cinema"));
 // Mobile-first vertical "For You" feed — native landing route (also at /feed on web).
 const Feed = lazy(() => import("./pages/Feed"));
+// Mobile Discover — browse worlds, trending films, search creators & reels.
+const Discover = lazy(() => import("./pages/Discover"));
 // Mobile-first one-prompt create screen (hands off to Studio's engine).
 const Create = lazy(() => import("./pages/Create"));
 // Mobile-first presets "editor" (one-tap looks) + gamified profile.
@@ -308,6 +310,12 @@ const App = () => {
                 <Route path="/feed" element={
                   <RouteContainer fallbackMessage="Loading feed…">
                     <Feed />
+                  </RouteContainer>
+                } />
+                {/* Mobile Discover tab. */}
+                <Route path="/discover" element={
+                  <RouteContainer fallbackMessage="Loading…">
+                    <Discover />
                   </RouteContainer>
                 } />
                 {/* Mobile one-prompt create screen (hands the prompt to Studio). */}

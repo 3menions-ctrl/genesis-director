@@ -11,7 +11,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  LayoutGrid, Palette, Pencil, ArrowRight, X,
+  LayoutGrid, Palette, Pencil, ArrowRight, X, Check,
   Clapperboard, Image as ImageIcon, Wand2, UserRound, Music, Film,
   type LucideIcon,
 } from 'lucide-react';
@@ -109,8 +109,11 @@ export default function Create() {
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-l from-black/55 via-transparent to-transparent" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black/70 to-transparent" />
 
-      {/* ── Right tool rail (transparent) ── */}
-      <div className="absolute right-3 top-1/2 z-20 flex -translate-y-1/2 flex-col items-center gap-6">
+      {/* ── Right tool rail (transparent) — anchored above the tab bar ── */}
+      <div
+        className="absolute right-3 z-20 flex flex-col items-center gap-6"
+        style={{ bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 18px)' }}
+      >
         {TOOLS.map((t) => {
           const active = (t.id === 'templates' && templateId) || (t.id === 'style' && styleId) || (t.id === 'prompt' && prompt.trim());
           return (
@@ -121,18 +124,14 @@ export default function Create() {
             </button>
           );
         })}
-      </div>
 
-      {/* ── Generate ── */}
-      <button onClick={generate} disabled={!canGenerate} aria-label={mode.cta} title={mode.cta}
-        className="absolute inset-x-0 z-20 mx-auto flex w-max flex-col items-center gap-1.5 text-[#7aa2ff] drop-shadow-[0_2px_8px_rgba(0,0,0,.7)] transition-opacity disabled:opacity-35"
-        style={{ bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 22px)' }}>
-        <span className="flex items-center gap-1.5">
-          <mode.Icon className="h-[28px] w-[28px]" strokeWidth={1.9} />
-          <ArrowRight className="h-[20px] w-[20px]" strokeWidth={2.2} />
-        </span>
-        <span className="font-display text-[11px] font-semibold tracking-[0.04em]">{mode.cta}</span>
-      </button>
+        {/* Generate — transparent outlined boundary, like the editor's Save */}
+        <button onClick={generate} disabled={!canGenerate} aria-label={mode.cta} title={mode.cta}
+          className="flex flex-col items-center gap-1 rounded-[18px] border border-[#7aa2ff]/45 bg-transparent px-3.5 py-2 text-[#7aa2ff] drop-shadow-[0_2px_6px_rgba(0,0,0,.6)] transition-opacity disabled:opacity-35">
+          <ArrowRight className="h-[24px] w-[24px]" strokeWidth={2.1} />
+          <span className="font-display text-[10px] font-semibold">Generate</span>
+        </button>
+      </div>
 
       {/* ── Popup sheet ── */}
       <div className={cn('absolute inset-0 z-40', sheet ? 'pointer-events-auto' : 'pointer-events-none')}>
@@ -146,14 +145,24 @@ export default function Create() {
 
           {sheet === 'templates' && (
             <div className="grid grid-cols-2 gap-3">
-              {TEMPLATES.map((t) => (
-                <button key={t.id} onClick={() => pickTemplate(t)}
-                  className={cn('relative flex h-24 flex-col justify-end overflow-hidden rounded-[18px] p-3 text-left', templateId === t.id && 'ring-2 ring-[#3f78ff]')}>
-                  <span className="absolute inset-0" style={{ background: t.grad }} />
-                  <span className="absolute right-3 top-3 text-[22px]">{t.emoji}</span>
-                  <span className="relative font-display text-[13px] font-semibold drop-shadow">{t.name}</span>
-                </button>
-              ))}
+              {TEMPLATES.map((t) => {
+                const on = templateId === t.id;
+                return (
+                  <button key={t.id} onClick={() => pickTemplate(t)} aria-label={t.name}
+                    className={cn('relative aspect-video overflow-hidden rounded-[18px] transition-all', on ? 'ring-2 ring-[#3f78ff]' : 'ring-1 ring-white/10')}>
+                    <span className="absolute inset-0" style={{ background: t.grad }} />
+                    <video src={t.src} muted loop autoPlay playsInline className="absolute inset-0 h-full w-full object-cover" />
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                    <span className="absolute right-2.5 top-2.5 text-[20px] drop-shadow">{t.emoji}</span>
+                    <span className="absolute inset-x-0 bottom-0 px-2.5 py-2 font-display text-[12.5px] font-semibold drop-shadow">{t.name}</span>
+                    {on && (
+                      <span className="absolute left-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-[#3f78ff] shadow-[0_3px_10px_-2px_rgba(47,107,255,.9)]">
+                        <Check className="h-3 w-3" strokeWidth={3} />
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
 

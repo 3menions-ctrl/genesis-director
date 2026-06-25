@@ -9,7 +9,8 @@
  * created or picked; here it falls back to a sample film.
  */
 import { useMemo, useState } from 'react';
-import { Check, Lock, SlidersHorizontal, Eye } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Check, Lock, Eye, ChevronLeft, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { FILMS } from '@/data/filmsLibrary';
 import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
@@ -41,6 +42,7 @@ const LOOKS: Look[] = [
 const SAMPLE_SRC = FILMS.find((f) => f.clips?.[0])?.clips[0] ?? '';
 
 export default function Presets() {
+  const navigate = useNavigate();
   const [selected, setSelected] = useState<string>('film35');
   const [showBefore, setShowBefore] = useState(false);
 
@@ -56,71 +58,80 @@ export default function Presets() {
     toast.success(`Applied ${look.name}`);
   };
 
+  const goBack = () => {
+    void hapticTap();
+    if (window.history.length > 1) navigate(-1);
+    else navigate('/feed');
+  };
+
   return (
     <div className="fixed inset-0 flex flex-col text-white">
       <AuroraBackdrop />
-      {/* Preview */}
-      <div className="relative z-10" style={{ height: '46%', marginTop: 'var(--safe-top, 0px)' }}>
-        <div className="absolute inset-0 overflow-hidden bg-[#0a0a0a]">
-          {/* blurred backdrop fill */}
-          <video
-            key={`bg-${SAMPLE_SRC}`}
-            src={SAMPLE_SRC}
-            muted
-            loop
-            autoPlay
-            playsInline
-            className="absolute inset-0 h-full w-full scale-110 object-cover opacity-30 blur-2xl"
-          />
-          {/* aspect-correct foreground with the live look applied */}
-          <video
-            key={`fg-${SAMPLE_SRC}`}
-            src={SAMPLE_SRC}
-            muted
-            loop
-            autoPlay
-            playsInline
-            className="absolute inset-0 h-full w-full object-contain transition-[filter] duration-300"
-            style={{ filter: activeFilter }}
-          />
-          {/* cinematic vignette for depth + legibility */}
-          <div
-            className="pointer-events-none absolute inset-0"
-            style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,.28) 0%, transparent 20%, transparent 68%, rgba(0,0,0,.45) 100%)' }}
-          />
-        </div>
 
-        {/* Live badge — borderless, transparent, with label */}
-        <div className="absolute left-4 top-4 flex flex-col items-center gap-1 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,.7)]" title="Live preview">
-          <SlidersHorizontal className="h-5 w-5" />
-          <span className="font-display text-[10px] font-medium">Live</span>
-        </div>
+      {/* Top bar — back */}
+      <div
+        className="relative z-20 flex items-center px-3"
+        style={{ paddingTop: 'calc(var(--safe-top, 0px) + 10px)' }}
+      >
+        <button onClick={goBack} aria-label="Back" title="Back" className="grid h-10 w-10 place-items-center text-white/85">
+          <ChevronLeft className="h-7 w-7" strokeWidth={2} />
+        </button>
+      </div>
 
-        {/* Before/After — hold the eye to compare */}
+      {/* Video player — center stage */}
+      <div className="relative z-10 mx-4 mt-1 overflow-hidden rounded-[22px] bg-black shadow-[0_24px_60px_-24px_rgba(0,0,0,.9)]" style={{ height: '38vh' }}>
+        <video
+          key={`bg-${SAMPLE_SRC}`}
+          src={SAMPLE_SRC}
+          muted loop autoPlay playsInline
+          className="absolute inset-0 h-full w-full scale-110 object-cover opacity-30 blur-2xl"
+        />
+        <video
+          key={`fg-${SAMPLE_SRC}`}
+          src={SAMPLE_SRC}
+          muted loop autoPlay playsInline
+          className="absolute inset-0 h-full w-full object-contain transition-[filter] duration-300"
+          style={{ filter: activeFilter }}
+        />
+        {showBefore && (
+          <span className="absolute left-3 top-3 rounded-full bg-black/45 px-2.5 py-1 font-display text-[10px] font-semibold tracking-wide backdrop-blur-md">
+            BEFORE
+          </span>
+        )}
+      </div>
+
+      {/* Editing setting icons — below the player */}
+      <div className="relative z-10 mt-4 flex justify-center gap-10">
         <button
           onMouseDown={() => setShowBefore(true)}
           onMouseUp={() => setShowBefore(false)}
           onMouseLeave={() => setShowBefore(false)}
           onTouchStart={() => setShowBefore(true)}
           onTouchEnd={() => setShowBefore(false)}
-          aria-label="Hold to see before"
-          title="Hold to see before"
-          className={cn(
-            'absolute bottom-4 left-1/2 flex -translate-x-1/2 flex-col items-center gap-1 drop-shadow-[0_2px_6px_rgba(0,0,0,.7)] transition-colors',
-            showBefore ? 'text-[#8fb4ff]' : 'text-white',
-          )}
+          aria-label="Hold to compare with original"
+          title="Hold to compare"
+          className={cn('flex flex-col items-center gap-1 transition-colors', showBefore ? 'text-[#8fb4ff]' : 'text-white/85')}
         >
-          <Eye className="h-[22px] w-[22px]" />
-          <span className="font-display text-[10px] font-medium">Before</span>
+          <Eye className="h-[24px] w-[24px]" />
+          <span className="font-display text-[10px] font-medium">Compare</span>
+        </button>
+        <button
+          onClick={() => { void hapticTap(); setSelected('original'); }}
+          aria-label="Reset to original"
+          title="Reset"
+          className="flex flex-col items-center gap-1 text-white/85 transition-colors"
+        >
+          <RotateCcw className="h-[22px] w-[22px]" />
+          <span className="font-display text-[10px] font-medium">Reset</span>
         </button>
       </div>
 
-      {/* Deck */}
-      <div className="relative z-10 flex flex-1 flex-col px-1 pt-6">
-        <div
-          className="flex gap-3 overflow-x-auto px-4"
-          style={{ scrollbarWidth: 'none', paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 84px)' }}
-        >
+      {/* Looks gallery — the editing icons take center stage, below the video */}
+      <div
+        className="relative z-10 mt-6 flex-1 overflow-y-auto px-6"
+        style={{ paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 92px)' }}
+      >
+        <div className="grid grid-cols-4 gap-x-3 gap-y-6">
           {LOOKS.map((l) => {
             const on = l.id === selected;
             return (
@@ -129,17 +140,17 @@ export default function Presets() {
                 onClick={() => { void hapticTap(); setSelected(l.id); }}
                 aria-label={l.name}
                 title={l.name}
-                className={cn('flex w-[64px] flex-none flex-col items-center gap-1.5 transition-all duration-200', on ? 'opacity-100' : 'opacity-45')}
+                className={cn('flex flex-col items-center gap-2 transition-all duration-200', on ? 'opacity-100' : 'opacity-50')}
               >
-                <span className="relative grid h-9 w-9 place-items-center text-[28px] leading-none">
+                <span className="relative grid h-11 w-11 place-items-center text-[34px] leading-none">
                   {l.emoji}
                   {l.premium && (
-                    <span className="absolute -right-1.5 -top-1.5">
+                    <span className="absolute -right-1 -top-1">
                       <Lock className="h-3 w-3 text-white/70" />
                     </span>
                   )}
                 </span>
-                <span className={cn('font-display text-[10px] font-medium leading-tight', on ? 'text-[#8fb4ff]' : 'text-white/55')}>
+                <span className={cn('font-display text-[10px] font-medium leading-tight text-center', on ? 'text-[#8fb4ff]' : 'text-white/55')}>
                   {l.name}
                 </span>
               </button>

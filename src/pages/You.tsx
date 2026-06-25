@@ -97,7 +97,7 @@ export default function You() {
         </div>
       </div>
 
-      <div className="relative z-10 px-5" style={{ paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 24px)' }}>
+      <div className="relative z-10 px-5" style={{ paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 44px)' }}>
         {/* Avatar + identity */}
         <div className="-mt-10 flex flex-col items-center text-center">
           {profile?.avatar_url ? (

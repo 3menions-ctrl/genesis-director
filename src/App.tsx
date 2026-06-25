@@ -46,7 +46,6 @@ import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/na
 import { NavigationGuardProvider, NavigationBridge } from "@/lib/navigation";
 import { NativeShell } from "@/components/native/NativeShell";
 import { MobileTabBar } from "@/components/native/MobileTabBar";
-import { IS_MOBILE_SHELL } from "@/lib/native";
 import { AppShell } from "@/components/shell/AppShell";
 import { AdaptiveShell } from "@/components/shell/AdaptiveShell";
 
@@ -86,8 +85,6 @@ const CreatorProfile = lazy(() => import("./pages/CreatorProfile"));
 const Messages = lazy(() => import("./pages/Messages"));
 // Mobile full-page settings.
 const MobileSettings = lazy(() => import("./pages/MobileSettings"));
-// Native sign-in / sign-up (renders only inside the mobile shell).
-const MobileAuth = lazy(() => import("./pages/MobileAuth"));
 // Mobile-first one-prompt create screen (hands off to Studio's engine).
 const Create = lazy(() => import("./pages/Create"));
 // Mobile-first presets "editor" (one-tap looks) + gamified profile.
@@ -377,7 +374,7 @@ const App = () => {
                 } />
                 <Route path="/auth" element={
                   <RouteContainer fallbackMessage="Loading authentication…">
-                    {IS_MOBILE_SHELL ? <MobileAuth /> : <Auth />}
+                    <Auth />
                   </RouteContainer>
                 } />
                 <Route path="/auth/callback" element={

@@ -1,18 +1,15 @@
 /**
- * Discover — browse worlds, trending films, and unified search of reels +
- * creators. Wired to channel_worlds / published_reels / search_everything.
- * Aurora language; borderless. Falls back to the static film library so the
- * grid is never empty on first run / offline.
+ * Discover — trending films + unified search of reels + creators.
+ * Wired to published_reels / search_everything. Aurora language; borderless.
+ * Falls back to the static film library so the grid is never empty.
  */
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, X, Loader2, Compass } from 'lucide-react';
 import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
 import { MasonryGrid, MediaTile } from '@/components/native/MediaTile';
-import { useWorlds, useTrending, useSearchEverything, type ReelHit } from '@/hooks/useDiscover';
+import { useTrending, useSearchEverything, type ReelHit } from '@/hooks/useDiscover';
 import { FILMS } from '@/data/filmsLibrary';
-import { hapticTap } from '@/lib/native/shell';
-import { cn } from '@/lib/utils';
 
 const compact = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1).replace(/\.0$/, '')}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1).replace(/\.0$/, '')}k` : String(n));
 const STATIC: ReelHit[] = FILMS.filter((f) => f.clips?.[0]).slice(0, 18).map((f) => ({ id: f.id, title: f.title, thumbnail_url: null, world_slug: null, play_count: 0, creator_id: '' }));
@@ -20,13 +17,11 @@ const STATIC: ReelHit[] = FILMS.filter((f) => f.clips?.[0]).slice(0, 18).map((f)
 export default function Discover() {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
-  const [world, setWorld] = useState<string | null>(null);
-  const worlds = useWorlds();
-  const trending = useTrending(world);
+  const trending = useTrending(null);
   const search = useSearchEverything(query);
   const searching = query.trim().length > 0;
 
-  const trendingReels = !trending.loading && trending.reels.length === 0 && !world ? STATIC : trending.reels;
+  const trendingReels = !trending.loading && trending.reels.length === 0 ? STATIC : trending.reels;
 
   return (
     <div className="fixed inset-0 text-white">
@@ -65,26 +60,15 @@ export default function Discover() {
             </div>
           )
         ) : (
-          <div>
-            {/* Worlds */}
-            <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1" style={{ scrollbarWidth: 'none' }}>
-              <WorldChip label="All" active={!world} onClick={() => { void hapticTap(); setWorld(null); }} />
-              {worlds.map((w) => (
-                <WorldChip key={w.id} glyph={w.glyph} label={w.name} accent={w.accent_hsl} active={world === w.slug} onClick={() => { void hapticTap(); setWorld(world === w.slug ? null : w.slug); }} />
-              ))}
-            </div>
-
-            {/* Trending */}
-            <Section title={world ? `Top in ${worlds.find((w) => w.slug === world)?.name ?? world}` : 'Trending'} icon={Compass}>
-              {trending.loading ? (
-                <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-white/40" /></div>
-              ) : trendingReels.length === 0 ? (
-                <Empty label="Nothing here yet." />
-              ) : (
-                <ReelGrid reels={trendingReels} onOpen={(id) => navigate(`/r/${id}`)} />
-              )}
-            </Section>
-          </div>
+          <Section title="Trending" icon={Compass}>
+            {trending.loading ? (
+              <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-white/40" /></div>
+            ) : trendingReels.length === 0 ? (
+              <Empty label="Nothing here yet." />
+            ) : (
+              <ReelGrid reels={trendingReels} onOpen={(id) => navigate(`/r/${id}`)} />
+            )}
+          </Section>
         )}
       </div>
     </div>
@@ -99,16 +83,6 @@ function ReelGrid({ reels, onOpen }: { reels: ReelHit[]; onOpen: (id: string) =>
         <MediaTile key={r.id} src={r.thumbnail_url} title={r.title} play={r.play_count} onClick={() => onOpen(r.id)} />
       ))}
     </MasonryGrid>
-  );
-}
-
-function WorldChip({ glyph, label, accent, active, onClick }: { glyph?: string | null; label: string; accent?: string; active: boolean; onClick: () => void }) {
-  return (
-    <button onClick={onClick} className={cn('inline-flex h-9 flex-none items-center gap-1.5 rounded-full px-4 text-[13px] font-medium transition-colors', active ? 'text-white' : 'text-white/55')}
-      style={active ? { background: accent ? `hsl(${accent} / 0.22)` : 'rgba(143,180,255,.22)', boxShadow: `0 0 22px ${accent ? `hsl(${accent} / 0.3)` : 'rgba(143,180,255,.3)'}` } : { background: 'rgba(255,255,255,.05)' }}>
-      {glyph && <span style={accent ? { color: `hsl(${accent})` } : undefined}>{glyph}</span>}
-      {label}
-    </button>
   );
 }
 

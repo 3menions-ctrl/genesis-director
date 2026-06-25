@@ -34,7 +34,7 @@ serve(async (req) => {
   }
 
   // ═══ AUTH GUARD ═══
-  const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+  const { validateAuth, unauthorizedResponse, forbiddenResponse } = await import("../_shared/auth-guard.ts");
   const auth = await validateAuth(req);
   if (!auth.authenticated) {
     return unauthorizedResponse(corsHeaders, auth.error);
@@ -75,6 +75,12 @@ serve(async (req) => {
 
     if (fetchError || !project) {
       throw new Error(`Project not found: ${projectId}`);
+    }
+
+    // Ownership guard: an end-user JWT may only act on their OWN project.
+    // Service-role (internal orchestration) may act on any project.
+    if (!auth.isServiceRole && project.user_id !== auth.userId) {
+      return forbiddenResponse(corsHeaders, 'Forbidden: you do not own this project');
     }
 
     if (project.mode !== 'avatar') {

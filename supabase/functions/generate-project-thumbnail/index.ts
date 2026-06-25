@@ -24,7 +24,7 @@ serve(async (req) => {
   }
 
   try {
-    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const { validateAuth, unauthorizedResponse, forbiddenResponse } = await import("../_shared/auth-guard.ts");
     const auth = await validateAuth(req);
     if (!auth.authenticated) {
       return unauthorizedResponse(corsHeaders, auth.error);
@@ -49,9 +49,15 @@ serve(async (req) => {
     // Check if project already has a thumbnail
     const { data: project } = await supabase
       .from('movie_projects')
-      .select('thumbnail_url')
+      .select('thumbnail_url, user_id')
       .eq('id', projectId)
       .maybeSingle();
+
+    // Ownership guard: an end-user JWT may only act on their OWN project.
+    // Service-role (internal orchestration) may act on any project.
+    if (project && !auth.isServiceRole && project.user_id !== auth.userId) {
+      return forbiddenResponse(corsHeaders, 'Forbidden: you do not own this project');
+    }
 
     if (project?.thumbnail_url) {
       return new Response(

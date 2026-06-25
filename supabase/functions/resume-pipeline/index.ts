@@ -94,6 +94,12 @@ serve(async (req) => {
       throw new Error(`Project not found: ${fetchError?.message}`);
     }
 
+    // Ownership guard: an end-user JWT may only act on their OWN project.
+    // Service-role (internal orchestration) may act on any project.
+    if (!auth.isServiceRole && project.user_id !== auth.userId) {
+      return forbiddenResponse(corsHeaders, 'Forbidden: you do not own this project');
+    }
+
     const pendingTasks = project.pending_video_tasks || {};
     const currentStage = pendingTasks.stage;
     const lastCompletedStage = pendingTasks.lastCompletedStage;

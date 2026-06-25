@@ -200,7 +200,7 @@ export default function You() {
 
       {/* ── Sheets ── */}
       {(sheet === 'followers' || sheet === 'following') && (
-        <PeopleSheet kind={sheet} userId={user.id} onClose={() => setSheet(null)} onOpen={(id) => { setSheet(null); navigate(`/c/${id}`); }} />
+        <PeopleSheet kind={sheet} userId={user.id} onClose={() => setSheet(null)} onOpen={(id) => { setSheet(null); navigate(`/u/${id}`); }} />
       )}
       {sheet === 'edit' && (
         <EditSheet

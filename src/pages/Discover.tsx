@@ -71,7 +71,7 @@ export default function Discover() {
                 <Section title="Creators">
                   <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1" style={{ scrollbarWidth: 'none' }}>
                     {search.results.creators.map((c) => (
-                      <button key={c.id} onClick={() => navigate(`/c/${c.id}`)} className="surface-1 flex w-[112px] flex-none flex-col items-center gap-2 rounded-2xl p-3 text-center">
+                      <button key={c.id} onClick={() => navigate(`/u/${c.id}`)} className="surface-1 flex w-[112px] flex-none flex-col items-center gap-2 rounded-2xl p-3 text-center">
                         {c.avatar_url ? <img src={c.avatar_url} alt="" className="h-12 w-12 rounded-full object-cover" /> : <span className="grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-[#9c8bff] to-[#6b3bff] text-[15px] font-bold">{(c.display_name?.[0] ?? '?').toUpperCase()}</span>}
                         <span className="w-full truncate text-[12.5px] font-semibold">{c.display_name ?? 'Anonymous'}</span>
                         <span className="font-mono text-[9px] text-white/40">{compact(c.follower_count)} followers</span>

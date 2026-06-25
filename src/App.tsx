@@ -79,6 +79,8 @@ const Cinema = lazy(() => import("./pages/Cinema"));
 const Feed = lazy(() => import("./pages/Feed"));
 // Mobile Discover — browse worlds, trending films, search creators & reels.
 const Discover = lazy(() => import("./pages/Discover"));
+// Mobile public creator profile (view media, follow, message).
+const CreatorProfile = lazy(() => import("./pages/CreatorProfile"));
 // Mobile-first one-prompt create screen (hands off to Studio's engine).
 const Create = lazy(() => import("./pages/Create"));
 // Mobile-first presets "editor" (one-tap looks) + gamified profile.
@@ -316,6 +318,12 @@ const App = () => {
                 <Route path="/discover" element={
                   <RouteContainer fallbackMessage="Loading…">
                     <Discover />
+                  </RouteContainer>
+                } />
+                {/* Mobile public creator profile. */}
+                <Route path="/u/:id" element={
+                  <RouteContainer fallbackMessage="Loading profile…">
+                    <CreatorProfile />
                   </RouteContainer>
                 } />
                 {/* Mobile one-prompt create screen (hands the prompt to Studio). */}

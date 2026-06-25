@@ -1,4 +1,4 @@
-/** Subscriptions — local mirror of Stripe subscriptions table. */
+/** Subscriptions — local mirror of Polar subscriptions (stored in legacy stripe_*-named columns). */
 import { useEffect, useMemo, useState } from "react";
 import { RefreshCw, Search } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
@@ -69,7 +69,7 @@ export default function AdminSubscriptionsPage() {
       code="SUB"
       title="Subscriptions"
       italic="& Seats."
-      description="Live mirror of Stripe subscriptions. Filter, audit period boundaries, surface dunning."
+      description="Live mirror of Polar subscriptions. Filter, audit period boundaries, surface dunning."
       stats={[
         { label: "Active", value: active, tone: "emerald" },
         { label: "Seats Sold", value: seats, tone: "blue" },
@@ -84,12 +84,12 @@ export default function AdminSubscriptionsPage() {
     >
       <FloatSection
         title="Subscriptions"
-        meta="Live Stripe mirror"
+        meta="Live Polar mirror"
         actions={
           <div className="flex items-center gap-2.5">
             <Search className="w-4 h-4 text-white/40" />
             <Input
-              placeholder="Filter by status, Stripe ID, customer, product…"
+              placeholder="Filter by status, subscription ID, customer, product…"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               className="w-72 bg-transparent border-white/10 text-white placeholder:text-white/30"
@@ -106,7 +106,7 @@ export default function AdminSubscriptionsPage() {
               { key: "seats", label: "Seats", align: "right" },
               { key: "periodEnd", label: "Period End" },
               { key: "env", label: "Env" },
-              { key: "stripe", label: "Stripe Sub" },
+              { key: "stripe", label: "Sub ID" },
             ]}
             rows={loading ? [] : pg.slice.map((r) => ({
               _key: r.id,

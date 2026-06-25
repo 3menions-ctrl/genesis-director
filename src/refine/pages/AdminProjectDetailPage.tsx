@@ -168,15 +168,35 @@ export default function AdminProjectDetailPage() {
 
   const retryFailedClips = async () => {
     if (!projectId) return;
+    // Retry through the REAL generation path (retry-failed-clip →
+    // generate-single-clip), not a raw status flip. Flipping video_clips.status
+    // to 'pending' re-renders nothing: the pipeline watchdog only acts on
+    // 'generating' projects via pending_video_tasks and is disabled by default,
+    // so a status flip leaves the clip stuck. The edge function runs as the
+    // project owner (admin-on-behalf), so spend/locks/continuity bind to them.
+    const failed = clips
+      .filter((c) => c.status === "failed" && c.shot_index != null)
+      .sort((a, b) => (a.shot_index ?? 0) - (b.shot_index ?? 0));
+    if (!failed.length) { toast.info("No failed clips to retry"); return; }
     setActing(true);
+    let ok = 0, failures = 0;
     try {
-      const { error } = await supabase
-        .from("video_clips")
-        .update({ status: "pending", error_message: null })
-        .eq("project_id", projectId)
-        .eq("status", "failed");
-      if (error) throw error;
-      toast.success("Failed clips re-queued");
+      // Sequential: the edge function holds a per-project generation lock, so
+      // concurrent retries 409; continuity also requires shot-order retries.
+      for (const clip of failed) {
+        const { data, error } = await supabase.functions.invoke("retry-failed-clip", {
+          body: { projectId, clipIndex: clip.shot_index },
+        });
+        if (error || data?.success === false) {
+          failures++;
+          console.warn("[AdminProjectDetail] retry failed for shot", clip.shot_index, error?.message ?? data?.message);
+        } else {
+          ok++;
+        }
+      }
+      if (ok && !failures) toast.success(`Re-queued ${ok} clip${ok === 1 ? "" : "s"} for re-render`);
+      else if (ok) toast.info(`Re-queued ${ok}; ${failures} could not retry (see console)`);
+      else toast.error("No clips could be retried — check continuity/locks");
       await load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Retry failed");

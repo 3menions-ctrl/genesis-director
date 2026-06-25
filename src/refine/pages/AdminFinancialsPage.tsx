@@ -53,10 +53,10 @@ export default function AdminFinancialsPage() {
 
   const fetchRevenue = async () => {
     try {
-      // Revenue = real Stripe purchases only. Credit-refunds from failed
+      // Revenue = real Polar purchases only. Credit-refunds from failed
       // generations are internal credit grants, NOT cash refunds — they
       // must never be subtracted from revenue. Cash refunds would arrive
-      // via Stripe webhooks as a separate transaction class.
+      // via Polar webhooks as a separate transaction class.
       const CREDIT_PRICE_CENTS = 10.0;
 
       // Revenue total must cover ALL purchases, not just the latest 100.
@@ -146,8 +146,9 @@ export default function AdminFinancialsPage() {
         <StatOrb index={3} icon={BarChart3} aura={margin >= 70 ? CYAN : margin >= 50 ? AMBER : ROSE} label="Margin" value={fmtPct(margin)} sub="Target: 70-80%" />
       </div>
 
-      {/* Recent Stripe purchases */}
-      <FloatSection title="Recent Stripe purchases" meta={`${purchases.length} shown`}>
+      {/* Recent Polar purchases — Polar.sh is the billing provider; the legacy
+          stripe_payment_id column holds the Polar payment id. (admin-review relabel) */}
+      <FloatSection title="Recent Polar purchases" meta={`${purchases.length} shown`}>
         <FloatTable
           empty="No purchases yet"
           columns={[

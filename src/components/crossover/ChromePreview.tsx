@@ -127,10 +127,10 @@ function TikTokChrome({ poster }: { poster?: string | null }) {
       {/* Right rail */}
       <div className="absolute right-3 bottom-24 flex flex-col items-center gap-5 text-white/95">
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-500 to-violet-500 ring-2 ring-white shadow-lg" />
-        <ActionIcon icon={Heart} count="2.3M" />
-        <ActionIcon icon={MessageCircle} count="48K" />
-        <ActionIcon icon={Bookmark} count="91K" />
-        <ActionIcon icon={Send} count="120K" />
+        <ActionIcon icon={Heart} />
+        <ActionIcon icon={MessageCircle} />
+        <ActionIcon icon={Bookmark} />
+        <ActionIcon icon={Send} />
         <div className="w-10 h-10 rounded-full bg-black/55 border border-white/30 backdrop-blur flex items-center justify-center">
           <MoreHorizontal className="w-4 h-4" />
         </div>
@@ -157,9 +157,9 @@ function ReelsChrome({ poster }: { poster?: string | null }) {
       <div className="absolute top-4 left-4 text-[13px] text-white font-semibold tracking-tight">Reels</div>
       <div className="absolute top-4 right-4 flex items-center gap-3 text-white/90"><Camera className="w-4 h-4" /><MoreHorizontal className="w-4 h-4" /></div>
       <div className="absolute right-3 bottom-24 flex flex-col items-center gap-5 text-white/95">
-        <ActionIcon icon={Heart} count="421K" />
-        <ActionIcon icon={MessageCircle} count="9.2K" />
-        <ActionIcon icon={Send} count="11K" />
+        <ActionIcon icon={Heart} />
+        <ActionIcon icon={MessageCircle} />
+        <ActionIcon icon={Send} />
         <ActionIcon icon={Bookmark} />
         <div className="w-10 h-10 rounded-md bg-white/10 border border-white/30 backdrop-blur" />
       </div>
@@ -451,13 +451,12 @@ function GenericChrome({ poster }: { poster?: string | null }) {
 
 // ─────────────────────────────────────────────────────────────────────────
 
-function ActionIcon({ icon: Icon, count }: { icon: React.ElementType; count?: string }) {
+function ActionIcon({ icon: Icon }: { icon: React.ElementType }) {
   return (
     <div className="flex flex-col items-center text-white/95 text-[10px]">
       <div className="w-10 h-10 rounded-full bg-black/55 border border-white/15 backdrop-blur flex items-center justify-center">
         <Icon className="w-4 h-4" />
       </div>
-      {count && <span className="mt-1 font-medium drop-shadow">{count}</span>}
     </div>
   );
 }

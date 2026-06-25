@@ -9,6 +9,7 @@ import { ShieldCheck, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { FloatSection, StatusPill, ACCENT_HSL, ROSE } from "@/admin/ui/primitives";
+import { toast } from "sonner";
 
 const usd = (n: number) => `$${(n ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 interface Pnl { revenue: { credit_usage: number; storage: number; subscription: number; total: number }; cogs: { api: number; storage: number; total: number }; gross_profit: number; gross_margin_pct: number; opex: number; net_profit: number }
@@ -29,15 +30,28 @@ export default function AdminPnlPage() {
   const [bs, setBs] = useState<BS | null>(null);
   const [drift, setDrift] = useState<Drift[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
-      const [{ data: p }, { data: b }, { data: d }] = await Promise.all([
+      const [pRes, bRes, dRes] = await Promise.all([
         supabase.rpc("ledger_pnl" as never, {} as never),
         supabase.rpc("ledger_balance_sheet" as never, {} as never),
         supabase.rpc("ledger_reconcile" as never, {} as never),
       ]);
-      setPnl((p as Pnl) ?? null); setBs((b as BS) ?? null); setDrift(((d as Drift[]) ?? [])); setLoading(false);
+      const firstError = pRes.error || bRes.error || dRes.error;
+      if (firstError) {
+        // Surface the failure instead of silently rendering an all-$0 statement,
+        // which reads as a real (and wrong) zero financial position.
+        setError(firstError.message);
+        toast.error(`Failed to load ledger: ${firstError.message}`);
+        setLoading(false);
+        return;
+      }
+      setPnl((pRes.data as Pnl) ?? null);
+      setBs((bRes.data as BS) ?? null);
+      setDrift((dRes.data as Drift[]) ?? []);
+      setLoading(false);
     })();
   }, []);
 
@@ -57,13 +71,24 @@ export default function AdminPnlPage() {
         </StatusPill>
       }
       stats={[
-        { label: "Revenue", value: usd(pnl?.revenue.total ?? 0), tone: "blue" },
-        { label: "COGS", value: usd(pnl?.cogs.total ?? 0), tone: "neutral" },
-        { label: "Gross profit", value: usd(pnl?.gross_profit ?? 0), tone: "emerald" },
-        { label: "Gross margin", value: `${pnl?.gross_margin_pct ?? 0}%`, tone: "amber" },
+        { label: "Revenue", value: error ? "—" : usd(pnl?.revenue.total ?? 0), tone: "blue" },
+        { label: "COGS", value: error ? "—" : usd(pnl?.cogs.total ?? 0), tone: "neutral" },
+        { label: "Gross profit", value: error ? "—" : usd(pnl?.gross_profit ?? 0), tone: "emerald" },
+        { label: "Gross margin", value: error ? "—" : `${pnl?.gross_margin_pct ?? 0}%`, tone: "amber" },
       ]}
     >
-      {loading ? <div className="py-16 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/40">Loading ledger…</div> : (
+      {error ? (
+        // Surface the failure instead of silently rendering an all-$0 statement,
+        // which reads as a real (and wrong) zero financial position. (admin-review AD)
+        <FloatSection title="Ledger unavailable">
+          <div className="flex flex-col items-center gap-3 py-10 text-center">
+            <AlertTriangle className="h-6 w-6" style={{ color: ROSE }} />
+            <div className="font-display text-[15px] font-semibold text-white">Ledger unavailable</div>
+            <div className="max-w-md px-6 font-mono text-[11px] leading-relaxed text-white/45">{error}</div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/30">Figures above are not zero — they failed to load.</div>
+          </div>
+        </FloatSection>
+      ) : loading ? <div className="py-16 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/40">Loading ledger…</div> : (
         <div className="space-y-14">
           <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
             {/* P&L statement */}
@@ -86,7 +111,7 @@ export default function AdminPnlPage() {
             <FloatSection title="Balance sheet">
               <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/35">Assets</div>
               <Line indent label="Cash" value={bs?.assets.cash ?? 0} />
-              <Line indent label="Stripe clearing" value={bs?.assets.stripe_clearing ?? 0} />
+              <Line indent label="Payment clearing" value={bs?.assets.stripe_clearing ?? 0} />
               <Line label="Total assets" value={bs?.assets.total ?? 0} strong accent />
               <div className="mt-4 mb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/35">Liabilities</div>
               <Line indent label="Deferred revenue (unspent credits)" value={bs?.liabilities.deferred_credits ?? 0} />

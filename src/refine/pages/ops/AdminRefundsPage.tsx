@@ -30,10 +30,10 @@ export default function AdminRefundsPage() {
       code="REF"
       title="Refunds"
       italic="Queue."
-      description="Customer refund requests — approve, deny, or mark as processed against Stripe."
+      description="Customer refund requests — approve, deny, or mark as processed against Polar."
     >
       <AdminConsoleV2<RefundRow>
-        intro="Refund queue. Approving here marks intent — actually issuing the Stripe refund is the next step (use the Stripe dashboard or your refund handler)."
+        intro="Refund queue. Approving here marks intent only — actually issuing the refund is a separate step in the Polar dashboard. Recording it here does not move money."
         query={{ table: "refund_requests", orderBy: { column: "created_at", ascending: false } }}
         searchKey="charge_id"
         searchPlaceholder="Search by charge id…"
@@ -90,10 +90,10 @@ export default function AdminRefundsPage() {
             }},
           { label: "Mark processed", icon: CreditCard, show: (r) => r.status === "approved",
             onRun: async (r) => {
-              const stripeId = prompt("Stripe refund ID (re_...):");
-              if (!stripeId) return;
+              const refundId = prompt("Polar refund ID (from the Polar dashboard):");
+              if (!refundId) return;
               const { error } = await supabase.from("refund_requests")
-                .update({ status: "processed", processed_at: new Date().toISOString(), stripe_refund_id: stripeId })
+                .update({ status: "processed", processed_at: new Date().toISOString(), stripe_refund_id: refundId })
                 .eq("id", r.id);
               if (error) throw error;
             }},

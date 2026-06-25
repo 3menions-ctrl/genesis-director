@@ -134,50 +134,70 @@ export function setElementGain(
   }
 }
 
-function buildChain(el: HTMLMediaElement): ChainNodes {
+function buildChain(el: HTMLMediaElement, fallbackGain = 1): ChainNodes {
   const cached = _chainsByElement.get(el);
   if (cached) return cached;
   const ctx = getCtx();
+  // createMediaElementSource CAPTURES the element's audio: once it exists,
+  // the element is SILENT unless `source` is connected onward. So if the
+  // processing graph below fails to build, we must still route source →
+  // destination or the clip plays muted with no error the user can see.
   const source = ctx.createMediaElementSource(el);
-  const low = ctx.createBiquadFilter();
-  low.type = "lowshelf";
-  low.frequency.value = 100;
-  low.gain.value = 0;
-  const mid = ctx.createBiquadFilter();
-  mid.type = "peaking";
-  mid.frequency.value = 1000;
-  mid.Q.value = 0.7;
-  mid.gain.value = 0;
-  const high = ctx.createBiquadFilter();
-  high.type = "highshelf";
-  high.frequency.value = 8000;
-  high.gain.value = 0;
-  const comp = ctx.createDynamicsCompressor();
-  comp.threshold.value = -100; // effectively off until enabled
-  comp.knee.value = 0;
-  comp.ratio.value = 1;
-  comp.attack.value = 0.005;
-  comp.release.value = 0.1;
-  const panner = typeof StereoPannerNode !== "undefined" ? ctx.createStereoPanner() : null;
-  const master = ctx.createGain();
-  master.gain.value = 1;
+  try {
+    const low = ctx.createBiquadFilter();
+    low.type = "lowshelf";
+    low.frequency.value = 100;
+    low.gain.value = 0;
+    const mid = ctx.createBiquadFilter();
+    mid.type = "peaking";
+    mid.frequency.value = 1000;
+    mid.Q.value = 0.7;
+    mid.gain.value = 0;
+    const high = ctx.createBiquadFilter();
+    high.type = "highshelf";
+    high.frequency.value = 8000;
+    high.gain.value = 0;
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -100; // effectively off until enabled
+    comp.knee.value = 0;
+    comp.ratio.value = 1;
+    comp.attack.value = 0.005;
+    comp.release.value = 0.1;
+    const panner = typeof StereoPannerNode !== "undefined" ? ctx.createStereoPanner() : null;
+    const master = ctx.createGain();
+    master.gain.value = 1;
 
-  // Connect
-  source.connect(low);
-  low.connect(mid);
-  mid.connect(high);
-  high.connect(comp);
-  if (panner) {
-    comp.connect(panner);
-    panner.connect(master);
-  } else {
-    comp.connect(master);
+    // Connect
+    source.connect(low);
+    low.connect(mid);
+    mid.connect(high);
+    high.connect(comp);
+    if (panner) {
+      comp.connect(panner);
+      panner.connect(master);
+    } else {
+      comp.connect(master);
+    }
+    master.connect(ctx.destination);
+
+    const nodes: ChainNodes = { source, low, mid, high, comp, panner, master };
+    _chainsByElement.set(el, nodes);
+    return nodes;
+  } catch (e) {
+    // Graph build failed after the element was captured. Fall back to a
+    // passthrough so audio still plays (no EQ/compressor/pan), then rethrow
+    // so the caller logs it. Route through a gain set from the caller's mix
+    // so a muted/attenuated clip isn't blasted at full volume. We
+    // deliberately do NOT cache a chain: rampElementGain/setElementGain will
+    // no-op (return false), which is correct — there's no master node to ramp.
+    try {
+      const g = ctx.createGain();
+      g.gain.value = Math.max(0, Math.min(16, fallbackGain));
+      source.connect(g);
+      g.connect(ctx.destination);
+    } catch { /* already connected / dead ctx */ }
+    throw e;
   }
-  master.connect(ctx.destination);
-
-  const nodes: ChainNodes = { source, low, mid, high, comp, panner, master };
-  _chainsByElement.set(el, nodes);
-  return nodes;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -260,7 +280,10 @@ export function useAudioMixChain(
         return;
       }
       try {
-        const nodes = buildChain(el);
+        // Pass the mix's effective gain so the passthrough fallback (used
+        // only if the full graph fails to build) respects mute/volume.
+        const fallbackGain = targetMix.muted ? 0 : Math.max(0, Math.min(1.5, targetMix.volume));
+        const nodes = buildChain(el, fallbackGain);
         applyMix(nodes, targetMix);
         lastAppliedFingerprint.current = fingerprint;
         const ctx = getCtx();

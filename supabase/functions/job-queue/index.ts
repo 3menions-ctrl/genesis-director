@@ -334,13 +334,21 @@ serve(async (req) => {
 
   try {
     // ═══ AUTH GUARD: Prevent unauthorized job queue access ═══
-    const { validateAuth, unauthorizedResponse, resolveEffectiveUserId, forbiddenResponse } = await import("../_shared/auth-guard.ts");
+    const { validateAuth, unauthorizedResponse, resolveEffectiveUserId, forbiddenResponse, requireServiceRole } = await import("../_shared/auth-guard.ts");
     const auth = await validateAuth(req);
     if (!auth.authenticated) {
       return unauthorizedResponse(corsHeaders, auth.error);
     }
 
     const request = await req.json() as QueueRequest;
+
+    // SECURITY: raw queue-worker actions must NOT be reachable by end-user
+    // JWTs. `dequeue` (pops a job for ANY user) and `process_batch` (drains
+    // jobs across all users) are internal worker operations — require the
+    // service-role key.
+    if ((request.action === 'dequeue' || request.action === 'process_batch') && !requireServiceRole(req)) {
+      return forbiddenResponse(corsHeaders, 'This action requires service-role credentials.');
+    }
     // SECURITY: For end-user JWT calls, force userId to JWT identity. Reject mismatches.
     if (request.userId !== undefined || !auth.isServiceRole) {
       try {
@@ -452,8 +460,13 @@ serve(async (req) => {
             { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
-        
-        const queuePosition = job.status === 'queued' 
+
+        // OWNERSHIP: end-user JWTs may only inspect their OWN jobs.
+        if (!auth.isServiceRole && job.userId !== auth.userId) {
+          return forbiddenResponse(corsHeaders, 'You do not have access to this job.');
+        }
+
+        const queuePosition = job.status === 'queued'
           ? jobQueues.get(job.type)?.findIndex(j => j.id === job!.id) ?? -1
           : -1;
         
@@ -483,26 +496,35 @@ serve(async (req) => {
         }
         
         // Remove from queue
-        for (const [type, queue] of jobQueues) {
+        for (const [, queue] of jobQueues) {
           const idx = queue.findIndex(j => j.id === request.jobId);
           if (idx !== -1) {
+            // OWNERSHIP: end-user JWTs may only cancel their OWN jobs.
+            if (!auth.isServiceRole && queue[idx].userId !== auth.userId) {
+              return forbiddenResponse(corsHeaders, 'You do not have access to this job.');
+            }
             const job = queue.splice(idx, 1)[0];
             job.status = 'cancelled';
             console.log(`[JobQueue] Cancelled job ${request.jobId}`);
-            
+
             return new Response(
               JSON.stringify({ success: true, cancelled: true }),
               { headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
         }
-        
+
         // Can't cancel if already processing
-        if (activeJobs.has(request.jobId)) {
+        const activeJob = activeJobs.get(request.jobId);
+        if (activeJob) {
+          // OWNERSHIP: don't leak other users' active jobs.
+          if (!auth.isServiceRole && activeJob.userId !== auth.userId) {
+            return forbiddenResponse(corsHeaders, 'You do not have access to this job.');
+          }
           return new Response(
-            JSON.stringify({ 
-              success: false, 
-              error: 'Cannot cancel job - already processing' 
+            JSON.stringify({
+              success: false,
+              error: 'Cannot cancel job - already processing'
             }),
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );

@@ -24,6 +24,13 @@ interface RateLimitState {
 }
 
 // In-memory rate limit storage (per edge function instance)
+//
+// ⚠️ DEPRECATED for abuse/cost control. The in-memory limiters below
+// (checkRateLimit / releaseRateLimit and the per-isolate Maps) are
+// PER-ISOLATE and BEST-EFFORT only — Supabase runs many isolates and
+// recycles them, so they cannot enforce a real global budget. For
+// money-spending or public abuse-prone endpoints use the DB-backed
+// `checkRateLimitDb` helper (rate_limit_hit RPC) defined below instead.
 const rateLimitStates = new Map<string, RateLimitState>();
 
 // Tier-based rate limits
@@ -546,4 +553,108 @@ export function getServiceHealth(serviceName: string): ServiceHealth {
 export function getAllServicesHealth(): ServiceHealth[] {
   const services = ['veo-api', 'cloud-run-stitch', 'openai-api', 'elevenlabs-api'];
   return services.map(getServiceHealth);
+}
+
+// =====================================================
+// DB-BACKED RATE LIMITER (shared, atomic, cross-isolate)
+// =====================================================
+//
+// Unlike the in-memory limiters above, this uses the `rate_limit_hit`
+// SECURITY-DEFINER RPC (see migration 20260705000300_rate_limit_counters.sql)
+// so the count is shared across every edge-function isolate. Use this for
+// any endpoint where exceeding the limit costs money or enables abuse
+// (public/unauthenticated endpoints, per-key API budgets, etc.).
+
+// Minimal structural type so this module stays import-free / pure.
+interface RpcCapableClient {
+  // PromiseLike so the real supabase-js builder (a thenable) and plain
+  // Promises/mocks both satisfy it.
+  rpc(fn: string, args: Record<string, unknown>): PromiseLike<{ data: unknown; error: unknown }>;
+}
+
+/**
+ * Atomically record a hit against `key` and report whether the caller is
+ * still within `limit` for the rolling `windowSeconds` bucket.
+ *
+ * @returns true  = ALLOWED (proceed)
+ *          false = LIMITED (return 429)
+ *
+ * On RPC error we FAIL CLOSED by default (`failOpen=false`) — denying is
+ * the safe choice for money-spending endpoints. Pass `failOpen=true` only
+ * for non-critical paths where availability beats strict enforcement; the
+ * error is always logged.
+ */
+export async function checkRateLimitDb(
+  supabase: RpcCapableClient,
+  key: string,
+  limit: number,
+  windowSeconds: number,
+  failOpen = false,
+): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc('rate_limit_hit', {
+      p_key: key,
+      p_limit: limit,
+      p_window_seconds: windowSeconds,
+    });
+    if (error) {
+      console.error('[rate-limiter] rate_limit_hit RPC error:', error, '— failing', failOpen ? 'OPEN' : 'CLOSED');
+      return failOpen;
+    }
+    // RPC returns the boolean "allowed" directly.
+    return data === true;
+  } catch (err) {
+    console.error('[rate-limiter] rate_limit_hit threw:', err, '— failing', failOpen ? 'OPEN' : 'CLOSED');
+    return failOpen;
+  }
+}
+
+// =====================================================
+// PURE HELPERS (testable, dependency-free)
+// =====================================================
+
+/**
+ * Compute the window-bucket start (in seconds) for a given timestamp.
+ * Mirrors the SQL `floor(epoch / window) * window` used by rate_limit_hit.
+ */
+export function computeWindowBucket(nowMs: number, windowSeconds: number): number {
+  const w = Math.max(Math.trunc(windowSeconds) || 1, 1);
+  return Math.floor(Math.floor(nowMs / 1000) / w) * w;
+}
+
+/**
+ * Derive the client IP from TRUSTED headers, in precedence order:
+ *   1. `cf-connecting-ip` (set by Cloudflare; cannot be spoofed by clients)
+ *   2. the LEFTMOST entry of `x-forwarded-for` (best-effort; spoofable —
+ *      callers MUST pair per-IP buckets with a global cap)
+ *   3. fallback sentinel
+ *
+ * Accepts anything with a Headers-like `get()` so it is trivially testable.
+ */
+export function extractClientIp(
+  headers: { get(name: string): string | null },
+  fallback = '0.0.0.0',
+): string {
+  const cf = headers.get('cf-connecting-ip');
+  if (cf && cf.trim()) return cf.trim();
+  const xff = headers.get('x-forwarded-for');
+  if (xff) {
+    const first = xff.split(',')[0]?.trim();
+    if (first) return first;
+  }
+  return fallback;
+}
+
+/**
+ * The scope required to call an api-v1 endpoint.
+ *   - GET (read) endpoints require 'read'
+ *   - POST (generation) endpoints require 'generate'
+ */
+export function requiredScopeForRequest(method: string): 'read' | 'generate' {
+  return method.toUpperCase() === 'GET' ? 'read' : 'generate';
+}
+
+/** True if the granted scope list satisfies the required scope. */
+export function hasScope(scopes: string[] | null | undefined, required: string): boolean {
+  return Array.isArray(scopes) && scopes.includes(required);
 }

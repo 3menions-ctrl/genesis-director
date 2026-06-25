@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { checkRateLimitDb, extractClientIp } from "../_shared/rate-limiter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,6 +41,12 @@ Give a cinematic mini-breakdown like:
 [Excited comment about the potential + question to continue]"`;
 
 const MAX_DEMO_MESSAGES = 6;
+
+// Spoof-proof platform-wide daily cap for this public AI endpoint. Per-IP
+// buckets (below) are best-effort and dodgeable via x-forwarded-for
+// spoofing; this single DB-backed counter caps total daily spend on the
+// shared AI gateway regardless of claimed IP.
+const PLATFORM_DAILY_CAP = 5000;
 
 // 🔒 Per-IP token-bucket rate limiter (in-memory, per-instance)
 // Prevents anonymous abuse of paid AI gateway calls on a public endpoint.
@@ -88,17 +96,38 @@ serve(async (req) => {
   }
 
   try {
-    // 🔒 Public endpoint — guard with per-IP rate limiting
-    const ip =
-      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      req.headers.get("cf-connecting-ip") ||
-      "unknown";
+    // 🔒 Public endpoint — guard with per-IP rate limiting.
+    // Trust cf-connecting-ip first (not client-spoofable); fall back to the
+    // leftmost x-forwarded-for hop only alongside the global cap below.
+    const ip = extractClientIp(req.headers, "unknown");
     const rl = checkRateLimit(ip);
     if (!rl.ok) {
       return new Response(
         JSON.stringify({
           error: "rate_limited",
           message: "We're seeing a lot of activity from your network — sign up to keep chatting with Hoppy 🐰✨",
+        }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // 🔒 Spoof-proof platform-wide daily cap (DB-backed, cross-isolate).
+    // Fail CLOSED on RPC error — this endpoint spends money on the AI gateway.
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const globalAllowed = await checkRateLimitDb(
+      supabase,
+      "landing-demo-chat:global",
+      PLATFORM_DAILY_CAP,
+      86400,
+    );
+    if (!globalAllowed) {
+      return new Response(
+        JSON.stringify({
+          error: "rate_limited",
+          message: "Hoppy's free demo is fully booked for today — sign up to keep chatting 🐰✨",
         }),
         { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

@@ -14,6 +14,11 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
+// @public-endpoint
+// Public shareable premiere recap. Only returns data for premieres in the
+// shareable `ended` state (enforced in-handler); no auth required by
+// design for share links.
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -49,7 +54,14 @@ Deno.serve(async (req) => {
         .eq("premiere_id", premiereId),
     ]);
 
-    if (!premiereRes.data) {
+    // This endpoint is unauthenticated, so it must only ever expose a recap
+    // for premieres that are in a publicly shareable terminal state. A recap
+    // is, by definition, only meaningful once the premiere has ended — so we
+    // gate on status === 'ended'. For any other state (scheduled / live /
+    // cancelled) we return 404 to avoid leaking host id, tip totals, etc. for
+    // premieres that haven't concluded. (The premieres table has no separate
+    // public/unlisted flag; "ended" is the only shareable state.)
+    if (!premiereRes.data || premiereRes.data.status !== "ended") {
       return new Response(JSON.stringify({ error: "premiere not found" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

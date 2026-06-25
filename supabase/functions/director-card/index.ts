@@ -92,12 +92,17 @@ Deno.serve(async (req) => {
     }
 
     const reels = reelsRes.data ?? [];
+    // tips_received is private earnings data — only expose it to the owner.
+    // Any other authed user requesting ?userId=<someone-else> must not see it.
+    const isSelf = userId === auth.userId;
     const stats = {
       reels: reels.length,
       plays: reels.reduce((s, r) => s + (r.play_count ?? 0), 0),
       likes: reels.reduce((s, r) => s + (r.like_count ?? 0), 0),
-      tips_received: reels.reduce((s, r) => s + (r.tip_credits ?? 0), 0),
       followers: followersRes.count ?? 0,
+      ...(isSelf
+        ? { tips_received: reels.reduce((s, r) => s + (r.tip_credits ?? 0), 0) }
+        : {}),
     };
 
     let topReel: unknown = null;

@@ -117,18 +117,43 @@ serve(async (req) => {
     // Free engine = Wan 2.5 (wan-ai/wan-2.5-t2v). Invoked via the Replicate
     // model endpoint below (no version pin → always the latest Wan revision).
 
-    // Record the attempt BEFORE firing so concurrent requests can't bypass
-    // the cap (the next free_tier_status call will see this row).
+    // ATOMIC RESERVE (M7): the previous code read free_tier_status and THEN
+    // inserted a 'started' row in two separate steps — two concurrent
+    // requests could both pass the read before either insert landed and
+    // blow past the daily cap. free_tier_try_consume re-counts and inserts
+    // under a per-user advisory lock in one shot. Fail CLOSED on error.
+    const { data: consumed, error: consumeErr } = await supabase.rpc(
+      "free_tier_try_consume",
+      { p_user_id: auth.userId, p_daily_limit: status.limit },
+    );
+    if (consumeErr || consumed !== true) {
+      return json({
+        ok: false,
+        reason: "rate_limit",
+        used_today: status.used_today,
+        limit: status.limit,
+        next_reset_at: status.next_reset_at,
+        message: `You've used today's ${status.limit} free renders. Upgrade for unlimited.`,
+      });
+    }
+
+    // Grab the id of the 'started' attempt the RPC just inserted (latest for
+    // this user) so we can update its status/prediction below.
     const { data: attempt } = await supabase
       .from("free_tier_attempts")
-      .insert({
-        user_id: auth.userId,
-        project_id: projectId,
-        status: "started",
-        estimated_cost_usd: 0.05,
-      })
       .select("id")
-      .single();
+      .eq("user_id", auth.userId)
+      .eq("status", "started")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (attempt?.id && projectId) {
+      await supabase
+        .from("free_tier_attempts")
+        .update({ project_id: projectId })
+        .eq("id", attempt.id);
+    }
 
     // Fire the prediction on Wan 2.5 — the free engine. 5-second preview.
     const predRes = await fetch("https://api.replicate.com/v1/models/wan-ai/wan-2.5-t2v/predictions", {

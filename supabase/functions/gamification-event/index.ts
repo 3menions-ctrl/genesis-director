@@ -44,6 +44,26 @@ serve(async (req) => {
 
     console.log(`Processing gamification event: ${event_type} for user ${user_id}`);
 
+    // ═══ RATE LIMIT ═══
+    // These events are client-reported, so a malicious client can spam them to
+    // self-award unlimited XP. Cap each user to 100 XP-awarding events/hour.
+    // NOTE: this only throttles volume — event *authenticity* should ideally be
+    // validated server-side against real state (e.g. confirm a video actually
+    // completed) rather than trusting the client-supplied event_type.
+    const { data: allowed, error: rlError } = await supabase.rpc('rate_limit_hit', {
+      p_key: 'gamification:' + user_id,
+      p_limit: 100,
+      p_window_seconds: 3600,
+    });
+    if (rlError) {
+      console.error('rate_limit_hit failed:', rlError);
+    } else if (allowed === false) {
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded', xp_awarded: 0 }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const xpAmount = XP_REWARDS[event_type] || 10;
 
     // Add XP

@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { checkRateLimitDb, extractClientIp } from '../_shared/rate-limiter.ts'
 
 // @public-endpoint
 // Embeddable widget config fetch. Public by design — third-party sites
@@ -47,8 +48,10 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Rate limit check
-    const clientIp = req.headers.get('x-forwarded-for') || 'unknown'
+    // Rate limit check. Trust cf-connecting-ip first (not client-spoofable);
+    // fall back to the leftmost x-forwarded-for hop only alongside the
+    // global cap below.
+    const clientIp = extractClientIp(req.headers, 'unknown')
     if (!checkRateLimit(clientIp)) {
       return new Response(
         JSON.stringify({ error: 'Rate limit exceeded' }),
@@ -60,6 +63,24 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
+
+    // Spoof-proof global cap (DB-backed, cross-isolate): a spoofed
+    // x-forwarded-for can rotate per-IP buckets but cannot exceed this
+    // single platform-wide counter. Fail OPEN on RPC error so a transient
+    // DB hiccup doesn't blank out every embedded widget (read-only path).
+    const globalAllowed = await checkRateLimitDb(
+      supabase,
+      'get-widget-config:global',
+      50000,
+      86400,
+      true,
+    )
+    if (!globalAllowed) {
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     // Fetch widget config
     let query = supabase
@@ -96,7 +117,14 @@ Deno.serve(async (req) => {
           )
         }
       } catch {
-        // If origin parsing fails and domains are set, allow (could be direct access)
+        // FAIL CLOSED: an allowlist is configured but the origin/referer is
+        // missing or unparseable. Previously this allowed the request (a
+        // fail-open bug) — anyone could bypass the domain allowlist by
+        // stripping the Origin header. Deny instead.
+        return new Response(
+          JSON.stringify({ error: 'Domain not authorized' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
       }
     }
 

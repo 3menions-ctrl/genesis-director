@@ -1,5 +1,14 @@
 // Translate one or more strings into a target language using Lovable AI.
 // Public function — no auth required (translations are not sensitive).
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { checkRateLimitDb, extractClientIp } from "../_shared/rate-limiter.ts";
+
+// Abuse caps (DB-backed, cross-isolate). This endpoint is public and spends
+// money on the shared LOVABLE_API_KEY, so cap both total daily volume and
+// per-IP burst regardless of (spoofable) x-forwarded-for.
+const GLOBAL_DAILY_CAP = 5000; // translate-text calls per UTC-ish 24h window
+const PER_IP_HOURLY_CAP = 60;  // per-IP calls per hour
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -23,6 +32,33 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "LOVABLE_API_KEY not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // 🔒 DB-backed abuse caps. Fail CLOSED on RPC error (this spends money).
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const ip = extractClientIp(req.headers, "unknown");
+    const globalAllowed = await checkRateLimitDb(
+      supabase,
+      "translate-text:global",
+      GLOBAL_DAILY_CAP,
+      86400,
+    );
+    const ipAllowed = globalAllowed
+      ? await checkRateLimitDb(
+          supabase,
+          `translate-text:ip:${ip}`,
+          PER_IP_HOURLY_CAP,
+          3600,
+        )
+      : false;
+    if (!globalAllowed || !ipAllowed) {
+      return new Response(
+        JSON.stringify({ error: "RATE_LIMIT", message: "Translation rate limit reached. Try again later." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 

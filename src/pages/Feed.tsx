@@ -222,15 +222,15 @@ const FeedCard = ({ innerRef, index, item, active, muted, onComments }: FeedCard
         className="absolute right-3 z-20 flex flex-col items-center gap-5"
         style={{ bottom: 'calc(var(--safe-bottom, 0px) + var(--tabbar-h, 0px) + 132px)' }}
       >
-        <button onClick={() => navigate('/profile')} className="relative" aria-label="Creator">
+        <button onClick={() => navigate(item.creator_id ? `/u/${item.creator_id}` : '/you')} className="relative drop-shadow-[0_4px_12px_rgba(0,0,0,.6)]" aria-label="Creator">
           {item.creator_avatar ? (
-            <img src={item.creator_avatar} alt="" className="h-12 w-12 rounded-full border-2 border-white object-cover" />
+            <img src={item.creator_avatar} alt="" className="h-12 w-12 rounded-full object-cover" />
           ) : (
-            <span className="grid h-12 w-12 place-items-center rounded-full border-2 border-white bg-gradient-to-br from-[#ffb86b] to-[#ff6bcb] font-display text-lg font-bold">
+            <span className="grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-[#ffb86b] to-[#ff6bcb] font-display text-lg font-bold">
               {initial}
             </span>
           )}
-          <span className="absolute -bottom-1.5 left-1/2 grid h-5 w-5 -translate-x-1/2 place-items-center rounded-full border-2 border-[#0a0a0a] bg-[#2f6bff] text-[13px] font-bold leading-none">
+          <span className="absolute -bottom-1.5 left-1/2 grid h-5 w-5 -translate-x-1/2 place-items-center rounded-full bg-[#2f6bff] text-[13px] font-bold leading-none shadow-[0_0_0_3px_#0a0a0a]">
             +
           </span>
         </button>

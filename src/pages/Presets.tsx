@@ -117,13 +117,16 @@ export default function Presets() {
           <span className="font-display text-[10px] font-medium">Reset</span>
         </button>
 
-        {/* Save — transparent outlined boundary */}
+        {/* Save — borderless, floating accent icon */}
         <button onClick={save}
           aria-label={look.premium ? `${look.name} is Pro` : `Save with ${look.name}`}
           title={look.premium ? `${look.name} is Pro` : `Save with ${look.name}`}
-          className="flex flex-col items-center gap-1 rounded-[18px] border border-[#7aa2ff]/45 bg-transparent px-3.5 py-2 text-[#7aa2ff] drop-shadow-[0_2px_6px_rgba(0,0,0,.6)]">
-          {look.premium ? <Lock className="h-[24px] w-[24px]" /> : <Save className="h-[24px] w-[24px]" strokeWidth={1.9} />}
-          <span className="font-display text-[10px] font-semibold">{look.premium ? 'Pro' : 'Save'}</span>
+          className="relative flex flex-col items-center gap-1 text-[#8fb4ff] transition-transform active:scale-95">
+          <span className="relative grid place-items-center">
+            <span className="pointer-events-none absolute h-9 w-9 rounded-full bg-[#3f78ff]/35 blur-md" />
+            {look.premium ? <Lock className="relative h-[24px] w-[24px]" /> : <Save className="relative h-[24px] w-[24px]" strokeWidth={1.9} />}
+          </span>
+          <span className="font-display text-[10px] font-semibold drop-shadow">{look.premium ? 'Pro' : 'Save'}</span>
         </button>
       </div>
 
@@ -144,7 +147,7 @@ export default function Presets() {
                 const on = l.id === selected;
                 return (
                   <button key={l.id} onClick={() => { void hapticTap(); setSelected(l.id); }} aria-label={l.name} title={l.name}
-                    className={cn('relative overflow-hidden rounded-[18px] align-top transition-all', on ? 'ring-2 ring-[#3f78ff]' : 'ring-1 ring-white/10')}>
+                    className={cn('relative overflow-hidden rounded-[18px] align-top transition-all', on ? 'shadow-[0_12px_34px_-8px_rgba(63,120,255,.85)]' : '')}>
                     {/* Preview takes the clip's own aspect ratio — never cropped. */}
                     <video src={SAMPLE_SRC} muted loop autoPlay playsInline
                       className="block w-full" style={{ filter: l.filter }} />

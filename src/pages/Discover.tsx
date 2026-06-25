@@ -48,15 +48,22 @@ export default function Discover() {
           {query && <button onClick={() => setQuery('')} aria-label="Clear" className="text-white/40"><X className="h-[18px] w-[18px]" /></button>}
         </div>
 
-        {/* Categories */}
+        {/* Categories — borderless, floating icons with labels */}
         {!searching && (
-          <div className="mt-4 flex gap-2">
-            {CATS.map((c) => (
-              <button key={c.id} onClick={() => { void hapticTap(); setCat(c.id); }}
-                className={cn('flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-[13px] font-semibold transition-colors', cat === c.id ? 'bg-gradient-to-r from-[#2f6bff]/30 to-[#7a3bff]/25 text-white shadow-[inset_0_0_0_1px_rgba(143,180,255,.35)]' : 'bg-white/[0.05] text-white/55')}>
-                <c.icon className="h-4 w-4" strokeWidth={1.9} />{c.label}
-              </button>
-            ))}
+          <div className="mt-5 flex items-center justify-around">
+            {CATS.map((c) => {
+              const on = cat === c.id;
+              return (
+                <button key={c.id} onClick={() => { void hapticTap(); setCat(c.id); }}
+                  className={cn('flex flex-col items-center gap-1.5 transition-colors active:scale-95', on ? 'text-[#8fb4ff]' : 'text-white/45')}>
+                  <span className="relative grid place-items-center">
+                    {on && <span className="pointer-events-none absolute h-8 w-8 rounded-full bg-[#3f78ff]/30 blur-md" />}
+                    <c.icon className="relative h-[22px] w-[22px]" strokeWidth={on ? 2.1 : 1.8} />
+                  </span>
+                  <span className="text-[11px] font-semibold">{c.label}</span>
+                </button>
+              );
+            })}
           </div>
         )}
 

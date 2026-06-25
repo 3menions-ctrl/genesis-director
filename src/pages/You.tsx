@@ -171,13 +171,20 @@ export default function You() {
           <Heatmap days={heat} />
         </Section>
 
-        {/* Tabs */}
-        <div className="mt-6 flex items-center justify-around">
-          {([['films', Film, 'Films'], ['liked', Heart, 'Liked'], ['drafts', Layers, 'Drafts']] as const).map(([id, Icon, label]) => (
-            <button key={id} onClick={() => { void hapticTap(); setTab(id); }} className={cn('flex flex-1 flex-col items-center gap-1.5 border-b-2 pb-2.5 transition-colors', tab === id ? 'border-[#8fb4ff] text-white' : 'border-transparent text-white/40')}>
-              <Icon className="h-[19px] w-[19px]" strokeWidth={1.8} /><span className="text-[11px] font-medium">{label}</span>
-            </button>
-          ))}
+        {/* Tabs — borderless, floating accent icons */}
+        <div className="mt-7 flex items-center justify-around">
+          {([['films', Film, 'Films'], ['liked', Heart, 'Liked'], ['drafts', Layers, 'Drafts']] as const).map(([id, Icon, label]) => {
+            const on = tab === id;
+            return (
+              <button key={id} onClick={() => { void hapticTap(); setTab(id); }} className={cn('flex flex-1 flex-col items-center gap-1.5 transition-colors active:scale-95', on ? 'text-[#8fb4ff]' : 'text-white/40')}>
+                <span className="relative grid place-items-center">
+                  {on && <span className="pointer-events-none absolute h-8 w-8 rounded-full bg-[#3f78ff]/30 blur-md" />}
+                  <Icon className="relative h-[20px] w-[20px]" strokeWidth={on ? 2.1 : 1.8} />
+                </span>
+                <span className="text-[11px] font-medium">{label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Tab content */}

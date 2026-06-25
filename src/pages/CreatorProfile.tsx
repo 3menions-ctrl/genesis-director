@@ -148,22 +148,32 @@ function SwipeProfile({ profile, reels, onFollow, onMoveOn, onMessage, onTapFoll
             </div>
           )}
 
-          {/* Tap actions */}
-          <div className="mt-5 flex gap-3" onPointerDownCapture={(e) => e.stopPropagation()}>
-            <button onClick={onTapFollow}
-              className={cn('flex h-12 flex-1 items-center justify-center gap-2 rounded-full font-display text-[14.5px] font-bold transition-colors',
-                profile.is_following ? 'bg-white/[0.12] text-white backdrop-blur-md' : 'bg-gradient-to-r from-[#2f6bff] to-[#7a3bff] text-white shadow-[0_14px_36px_-12px_rgba(80,80,255,.8)]')}>
-              {profile.is_following ? <><UserCheck className="h-[18px] w-[18px]" />Following</> : <><UserPlus className="h-[18px] w-[18px]" />Follow</>}
-            </button>
-            <button onClick={onMessage} aria-label="Message" className="grid h-12 w-12 flex-none place-items-center rounded-full bg-white/[0.12] text-white backdrop-blur-md">
-              <MessageCircle className="h-5 w-5" />
-            </button>
+          {/* Tap actions — borderless, floating icons with labels */}
+          <div className="mt-5 flex items-center justify-center gap-14" onPointerDownCapture={(e) => e.stopPropagation()}>
+            <FloatIcon label={profile.is_following ? 'Following' : 'Follow'} active={profile.is_following} onClick={onTapFollow}>
+              {profile.is_following ? <UserCheck className="h-[26px] w-[26px]" strokeWidth={1.9} /> : <UserPlus className="h-[26px] w-[26px]" strokeWidth={1.9} />}
+            </FloatIcon>
+            <FloatIcon label="Message" onClick={onMessage}>
+              <MessageCircle className="h-[26px] w-[26px]" strokeWidth={1.9} />
+            </FloatIcon>
           </div>
 
-          <p className="mt-3 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-white/35">Swipe → follow · ← later</p>
+          <p className="mt-4 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-white/35">Swipe → follow · ← later</p>
         </div>
       </div>
     </motion.div>
+  );
+}
+
+function FloatIcon({ children, label, active, onClick }: { children: React.ReactNode; label: string; active?: boolean; onClick: () => void }) {
+  return (
+    <button onClick={onClick} aria-label={label} className={cn('flex flex-col items-center gap-1.5 transition-colors active:scale-95', active ? 'text-[#8fb4ff]' : 'text-white')}>
+      <span className="relative grid place-items-center">
+        <span className={cn('pointer-events-none absolute h-9 w-9 rounded-full blur-md', active ? 'bg-[#3f78ff]/45' : 'bg-white/15')} />
+        <span className="relative">{children}</span>
+      </span>
+      <span className="font-display text-[11px] font-semibold drop-shadow">{label}</span>
+    </button>
   );
 }
 

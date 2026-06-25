@@ -323,6 +323,48 @@ serve(async (req) => {
             progress = 25;
         }
 
+        // M1: refund an upfront editor-clip deduct when the prediction fails or
+        // is canceled asynchronously (the synchronous start-failure path in
+        // editor-generate-clip already refunds; this covers later failures).
+        // Discriminated by the editor's api_cost_logs row — hold-based pipelines
+        // don't write one, so they can never be double-credited here. Idempotent
+        // via refund_credits' 1:1 key pairing plus a refunded flag.
+        if (status === "FAILED") {
+          try {
+            const { data: costRow } = await supabase
+              .from("api_cost_logs")
+              .select("id, user_id, credits_charged, metadata")
+              .eq("operation", "editor-generate-clip")
+              .filter("metadata->>predictionId", "eq", taskId)
+              .gt("credits_charged", 0)
+              .maybeSingle();
+            const meta = (costRow?.metadata ?? {}) as {
+              creditIdemKey?: string | null;
+              creditProjectId?: string | null;
+              refunded?: boolean;
+            };
+            if (costRow && !meta.refunded && meta.creditIdemKey) {
+              const { error: refundErr } = await supabase.rpc("refund_credits", {
+                p_user_id: costRow.user_id,
+                p_amount: costRow.credits_charged,
+                p_description: "Editor clip refund: async generation failure",
+                p_project_id: meta.creditProjectId ?? reqProjectId ?? null,
+                p_idempotency_key: meta.creditIdemKey,
+              });
+              if (!refundErr) {
+                await supabase
+                  .from("api_cost_logs")
+                  .update({ status: "refunded", metadata: { ...meta, refunded: true } })
+                  .eq("id", costRow.id);
+              } else {
+                console.error("[CheckStatus] editor-clip async refund failed:", refundErr);
+              }
+            }
+          } catch (refundEx) {
+            console.error("[CheckStatus] editor-clip async refund exception:", refundEx);
+          }
+        }
+
         await logApiCall(supabase, "status-poll", "replicate-kling", status, reqProjectId, taskId, userId);
 
         return new Response(

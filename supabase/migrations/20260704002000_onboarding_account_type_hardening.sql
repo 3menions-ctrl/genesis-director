@@ -1,114 +1,102 @@
 -- ─────────────────────────────────────────────────────────────────────────
 -- C1: Lock down self-service account_type escalation.
 --
--- Before: any authenticated user could INSERT an onboarding_intents row with
--- account_type='business' (RLS WITH CHECK (true)) and call
--- consume_onboarding_intent() to flip their own profile to 'business' — no
--- eligibility check, and a re-consume could change account_type after
--- onboarding. This broke the business↔personal mutual-exclusivity invariant.
+-- The deployed consume_onboarding_intent already (a) requires a non-personal
+-- email for business via is_blocked_business_email and (b) matches contact_email
+-- to the account — but it still overwrites profiles.account_type UNCONDITIONALLY
+-- on every consume. So an already-onboarded user could create a fresh intent and
+-- consume it to FLIP their account_type (personal↔business), breaking the
+-- mutual-exclusivity invariant.
 --
--- After:
---   1. account_type can only be SET during first onboarding. Once a profile
---      has onboarding_completed = true, an intent that would CHANGE account_type
---      is rejected ('account_type_locked').
---   2. Granting 'business' requires a real business email — free/consumer email
---      domains are rejected ('business_email_required').
--- All other profile-field hydration is preserved.
+-- This rebases the deployed function and adds a single guard: account_type is
+-- immutable once onboarding_completed — an intent that would change it on an
+-- already-onboarded profile is rejected ('account_type_locked'). All other
+-- behavior (email match, business-email block, org creation) is preserved.
 -- ─────────────────────────────────────────────────────────────────────────
-
--- Helper: is the email on a known free/consumer provider (i.e. NOT a business domain)?
-CREATE OR REPLACE FUNCTION public.is_free_email_domain(_email text)
-RETURNS boolean
-LANGUAGE sql
-IMMUTABLE
-SET search_path = public
-AS $$
-  SELECT lower(split_part(coalesce(_email, ''), '@', 2)) IN (
-    'gmail.com','googlemail.com',
-    'yahoo.com','yahoo.co.uk','yahoo.co.in','ymail.com','rocketmail.com',
-    'hotmail.com','hotmail.co.uk','outlook.com','live.com','msn.com','passport.com',
-    'aol.com','aim.com',
-    'icloud.com','me.com','mac.com',
-    'proton.me','protonmail.com','pm.me',
-    'gmx.com','gmx.net','mail.com','email.com','zoho.com','yandex.com','yandex.ru',
-    'hey.com','fastmail.com','tutanota.com','tuta.io','hushmail.com',
-    'inbox.com','mailinator.com','disroot.org'
-  );
-$$;
-REVOKE ALL ON FUNCTION public.is_free_email_domain(text) FROM public, anon;
-GRANT EXECUTE ON FUNCTION public.is_free_email_domain(text) TO authenticated, service_role;
-
-CREATE OR REPLACE FUNCTION public.consume_onboarding_intent(_token text)
+CREATE OR REPLACE FUNCTION public.consume_onboarding_intent(p_intent_token text)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
-AS $$
+SET search_path TO 'public'
+AS $function$
 DECLARE
-  _intent  record;
-  _profile record;
-  _email   text;
-  _uid uuid := auth.uid();
+  v_user_id uuid := auth.uid();
+  v_user_email text;
+  v_intent public.onboarding_intents%ROWTYPE;
+  v_org_id uuid;
+  v_org_name text;
+  v_org_plan text;
+  v_current_type text;
+  v_onboarded boolean;
 BEGIN
-  IF _uid IS NULL THEN
-    RETURN jsonb_build_object('ok', false, 'error', 'unauthenticated');
+  IF v_user_id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
   END IF;
 
-  SELECT * INTO _intent FROM public.onboarding_intents
-   WHERE intent_token = _token
-   LIMIT 1;
+  SELECT email INTO v_user_email FROM auth.users WHERE id = v_user_id;
+
+  SELECT * INTO v_intent FROM public.onboarding_intents
+  WHERE intent_token = p_intent_token LIMIT 1;
 
   IF NOT FOUND THEN
-    RETURN jsonb_build_object('ok', false, 'error', 'intent_not_found');
+    RETURN jsonb_build_object('success', false, 'error', 'Invalid intent token');
   END IF;
 
-  IF _intent.consumed_by_user_id IS NOT NULL AND _intent.consumed_by_user_id <> _uid THEN
-    RETURN jsonb_build_object('ok', false, 'error', 'intent_already_consumed');
-  END IF;
-
-  SELECT account_type, onboarding_completed INTO _profile
-    FROM public.profiles WHERE id = _uid;
-
-  -- (1) account_type is immutable after onboarding. An intent that would CHANGE
-  --     it on an already-onboarded profile is an escalation attempt — reject it.
-  IF coalesce(_profile.onboarding_completed, false)
-     AND _intent.account_type IS NOT NULL
-     AND _intent.account_type IS DISTINCT FROM _profile.account_type THEN
-    RETURN jsonb_build_object('ok', false, 'error', 'account_type_locked');
-  END IF;
-
-  -- (2) Granting 'business' requires a real business email domain.
-  IF _intent.account_type = 'business'
-     AND _intent.account_type IS DISTINCT FROM coalesce(_profile.account_type, 'personal') THEN
-    SELECT email INTO _email FROM auth.users WHERE id = _uid;
-    IF _email IS NULL OR public.is_free_email_domain(_email) THEN
-      RETURN jsonb_build_object('ok', false, 'error', 'business_email_required');
+  IF v_intent.consumed_at IS NOT NULL THEN
+    IF v_intent.consumed_by_user_id = v_user_id THEN
+      RETURN jsonb_build_object('success', true, 'already_consumed', true,
+                                'account_type', v_intent.account_type);
     END IF;
+    RETURN jsonb_build_object('success', false, 'error', 'Intent already consumed');
+  END IF;
+
+  IF v_intent.contact_email IS NOT NULL
+     AND LOWER(v_intent.contact_email) <> LOWER(v_user_email) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Intent email does not match account');
+  END IF;
+
+  IF v_intent.account_type NOT IN ('personal','business','enterprise') THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Invalid account type in intent');
+  END IF;
+
+  -- C1 GUARD: account_type is immutable after onboarding. An intent that would
+  -- change it on an already-onboarded profile is an escalation attempt.
+  SELECT account_type, onboarding_completed
+    INTO v_current_type, v_onboarded
+    FROM public.profiles WHERE id = v_user_id;
+
+  IF COALESCE(v_onboarded, false)
+     AND v_intent.account_type IS DISTINCT FROM v_current_type THEN
+    RETURN jsonb_build_object('success', false, 'error', 'account_type_locked');
+  END IF;
+
+  IF v_intent.account_type = 'business'
+     AND public.is_blocked_business_email(v_user_email) THEN
+    RETURN jsonb_build_object('success', false,
+      'error', 'Business accounts require a work email (personal email providers are blocked)');
   END IF;
 
   UPDATE public.profiles
-     SET account_type        = COALESCE(_intent.account_type, account_type),
-         full_name           = COALESCE(NULLIF(_intent.display_name, ''), full_name),
-         display_name        = COALESCE(NULLIF(_intent.display_name, ''), display_name),
-         company             = COALESCE(NULLIF(_intent.company_name, ''), company),
-         job_title           = COALESCE(NULLIF(_intent.job_role, ''), job_title),
-         use_case            = COALESCE(NULLIF(array_to_string(_intent.goals, ','), ''), use_case),
-         onboarding_completed = true,
-         updated_at          = now()
-   WHERE id = _uid;
+  SET account_type = v_intent.account_type,
+      onboarding_completed = true,
+      updated_at = now()
+  WHERE id = v_user_id;
+
+  IF v_intent.account_type IN ('business','enterprise') THEN
+    v_org_name := COALESCE(NULLIF(v_intent.company_name,''),
+                           split_part(v_user_email,'@',1) || ' Workspace');
+    v_org_plan := CASE
+      WHEN v_intent.account_type = 'enterprise' THEN 'enterprise'
+      WHEN v_intent.expected_volume IN ('high','very_high') THEN 'scale'
+      ELSE 'growth'
+    END;
+    v_org_id := public.create_org_for_user(v_user_id, v_org_name, v_org_plan);
+  END IF;
 
   UPDATE public.onboarding_intents
-     SET consumed_by_user_id = _uid,
-         consumed_at         = now()
-   WHERE id = _intent.id;
+  SET consumed_at = now(), consumed_by_user_id = v_user_id
+  WHERE id = v_intent.id;
 
-  RETURN jsonb_build_object(
-    'ok', true,
-    'account_type', _intent.account_type,
-    'plan_id', _intent.selected_plan_id,
-    'plan_kind', _intent.selected_plan_kind
-  );
-END;
-$$;
-
-GRANT EXECUTE ON FUNCTION public.consume_onboarding_intent(text) TO authenticated;
+  RETURN jsonb_build_object('success', true,
+    'account_type', v_intent.account_type, 'organization_id', v_org_id);
+END; $function$;

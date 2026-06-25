@@ -472,7 +472,16 @@ serve(async (req) => {
         real_cost_cents: realCostCents,
         duration_seconds: duration,
         status: "pending",
-        metadata: { predictionId: prediction.id, engine },
+        // Stash the credit deduct's idempotency key + project so check-video-status
+        // can refund 1:1 if this prediction fails asynchronously (M1). Only editor
+        // clips write this row, so the async-refund path can't touch hold-based
+        // pipelines.
+        metadata: {
+          predictionId: prediction.id,
+          engine,
+          creditIdemKey: creditsRequired > 0 ? idemKey : null,
+          creditProjectId: projectId || null,
+        },
       });
 
       // Stash the prompt's identity DNA so /status can return it for chaining

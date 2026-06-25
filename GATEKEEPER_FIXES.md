@@ -1,9 +1,21 @@
 # Gatekeeper hardening — fixes
 
 Branch `fix/gatekeeper-hardening` off `main`. Closes the gaps from the gatekeeper
-audit. Each item was verified in source before changing. Client typecheck passes
-(`tsc --noEmit`, 0 errors). **Migrations are NOT yet applied** — apply the new
-`supabase/migrations/2026070400{20,21,22,23,24}*` in order.
+audit. Each item verified in source before changing; client typecheck passes.
+
+## Status
+- **Migrations: APPLIED to production** (project `ywcwaumozoejierlfkgj`) via the
+  Management API and recorded in `supabase_migrations.schema_migrations`. Verified
+  live: C1 lock guard present, user-uploads `file_size_limit=100MB`, storage
+  funcs + RESTRICTIVE `storage_quota_ceiling` policy + both cron jobs scheduled,
+  `get_org_credit_state` service-role bypass, `check_abuse_block` + service_role
+  grant on `has_active_subscription`. `db push` was deliberately NOT used (an
+  un-deployed finance/org backlog + duplicate `20260703000000` versions would
+  ride along).
+- **Edge function code: committed, NOT yet deployed.** M2/H3/M3/M1 runtime
+  behavior activates only after `supabase functions deploy` of editor-generate-clip,
+  check-video-status, api-keys-manage, free-tier-generate (+ the shared
+  abuse-guard). The C1/H4/H1 DB fixes are already live without a deploy.
 
 ## Fixed
 
@@ -23,19 +35,33 @@ audit. Each item was verified in source before changing. Client typecheck passes
   check+update — concurrent debits serialize, no negative-balance race. The
   audit's M5 was a misread.
 
-## Deferred (needs its own careful PR — do NOT hotfix)
+## M1 (async refund) — IMPLEMENTED
 
-- **M1 (async refund):** confirmed real — when an editor clip prediction fails
-  *asynchronously*, `check-video-status` marks the clip failed but does **not**
-  refund the upfront `deduct_credits` (the synchronous start-failure path does
-  refund). A naive refund in the shared status poller risks **double-crediting**
-  the hold-based pipelines that flow through the same code. Correct fix: migrate
-  `editor-generate-clip` to the reserve→consume **hold pattern** (like
-  hollywood/seedance) so failures auto-release via the existing reconcile cron.
-- **H2 (server-side account-type on every business endpoint):** largely mitigated
-  by C1 (escalation closed) + existing org-membership RLS (`fn_org_has_min_role`)
-  on org operations. Remaining: business *route* gating is still client-side.
-  Per-endpoint `has_account_type()` checks are a follow-up.
+Editor clips now refund the upfront deduct when a prediction fails/cancels
+*asynchronously*. `editor-generate-clip` stashes the deduct's idempotency key +
+project on its `api_cost_logs` row; `check-video-status` refunds 1:1 on FAILED.
+Safe because:
+- Only editor clips write that `api_cost_logs` row → hold-based pipelines
+  (hollywood/seedance) can't be touched, so no double-credit.
+- `refund_credits` dedups on `transaction_type='refund'` + key (no collision
+  with the `'usage'` deduct), plus a `refunded` flag on the row → idempotent
+  across repeated polls.
+Matches the existing synchronous refund's personal-ledger semantics. (When the
+org-pool backlog deploys, both sync and async refunds will need an org-aware
+refund — tracked with that backlog.)
+
+## H2 (server-side account-type) — VERIFIED ALREADY CLOSED (no code needed)
+
+`account_type` cannot be escalated server-side:
+- Direct `UPDATE profiles SET account_type` is blocked by the `profiles` UPDATE
+  RLS `with_check` (`NOT (account_type IS DISTINCT FROM …)`) plus the
+  `prevent_profile_privilege_escalation_trg` / `trg_profiles_block_sensitive_self_update`
+  triggers.
+- The onboarding-intent path is now locked by **C1**.
+- Org operations are gated by membership RLS (`fn_org_has_min_role`).
+So the client-side business-route gating is backed by un-escalatable data — there
+is no server-side hole left. (Per-endpoint `has_account_type()` checks remain an
+optional defense-in-depth follow-up.)
 
 ## Decision to confirm
 

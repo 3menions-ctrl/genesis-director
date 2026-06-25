@@ -60,7 +60,7 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   // ═══ AUTH GUARD: Prevent unauthorized API access ═══
-  const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+  const { validateAuth, unauthorizedResponse, forbiddenResponse } = await import("../_shared/auth-guard.ts");
   const auth = await validateAuth(req);
   if (!auth.authenticated) {
     return unauthorizedResponse(corsHeaders, auth.error);
@@ -80,6 +80,21 @@ serve(async (req) => {
 
     if (!taskId) {
       throw new Error("Task ID (prediction ID) is required");
+    }
+
+    // Ownership guard for the autoComplete WRITE path: an end-user JWT may
+    // only auto-write clips to their OWN project (and only under their own id).
+    // Pure status polling (autoComplete=false) and service-role internal
+    // calls are unaffected.
+    if (autoComplete && reqProjectId && !auth.isServiceRole) {
+      const { data: ownerRow } = await supabase
+        .from('movie_projects').select('user_id').eq('id', reqProjectId).maybeSingle();
+      if (!ownerRow || ownerRow.user_id !== auth.userId) {
+        return forbiddenResponse(corsHeaders, 'Forbidden: you do not own this project');
+      }
+      if (userId && userId !== auth.userId) {
+        return forbiddenResponse(corsHeaders, 'Forbidden: user id mismatch');
+      }
     }
 
     console.log("Checking video status for prediction:", taskId, "provider:", provider);

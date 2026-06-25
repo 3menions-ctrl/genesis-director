@@ -113,7 +113,7 @@ import type {
   ScriptDocument,
 } from "@/lib/editor/script-document";
 import { findShot } from "@/lib/editor/script-document";
-import { enqueueShot } from "@/lib/editor/generation/orchestrator";
+import { enqueueShot, isRunnerInstalled } from "@/lib/editor/generation/orchestrator";
 import {
   buildEngineInput,
   selectEngineForShot,
@@ -420,6 +420,11 @@ function ScriptInner({ project }: Props) {
       if (!doc) return;
       const shot = findShot(doc, shotId);
       if (!shot) return;
+      // Generation runner isn't wired yet — don't enqueue into a dead queue.
+      if (!isRunnerInstalled()) {
+        toast.message("Rendering from the editor is coming soon.");
+        return;
+      }
       setShotApproval(shotId, "ready", { by: "user", reason: "Approved from Script tab" });
       const ctx = buildChainContext(doc, shotId);
       const inputs = buildEngineInput(shot, doc, ctx);

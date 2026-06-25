@@ -284,6 +284,15 @@ type Runner = (jobId: string) => Promise<void>;
 
 let installedRunner: Runner | null = null;
 
+/** Whether a render runner has been wired (installJobRunner called). The
+ *  editor's "Approve & Render" CTA gates on this — without a runner, approving
+ *  can't generate, so the CTA shows a disabled "coming soon" state instead of
+ *  sending the shot into a dead "No render engine connected" failure. Re-enables
+ *  automatically once a runner is installed. */
+export function isRunnerInstalled(): boolean {
+  return installedRunner !== null;
+}
+
 /** Install the runner. Called once by the editor's runtime
  *  bootstrap. Each call replaces the previous runner (test hook). */
 export function installJobRunner(runner: Runner): void {

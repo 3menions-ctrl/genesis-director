@@ -23,7 +23,7 @@
  */
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { resolve, basename, extname } from "node:path";
-import { execSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const DROP_DIR = resolve(ROOT, "music-drop");
@@ -58,11 +58,15 @@ function slugify(name) {
 
 function durationOf(file) {
   try {
-    const out = execSync(
-      `ffprobe -v error -show_entries format=duration -of csv=p=0 "${file}"`,
+    // Use the array form (no shell) so a crafted filename can't inject shell
+    // metacharacters — the filename is passed as a single argv entry.
+    const res = spawnSync(
+      "ffprobe",
+      ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file],
       { encoding: "utf8" },
-    ).trim();
-    const d = Math.round(parseFloat(out));
+    );
+    if (res.error || res.status !== 0) throw res.error ?? new Error("ffprobe failed");
+    const d = Math.round(parseFloat(String(res.stdout).trim()));
     return Number.isFinite(d) && d > 0 ? d : 60;
   } catch {
     console.warn(`  ⚠ ffprobe unavailable — defaulting duration to 60s for ${basename(file)}`);

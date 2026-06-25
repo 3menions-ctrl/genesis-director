@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
+import { checkRateLimitDb, hasScope, requiredScopeForRequest } from '../_shared/rate-limiter.ts';
 
 // @public-endpoint
 // Public Small Bridges API. Authentication is performed via `x-api-key`
@@ -88,6 +89,38 @@ Deno.serve(async (req) => {
   const apiKeyId = ownerRow[0].api_key_id as string;
   const userId = ownerRow[0].owner_user_id as string;
 
+  // Resolve the key's scopes. find_api_key_owner returns them (see migration
+  // 20260705000400_api_key_scopes.sql); fall back to a follow-up select for
+  // older deployments where the RPC hasn't been updated yet.
+  let scopes = (ownerRow[0] as { scopes?: string[] }).scopes;
+  if (!Array.isArray(scopes)) {
+    const { data: keyRow } = await admin
+      .from('api_keys')
+      .select('scopes')
+      .eq('id', apiKeyId)
+      .maybeSingle();
+    scopes = (keyRow as { scopes?: string[] } | null)?.scopes ?? ['read', 'generate'];
+  }
+
+  // ── 1a. Per-key rate limit (120 req/min, DB-backed & cross-isolate) ──────
+  // Fail CLOSED on RPC error — this gateway spends credits.
+  const rateOk = await checkRateLimitDb(admin, `api-v1:${apiKeyId}`, 120, 60);
+  if (!rateOk) {
+    return jsonResponse(
+      { error: 'Rate limit exceeded. Max 120 requests/minute per API key.' },
+      429,
+    );
+  }
+
+  // ── 1b. Scope enforcement ────────────────────────────────────────────────
+  const neededScope = requiredScopeForRequest(req.method);
+  if (!hasScope(scopes, neededScope)) {
+    return jsonResponse(
+      { error: `API key is missing the '${neededScope}' scope required for this endpoint.` },
+      403,
+    );
+  }
+
   // touch last_used_at (fire & forget)
   admin
     .from('api_keys')
@@ -160,6 +193,23 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: `Unknown endpoint: ${subPath}` }, 404);
     }
 
+    // Parse the body BEFORE charging so we can derive an idempotency key
+    // and (optionally) the project context for the deduction.
+    const body = await req.json().catch(() => ({}));
+
+    // L13: idempotency for the charge. A client may supply `idempotencyKey`
+    // to make retries safe; otherwise we hash the request shape. Note:
+    // deduct_credits only dedupes when BOTH idempotency_key AND project_id
+    // are present, so pass project_id through when the caller provides one.
+    const projectId =
+      typeof body.project_id === 'string' && body.project_id
+        ? body.project_id
+        : null;
+    const idempotencyKey =
+      typeof body.idempotencyKey === 'string' && body.idempotencyKey
+        ? body.idempotencyKey
+        : await sha256Hex(`${req.method}:${subPath}:${userId}:${JSON.stringify(body)}`);
+
     // credit check + deduct
     const { data: profile } = await admin
       .from('profiles')
@@ -183,6 +233,9 @@ Deno.serve(async (req) => {
     const { data: deductOk, error: deductErr } = await admin.rpc('deduct_credits', {
       p_user_id: userId,
       p_amount: cost,
+      p_description: `api-v1 ${subPath}`,
+      p_project_id: projectId,
+      p_idempotency_key: idempotencyKey,
     });
     if (deductErr || deductOk !== true) {
       await log(402, 0, deductErr?.message || 'deduct failed');
@@ -196,8 +249,6 @@ Deno.serve(async (req) => {
         p_reason: `api-v1 ${subPath} failed: ${reason}`,
       });
     };
-
-    const body = await req.json().catch(() => ({}));
 
     // dispatch
     let upstreamResp: Response;

@@ -78,6 +78,33 @@ serve(async (req) => {
       if (!Number.isInteger(amount) || amount <= 0) {
         return json(400, { error: "amount_must_be_positive_integer" });
       }
+      // C1 defense-in-depth: a caller may only reserve against a project they
+      // own or (for org projects) belong to. reserve_credits enforces org
+      // membership in-RPC, but reject early with a clear 403 here.
+      if (body.projectId) {
+        const { data: proj } = await admin
+          .from("movie_projects")
+          .select("user_id, organization_id")
+          .eq("id", String(body.projectId))
+          .maybeSingle();
+        const projRow = proj as { user_id?: string; organization_id?: string | null } | null;
+        if (projRow) {
+          const ownsProject = projRow.user_id === userId;
+          let isOrgMember = false;
+          if (!ownsProject && projRow.organization_id) {
+            const { data: member } = await admin
+              .from("organization_members")
+              .select("user_id")
+              .eq("organization_id", projRow.organization_id)
+              .eq("user_id", userId)
+              .maybeSingle();
+            isOrgMember = !!member;
+          }
+          if (!ownsProject && !isOrgMember) {
+            return json(403, { error: "forbidden_project_access" });
+          }
+        }
+      }
       const { data, error } = await admin.rpc("reserve_credits", {
         p_user_id:         userId,
         p_amount:          amount,

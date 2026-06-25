@@ -29,6 +29,15 @@ Deno.serve(async (req) => {
     }
     const userId = auth.userId;
 
+    // Service-role client used to gather the authenticated user's own data.
+    // (Previously `supabase` was referenced but never instantiated, so the
+    // entire GDPR self-export threw at runtime.) Every query below is scoped
+    // to the JWT-derived `userId`, so a caller can only export their own data.
+    const supabase = createClient(
+      supabaseUrl,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    )
+
     // Fetch all user data
     const [
       profileResult,

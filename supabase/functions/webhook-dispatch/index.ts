@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { safeFetch, SSRFError } from "../_shared/ssrf-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -76,24 +77,41 @@ async function deliverOne(
   let respBody: string | null = null;
   let ok = false;
   try {
-    const res = await fetch(endpoint.url, {
-      method: "POST",
-      signal: controller.signal,
-      headers: {
-        "Content-Type": "application/json",
-        "User-Agent": "Small Bridges-Webhooks/1.0",
-        "X-Small Bridges-Event": event,
-        "X-Small Bridges-Signature": `t=${timestamp},v1=${signature}`,
-        "X-Small Bridges-Timestamp": timestamp,
-        "X-Small Bridges-Delivery-Id": deliveryId,
+    // SSRF guard: HTTPS-only + block private/loopback/link-local/reserved
+    // ranges (literal hosts AND DNS-resolved IPs / redirect hops). Without
+    // this an org admin could point a webhook at http://169.254.169.254/...
+    // (cloud metadata) and exfiltrate credentials via the response body.
+    // No allowHosts -> plain http is rejected and only public https passes.
+    const res = await safeFetch(
+      endpoint.url,
+      {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent": "Small Bridges-Webhooks/1.0",
+          "X-Small Bridges-Event": event,
+          "X-Small Bridges-Signature": `t=${timestamp},v1=${signature}`,
+          "X-Small Bridges-Timestamp": timestamp,
+          "X-Small Bridges-Delivery-Id": deliveryId,
+        },
+        body,
       },
-      body,
-    });
+      {},
+    );
     status = res.status;
     ok = res.ok;
     respBody = (await res.text().catch(() => "")).slice(0, 2000);
   } catch (e) {
-    respBody = e instanceof Error ? e.message : String(e);
+    if (e instanceof SSRFError) {
+      // Blocked internal/unsafe URL — record as a normal delivery failure,
+      // never surface the (potentially internal) reason or any body.
+      status = null;
+      ok = false;
+      respBody = "blocked_internal_url";
+    } else {
+      respBody = e instanceof Error ? e.message : String(e);
+    }
   } finally {
     clearTimeout(timeout);
   }
@@ -173,11 +191,15 @@ serve(async (req) => {
         body.event ?? "webhook.test",
         body.payload ?? {},
       );
+      // SECURITY: never return the raw upstream response body to the caller.
+      // Returning it enabled blind-SSRF exfiltration (read an internal
+      // endpoint's body via a webhook "test"). Surface only the numeric
+      // status and a boolean success.
       return new Response(
         JSON.stringify({
           success: result.ok,
           deliveryStatus: result.status,
-          deliveryBody: result.body,
+          deliveryBody: null,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );

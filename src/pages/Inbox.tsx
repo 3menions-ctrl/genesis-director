@@ -571,10 +571,15 @@ function NewDmButton({ onOpen }: { onOpen: (partnerId: string) => void }) {
     setLoading(true);
     const t = window.setTimeout(async () => {
       const q = query.trim();
+      // PostgREST parses the .or() string as filter syntax, so a raw search
+      // term can inject extra filters (commas/parens/backslashes are reserved,
+      // % is an ilike wildcard). Strip those before interpolating.
+      const safeQ = q.replace(/[,()\\]/g, ' ').replace(/%/g, '').trim();
+      if (!safeQ) { setResults([]); setLoading(false); return; }
       const { data } = await supabase
         .from("profiles_public" as never)
         .select("id, display_name, username, avatar_url")
-        .or(`display_name.ilike.%${q}%,username.ilike.%${q}%`)
+        .or(`display_name.ilike.%${safeQ}%,username.ilike.%${safeQ}%`)
         .limit(8);
       setResults((data as any[]) ?? []);
       setLoading(false);

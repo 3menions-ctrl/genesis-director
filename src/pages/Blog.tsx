@@ -187,7 +187,9 @@ function ArticleMeta({ article }: { article: BlogArticle }) {
     keywords: article.tags.join(', '),
     url: `https://smallbridges.co/blog/${article.slug}`,
   };
-  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />;
+  // Escape "<" so a malicious title/excerpt containing "</script>" cannot
+  // break out of the JSON-LD script element (XSS via dangerouslySetInnerHTML).
+  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />;
 }
 
 function ArticleDetail({ article }: { article: BlogArticle }) {

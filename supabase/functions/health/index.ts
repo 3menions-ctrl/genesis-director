@@ -1,3 +1,8 @@
+
+// @public-endpoint
+// Liveness probe for uptime monitors. Returns only a static OK/health
+// payload — no data, no side effects. JWT verification is intentionally
+// off so external monitors can reach it.
 // ──────────────────────────────────────────────────────────────────────
 // /health — liveness probe for uptime monitors.
 //

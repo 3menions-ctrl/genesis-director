@@ -1,6 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getProvider } from "../_shared/distribution-providers.ts";
 
+// @public-endpoint
+// Distribution-provider OAuth redirect target. Called by the provider
+// without a JWT; integrity is enforced via the unguessable,
+// provider-matched `state` parameter.
+
 /**
  * distribution-oauth-callback — the OAuth redirect target.
  *

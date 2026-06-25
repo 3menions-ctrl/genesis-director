@@ -9,6 +9,17 @@ const getEnv = (key: string): string => {
 export type StripeEnv = 'sandbox' | 'live';
 
 /**
+ * Constant-time string comparison (avoid timing attacks on signature compare).
+ * Length-checked, then a full XOR sweep so the loop count never leaks via timing.
+ */
+export function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+/**
  * Resolve the Stripe secret key for the requested environment. We talk
  * to Stripe's API directly (no proxy gateway) — the sk_test_ / sk_live_
  * prefix on the key itself selects test vs live mode. Sandbox callers
@@ -70,7 +81,11 @@ export async function verifyStripeWebhook(
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 
-  if (!v1Signatures.includes(expected)) throw new Error("Invalid webhook signature");
+  let matched = false;
+  for (const candidate of v1Signatures) {
+    if (timingSafeEqual(candidate, expected)) matched = true;
+  }
+  if (!matched) throw new Error("Invalid webhook signature");
 
   return JSON.parse(body);
 }

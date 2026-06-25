@@ -78,11 +78,6 @@ const TECHNIQUES: Technique[] = [
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-function compact(n: number): string {
-  if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
-  if (n >= 1e3) return `${(n / 1e3).toFixed(n >= 1e4 ? 0 : 1)}k`;
-  return String(n);
-}
 function fmtDur(s: number | null): string {
   if (!s || s <= 0) return "";
   return `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
@@ -263,7 +258,6 @@ export default function Lobby() {
   }, [user, navigate]);
 
   const filmsToday = feed.length;
-  const remixesToday = useMemo(() => feed.reduce((a, r) => a + r.remix_count, 0), [feed]);
   const isEmpty = !feedLoading && feed.length === 0;
 
   return (
@@ -314,12 +308,11 @@ export default function Lobby() {
                       <Shuffle className="h-3.5 w-3.5" /> Remix this look
                     </button>
                   </div>
-                  <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-1 font-mono text-[11px] text-muted-foreground">
-                    <span>◆ {compact(heroReel.play_count)} plays</span>
-                    <span>{compact(heroReel.like_count)} likes</span>
-                    <span>{heroReel.remix_count} remixes</span>
-                    {heroReel.creator_name && <span>directed by {heroReel.creator_name}</span>}
-                  </div>
+                  {heroReel.creator_name && (
+                    <div className="mt-5 font-mono text-[11px] text-muted-foreground">
+                      <span>directed by {heroReel.creator_name}</span>
+                    </div>
+                  )}
                   {/* shuffle position dots */}
                   {heroPool.length > 1 && (
                     <div className="mt-5 flex items-center gap-1.5">
@@ -382,7 +375,6 @@ export default function Lobby() {
           <aside className="mt-2 lg:mt-0 lg:sticky lg:top-6 lg:self-start">
             <Panel title="The Lobby · live" badge={<span className="text-[hsl(160_60%_50%)]">● now</span>}>
               <Stat label="Films today" value={String(filmsToday)} />
-              <Stat label="Remixes today" value={compact(remixesToday)} />
               {nowEditing !== null && (
                 <Stat label="In the editor" value={`${nowEditing} · live`} valueClass="text-[hsl(160_60%_50%)]" />
               )}
@@ -421,7 +413,6 @@ export default function Lobby() {
                     <span className="block truncate text-[13.5px] font-semibold text-foreground">{d.name}</span>
                     <span className="block truncate text-[11.5px] text-muted-foreground">{d.world ?? "Studio"} · {d.films} film{d.films > 1 ? "s" : ""}</span>
                   </span>
-                  <span className="shrink-0 font-mono text-[12px] text-[hsl(38_80%_60%)]">{compact(d.plays)}</span>
                 </button>
               ))}
               {directors.length === 0 && <p className="py-4 text-center text-[13px] text-muted-foreground">No films yet today.</p>}
@@ -528,9 +519,8 @@ function VideoCard({ reel, onOpen, reduced }: { reel: FeedRow; onOpen: (r: FeedR
         <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
         <span className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-1.5 p-3.5 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
           <span className="block font-display text-[15px] font-semibold leading-tight tracking-tight text-white line-clamp-2">{reel.title}</span>
-          <span className="mt-1 flex items-center justify-between gap-2 text-[11.5px] text-white/65">
-            <span className="truncate">{reel.creator_name ?? "Unknown director"}</span>
-            <span className="shrink-0 font-mono">{compact(reel.play_count)} ▶</span>
+          <span className="mt-1 block truncate text-[11.5px] text-white/65">
+            {reel.creator_name ?? "Unknown director"}
           </span>
         </span>
 

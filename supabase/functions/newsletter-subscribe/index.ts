@@ -1,6 +1,11 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { sendResendEmail } from '../_shared/resend.ts'
 
+// @public-endpoint
+// Public newsletter sign-up form on the landing page (no account
+// required). Writes only an email to the subscribers list; no privileged
+// data is read or returned.
+
 // Public newsletter / email-subscribe endpoint. Stores the email and sends a
 // Resend welcome. verify_jwt is false (config.toml) — it's a public form — so
 // we do our own light validation + per-email idempotency.

@@ -1,6 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Image } from "https://deno.land/x/imagescript@1.2.15/mod.ts";
 import { seamScore, rgbaToGray } from "../_shared/seam-ssim.ts";
+import { safeFetch } from "../_shared/ssrf-guard.ts";
+
+// @public-endpoint
+// Stateless pipeline helper: takes two app-generated frame URLs and returns a
+// 0..100 seam-similarity score (no DB, no credits, no response body echoed).
+// Supabase-JWT verification is off because it is called edge-to-edge during the
+// stitch; the only attacker-controlled input (the two URLs) is constrained to
+// app-storage / render-provider hosts via the SSRF allowlist below.
+const FRAME_HOST_ALLOWLIST = [
+  "*.supabase.co",
+  "*.supabase.in",
+  "*.replicate.delivery",
+  "*.cloudfront.net",
+  "*.amazonaws.com",
+];
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,7 +44,9 @@ interface SeamRequest {
 
 async function loadGray(url: string): Promise<Float64Array | null> {
   try {
-    const res = await fetch(url);
+    // SSRF-guarded: blocks private/loopback/link-local hosts (and resolved IPs)
+    // and enforces the frame-host allowlist before fetching.
+    const res = await safeFetch(url, {}, { allowHosts: FRAME_HOST_ALLOWLIST });
     if (!res.ok) return null;
     const buf = new Uint8Array(await res.arrayBuffer());
     const img = await Image.decode(buf);

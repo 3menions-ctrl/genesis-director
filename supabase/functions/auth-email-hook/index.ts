@@ -9,6 +9,11 @@ import { RecoveryEmail } from '../_shared/email-templates/recovery.tsx'
 import { EmailChangeEmail } from '../_shared/email-templates/email-change.tsx'
 import { ReauthenticationEmail } from '../_shared/email-templates/reauthentication.tsx'
 
+// @public-endpoint
+// Supabase Auth "Send Email Hook" target. Supabase Auth (not an end user)
+// POSTs here without a JWT; authenticity is enforced by verifying the
+// SEND_EMAIL_HOOK_SECRET Standard-Webhooks signature in-handler.
+
 // ────────────────────────────────────────────────────────────────────────────
 // Native Supabase Auth "Send Email Hook".
 //

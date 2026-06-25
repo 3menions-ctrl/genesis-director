@@ -1,6 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
+// @public-endpoint
+// OAuth provider redirect target. The provider (not a logged-in user)
+// calls this without a JWT; integrity is enforced by verifying the
+// HMAC-signed `state` parameter and its expiry.
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":

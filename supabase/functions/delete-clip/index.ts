@@ -23,6 +23,23 @@ interface DeleteClipRequest {
   userId?: string; // Deprecated - now extracted from JWT
 }
 
+/**
+ * Compute the credit refund for deleting a single clip, capped so the
+ * cumulative refunds for a project can never exceed the original charge.
+ * Pure (no I/O) so it can be unit-tested deterministically.
+ */
+export function computeCappedRefund(params: {
+  originalCharge: number;  // absolute value of the original usage charge
+  totalClips: number;      // clips currently counted for the project
+  alreadyRefunded: number; // sum of prior refunds already issued for the project
+}): number {
+  const { originalCharge, totalClips, alreadyRefunded } = params;
+  if (!(originalCharge > 0) || !(totalClips > 0)) return 0;
+  const perClipShare = Math.round(originalCharge / totalClips);
+  const remaining = Math.max(0, originalCharge - Math.max(0, alreadyRefunded));
+  return Math.max(0, Math.min(perClipShare, remaining));
+}
+
 // Extract storage path from Supabase URL
 function extractStoragePath(url: string): { bucket: string; path: string } | null {
   if (!url) return null;
@@ -168,54 +185,80 @@ serve(async (req) => {
     let creditsRefunded = 0;
     if (['pending', 'generating'].includes(clip.status) && !clip.video_url) {
       try {
-        // Look up the usage charge for this project
-        const { data: usageCharge } = await supabase
+        // Idempotency is keyed per-clip so a clip can never be refunded twice,
+        // even across retries / concurrent deletes.
+        const idempotencyKey = `clip-refund:${clipId}`;
+
+        // Guard: skip if this exact clip was already refunded.
+        const { data: priorClipRefund } = await supabase
           .from('credit_transactions')
-          .select('amount')
+          .select('id')
           .eq('user_id', userId)
           .eq('project_id', clip.project_id)
-          .eq('transaction_type', 'usage')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .eq('transaction_type', 'refund')
+          .eq('idempotency_key', idempotencyKey)
+          .limit(1);
 
-        if (usageCharge) {
-          // Get total clips and this clip's share
-          const { count: totalClips } = await supabase
-            .from('video_clips')
-            .select('id', { count: 'exact', head: true })
-            .eq('project_id', clip.project_id);
+        if (priorClipRefund && priorClipRefund.length > 0) {
+          deletionLog.push('Refund already processed for this clip (skipped)');
+        } else {
+          // Original usage charge for this project (the cap basis).
+          const { data: usageCharge } = await supabase
+            .from('credit_transactions')
+            .select('amount')
+            .eq('user_id', userId)
+            .eq('project_id', clip.project_id)
+            .eq('transaction_type', 'usage')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
-          if (totalClips && totalClips > 0) {
-            creditsRefunded = Math.round(Math.abs(usageCharge.amount) / totalClips);
+          if (usageCharge) {
+            const { count: totalClips } = await supabase
+              .from('video_clips')
+              .select('id', { count: 'exact', head: true })
+              .eq('project_id', clip.project_id);
+
+            // Sum of refunds already issued for this project, to enforce the
+            // cumulative cap (cumulative refunds <= original charge).
+            const { data: existingRefunds } = await supabase
+              .from('credit_transactions')
+              .select('amount')
+              .eq('user_id', userId)
+              .eq('project_id', clip.project_id)
+              .eq('transaction_type', 'refund');
+
+            const alreadyRefunded = (existingRefunds || []).reduce(
+              (sum, r) => sum + Math.abs(r.amount ?? 0),
+              0,
+            );
+
+            creditsRefunded = computeCappedRefund({
+              originalCharge: Math.abs(usageCharge.amount),
+              totalClips: totalClips ?? 0,
+              alreadyRefunded,
+            });
           }
-        }
 
-        if (creditsRefunded > 0) {
-          // Restore balance
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('credits_balance')
-            .eq('id', userId)
-            .single();
+          if (creditsRefunded > 0) {
+            // Atomic + idempotent refund through the credit ledger, which is the
+            // source of truth. We intentionally do NOT touch the non-authoritative
+            // profiles.credits_balance display cache here (avoids racy read-then-write).
+            const { error: refundError } = await supabase.rpc('refund_credits', {
+              p_user_id: userId,
+              p_amount: creditsRefunded,
+              p_description: `Clip deleted (was ${clip.status}): shot ${clip.shot_index}`,
+              p_project_id: clip.project_id,
+              p_idempotency_key: idempotencyKey,
+            });
 
-          if (profile) {
-            await supabase
-              .from('profiles')
-              .update({ credits_balance: profile.credits_balance + creditsRefunded })
-              .eq('id', userId);
+            if (refundError) {
+              console.error('[DeleteClip] refund_credits RPC error (non-fatal):', refundError);
+              creditsRefunded = 0;
+            } else {
+              deletionLog.push(`Refunded ${creditsRefunded} credits`);
+            }
           }
-
-          // Record refund
-          await supabase.from('credit_transactions').insert({
-            user_id: userId,
-            amount: creditsRefunded,
-            transaction_type: 'refund',
-            description: `Clip deleted (was ${clip.status}): shot ${clip.shot_index}`,
-            project_id: clip.project_id,
-          });
-
-          deletionLog.push(`Refunded ${creditsRefunded} credits`);
         }
       } catch (refundErr) {
         console.error('[DeleteClip] Refund error (non-fatal):', refundErr);

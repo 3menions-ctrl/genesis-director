@@ -126,8 +126,70 @@ export function assertSafeFetchUrl(input: string, opts: SafeFetchOpts = {}): URL
 }
 
 /**
- * Replacement for `fetch()` that pre-validates the URL, follows redirects
- * one hop at a time (re-validating each), and caps response size.
+ * Resolve a hostname's A/AAAA records and reject if ANY resolved address
+ * falls in a private/loopback/link-local/reserved range.
+ *
+ * This closes the DNS-rebinding gap that `assertSafeFetchUrl` (which only
+ * inspects the URL *string*) cannot: a public-looking hostname whose DNS
+ * record points at 169.254.169.254, 10.x, 127.x, ::1, etc. would otherwise
+ * pass the string check and then `fetch()` would happily connect to the
+ * private IP.
+ *
+ * NOTE (TOCTOU): there is an unavoidable resolve-then-connect race here.
+ * Between this resolveDns() and the subsequent fetch(), an attacker can
+ * re-point DNS (classic DNS rebinding) so the address fetch() connects to
+ * differs from the one we validated. Deno's `fetch` cannot easily be pinned
+ * to a pre-resolved IP, so this remains best-effort short of dialing a pinned
+ * socket ourselves. We accept that residual risk; it still blocks the common
+ * "static A record -> private IP" SSRF.
+ *
+ * `assertSafeFetchUrl` is intentionally kept synchronous (its many callers —
+ * edit-photo, inpaint-photo, extract-video-frame, analyze-reference-image —
+ * invoke it without `await`, so turning it async would silently break them).
+ * The DNS check lives here, awaited inside `safeFetch`, so existing callers
+ * are unaffected while every `safeFetch` path gets rebinding protection.
+ */
+export async function assertResolvedHostSafe(host: string): Promise<void> {
+  // Literal IP hosts are already covered by the synchronous checks in
+  // assertSafeFetchUrl; resolving them is harmless (resolveDns may just echo
+  // or throw), so we let it run through the same predicates below.
+  const resolver = (globalThis as { Deno?: { resolveDns?: unknown } }).Deno?.resolveDns as
+    | ((h: string, t: string) => Promise<string[]>)
+    | undefined;
+  if (typeof resolver !== "function") {
+    // No DNS resolver available (e.g. unit test env without Deno). The
+    // synchronous string validation in assertSafeFetchUrl still applies.
+    return;
+  }
+
+  const addrs: string[] = [];
+  try {
+    const a = await resolver(host, "A");
+    if (Array.isArray(a)) addrs.push(...a);
+  } catch {
+    /* no A record / NXDOMAIN — nothing to add */
+  }
+  try {
+    const aaaa = await resolver(host, "AAAA");
+    if (Array.isArray(aaaa)) addrs.push(...aaaa);
+  } catch {
+    /* no AAAA record or AAAA lookups unsupported — ignore */
+  }
+
+  for (const addr of addrs) {
+    if (isPrivateV4(addr) || isPrivateV6(addr) || addr === "::1") {
+      throw new SSRFError(
+        `Host '${host}' resolves to a private/reserved address (${addr})`,
+        "private_resolved",
+      );
+    }
+  }
+}
+
+/**
+ * Replacement for `fetch()` that pre-validates the URL, resolves the host and
+ * rejects private/rebound IPs, follows redirects one hop at a time
+ * (re-validating AND re-resolving each), and caps response size.
  *
  * Usage:
  *   const res = await safeFetch(userUrl, undefined, { allowHosts: ["*.replicate.delivery", "*.cloudfront.net"] });
@@ -145,7 +207,11 @@ export async function safeFetch(
   const maxBytes = opts.maxBodyBytes ?? 50 * 1024 * 1024;
 
   for (let hop = 0; hop <= maxRedirects; hop++) {
-    assertSafeFetchUrl(current, opts);
+    // 1) string-level validation (scheme, literal private hosts, allowlist)
+    const validated = assertSafeFetchUrl(current, opts);
+    // 2) DNS-level validation (rebinding / hostname -> private IP). Runs for
+    //    the initial URL AND every redirect hop's new host below.
+    await assertResolvedHostSafe(validated.hostname);
     const res = await fetch(current, { ...init, redirect: "manual" });
 
     if (res.status >= 300 && res.status < 400) {

@@ -42,11 +42,22 @@
     <meta name="msapplication-tap-highlight" content="no" />
     
     <!-- Security Headers -->
+    <!--
+      NOTE: A CSP meta tag cannot enforce frame-ancestors (ignored by browsers
+      in meta form) and offers weaker guarantees than an HTTP response header.
+      The authoritative, enforced CSP + frame-ancestors now ship as real HTTP
+      headers via vercel.json and wrangler.toml (Fix M8/L1). This meta tag is
+      defense-in-depth only. 'unsafe-eval' has been removed from script-src.
+      'unsafe-inline' is retained because Vite injects inline bootstrap/module
+      scripts and inline styles; the proper fix is per-request nonces, which
+      requires server-rendered nonce injection (not available for this static
+      SPA). Do not add 'unsafe-eval' back.
+    -->
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
     <meta http-equiv="X-Frame-Options" content="DENY" />
     <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
     <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=(self &quot;https://js.stripe.com&quot; &quot;https://checkout.stripe.com&quot;)" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://js.stripe.com https://checkout.stripe.com https://*.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: https: https://*.supabase.co https://*.cloudfront.net https://*.amazonaws.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openai.com https://api.replicate.com https://api.stripe.com https://maps.googleapis.com https://fonts.googleapis.com https://fonts.gstatic.com https://*.cloudfront.net https://*.amazonaws.com; worker-src 'self' blob:; child-src blob: https://js.stripe.com https://checkout.stripe.com https://*.stripe.com; frame-src 'self' https://js.stripe.com https://checkout.stripe.com https://*.stripe.com https://hooks.stripe.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com;" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://js.stripe.com https://checkout.stripe.com https://*.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: https: https://*.supabase.co https://*.cloudfront.net https://*.amazonaws.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openai.com https://api.replicate.com https://api.stripe.com https://maps.googleapis.com https://fonts.googleapis.com https://fonts.gstatic.com https://*.cloudfront.net https://*.amazonaws.com; worker-src 'self' blob:; child-src blob: https://js.stripe.com https://checkout.stripe.com https://*.stripe.com; frame-src 'self' https://js.stripe.com https://checkout.stripe.com https://*.stripe.com https://hooks.stripe.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com;" />
     
     <!-- Browser Compatibility -->
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />

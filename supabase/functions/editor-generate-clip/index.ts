@@ -304,10 +304,33 @@ serve(async (req) => {
       if (projectId) {
         const { data: proj } = await supabase
           .from("movie_projects")
-          .select("organization_id")
+          .select("user_id, organization_id")
           .eq("id", projectId)
           .maybeSingle();
-        orgId = (proj as { organization_id?: string | null } | null)?.organization_id ?? null;
+        const projRow = proj as { user_id?: string; organization_id?: string | null } | null;
+        orgId = projRow?.organization_id ?? null;
+        // C1 defense-in-depth: reject generation billed to a project the caller
+        // neither owns nor (for org projects) is a member of. deduct_credits now
+        // also enforces org membership in-RPC, but fail fast with a clear 403.
+        if (projRow) {
+          const ownsProject = projRow.user_id === auth.userId;
+          let isOrgMember = false;
+          if (!ownsProject && orgId) {
+            const { data: member } = await supabase
+              .from("organization_members")
+              .select("user_id")
+              .eq("organization_id", orgId)
+              .eq("user_id", auth.userId)
+              .maybeSingle();
+            isOrgMember = !!member;
+          }
+          if (!ownsProject && !isOrgMember) {
+            return new Response(
+              JSON.stringify({ error: "Forbidden: you do not have access to this project" }),
+              { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            );
+          }
+        }
       }
 
       let availableCredits = 0;

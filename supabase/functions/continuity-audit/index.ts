@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
+
+// @public-endpoint
+// Stateless pipeline decision step — takes measured scores, returns a
+// pass/fail + next corrective step. No DB, no credits, no model calls, no
+// user data. Called edge-to-edge during the stitch.
   auditClip,
   type BoundaryType,
   type DimensionScores,

@@ -1,5 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { checkRateLimitDb, extractClientIp } from "../_shared/rate-limiter.ts";
+
+// @public-endpoint
+// Unauthenticated landing-page demo generation. Abuse is bounded by a
+// DB-backed global daily cap plus per-IP throttling (see rate_limit_hit);
+// no user data is read.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -35,10 +41,12 @@ const CONTENT_BLOCKLIST = [
   "@", // crude PII filter — won't allow emails
 ];
 
+// IP derivation: trust cf-connecting-ip first (set by Cloudflare, not
+// client-spoofable); fall back to the leftmost x-forwarded-for hop ONLY in
+// combination with the DB-backed platform-wide cap below — a spoofed XFF
+// can rotate per-IP buckets but cannot exceed the global daily budget.
 function clientIP(req: Request): string {
-  const fwd = req.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0].trim();
-  return req.headers.get("cf-connecting-ip") ?? "0.0.0.0";
+  return extractClientIp(req.headers);
 }
 
 serve(async (req) => {
@@ -77,6 +85,29 @@ serve(async (req) => {
     const ip = clientIP(req);
     const dayStart = new Date();
     dayStart.setUTCHours(0, 0, 0, 0);
+
+    // Spoof-proof platform-wide cap (DB-backed, shared across isolates).
+    // A spoofed x-forwarded-for can dodge per-IP buckets but every call —
+    // regardless of claimed IP — increments this single global counter, so
+    // the platform's daily $-budget is the hard ceiling. Fail CLOSED on RPC
+    // error (this endpoint spends money on Replicate).
+    const globalAllowed = await checkRateLimitDb(
+      supabase,
+      "landing-preview:global",
+      PLATFORM_DAILY_CAP,
+      86400,
+    );
+    if (!globalAllowed) {
+      return json(
+        {
+          ok: false,
+          reason: "platform_cap",
+          message:
+            "Small Bridges's free preview budget is fully booked for today. Sign up — your account preview is unlimited.",
+        },
+        200,
+      );
+    }
 
     // Platform-wide rate limit.
     const { count: platformToday } = await supabase

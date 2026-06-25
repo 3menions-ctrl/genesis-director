@@ -30,6 +30,25 @@ Deno.serve(async (req) => {
     const auth = await validateAuth(req);
     if (!auth.authenticated) return unauthorizedResponse(corsHeaders, auth.error);
 
+    // L8: per-user daily message cap (DB-backed, cross-isolate) so a single
+    // account can't drain the shared AI gateway budget. Service-role callers
+    // (internal) are exempt. Fail CLOSED on RPC error (spends money).
+    if (auth.userId) {
+      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.39.3");
+      const { checkRateLimitDb } = await import("../_shared/rate-limiter.ts");
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      );
+      const allowed = await checkRateLimitDb(supabase, `hoppy-chat:${auth.userId}`, 200, 86400);
+      if (!allowed) {
+        return new Response(
+          JSON.stringify({ error: "rate_limited", message: "You've reached today's chat limit — back tomorrow! 🐰" }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
+
     const body = await req.json().catch(() => ({}));
     const userMessages = Array.isArray(body?.messages) ? body.messages : [];
     if (userMessages.length === 0) {

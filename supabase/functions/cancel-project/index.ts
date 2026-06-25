@@ -343,19 +343,9 @@ serve(async (req) => {
             project_id: projectId,
           });
 
-          // Restore balance
-          const { data: currentProfile } = await supabase
-            .from('profiles')
-            .select('credits_balance')
-            .eq('id', userId)
-            .single();
-
-          if (currentProfile) {
-            await supabase
-              .from('profiles')
-              .update({ credits_balance: currentProfile.credits_balance + creditsRefunded })
-              .eq('id', userId);
-          }
+          // NOTE: profiles.credits_balance is a non-authoritative display cache;
+          // the credit_transactions ledger is the source of truth. We deliberately
+          // do not perform a racy SELECT-then-UPDATE on credits_balance here.
 
           cancelledItems.push(`refund:${creditsRefunded} credits`);
           console.log(`[CancelProject] Refunded ${creditsRefunded} credits to user ${userId}`);

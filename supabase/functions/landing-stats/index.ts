@@ -1,6 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
+// @public-endpoint
+// Public, cache-friendly aggregate stats for the landing "live ribbon".
+// Returns only counts and a sanitized/blocklisted prompt snippet; no
+// per-user data. JWT off so logged-out visitors can load it.
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":

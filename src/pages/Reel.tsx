@@ -648,7 +648,6 @@ export default function Reel() {
                 src={reel.video_url}
                 poster={reel.thumbnail_url ?? undefined}
                 autoPlay={false}
-                controls
                 className="h-full w-full"
               />
             ) : (

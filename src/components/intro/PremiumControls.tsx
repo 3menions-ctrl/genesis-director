@@ -378,14 +378,15 @@ export const PremiumControls = memo(function PremiumControls({
               type="button"
               onClick={playPause}
               className={cn(
-                "w-16 h-16 md:w-20 md:h-20 rounded-full backdrop-blur-2xl border border-white/[0.15] flex items-center justify-center text-white pointer-events-auto transition-transform hover:scale-105 active:scale-95",
+                "w-16 h-16 md:w-20 md:h-20 rounded-full backdrop-blur-2xl ring-1 ring-inset ring-white/20 hover:ring-white/35 flex items-center justify-center text-white pointer-events-auto transition-all duration-200 hover:scale-105 active:scale-95",
               )}
               style={{
-                background: "linear-gradient(180deg, hsla(215,100%,60%,0.22) 0%, hsla(215,100%,55%,0.10) 100%)",
+                // Frosted, near-transparent hero button — a whisper of glass
+                // and a soft ambient glow, no heavy fill.
+                background: "rgba(255,255,255,0.07)",
                 boxShadow:
-                  "0 0 32px hsla(215,100%,60%,0.35)," +
-                  "0 0 80px hsla(215,100%,55%,0.20)," +
-                  "inset 0 1px 0 hsla(0,0%,100%,0.15)",
+                  "0 8px 40px rgba(0,0,0,0.35)," +
+                  "inset 0 1px 0 hsla(0,0%,100%,0.18)",
               }}
               aria-label={isPlaying ? "Pause" : "Play"}
             >
@@ -521,7 +522,7 @@ export const PremiumControls = memo(function PremiumControls({
               {/* Speed pill */}
               <button
                 onClick={() => setSettingsOpen(settingsOpen === "speed" ? null : "speed")}
-                className="hidden md:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-full bg-black/35 backdrop-blur-xl border border-white/[0.10] hover:border-white/30 text-[10px] font-mono uppercase tracking-[0.22em] text-white/85 hover:text-white transition-colors"
+                className="hidden md:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-full bg-transparent ring-1 ring-inset ring-transparent hover:bg-white/[0.10] hover:backdrop-blur-md hover:ring-white/[0.18] text-[10px] font-mono uppercase tracking-[0.22em] text-white/80 hover:text-white transition-all duration-200 [text-shadow:0_1px_4px_rgba(0,0,0,0.5)]"
                 aria-label="Playback speed"
               >
                 {speed === 1 ? "1×" : `${speed}×`}
@@ -575,11 +576,16 @@ function GlassButton({
       title={title}
       {...rest}
       className={cn(
-        "inline-flex items-center justify-center rounded-full backdrop-blur-xl border transition-colors text-white/85 hover:text-white",
+        // Transparent at rest — only the icon floats over the frame. A soft
+        // drop-shadow keeps it legible over bright footage. Glass surface +
+        // hairline ring fade in on hover for a premium, tactile reveal.
+        "inline-flex items-center justify-center rounded-full transition-all duration-200 ease-out",
+        "text-white/80 hover:text-white hover:scale-[1.08] active:scale-95",
+        "ring-1 ring-inset ring-transparent [&>svg]:drop-shadow-[0_1px_4px_rgba(0,0,0,0.55)]",
         large ? "w-11 h-11 md:w-12 md:h-12" : "w-9 h-9 md:w-10 md:h-10",
         active
-          ? "border-primary/50 bg-primary/15"
-          : "border-white/[0.10] hover:border-white/30 bg-black/35 hover:bg-black/50",
+          ? "text-white bg-[hsl(215_100%_60%/0.16)] backdrop-blur-md ring-[hsl(215_100%_72%/0.45)]"
+          : "bg-transparent hover:bg-white/[0.10] hover:backdrop-blur-md hover:ring-white/[0.18]",
       )}
     >
       {children}

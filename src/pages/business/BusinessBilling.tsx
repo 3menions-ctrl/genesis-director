@@ -117,14 +117,16 @@ export default function BusinessBilling() {
         setProjectCount(projRes.count ?? 0);
 
         if (userIds.length > 0) {
-          const txnRes = await supabase
-            .from("credit_transactions")
-            .select("amount, created_at, transaction_type")
-            .in("user_id", userIds)
-            .lt("amount", 0)
-            .gte("created_at", since);
+          // AUDIT FIX B-2: org-scoped spend via SECURITY DEFINER RPC (tagged by
+          // the project's org), not credit_transactions.in(user_id) which RLS
+          // narrowed to the viewer and mixed in other orgs' spend.
+          const txnRes = await (supabase.rpc as unknown as (
+            fn: string,
+            args: Record<string, unknown>,
+          ) => Promise<{ data: SpendRow[] | null }>
+          )("org_credit_transactions", { p_org_id: orgId, p_since: since });
           if (cancelled) return;
-          setSpends((txnRes.data ?? []) as SpendRow[]);
+          setSpends(((txnRes.data ?? []) as SpendRow[]).filter((t) => t.amount < 0));
         } else {
           setSpends([]);
         }
@@ -318,7 +320,7 @@ export default function BusinessBilling() {
           </div>
         </div>
       ) : (
-        <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] p-6">
+        <div className="rounded-2xl p-6">
           <p className="text-[13px] text-white/55 leading-relaxed mb-5">
             Tell us what your team needs — we&rsquo;ll size a plan that fits.
           </p>

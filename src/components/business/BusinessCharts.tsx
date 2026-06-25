@@ -27,9 +27,10 @@ export const CHART_SERIES = [CHART_BLUE, CHART_CYAN, CHART_VIOLET, CHART_EMERALD
 const AXIS = { fontSize: 10, fontFamily: "ui-monospace, monospace", fill: "rgba(255,255,255,0.35)" } as const;
 const GRID_STROKE = "rgba(255,255,255,0.05)";
 
+// Horizon: borderless dark tooltip.
 const tooltipStyle = {
-  background: "hsl(220 30% 6% / 0.92)",
-  border: "1px solid rgba(255,255,255,0.1)",
+  background: "#0a0d14",
+  border: "none",
   borderRadius: 12,
   backdropFilter: "blur(12px)",
   fontSize: 12,
@@ -37,24 +38,27 @@ const tooltipStyle = {
   boxShadow: "0 8px 30px rgba(0,0,0,0.4)",
 } as const;
 
-// ── ChartCard — titled glass container for any chart ─────────────────────────
+// ── ChartCard — Horizon borderless section (accent-tick heading, no surface) ──
 export function ChartCard({ title, subtitle, action, children, className, bodyClassName }: {
   title?: ReactNode; subtitle?: ReactNode; action?: ReactNode;
   children: ReactNode; className?: string; bodyClassName?: string;
 }) {
   return (
-    <div className={cn("rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] p-5", className)}>
+    <section className={className}>
       {(title || action) && (
-        <div className="flex items-start justify-between gap-3 mb-4">
-          <div className="min-w-0">
-            {title && <div className="font-display italic text-[15px] text-white/90 font-light tracking-tight">{title}</div>}
-            {subtitle && <div className={cn(TYPE_META, "tracking-[0.22em] text-white/40 mt-1")}>{subtitle}</div>}
+        <div className="flex items-end justify-between gap-3 mb-4">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span aria-hidden className="h-4 w-1 shrink-0 rounded-full" style={{ background: "linear-gradient(hsl(215 90% 60%), hsl(188 92% 58%))" }} />
+            <div className="min-w-0">
+              {title && <h2 className="font-display text-[17px] font-semibold tracking-tight text-white truncate">{title}</h2>}
+              {subtitle && <div className={cn(TYPE_META, "tracking-[0.18em] text-white/40 mt-0.5")}>{subtitle}</div>}
+            </div>
           </div>
-          {action}
+          {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
         </div>
       )}
       <div className={bodyClassName}>{children}</div>
-    </div>
+    </section>
   );
 }
 
@@ -83,7 +87,7 @@ export function AreaTrend({ data, xKey, series, height = 220, yWidth = 34, hideA
             );
           })}
         </defs>
-        {!hideAxes && <CartesianGrid stroke={GRID_STROKE} vertical={false} />}
+        {!hideAxes && <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />}
         {!hideAxes && <XAxis dataKey={xKey} tick={AXIS} axisLine={false} tickLine={false} minTickGap={24} />}
         {!hideAxes && <YAxis tick={AXIS} axisLine={false} tickLine={false} width={yWidth} allowDecimals={false} />}
         <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: "rgba(255,255,255,0.15)" }} />
@@ -111,7 +115,7 @@ export function BarTrend({ data, xKey, series, height = 220, yWidth = 34, stacke
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} margin={{ top: 6, right: 6, bottom: 0, left: 0 }}>
-        <CartesianGrid stroke={GRID_STROKE} vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />
         <XAxis dataKey={xKey} tick={AXIS} axisLine={false} tickLine={false} minTickGap={16} />
         <YAxis tick={AXIS} axisLine={false} tickLine={false} width={yWidth} allowDecimals={false} />
         <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
@@ -204,10 +208,7 @@ export function TrendStat({ label, value, deltaPct, spark, accent, hint, loading
   const DeltaIcon = flat ? Minus : up ? ArrowUpRight : ArrowDownRight;
   const deltaTone = flat ? "text-white/40" : up ? "text-emerald-300/90" : "text-rose-300/90";
   return (
-    <div className={cn(
-      "rounded-2xl p-5 ring-1 transition-colors",
-      accent ? "ring-[hsl(215_90%_60%/0.25)] bg-[hsl(215_90%_55%/0.06)]" : "ring-white/[0.07] bg-white/[0.015]",
-    )}>
+    <div>
       <div className="flex items-center justify-between gap-2">
         <div className={cn(TYPE_META, "tracking-[0.22em] text-white/45")}>{label}</div>
         {deltaPct !== undefined && deltaPct !== null && !loading && (
@@ -217,9 +218,12 @@ export function TrendStat({ label, value, deltaPct, spark, accent, hint, loading
         )}
       </div>
       {loading ? (
-        <div className="mt-3 h-[26px] w-16 rounded-md bg-white/[0.06] animate-pulse" />
+        <div className="mt-3 h-[30px] w-16 rounded-md bg-white/[0.06] animate-pulse" />
       ) : (
-        <div className="mt-2 font-display font-light text-[30px] leading-none tracking-[-0.02em] text-white tabular-nums">{value}</div>
+        <div
+          className="mt-2.5 font-display font-semibold text-[34px] leading-[0.95] tracking-tight tabular-nums"
+          style={accent ? { color: "hsl(215 100% 72%)", textShadow: "0 0 30px hsl(215 90% 60% / 0.5)" } : { color: "#fff" }}
+        >{value}</div>
       )}
       {spark && spark.length > 1 && !loading && (
         <div className="mt-3 -mb-1"><Sparkline data={spark} color={accent ? CHART_BLUE : "rgba(255,255,255,0.5)"} height={32} /></div>
@@ -249,13 +253,12 @@ export function DataTable<T extends Record<string, unknown>>({ columns, rows, ge
     a === "right" ? "text-right" : a === "center" ? "text-center" : "text-left";
   if (rows.length === 0 && empty) return <>{empty}</>;
   return (
-    <div className={cn("rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] overflow-hidden", className)}>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left">
+    <div className={cn("overflow-x-auto", className)}>
+        <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-white/[0.06]">
+            <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
               {columns.map((c) => (
-                <th key={c.key} className={cn(TYPE_META, "tracking-[0.22em] px-4 py-3 text-white/45 whitespace-nowrap", alignCls(c.align))}>
+                <th key={c.key} className={cn(TYPE_META, "tracking-[0.2em] pb-3 pr-4 text-white/40 whitespace-nowrap", alignCls(c.align))}>
                   {c.header}
                 </th>
               ))}
@@ -277,7 +280,6 @@ export function DataTable<T extends Record<string, unknown>>({ columns, rows, ge
             ))}
           </tbody>
         </table>
-      </div>
     </div>
   );
 }

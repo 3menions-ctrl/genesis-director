@@ -365,7 +365,7 @@ function ProjectCard({ project: p }: { project: ProjectRow }) {
       to={`/production/${p.id}`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="group block rounded-2xl overflow-hidden ring-1 ring-white/[0.07] hover:ring-white/20 bg-white/[0.015] transition-all"
+      className="group block rounded-2xl overflow-hidden transition-all"
     >
       <div className="relative aspect-video bg-gradient-to-br from-[hsl(215_40%_12%)] to-[#0a0a0f] overflow-hidden">
         {p.thumbnail_url && (

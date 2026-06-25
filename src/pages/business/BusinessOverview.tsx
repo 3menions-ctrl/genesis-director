@@ -104,19 +104,21 @@ export default function BusinessOverview() {
             args: Record<string, unknown>,
           ) => Promise<{ data: Array<{ id: string; display_name: string | null; full_name: string | null; avatar_url: string | null; email: string | null }> | null }>
           )("org_member_directory", { p_org_id: orgId }),
-          supabase
-            .from("credit_transactions")
-            .select("user_id, amount, created_at")
-            .in("user_id", userIds)
-            .lt("amount", 0)
-            .gte("created_at", since),
+          // AUDIT FIX B-2: org-scoped spend via SECURITY DEFINER RPC (tagged by
+          // the project's org), not credit_transactions.in(user_id) which RLS
+          // narrowed to the viewer only and mixed in other orgs' spend.
+          (supabase.rpc as unknown as (
+            fn: string,
+            args: Record<string, unknown>,
+          ) => Promise<{ data: Array<{ user_id: string; amount: number; created_at: string }> | null }>
+          )("org_credit_transactions", { p_org_id: orgId, p_since: since }),
         ]);
         const pmap = new Map((profRes.data ?? []).map((p) => [p.id, p]));
         setMembers(userIds.map((id) => {
           const p = pmap.get(id);
           return { user_id: id, name: p?.display_name || p?.full_name || p?.email || "Member", avatar_url: p?.avatar_url ?? null };
         }));
-        setSpends((txnRes.data ?? []) as { user_id: string; amount: number; created_at: string }[]);
+        setSpends(((txnRes.data ?? []) as { user_id: string; amount: number; created_at: string }[]).filter((t) => t.amount < 0));
       } else {
         setMembers([]);
         setSpends([]);
@@ -276,7 +278,7 @@ export default function BusinessOverview() {
         <StaggerList className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {recent.map((p) => (
             <StaggerItem key={p.id}>
-              <Link to={`/production/${p.id}`} className="group block rounded-2xl overflow-hidden ring-1 ring-white/[0.07] hover:ring-white/20 transition-all">
+              <Link to={`/production/${p.id}`} className="group block rounded-2xl overflow-hidden ring-1 ring-transparent hover:ring-white/15 transition-all">
                 <div className="relative aspect-video bg-gradient-to-br from-[hsl(215_40%_12%)] to-[#0a0a0f]">
                   {p.thumbnail_url && <img src={p.thumbnail_url} alt="" className="absolute inset-0 w-full h-full object-cover" />}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
@@ -302,7 +304,7 @@ export default function BusinessOverview() {
       <SectionHead label="Jump to" />
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {QUICK_ACTIONS.filter((act) => hasPermission(act.role)).map(({ to, label, sub, Icon }) => (
-          <Link key={to} to={to} className="group flex items-center gap-3 rounded-2xl p-4 ring-1 ring-white/[0.07] hover:ring-[hsl(215_90%_60%/0.3)] bg-white/[0.015] hover:bg-[hsl(215_90%_55%/0.05)] transition-colors">
+          <Link key={to} to={to} className="group flex items-center gap-3 rounded-2xl p-4 hover:bg-[hsl(215_90%_55%/0.05)] transition-colors">
             <span className="inline-flex w-10 h-10 shrink-0 items-center justify-center rounded-xl bg-white/[0.04] ring-1 ring-white/10 group-hover:ring-[hsl(215_90%_60%/0.3)]">
               <Icon className="w-4.5 h-4.5 text-[hsl(215,100%,72%)]" strokeWidth={1.5} />
             </span>

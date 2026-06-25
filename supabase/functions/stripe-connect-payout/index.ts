@@ -47,26 +47,58 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 2. Lock pending earnings + compute the payout amount.
-    // We pull rows in a single SELECT FOR UPDATE-equivalent via the
-    // service-role client — safe because no other path is mutating them
-    // concurrently (only the trigger inserts).
-    const { data: pending } = await supabase
-      .from("creator_earnings_ledger")
-      .select("id, usd_cents")
-      .eq("user_id", auth.userId)
-      .is("payout_id", null);
+    // AUDIT FIX H-4 (High): the previous flow read pending rows, created the
+    // Stripe transfer, THEN stamped payout_id — with no row lock and no Stripe
+    // idempotency key. Two concurrent invocations (double-click / retry / tabs)
+    // both read the same unpaid rows and both created separate transfers ⇒
+    // double payout (real money). Fixed by:
+    //   (a) creating the payout row first, then ATOMICALLY claiming the unpaid
+    //       rows via UPDATE ... WHERE payout_id IS NULL (only one caller wins);
+    //       the amount is computed solely from rows THIS request claimed;
+    //   (b) a deterministic Stripe idempotencyKey;
+    //   (c) fail-closed on transfer error: rows stay stamped to the failed
+    //       payout (never auto-unclaimed/retried), so a transfer whose outcome
+    //       is unknown can never be re-sent. Stranded earnings are recovered by
+    //       an operator after reconciling with Stripe.
 
-    if (!pending || pending.length === 0) {
+    // 2. Create the payout row up-front (stripe_payout_id filled in after the
+    //    transfer; nullable per migration 20260704000300).
+    const { data: payoutRow, error: insErr } = await supabase
+      .from("creator_payouts")
+      .insert({
+        user_id: auth.userId,
+        stripe_payout_id: null,
+        amount_cents: 0,
+        currency: "usd",
+        status: "pending",
+      })
+      .select("id")
+      .single();
+    if (insErr || !payoutRow) throw insErr ?? new Error("payout insert failed");
+
+    // 3. Atomically claim this user's unpaid earnings. The WHERE payout_id IS
+    //    NULL makes this the single point of mutual exclusion: a concurrent
+    //    invocation claims zero rows.
+    const { data: claimed, error: claimErr } = await supabase
+      .from("creator_earnings_ledger")
+      .update({ payout_id: payoutRow.id })
+      .eq("user_id", auth.userId)
+      .is("payout_id", null)
+      .select("id, usd_cents");
+    if (claimErr) throw claimErr;
+
+    if (!claimed || claimed.length === 0) {
+      // Nothing to pay (or another payout claimed it first) — drop the empty row.
+      await supabase.from("creator_payouts").delete().eq("id", payoutRow.id);
       return new Response(
         JSON.stringify({ error: "Nothing to cash out yet." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    const amountCents = pending.reduce((sum, r) => sum + (r.usd_cents ?? 0), 0);
+    const amountCents = claimed.reduce((sum, r) => sum + (r.usd_cents ?? 0), 0);
 
-    // 3. Pull minimum payout threshold from config.
+    // 4. Minimum-threshold check (now on the claimed amount).
     const { data: minRow } = await supabase
       .from("creator_payout_config")
       .select("value")
@@ -75,40 +107,58 @@ Deno.serve(async (req) => {
     const minCents = parseInt(String(minRow?.value ?? "2000"), 10) || 2000;
 
     if (amountCents < minCents) {
+      // Below threshold — release the claim and drop the row so the earnings
+      // remain available for a future payout.
+      await supabase
+        .from("creator_earnings_ledger")
+        .update({ payout_id: null })
+        .eq("payout_id", payoutRow.id);
+      await supabase.from("creator_payouts").delete().eq("id", payoutRow.id);
       return new Response(
         JSON.stringify({ error: `Minimum payout is $${(minCents / 100).toFixed(2)}.` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // 4. Create a Stripe Transfer to the connected account.
-    const stripe = createStripeClient("live");
-    const transfer = await stripe.transfers.create({
-      amount: amountCents,
-      currency: "usd",
-      destination: acct.stripe_account_id,
-      metadata: { user_id: auth.userId, source: "small-bridges-payout" },
-    });
-
-    // 5. Record the payout + stamp the ledger entries.
-    const { data: payoutRow, error: insErr } = await supabase
-      .from("creator_payouts")
-      .insert({
-        user_id: auth.userId,
-        stripe_payout_id: transfer.id,
-        amount_cents: amountCents,
-        currency: "usd",
-        status: "pending",
-      })
-      .select("id")
-      .single();
-    if (insErr || !payoutRow) throw insErr ?? new Error("payout insert failed");
-
-    const ids = pending.map((r) => r.id);
     await supabase
-      .from("creator_earnings_ledger")
-      .update({ payout_id: payoutRow.id })
-      .in("id", ids);
+      .from("creator_payouts")
+      .update({ amount_cents: amountCents })
+      .eq("id", payoutRow.id);
+
+    // 5. Create the Stripe Transfer with an idempotency key tied to this payout
+    //    row, so a transport-level retry of THIS request cannot create a second
+    //    transfer.
+    const stripe = createStripeClient("live");
+    let transfer;
+    try {
+      transfer = await stripe.transfers.create(
+        {
+          amount: amountCents,
+          currency: "usd",
+          destination: acct.stripe_account_id,
+          metadata: { user_id: auth.userId, source: "small-bridges-payout", payout_id: payoutRow.id },
+        },
+        { idempotencyKey: `sbpayout_${payoutRow.id}` },
+      );
+    } catch (transferErr) {
+      // Fail closed: keep the rows claimed to this failed payout so they are
+      // never auto-retried. Operator reconciles with Stripe before releasing.
+      await supabase
+        .from("creator_payouts")
+        .update({ status: "failed", failure_message: String(transferErr).slice(0, 500) })
+        .eq("id", payoutRow.id);
+      console.error("stripe-connect-payout transfer failed", String(transferErr));
+      return new Response(
+        JSON.stringify({ error: "Couldn't initiate the payout — please contact support." }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // 6. Record the transfer id on the (already-claimed) payout row.
+    await supabase
+      .from("creator_payouts")
+      .update({ stripe_payout_id: transfer.id })
+      .eq("id", payoutRow.id);
 
     return new Response(
       JSON.stringify({ payoutId: payoutRow.id, amount_cents: amountCents }),

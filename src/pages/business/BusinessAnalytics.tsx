@@ -287,5 +287,5 @@ function ChartEmpty({ label }: { label: string }) {
   return <div className="h-[180px] flex items-center justify-center text-center"><p className="text-[13px] text-white/40 font-light max-w-xs">{label}</p></div>;
 }
 function SkeletonTable() {
-  return <div className="h-64 rounded-2xl ring-1 ring-white/[0.06] bg-white/[0.02] animate-pulse" />;
+  return <div className="h-64 rounded-2xl bg-white/[0.02] animate-pulse" />;
 }

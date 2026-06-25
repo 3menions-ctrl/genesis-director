@@ -54,7 +54,7 @@ export default function AdminCommentsPage() {
     // Resolve real author identity.
     const ids = Array.from(new Set(list.map((c) => c.user_id).filter(Boolean))) as string[];
     if (ids.length) {
-      const { data: profs } = await supabase.from("profiles").select("id, display_name, username, email").in("id", ids);
+      const { data: profs } = await supabase.from("profiles").select("id, display_name, username").in("id", ids);
       const map: Record<string, string> = {};
       for (const p of (profs as any[]) ?? []) map[p.id] = p.display_name || p.username || p.email?.split("@")[0] || p.id.slice(0, 8);
       setNames(map);

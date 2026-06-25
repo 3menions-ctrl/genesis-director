@@ -117,7 +117,7 @@ export function GeneralSettingsContent() {
         label={canEdit ? "Workspace profile" : "Workspace profile · read-only"}
         action={saveAction}
       />
-      <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] p-5">
+      <div className="rounded-2xl p-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <Field label="Workspace name">
             <input

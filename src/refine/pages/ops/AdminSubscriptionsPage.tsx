@@ -2,10 +2,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { RefreshCw, Search } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { FloatSection, FloatTable } from "@/admin/ui/primitives";
-import { Button } from "@/components/ui/button";
+import { FloatSection, FloatTable, DeckButton, StatusPill } from "@/admin/ui/primitives";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { ListPagination, usePagination } from "@/components/ui/list-pagination";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -79,9 +77,9 @@ export default function AdminSubscriptionsPage() {
         { label: "Canceling EoP", value: canceling, tone: "amber" },
       ]}
       actions={
-        <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-          <RefreshCw className={`w-3.5 h-3.5 mr-2 ${loading ? "animate-spin" : ""}`} /> Refresh
-        </Button>
+        <DeckButton onClick={load} disabled={loading}>
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh
+        </DeckButton>
       }
     >
       <FloatSection
@@ -113,9 +111,9 @@ export default function AdminSubscriptionsPage() {
             rows={loading ? [] : pg.slice.map((r) => ({
               _key: r.id,
               status: (
-                <Badge variant={r.status === "active" || r.status === "trialing" ? "default" : r.status === "past_due" ? "destructive" : "secondary"} className="font-mono text-[10px]">
+                <StatusPill tone={r.status === "active" || r.status === "trialing" ? "positive" : r.status === "past_due" ? "danger" : "neutral"}>
                   {r.status}{r.cancel_at_period_end ? " · cancel" : ""}
-                </Badge>
+                </StatusPill>
               ),
               product: <span className="text-white/80 font-mono text-[11px]">{r.product_id ?? "—"}</span>,
               customer: <span className="text-white/40 font-mono text-[10px]">{r.stripe_customer_id ?? r.user_id?.slice(0,8) ?? "—"}</span>,

@@ -46,6 +46,7 @@ import { PhotoEditorHub } from "@/components/photo-editor/PhotoEditorHub";
 import { ImageStudioHub } from "@/components/studio/ImageStudioHub";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCredits } from "@/contexts/CreditsContext";
+import { useEffectiveCredits } from "@/hooks/useEffectiveCredits";
 import { useCinemaGuard } from "@/hooks/useCinemaEntitlement";
 import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
 import { VideoGenerationMode, VideoStylePreset } from "@/types/video-modes";
@@ -203,6 +204,10 @@ function StudioContentInner() {
   const inModule = !!useModuleBase();
   const { user, profile } = useAuth();
   const credits = useCredits();
+  // Org-aware wallet (org pool for business workspaces, personal otherwise).
+  // Drives the header balance + the pre-flight gate so the studio reads the
+  // SAME wallet the server will actually debit.
+  const effective = useEffectiveCredits();
   // First name for the personalized hero greeting (Profile-page
   // language). Falls back to the email local-part, then "Director".
   const studioName = (() => {
@@ -342,9 +347,16 @@ function StudioContentInner() {
       try {
         if (!isMounted()) return;
         safeSetState(setCreationStatus, "Verifying credits…");
-        const creditState =
-          (await getAuthoritativeCreditState()) ?? (await credits.reconcile());
-        void credits.refresh();
+        // Org workspaces spend the org pool (the server debits it for org
+        // projects), so gate on the org wallet — not the member's personal
+        // balance — otherwise a member with 0 personal credits but a funded
+        // org pool would be wrongly blocked. Personal projects keep the
+        // authoritative (hold-aware) personal state.
+        const creditState = effective.isOrg
+          ? await effective.refresh()
+          : (await getAuthoritativeCreditState()) ?? (await credits.reconcile());
+        // Keep the personal display in sync; the org branch already refreshed.
+        if (!effective.isOrg) void credits.refresh();
         const durations = config.clipDurations?.length
           ? config.clipDurations
           : Array.from(
@@ -527,7 +539,7 @@ function StudioContentInner() {
                 <div className="inline-flex items-center gap-2.5 rounded-full shadow-[0_12px_32px_-16px_rgba(0,0,0,0.75)] bg-[hsl(220_30%_8%/0.6)] backdrop-blur-xl px-4 h-9">
                   <Sparkles className="h-3.5 w-3.5 text-accent" strokeWidth={1.6} />
                   <span className="text-[13px] font-medium text-white/90 tabular-nums">
-                    {credits.available.toLocaleString()}
+                    {effective.available.toLocaleString()}
                   </span>
                   <span className={cn(TYPE_META, "text-white/40")}>credits</span>
                 </div>

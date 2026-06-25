@@ -1,16 +1,18 @@
 /**
  * Credits — live experience.
  *
- * Small Bridges is free to start (first 5-sec video on Wan). There is no paid checkout flow today.
+ * Small Bridges is free to start (first 5-sec video on Wan). Paid checkout IS
+ * live: one-time credit packs and monthly subscriptions both run through the
+ * configured payment provider (Polar) via startCreditCheckout /
+ * provider.createSubscriptionCheckout below.
+ *
  * This page surfaces:
  *   1) The user's current credit balance + lifetime usage
- *   2) A "Request additional credits" form (writes to support_messages so
- *      we can manually top up power users at launch)
- *   3) Recent credit transactions (uses existing credit_transactions table)
+ *   2) One-time credit packs + monthly subscription plans (paid checkout)
+ *   3) Recent credit transactions (uses the credit_transactions table)
  *
- * The Stripe-driven version of this page is preserved in version control;
- * when paid plans return we can swap this back. Everything below this comment
- * runs without any payment processor.
+ * (AUDIT FIX L-10: prior header claimed "no paid checkout flow today" /
+ * "runs without any payment processor", which contradicted the live code.)
  */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -144,7 +146,16 @@ export default function Credits() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const balance = profile?.credits_balance ?? 0;
+  // AUDIT FIX L-4: show the authoritative spendable balance (available =
+  // ledger balance − active holds) from useCredits, not the profiles
+  // credits_balance display cache, which can overstate while renders hold
+  // credits or before reconciliation. Fall back to the cache only until the
+  // credit state loads.
+  // Show the authoritative available (ledger − holds) once loaded — including a
+  // legitimate 0 (spent down / fully held). Fall back to the profile cache only
+  // while the credit state is still loading. (Was `||`, which also fell back on
+  // a real 0 and re-showed the too-high cache.)
+  const balance = credits.loading ? (profile?.credits_balance ?? 0) : credits.available;
   const used = profile?.total_credits_used ?? 0;
   const purchased = profile?.total_credits_purchased ?? 0;
 
@@ -212,16 +223,23 @@ export default function Credits() {
             ))}
           </div>
 
-          {/* Business — higher-volume team/agency packs */}
-          <div className="mt-12 pt-10">
-            <div className="mb-1 text-[10px] font-mono uppercase tracking-[0.28em]" style={{ color: 'hsl(var(--accent))' }}>For teams &amp; business</div>
-            <p className="text-white/45 text-[12px] mb-2 max-w-2xl">Higher-volume one-time packs for studios and agencies.</p>
-            <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-16 py-8">
-              {CREDIT_PACKAGES.filter((p) => p.tier === 'business').map((pkg) => (
-                <Orb key={pkg.id} name={pkg.name} price={pkg.price} credits={pkg.credits} popular={pkg.popular} busy={buying === pkg.id} disabled={!!buying} onSelect={() => buy(pkg)} ctaLabel="Buy" />
-              ))}
+          {/* Business — higher-volume team/agency packs.
+              AUDIT FIX M-1: account type is mutually exclusive (personal vs
+              business). This personal /credits surface previously rendered the
+              business packs unconditionally; gate them so only business/
+              enterprise accounts ever see them.
+              Presentation kept on main's borderless language (no border-t). */}
+          {(profile?.account_type === 'business' || profile?.account_type === 'enterprise') && (
+            <div className="mt-12 pt-10">
+              <div className="mb-1 text-[10px] font-mono uppercase tracking-[0.28em]" style={{ color: 'hsl(var(--accent))' }}>For teams &amp; business</div>
+              <p className="text-white/45 text-[12px] mb-2 max-w-2xl">Higher-volume one-time packs for studios and agencies.</p>
+              <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-16 py-8">
+                {CREDIT_PACKAGES.filter((p) => p.tier === 'business').map((pkg) => (
+                  <Orb key={pkg.id} name={pkg.name} price={pkg.price} credits={pkg.credits} popular={pkg.popular} busy={buying === pkg.id} disabled={!!buying} onSelect={() => buy(pkg)} ctaLabel="Buy" />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </section>
 
         {/* Subscriptions — recurring monthly plans (Polar) */}

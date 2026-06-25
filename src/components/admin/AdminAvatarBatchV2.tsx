@@ -1,16 +1,12 @@
 import { useState, useCallback, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { 
-  Sparkles, 
-  Play, 
-  Pause, 
-  CheckCircle2, 
-  XCircle, 
+import {
+  Sparkles,
+  Play,
+  Pause,
+  CheckCircle2,
+  XCircle,
   Loader2,
   Users,
   RefreshCw,
@@ -22,6 +18,16 @@ import {
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  FloatSection,
+  DeckButton,
+  StatusPill,
+  CYAN,
+  ROSE,
+  AMBER,
+  ACCENT_HSL,
+  accent,
+} from '@/admin/ui/primitives';
 
 interface PresetSummary {
   total: number;
@@ -127,7 +133,7 @@ export function AdminAvatarBatchV2() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             action: "generate",
             startIndex: fromIndex,
             count: 1, // One at a time for progress tracking
@@ -203,53 +209,46 @@ export function AdminAvatarBatchV2() {
   const successCount = results.filter(r => r.success).length;
   const failCount = results.filter(r => !r.success).length;
 
-  const filteredPresets = presetSummary?.presets.filter(p => 
+  const filteredPresets = presetSummary?.presets.filter(p =>
     selectedCategory === "all" || p.category === selectedCategory
   ) ?? [];
 
   return (
-    <Card className="border-primary/20">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <CardTitle>Avatar Batch V2 Generator</CardTitle>
-              <CardDescription>
-                Generate 70 new diverse avatars: cultures, historical, animals
-              </CardDescription>
-            </div>
-          </div>
-          {presetSummary && (
-            <Badge variant="outline" className="gap-1">
-              <Users className="w-3 h-3" />
-              {presetSummary.total} presets
-            </Badge>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <FloatSection
+      title="Avatar Batch V2 Generator"
+      meta="70 diverse avatars — cultures, historical, animals"
+      actions={
+        presetSummary ? (
+          <StatusPill tone="accent">
+            <Users className="w-3 h-3" />
+            {presetSummary.total} presets
+          </StatusPill>
+        ) : undefined
+      }
+    >
+      <div className="space-y-6">
         {/* Category Summary */}
         {presetSummary && (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
             {Object.entries(CATEGORY_INFO).map(([key, info]) => {
               const count = presetSummary.categories[key as keyof typeof presetSummary.categories] ?? 0;
               const Icon = info.icon;
+              const selected = selectedCategory === key;
               return (
-                <div 
+                <div
                   key={key}
-                  className={`p-3 rounded-lg border bg-muted/30 cursor-pointer transition-colors ${
-                    selectedCategory === key ? 'border-primary bg-primary/10' : 'hover:bg-muted/50'
-                  }`}
-                  onClick={() => setSelectedCategory(selectedCategory === key ? "all" : key)}
+                  className="p-3 rounded-lg cursor-pointer transition-colors"
+                  style={{
+                    border: `1px solid ${selected ? accent(0.5) : 'rgba(255,255,255,0.06)'}`,
+                    background: selected ? accent(0.1) : 'transparent',
+                  }}
+                  onClick={() => setSelectedCategory(selected ? "all" : key)}
                 >
                   <div className="flex items-center gap-2">
                     <Icon className={`w-4 h-4 ${info.color}`} />
-                    <span className="text-xs font-medium">{info.label}</span>
+                    <span className="text-xs font-medium text-white/80">{info.label}</span>
                   </div>
-                  <p className="text-lg font-bold mt-1">{count}</p>
+                  <p className="text-lg font-bold mt-1 text-white">{count}</p>
                 </div>
               );
             })}
@@ -258,11 +257,11 @@ export function AdminAvatarBatchV2() {
 
         {/* Rate Limit Warning */}
         {rateLimited && (
-          <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+          <div className="p-4 rounded-lg flex items-start gap-3" style={{ border: '1px solid hsl(38 96% 62% / 0.3)', background: 'hsl(38 96% 62% / 0.08)' }}>
+            <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: AMBER }} />
             <div>
-              <p className="font-medium text-amber-500">Rate Limited</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="font-medium" style={{ color: AMBER }}>Rate Limited</p>
+              <p className="text-sm text-white/50">
                 Wait 60 seconds before resuming. Progress is saved at avatar {currentIndex + 1}.
               </p>
             </div>
@@ -271,38 +270,37 @@ export function AdminAvatarBatchV2() {
 
         {/* Controls */}
         <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
+          <DeckButton
             onClick={loadPresets}
             disabled={isLoading || isGenerating}
           >
             {isLoading ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
             ) : (
-              <RefreshCw className="w-4 h-4 mr-2" />
+              <RefreshCw className="w-3.5 h-3.5 mr-2" />
             )}
             Load Presets
-          </Button>
+          </DeckButton>
 
           {presetSummary && !isGenerating && !isPaused && !rateLimited && (
-            <Button onClick={startGeneration} className="gap-2">
-              <Play className="w-4 h-4" />
+            <DeckButton primary onClick={startGeneration}>
+              <Play className="w-3.5 h-3.5 mr-2" />
               {currentIndex > 0 ? 'Restart Generation' : 'Start Generation'}
-            </Button>
+            </DeckButton>
           )}
 
           {isGenerating && (
-            <Button variant="outline" onClick={pauseGeneration} className="gap-2">
-              <Pause className="w-4 h-4" />
+            <DeckButton onClick={pauseGeneration}>
+              <Pause className="w-3.5 h-3.5 mr-2" />
               Pause
-            </Button>
+            </DeckButton>
           )}
 
           {(isPaused || rateLimited) && currentIndex < total && (
-            <Button onClick={resumeGeneration} className="gap-2">
-              <Play className="w-4 h-4" />
+            <DeckButton primary onClick={resumeGeneration}>
+              <Play className="w-3.5 h-3.5 mr-2" />
               Resume from #{currentIndex + 1}
-            </Button>
+            </DeckButton>
           )}
         </div>
 
@@ -310,21 +308,26 @@ export function AdminAvatarBatchV2() {
         {(isGenerating || results.length > 0) && (
           <div className="space-y-3">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">
+              <span className="text-white/50">
                 {isGenerating ? 'Generating…' : isPaused ? 'Paused' : rateLimited ? 'Rate Limited' : 'Complete'}
               </span>
-              <span className="font-medium">
+              <span className="font-medium text-white/85">
                 {currentIndex} / {total}
               </span>
             </div>
-            <Progress value={progress} className="h-2" />
-            
+            <div className="h-2 w-full overflow-hidden rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
+              <div
+                className="h-full rounded-full transition-all"
+                style={{ width: `${progress}%`, background: `linear-gradient(90deg, ${ACCENT_HSL}, ${CYAN})` }}
+              />
+            </div>
+
             <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-1 text-emerald-500">
+              <div className="flex items-center gap-1" style={{ color: CYAN }}>
                 <CheckCircle2 className="w-4 h-4" />
                 {successCount} success
               </div>
-              <div className="flex items-center gap-1 text-destructive">
+              <div className="flex items-center gap-1" style={{ color: ROSE }}>
                 <XCircle className="w-4 h-4" />
                 {failCount} failed
               </div>
@@ -334,10 +337,10 @@ export function AdminAvatarBatchV2() {
 
         {/* Current Avatar Being Generated */}
         {isGenerating && presetSummary?.presets[currentIndex] && (
-          <div className="p-4 rounded-lg bg-muted/50 border animate-pulse">
-            <p className="text-sm text-muted-foreground mb-1">Currently generating:</p>
-            <p className="font-medium">{presetSummary.presets[currentIndex].name}</p>
-            <p className="text-sm text-muted-foreground">
+          <div className="p-4 rounded-lg animate-pulse" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+            <p className="text-sm text-white/50 mb-1">Currently generating:</p>
+            <p className="font-medium text-white/90">{presetSummary.presets[currentIndex].name}</p>
+            <p className="text-sm text-white/50">
               {presetSummary.presets[currentIndex].category} • {presetSummary.presets[currentIndex].avatarType}
             </p>
           </div>
@@ -352,31 +355,36 @@ export function AdminAvatarBatchV2() {
 
           <TabsContent value="presets">
             {filteredPresets.length > 0 && (
-              <ScrollArea className="h-64 rounded-lg border">
+              <ScrollArea className="h-64 rounded-lg" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
                 <div className="p-3 space-y-2">
                   {filteredPresets.map((preset) => {
                     const catInfo = CATEGORY_INFO[preset.category as keyof typeof CATEGORY_INFO];
                     const Icon = catInfo?.icon ?? Users;
+                    const done = preset.index < currentIndex;
                     return (
-                      <div 
+                      <div
                         key={preset.index}
-                        className="flex items-center gap-3 p-2 rounded bg-muted/30"
+                        className="flex items-center gap-3 p-2 rounded"
+                        style={{ background: 'rgba(255,255,255,0.03)' }}
                       >
-                        <div className={`w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium ${
-                          preset.index < currentIndex ? 'bg-emerald-500/20 text-emerald-500' : ''
-                        }`}>
-                          {preset.index < currentIndex ? <CheckCircle2 className="w-4 h-4" /> : preset.index + 1}
+                        <div
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium"
+                          style={done
+                            ? { background: 'hsl(188 92% 58% / 0.18)', color: CYAN }
+                            : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)' }}
+                        >
+                          {done ? <CheckCircle2 className="w-4 h-4" /> : preset.index + 1}
                         </div>
-                        <Icon className={`w-4 h-4 ${catInfo?.color ?? 'text-muted-foreground'}`} />
+                        <Icon className={`w-4 h-4 ${catInfo?.color ?? 'text-white/50'}`} />
                         <div className="flex-1">
-                          <p className="text-sm font-medium">{preset.name}</p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-sm font-medium text-white/85">{preset.name}</p>
+                          <p className="text-xs text-white/50">
                             {preset.gender} • {preset.avatarType}
                           </p>
                         </div>
-                        <Badge variant="outline" className="text-xs">
+                        <StatusPill tone="neutral">
                           {catInfo?.label ?? preset.category}
-                        </Badge>
+                        </StatusPill>
                       </div>
                     );
                   })}
@@ -387,30 +395,31 @@ export function AdminAvatarBatchV2() {
 
           <TabsContent value="results">
             {results.length > 0 && (
-              <ScrollArea className="h-64 rounded-lg border">
+              <ScrollArea className="h-64 rounded-lg" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
                 <div className="p-3 space-y-2">
                   {results.map((result, idx) => (
-                    <div 
+                    <div
                       key={idx}
-                      className="flex items-center gap-3 p-2 rounded bg-muted/30"
+                      className="flex items-center gap-3 p-2 rounded"
+                      style={{ background: 'rgba(255,255,255,0.03)' }}
                     >
                       {result.success ? (
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                        <CheckCircle2 className="w-4 h-4 shrink-0" style={{ color: CYAN }} />
                       ) : (
-                        <XCircle className="w-4 h-4 text-destructive shrink-0" />
+                        <XCircle className="w-4 h-4 shrink-0" style={{ color: ROSE }} />
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{result.name}</p>
+                        <p className="text-sm font-medium truncate text-white/85">{result.name}</p>
                         {result.error && (
-                          <p className="text-xs text-destructive truncate">{result.error}</p>
+                          <p className="text-xs truncate" style={{ color: ROSE }}>{result.error}</p>
                         )}
                         {result.category && (
-                          <p className="text-xs text-muted-foreground">{result.category}</p>
+                          <p className="text-xs text-white/50">{result.category}</p>
                         )}
                       </div>
                       {result.imageUrl && (
-                        <img 
-                          src={result.imageUrl} 
+                        <img
+                          src={result.imageUrl}
                           alt={result.name}
                           className="w-10 h-10 rounded object-cover"
                         />
@@ -422,7 +431,7 @@ export function AdminAvatarBatchV2() {
             )}
           </TabsContent>
         </Tabs>
-      </CardContent>
-    </Card>
+      </div>
+    </FloatSection>
   );
 }

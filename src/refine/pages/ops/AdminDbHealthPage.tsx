@@ -2,8 +2,7 @@
 import { useEffect, useState } from "react";
 import { Database, RefreshCw } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { FloatSection, FloatRow } from "@/admin/ui/primitives";
-import { Button } from "@/components/ui/button";
+import { FloatSection, FloatRow, DeckButton } from "@/admin/ui/primitives";
 import { supabase } from "@/integrations/supabase/client";
 
 const TABLES = [
@@ -54,7 +53,7 @@ export default function AdminDbHealthPage() {
         { label: "Total Rows", value: total.toLocaleString(), tone: "emerald" },
         { label: "Errored", value: Object.values(counts).filter(v => v === null).length, tone: "rose" },
       ]}
-      actions={<Button variant="outline" size="sm" onClick={() => setReload(k=>k+1)} disabled={loading}><RefreshCw className={`w-3.5 h-3.5 mr-2 ${loading?"animate-spin":""}`} /> Refresh</Button>}
+      actions={<DeckButton onClick={() => setReload(k=>k+1)} disabled={loading}><RefreshCw className={`w-3.5 h-3.5 mr-2 ${loading?"animate-spin":""}`} /> Refresh</DeckButton>}
     >
       <FloatSection title="Tables" meta="live row counts">
         {TABLES.map((t, i) => (

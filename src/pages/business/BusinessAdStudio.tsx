@@ -222,7 +222,7 @@ export default function BusinessAdStudio() {
         action={voiceLabel ? <Badge tone="accent">Voice · {voiceLabel}</Badge> : <Badge tone="neutral">Set a brand voice in Brand</Badge>}
       />
 
-      <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] p-5 space-y-5">
+      <div className="rounded-2xl p-5 space-y-5">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <label className="flex flex-col gap-2">
             <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/45">Product / brand</span>
@@ -292,7 +292,7 @@ export default function BusinessAdStudio() {
       {generating && concepts.length === 0 ? (
         <div className="space-y-3">
           {Array.from({ length: conceptCount }).map((_, i) => (
-            <div key={i} className="h-44 rounded-2xl ring-1 ring-white/[0.06] bg-white/[0.02] animate-pulse" style={{ animationDelay: `${i * 90}ms` }} />
+            <div key={i} className="h-44 rounded-2xl bg-white/[0.02] animate-pulse" style={{ animationDelay: `${i * 90}ms` }} />
           ))}
         </div>
       ) : concepts.length === 0 ? (
@@ -379,7 +379,7 @@ function ConceptCard({ index, concept, canEdit, onSend, context }: {
   };
 
   return (
-    <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] overflow-hidden">
+    <div className="rounded-2xl overflow-hidden">
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3 p-5 border-b border-white/[0.06]">
         <div className="min-w-0">
@@ -568,7 +568,7 @@ function VariantLab({ concept, context, canEdit, onSend }: {
           {generating && variants.length === 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {Array.from({ length: projected || 2 }).map((_, i) => (
-                <div key={i} className="h-20 rounded-xl ring-1 ring-white/[0.06] bg-white/[0.02] animate-pulse" style={{ animationDelay: `${i * 70}ms` }} />
+                <div key={i} className="h-20 rounded-xl bg-white/[0.02] animate-pulse" style={{ animationDelay: `${i * 70}ms` }} />
               ))}
             </div>
           ) : variants.length > 0 ? (
@@ -606,7 +606,7 @@ function VariantRow({ variant, canEdit, onSend }: {
 }) {
   const [scriptOpen, setScriptOpen] = useState(false);
   return (
-    <div className="rounded-xl ring-1 ring-white/[0.07] bg-white/[0.02] p-3.5">
+    <div className="rounded-xl p-3.5">
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-1.5">
           <Badge tone="neutral">{variant.aspectRatio}</Badge>
@@ -660,7 +660,7 @@ function Field({ icon: Icon, label, count, copyText, compact, children }: {
   label: string; count?: string; copyText?: string; compact?: boolean; children: React.ReactNode;
 }) {
   return (
-    <div className={cn(compact && "rounded-xl ring-1 ring-white/[0.06] bg-white/[0.02] p-3.5")}>
+    <div className={cn(compact && "rounded-xl p-3.5")}>
       <div className="flex items-center gap-2 mb-2">
         <Icon className="w-3.5 h-3.5 text-white/45" strokeWidth={1.6} />
         <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/45">{label}</span>

@@ -151,7 +151,7 @@ export default function BusinessBrand() {
 
       {/* ── Palette ───────────────────────────────────────────────────────── */}
       <SectionHead label="Palette · Hex registry" count={colors.length ? `${colors.length}/5` : undefined} />
-      <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] p-5">
+      <div className="rounded-2xl p-5">
         <p className="text-[12px] text-white/45 mb-4">Up to 5 colors. Biases generated scenes, lower-thirds and titles. The first is your primary.</p>
         {loading ? (
           <div className="flex flex-wrap gap-2">
@@ -182,7 +182,7 @@ export default function BusinessBrand() {
             {colors.length > 0 ? (
               <div className="mt-5 pt-5 border-t border-white/[0.06] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                 {colors.map((c, i) => (
-                  <div key={`sel-${c}`} className="flex items-center gap-3 rounded-xl ring-1 ring-white/[0.07] bg-white/[0.02] p-2.5">
+                  <div key={`sel-${c}`} className="flex items-center gap-3 rounded-xl p-2.5">
                     <span className="w-12 h-12 rounded-lg ring-1 ring-white/10 flex items-center justify-center shrink-0" style={{ background: c }}>
                       <span className="text-[9px] font-mono font-semibold" style={{ color: readableOn(c) }}>Aa</span>
                     </span>
@@ -207,7 +207,7 @@ export default function BusinessBrand() {
 
       {/* ── Voice ─────────────────────────────────────────────────────────── */}
       <SectionHead label="Voice profile" action={voice ? <Badge tone="accent">{VOICE_PRESETS.find((v) => v.id === voice)?.label.split(" ")[0]}</Badge> : undefined} />
-      <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] p-5">
+      <div className="rounded-2xl p-5">
         <p className="text-[12px] text-white/45 mb-4">Biases scripts and dialogue toward this register. The preview above updates live.</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
           {VOICE_PRESETS.map((v) => {
@@ -227,11 +227,11 @@ export default function BusinessBrand() {
       {/* ── Logo studio ───────────────────────────────────────────────────── */}
       <SectionHead label="Logo studio" />
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-3">
-        <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] p-5">
+        <div className="rounded-2xl p-5">
           <p className="text-[12px] text-white/45 mb-4">Upload a PNG, JPG, WebP or SVG. Or paste a URL — both work.</p>
           <LogoUploader currentUrl={logoUrl} onChange={setLogoUrl} canEdit={canEdit} orgId={currentOrg?.id} />
         </div>
-        <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] p-5">
+        <div className="rounded-2xl p-5">
           <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/45 mb-3">Proofs</div>
           <div className="space-y-2.5">
             <LogoProof url={logoUrl} dark />
@@ -265,7 +265,7 @@ function BrandPreview({ colors, logoUrl, voice, orgName, loading }: {
   const sample = voiceSample(voice);
   const onPrimary = readableOn(primary);
 
-  if (loading) return <div className="aspect-video w-full rounded-2xl bg-white/[0.02] ring-1 ring-white/[0.06] animate-pulse" />;
+  if (loading) return <div className="aspect-video w-full rounded-2xl bg-white/[0.02] animate-pulse" />;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-3">

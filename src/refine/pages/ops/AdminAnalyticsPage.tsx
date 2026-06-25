@@ -7,11 +7,10 @@ import {
   Tooltip, XAxis, YAxis,
 } from "recharts";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { FloatSection } from "@/admin/ui/primitives";
+import { FloatSection, FloatTable, StatOrb, StatusPill, DeckButton, ACCENT_HSL, CYAN, AMBER } from "@/admin/ui/primitives";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -66,6 +65,14 @@ const DATASET_TONE: Record<Dataset, string> = {
   creditsSpent: "#FBBF24",
   creditsPurchased: "#6FB6FF",
 };
+const DATASET_PILL_TONE: Record<Dataset, "accent" | "positive" | "warn" | "danger" | "neutral"> = {
+  signups: "accent",
+  projects: "positive",
+  clips: "accent",
+  creditsSpent: "warn",
+  creditsPurchased: "accent",
+};
+const datasetPillTone = (d?: Dataset) => (d ? DATASET_PILL_TONE[d] : "accent");
 interface DetailPayload {
   dataset: Dataset; date: string; title: string;
   columns: { key: string; label: string }[];
@@ -288,24 +295,24 @@ export default function AdminAnalyticsPage() {
         </div>
       )}
 
-      {/* Secondary KPI strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-        <KpiTile icon={Users} label="Active 7D" value={data ? fmtN(data.kpis.active7d) : null} loading={loading} accent="blue" />
-        <KpiTile icon={Activity} label="Active 30D" value={data ? fmtN(data.kpis.active30d) : null} loading={loading} accent="blue" />
-        <KpiTile
+      {/* Secondary KPI strip — floating orbs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-10 mb-12">
+        <StatOrb index={0} icon={Users} aura={ACCENT_HSL} accentNumber label="Active 7D" value={data ? fmtN(data.kpis.active7d) : "—"} />
+        <StatOrb index={1} icon={Activity} aura={ACCENT_HSL} accentNumber label="Active 30D" value={data ? fmtN(data.kpis.active30d) : "—"} />
+        <DrillOrb
+          index={2}
           icon={Sparkles}
+          aura={CYAN}
           label={`Projects ${windowDays}D`}
-          value={data ? fmtN(data.kpis.projects) : null}
-          loading={loading}
-          accent="emerald"
+          value={data ? fmtN(data.kpis.projects) : "—"}
           onClick={data ? () => openDrill("projects", todayKey()) : undefined}
         />
-        <KpiTile
+        <DrillOrb
+          index={3}
           icon={Zap}
+          aura={AMBER}
           label={`Credits Spent ${windowDays}D`}
-          value={data ? fmtN(data.kpis.creditsSpent) : null}
-          loading={loading}
-          accent="amber"
+          value={data ? fmtN(data.kpis.creditsSpent) : "—"}
           onClick={data ? () => openDrill("creditsSpent", todayKey()) : undefined}
         />
       </div>
@@ -332,11 +339,13 @@ export default function AdminAnalyticsPage() {
                     <stop offset="95%" stopColor="#FBBF24" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid stroke="rgba(255,255,255,0.04)" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                 <XAxis dataKey="date" tickFormatter={fmtDay} stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontFamily: "JetBrains Mono, monospace" }} tickLine={false} axisLine={false} minTickGap={24} />
                 <YAxis stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontFamily: "JetBrains Mono, monospace" }} tickLine={false} axisLine={false} width={40} />
                 <Tooltip
-                  contentStyle={{ background: "hsl(220, 14%, 4%)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, fontSize: 12 }}
+                  contentStyle={{ background: "#0a0d14", border: "none", borderRadius: 12, fontSize: 12 }}
+                  itemStyle={{ color: "#fff" }}
+                  labelStyle={{ color: "rgba(255,255,255,0.6)" }}
                   labelFormatter={(l) => fmtDay(l as string)}
                   cursor={{ stroke: "rgba(10,132,255,0.35)", strokeWidth: 1 }}
                 />
@@ -375,7 +384,7 @@ export default function AdminAnalyticsPage() {
                         <Cell key={i} fill={TIER_COLORS[i % TIER_COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip contentStyle={{ background: "hsl(220, 14%, 4%)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, fontSize: 12 }} />
+                    <Tooltip contentStyle={{ background: "#0a0d14", border: "none", borderRadius: 12, fontSize: 12 }} itemStyle={{ color: "#fff" }} labelStyle={{ color: "rgba(255,255,255,0.6)" }} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -515,36 +524,21 @@ function todayKey() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function KpiTile({ icon: Icon, label, value, loading, accent, onClick }: {
-  icon: React.ElementType; label: string; value: string | null; loading: boolean;
-  accent: "blue" | "emerald" | "amber";
-  onClick?: () => void;
-}) {
-  const tone = { blue: "text-primary/80", emerald: "text-emerald-300", amber: "text-amber-300" }[accent];
+/** A floating StatOrb made clickable — drills into the dataset on click. */
+function DrillOrb({ onClick, ...orb }: Parameters<typeof StatOrb>[0] & { onClick?: () => void }) {
+  if (!onClick) return <StatOrb {...orb} />;
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
-      role={onClick ? "button" : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onKeyDown={onClick ? (e) => { if (e.key === "Enter") onClick(); } : undefined}
-      className={cn(
-        "rounded-2xl border border-white/[0.06] bg-glass backdrop-blur-md p-5 relative overflow-hidden group",
-        onClick && "cursor-pointer transition-colors hover:border-primary/30",
-      )}
+      onKeyDown={(e) => { if (e.key === "Enter") onClick(); }}
+      className="group/drill cursor-pointer text-left outline-none"
     >
-      <div aria-hidden className="absolute -top-12 -right-12 w-32 h-32 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-        style={{ background: "radial-gradient(circle, rgba(10,132,255,0.18), transparent 65%)", filter: "blur(20px)" }} />
-      <div className="flex items-center gap-2 text-[9px] text-white/40 font-mono uppercase tracking-[0.32em] mb-3">
-        <Icon className={cn("h-3 w-3", tone)} /> {label}
-        {onClick && <ArrowUpRight className="h-3 w-3 ml-auto text-white/20 group-hover:text-primary/80 transition-colors" />}
+      <div className="flex items-center justify-end -mb-3.5">
+        <ArrowUpRight className="h-3.5 w-3.5 text-white/20 transition-colors group-hover/drill:text-primary/80" />
       </div>
-      {loading || value == null ? (
-        <Skeleton className="h-8 w-20 bg-glass-hover" />
-      ) : (
-        <div className="text-3xl font-light text-white tabular-nums">
-          {value}
-        </div>
-      )}
+      <StatOrb {...orb} />
     </div>
   );
 }
@@ -742,16 +736,13 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
           style={{ background: `radial-gradient(circle, ${accent}33, transparent 65%)`, filter: "blur(60px)" }} />
         <SheetHeader className="px-8 pt-8 pb-5 border-b border-white/[0.05] relative">
           <div className="flex items-center gap-3 mb-3">
-            <span className="px-2.5 py-1 rounded-full border text-[9px] font-mono font-bold uppercase tracking-[0.28em]"
-              style={{ borderColor: `${accent}66`, color: accent, background: `${accent}10` }}>
-              {target?.dataset}
-            </span>
+            <StatusPill tone={datasetPillTone(target?.dataset)}>{target?.dataset}</StatusPill>
             <span className="h-px w-8 bg-white/15" />
             {onChangeDate && target ? (
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => shiftDay(-1)}
-                  className="h-6 w-6 inline-flex items-center justify-center rounded-md border border-white/10 text-white/45 hover:text-white hover:border-white/30 transition-colors"
+                  className="h-6 w-6 inline-flex items-center justify-center rounded-md bg-white/[0.05] text-white/45 hover:bg-white/[0.1] hover:text-white transition-colors"
                   aria-label="Previous day"
                 >
                   <ArrowDown className="h-3 w-3 -rotate-90" />
@@ -759,7 +750,7 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
                 <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
                   <PopoverTrigger asChild>
                     <button
-                      className="h-6 px-2 inline-flex items-center gap-1.5 rounded-md border border-white/10 text-[10px] font-mono uppercase tracking-[0.24em] text-white/55 hover:text-primary/80 hover:border-primary/40 transition-colors"
+                      className="h-6 px-2 inline-flex items-center gap-1.5 rounded-md bg-white/[0.05] text-[10px] font-mono uppercase tracking-[0.24em] text-white/55 hover:bg-white/[0.1] hover:text-primary/80 transition-colors"
                       aria-label="Pick date"
                     >
                       <CalendarIcon className="h-3 w-3" />
@@ -786,7 +777,7 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
                 </Popover>
                 <button
                   onClick={() => shiftDay(1)}
-                  className="h-6 w-6 inline-flex items-center justify-center rounded-md border border-white/10 text-white/45 hover:text-white hover:border-white/30 transition-colors disabled:opacity-30"
+                  className="h-6 w-6 inline-flex items-center justify-center rounded-md bg-white/[0.05] text-white/45 hover:bg-white/[0.1] hover:text-white transition-colors disabled:opacity-30"
                   aria-label="Next day"
                   disabled={(() => {
                     if (!target) return true;
@@ -807,7 +798,7 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
               {exportPayload && exportPayload.rows.length > 0 && (
                 <button
                   onClick={() => downloadCsv(exportPayload, { filtered: activeFilterCount > 0 })}
-                  className="h-8 px-3.5 inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 text-[10px] font-mono uppercase tracking-[0.22em] text-primary/80 hover:bg-primary/20 hover:border-primary/70 transition-colors"
+                  className="h-8 px-3.5 inline-flex items-center gap-2 rounded-full bg-primary/15 text-[10px] font-mono uppercase tracking-[0.22em] text-primary/80 hover:bg-primary/25 transition-colors"
                   aria-label={`Export ${exportPayload.rows.length} rows as CSV`}
                   title={activeFilterCount > 0
                     ? `Download ${exportPayload.rows.length} filtered rows`
@@ -820,7 +811,7 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
                   </span>
                 </button>
               )}
-              <button onClick={onClose} className="h-8 w-8 inline-flex items-center justify-center rounded-full border border-white/10 text-white/50 hover:text-white hover:border-white/30 transition-colors">
+              <button onClick={onClose} className="h-8 w-8 inline-flex items-center justify-center rounded-full bg-white/[0.05] text-white/50 hover:bg-white/[0.1] hover:text-white transition-colors">
               <X className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -855,7 +846,7 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
                       onChange={(e) =>
                         setFilters((f) => ({ ...f, [c.key]: e.target.value }))
                       }
-                      className="h-7 px-2 rounded-md bg-glass-hover border border-white/10 text-[11px] font-mono text-white/80 hover:border-white/20 focus:outline-none focus:border-primary/60"
+                      className="h-7 px-2 rounded-md bg-white/[0.06] text-[11px] font-mono text-white/80 hover:bg-white/[0.1] focus:outline-none focus:bg-white/[0.12]"
                     >
                       <option value="__all__">All</option>
                       {opts.map((o) => (
@@ -866,12 +857,11 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
                 );
               })}
               {activeFilterCount > 0 && (
-                <button
-                  onClick={clearFilters}
-                  className="ml-1 h-7 px-2.5 inline-flex items-center gap-1 rounded-md border border-white/10 text-[10px] font-mono uppercase tracking-[0.22em] text-white/55 hover:text-white hover:border-white/30 transition-colors"
-                >
-                  <X className="h-3 w-3" /> Clear
-                </button>
+                <span className="ml-1">
+                  <DeckButton onClick={clearFilters}>
+                    <X className="h-3 w-3" /> Clear
+                  </DeckButton>
+                </span>
               )}
             </div>
           )}
@@ -896,28 +886,20 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
               No rows match the current filters.
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-white/[0.05] hover:bg-transparent">
-                  {payload.columns.map((c) => (
-                    <TableHead key={c.key} className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em]">
-                      {c.label}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRows.map((row, i) => (
-                  <TableRow key={i} className="border-white/[0.04] hover:bg-glass">
-                    {payload.columns.map((c) => (
-                      <TableCell key={c.key} className="text-[12px] text-white/75 font-mono tabular-nums max-w-[260px] truncate" title={String(row[c.key] ?? "")}>
-                        {formatCell(c.key, row[c.key])}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="px-6">
+              <FloatTable
+                columns={payload.columns.map((c) => ({ key: c.key, label: c.label }))}
+                rows={filteredRows.map((row, i) => ({
+                  _key: i,
+                  ...Object.fromEntries(payload.columns.map((c) => [
+                    c.key,
+                    <span key={c.key} className="block max-w-[260px] truncate font-mono tabular-nums text-white/75" title={String(row[c.key] ?? "")}>
+                      {formatCell(c.key, row[c.key])}
+                    </span>,
+                  ])),
+                }))}
+              />
+            </div>
           )}
           {/* Infinite scroll sentinel + load-more affordance */}
           {payload && payload.rows.length > 0 && hasMore && (
@@ -927,12 +909,9 @@ function DrillSheet({ open, onClose, target, loading, error, payload, onChangeDa
                   <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading more…
                 </div>
               ) : activeFilterCount > 0 ? (
-                <button
-                  onClick={() => onLoadMore?.()}
-                  className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 text-[10px] font-mono uppercase tracking-[0.22em] text-white/55 hover:text-primary/80 hover:border-primary/40 transition-colors"
-                >
+                <DeckButton onClick={() => onLoadMore?.()}>
                   Load next {DRILL_PAGE_SIZE}
-                </button>
+                </DeckButton>
               ) : (
                 <span className="text-[10px] font-mono uppercase tracking-[0.24em] text-white/25">
                   Scroll to load more
@@ -1125,39 +1104,36 @@ function Leaderboard({ rows, loading }: { rows: NonNullable<AnalyticsPayload["to
   if (!rows?.length) return <div className="py-10 text-center text-[12px] text-white/30 italic">No power users in window</div>;
   const maxSpend = Math.max(...rows.map((r) => r.spend), 1);
   return (
-    <Table>
-      <TableHeader>
-        <TableRow className="border-white/[0.05] hover:bg-transparent">
-          <TableHead className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em] w-10">#</TableHead>
-          <TableHead className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em]">User</TableHead>
-          <TableHead className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em]">Tier</TableHead>
-          <TableHead className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em] text-right">Projects</TableHead>
-          <TableHead className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em] text-right">Credits spent</TableHead>
-          <TableHead className="text-[9px] text-white/40 font-mono uppercase tracking-[0.28em]">Share</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {rows.map((u, i) => (
-          <TableRow key={u.id} className="border-white/[0.04] hover:bg-glass">
-            <TableCell className="text-[12px] text-white/40 font-mono tabular-nums">
-              {i === 0 ? <Crown className="h-3.5 w-3.5 text-amber-300" /> : i + 1}
-            </TableCell>
-            <TableCell className="text-[12px]">
-              <div className="text-white/85 truncate max-w-[260px]">{u.profile?.display_name || u.profile?.email || u.id.slice(0, 8) + "…"}</div>
-              <div className="text-[10px] text-white/30 font-mono">{u.profile?.email || u.id.slice(0, 8) + "…"}</div>
-            </TableCell>
-            <TableCell className="text-[11px] text-white/55 capitalize">{u.profile?.account_tier ?? "free"}</TableCell>
-            <TableCell className="text-[12px] text-white/75 font-mono tabular-nums text-right">{u.projects.toLocaleString()}</TableCell>
-            <TableCell className="text-[12px] text-amber-300 font-mono tabular-nums text-right">{u.spend.toLocaleString()}</TableCell>
-            <TableCell className="w-[160px]">
-              <div className="h-1.5 w-full rounded-full bg-glass-hover overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-[#0A84FF] to-[#6FB6FF]" style={{ width: `${(u.spend / maxSpend) * 100}%` }} />
-              </div>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+    <FloatTable
+      columns={[
+        { key: "rank", label: "#", className: "w-10" },
+        { key: "user", label: "User" },
+        { key: "tier", label: "Tier" },
+        { key: "projects", label: "Projects", align: "right" },
+        { key: "spend", label: "Credits spent", align: "right" },
+        { key: "share", label: "Share", className: "w-[160px]" },
+      ]}
+      rows={rows.map((u, i) => ({
+        _key: u.id,
+        rank: i === 0
+          ? <Crown className="h-3.5 w-3.5 text-amber-300" />
+          : <span className="font-mono tabular-nums text-white/40">{i + 1}</span>,
+        user: (
+          <div>
+            <div className="text-white/85 truncate max-w-[260px]">{u.profile?.display_name || u.profile?.email || u.id.slice(0, 8) + "…"}</div>
+            <div className="text-[10px] text-white/30 font-mono">{u.profile?.email || u.id.slice(0, 8) + "…"}</div>
+          </div>
+        ),
+        tier: <span className="text-[11px] text-white/55 capitalize">{u.profile?.account_tier ?? "free"}</span>,
+        projects: <span className="font-mono tabular-nums text-white/75">{u.projects.toLocaleString()}</span>,
+        spend: <span className="font-mono tabular-nums text-amber-300">{u.spend.toLocaleString()}</span>,
+        share: (
+          <div className="h-1.5 w-full rounded-full bg-white/[0.08] overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-[#0A84FF] to-[#6FB6FF]" style={{ width: `${(u.spend / maxSpend) * 100}%` }} />
+          </div>
+        ),
+      }))}
+    />
   );
 }
 

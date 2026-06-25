@@ -1,10 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
@@ -14,22 +11,25 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { 
-  Settings, 
-  Clock, 
+import {
+  Settings,
+  Clock,
   Coins,
   RefreshCw,
   Loader2,
   Edit2,
   Plus,
-  Calculator,
   TrendingUp,
   CheckCircle,
   AlertTriangle,
   Info,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { CREDIT_SYSTEM } from '@/lib/creditSystem';
+import {
+  StatOrb, FloatSection, FloatTable, StatusPill, DeckButton,
+  ACCENT_HSL, CYAN, AMBER, ROSE,
+} from '@/admin/ui/primitives';
 
 interface PricingConfig {
   id: string;
@@ -51,13 +51,13 @@ export function AdminPricingConfigEditor() {
   const [configs, setConfigs] = useState<PricingConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  
+
   const [editDialog, setEditDialog] = useState<{
     open: boolean;
     config: PricingConfig | null;
     isNew: boolean;
   }>({ open: false, config: null, isNew: false });
-  
+
   const [form, setForm] = useState({
     clip_duration_seconds: '',
     credits_cost: '',
@@ -76,7 +76,7 @@ export function AdminPricingConfigEditor() {
         .from('pricing_config')
         .select('*')
         .order('clip_duration_seconds', { ascending: true });
-      
+
       if (error) throw error;
       setConfigs(data || []);
     } catch (err) {
@@ -139,16 +139,18 @@ export function AdminPricingConfigEditor() {
   };
 
   const calculateMargin = (credits: number) => {
-    // Assume 1 credit = $0.116 (from credit packages average)
-    const revenuePerCredit = 11.6; // cents
+    // AUDIT FIX M-5: use the canonical price ($0.10/credit) from creditSystem
+    // instead of a divergent hardcoded 11.6¢, which overstated revenue/margin by
+    // 16% versus billing, invoices, and the business billing page.
+    const revenuePerCredit = CREDIT_SYSTEM.CENTS_PER_CREDIT; // cents
     const revenue = credits * revenuePerCredit;
-    
+
     // Cost per clip (Veo is the main cost)
     const cost = API_COSTS.veo_per_clip;
-    
+
     const profit = revenue - cost;
     const margin = (profit / revenue) * 100;
-    
+
     return {
       revenue: revenue.toFixed(1),
       cost: cost,
@@ -167,220 +169,124 @@ export function AdminPricingConfigEditor() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: ACCENT_HSL }} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-            <Settings className="w-5 h-5 text-primary" />
+          <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
+            <Settings className="h-5 w-5" style={{ color: ACCENT_HSL }} />
             Pricing Configuration
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-white/55">
             Configure credit costs for video clip generation by duration
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={fetchConfigs} variant="outline" size="sm">
-            <RefreshCw className="w-4 h-4 mr-2" />
+          <DeckButton onClick={fetchConfigs}>
+            <RefreshCw className="h-4 w-4" />
             Refresh
-          </Button>
-          <Button onClick={() => openEditDialog(null)} size="sm">
-            <Plus className="w-4 h-4 mr-2" />
+          </DeckButton>
+          <DeckButton primary onClick={() => openEditDialog(null)}>
+            <Plus className="h-4 w-4" />
             Add Tier
-          </Button>
+          </DeckButton>
         </div>
       </div>
 
-      {/* Pricing Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2">
-              <Clock className="w-4 h-4" />
-              Pricing Tiers
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{configs.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {configs.filter(c => c.is_active).length} active
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20">
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2">
-              <Coins className="w-4 h-4 text-success" />
-              Min Credits/Clip
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {configs.length > 0 ? Math.min(...configs.map(c => c.credits_cost)) : 0}
-            </div>
-            <p className="text-xs text-muted-foreground">Lowest tier</p>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-gradient-to-br from-warning/10 to-warning/5 border-warning/20">
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-warning" />
-              Max Credits/Clip
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {configs.length > 0 ? Math.max(...configs.map(c => c.credits_cost)) : 0}
-            </div>
-            <p className="text-xs text-muted-foreground">Highest tier</p>
-          </CardContent>
-        </Card>
+      {/* Pricing Overview — floating figures */}
+      <div className="grid grid-cols-1 gap-x-10 gap-y-10 md:grid-cols-3">
+        <StatOrb index={0} icon={Clock} aura={ACCENT_HSL} label="Pricing Tiers" value={configs.length} sub={`${configs.filter(c => c.is_active).length} active`} />
+        <StatOrb index={1} icon={Coins} aura={CYAN} label="Min Credits/Clip" value={configs.length > 0 ? Math.min(...configs.map(c => c.credits_cost)) : 0} sub="Lowest tier" />
+        <StatOrb index={2} icon={TrendingUp} aura={AMBER} label="Max Credits/Clip" value={configs.length > 0 ? Math.max(...configs.map(c => c.credits_cost)) : 0} sub="Highest tier" />
       </div>
 
       {/* Pricing Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Calculator className="w-5 h-5" />
-            Duration-Based Pricing
-          </CardTitle>
-          <CardDescription>
-            Credits charged per clip based on video duration
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Duration</th>
-                  <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Credits</th>
-                  <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Est. Revenue</th>
-                  <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">API Cost</th>
-                  <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Margin</th>
-                  <th className="text-center py-3 px-4 text-sm font-medium text-muted-foreground">Status</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Description</th>
-                  <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {configs.map((config) => {
-                  const margin = calculateMargin(config.credits_cost);
-                  return (
-                    <tr key={config.id} className="border-b border-border/50 hover:bg-muted/30">
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-muted-foreground" />
-                          <span className="font-medium">
-                            {formatDuration(config.clip_duration_seconds)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Coins className="w-4 h-4 text-warning" />
-                          <span className="font-mono font-medium">
-                            {config.credits_cost}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-right text-success">
-                        ${(parseFloat(margin.revenue) / 100).toFixed(2)}
-                      </td>
-                      <td className="py-3 px-4 text-right text-destructive">
-                        ${(margin.cost / 100).toFixed(2)}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <Badge className={cn(
-                          parseFloat(margin.margin) >= 70 ? "bg-success/10 text-success border-success/20" :
-                          parseFloat(margin.margin) >= 50 ? "bg-warning/10 text-warning border-warning/20" :
-                          "bg-destructive/10 text-destructive border-destructive/20"
-                        )}>
-                          {margin.margin}%
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        {config.is_active ? (
-                          <Badge className="bg-success/10 text-success border-success/20">
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            Active
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary">Inactive</Badge>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-sm text-muted-foreground max-w-48 truncate">
-                        {config.description || '-'}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openEditDialog(config)}
-                        >
-                          <Edit2 className="w-3 h-3" />
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            {configs.length === 0 && (
-              <div className="text-center py-12 text-muted-foreground">
-                <Settings className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>No pricing configuration found</p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      <FloatSection title="Duration-Based Pricing" meta="credits charged per clip by duration">
+        <FloatTable
+          empty="No pricing configuration found"
+          columns={[
+            { key: 'duration', label: 'Duration' },
+            { key: 'credits', label: 'Credits', align: 'right' },
+            { key: 'revenue', label: 'Est. Revenue', align: 'right' },
+            { key: 'apiCost', label: 'API Cost', align: 'right' },
+            { key: 'margin', label: 'Margin', align: 'right' },
+            { key: 'status', label: 'Status' },
+            { key: 'description', label: 'Description' },
+            { key: 'actions', label: 'Actions', align: 'right' },
+          ]}
+          rows={configs.map((config) => {
+            const margin = calculateMargin(config.credits_cost);
+            const m = parseFloat(margin.margin);
+            return {
+              _key: config.id,
+              duration: (
+                <span className="flex items-center gap-2 font-medium text-white">
+                  <Clock className="h-4 w-4 text-white/40" />
+                  {formatDuration(config.clip_duration_seconds)}
+                </span>
+              ),
+              credits: (
+                <span className="inline-flex items-center justify-end gap-1 font-mono font-medium text-white">
+                  <Coins className="h-4 w-4" style={{ color: AMBER }} />
+                  {config.credits_cost}
+                </span>
+              ),
+              revenue: <span style={{ color: CYAN }}>${(parseFloat(margin.revenue) / 100).toFixed(2)}</span>,
+              apiCost: <span style={{ color: ROSE }}>${(margin.cost / 100).toFixed(2)}</span>,
+              margin: <StatusPill tone={m >= 70 ? 'positive' : m >= 50 ? 'warn' : 'danger'}>{margin.margin}%</StatusPill>,
+              status: config.is_active
+                ? <StatusPill tone="positive"><CheckCircle className="h-3 w-3" /> Active</StatusPill>
+                : <StatusPill tone="neutral">Inactive</StatusPill>,
+              description: <span className="block max-w-48 truncate text-white/50">{config.description || '-'}</span>,
+              actions: (
+                <DeckButton onClick={() => openEditDialog(config)}>
+                  <Edit2 className="h-3 w-3" />
+                </DeckButton>
+              ),
+            };
+          })}
+        />
+      </FloatSection>
 
       {/* Margin Warning */}
       {configs.some(c => parseFloat(calculateMargin(c.credits_cost).margin) < 50) && (
-        <Card className="border-warning/50 bg-warning/5">
-          <CardContent className="pt-4">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium text-foreground">Low Margin Warning</p>
-                <p className="text-sm text-muted-foreground">
-                  Some pricing tiers have margins below 50%. Consider increasing credit costs to maintain profitability.
-                  Target margin: 70-80%.
-                </p>
-              </div>
+        <div className="rounded-2xl bg-white/[0.03] p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0" style={{ color: AMBER }} />
+            <div>
+              <p className="font-medium text-white">Low Margin Warning</p>
+              <p className="text-sm text-white/55">
+                Some pricing tiers have margins below 50%. Consider increasing credit costs to maintain profitability.
+                Target margin: 70-80%.
+              </p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Info Card */}
-      <Card className="border-info/50 bg-info/5">
-        <CardContent className="pt-4">
-          <div className="flex items-start gap-3">
-            <Info className="w-5 h-5 text-info flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="font-medium text-foreground">Pricing Strategy</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Margins are calculated based on:
-              </p>
-              <ul className="text-sm text-muted-foreground mt-2 space-y-1">
-                <li>• Kling V3 API cost: ~$0.05/clip</li>
-                <li>• Credit value: ~$0.116/credit (based on package prices)</li>
-                <li>• Additional costs (TTS, stitching) are separate</li>
-              </ul>
-            </div>
+      <div className="rounded-2xl bg-white/[0.03] p-4">
+        <div className="flex items-start gap-3">
+          <Info className="mt-0.5 h-5 w-5 flex-shrink-0" style={{ color: ACCENT_HSL }} />
+          <div>
+            <p className="font-medium text-white">Pricing Strategy</p>
+            <p className="mt-1 text-sm text-white/55">
+              Margins are calculated based on:
+            </p>
+            <ul className="mt-2 space-y-1 text-sm text-white/55">
+              <li>• Kling V3 API cost: ~$0.05/clip</li>
+              <li>• Credit value: ~$0.116/credit (based on package prices)</li>
+              <li>• Additional costs (TTS, stitching) are separate</li>
+            </ul>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Edit Dialog */}
       <Dialog open={editDialog.open} onOpenChange={(open) => !open && setEditDialog({ open: false, config: null, isNew: false })}>
@@ -393,7 +299,7 @@ export function AdminPricingConfigEditor() {
               Configure credit cost for a specific clip duration
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="duration">Clip Duration (seconds) *</Label>
@@ -405,7 +311,7 @@ export function AdminPricingConfigEditor() {
                 placeholder="6"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="credits">Credits Cost *</Label>
               <Input
@@ -416,17 +322,17 @@ export function AdminPricingConfigEditor() {
                 placeholder="5"
               />
             </div>
-            
+
             {form.credits_cost && (
-              <div className="text-sm bg-muted/50 p-3 rounded-lg space-y-1">
+              <div className="space-y-1 rounded-2xl bg-white/[0.03] p-3 text-sm text-white/80">
                 <p>Estimated margin: <strong>{calculateMargin(parseInt(form.credits_cost) || 0).margin}%</strong></p>
-                <p className="text-muted-foreground">
-                  Revenue: ${(parseFloat(calculateMargin(parseInt(form.credits_cost) || 0).revenue) / 100).toFixed(2)} | 
+                <p className="text-white/50">
+                  Revenue: ${(parseFloat(calculateMargin(parseInt(form.credits_cost) || 0).revenue) / 100).toFixed(2)} |
                   Cost: ${(API_COSTS.veo_per_clip / 100).toFixed(2)}
                 </p>
               </div>
             )}
-            
+
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Input
@@ -436,11 +342,11 @@ export function AdminPricingConfigEditor() {
                 placeholder="Standard clip duration"
               />
             </div>
-            
+
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label>Active</Label>
-                <p className="text-xs text-muted-foreground">Enable this pricing tier</p>
+                <p className="text-xs text-white/50">Enable this pricing tier</p>
               </div>
               <Switch
                 checked={form.is_active}
@@ -448,15 +354,15 @@ export function AdminPricingConfigEditor() {
               />
             </div>
           </div>
-          
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialog({ open: false, config: null, isNew: false })}>
+            <DeckButton onClick={() => setEditDialog({ open: false, config: null, isNew: false })}>
               Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            </DeckButton>
+            <DeckButton primary onClick={handleSave} disabled={saving}>
+              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
               {editDialog.isNew ? 'Create' : 'Save changes'}
-            </Button>
+            </DeckButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

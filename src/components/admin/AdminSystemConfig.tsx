@@ -1,13 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
 import {
   Select,
   SelectContent,
@@ -15,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { 
+import {
   Settings,
   AlertTriangle,
   Bell,
@@ -24,9 +20,6 @@ import {
   Server,
   RefreshCw,
   Save,
-  Clock,
-  Globe,
-  Lock,
   Eye,
   Wrench,
   Database,
@@ -35,7 +28,7 @@ import {
   Info,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { FloatSection, DeckButton, StatusPill } from '@/admin/ui/primitives';
 
 interface FeatureFlag {
   id: string;
@@ -71,9 +64,9 @@ export function AdminSystemConfig() {
   const [announcementBanner, setAnnouncementBanner] = useState('');
   const [bannerType, setBannerType] = useState<'info' | 'warning' | 'success'>('info');
   const [bannerEnabled, setBannerEnabled] = useState(false);
-  
+
   const [featureFlags, setFeatureFlags] = useState<FeatureFlag[]>(DEFAULT_FEATURE_FLAGS);
-  
+
   const [systemStatus, setSystemStatus] = useState<SystemStatus>({
     veoApi: 'operational',
     stitcher: 'operational',
@@ -82,7 +75,7 @@ export function AdminSystemConfig() {
   });
   const [statusLoading, setStatusLoading] = useState(true);
   const [statusUpdatedAt, setStatusUpdatedAt] = useState<Date | null>(null);
-  
+
   const [saving, setSaving] = useState(false);
   const [loadingConfig, setLoadingConfig] = useState(true);
 
@@ -93,9 +86,9 @@ export function AdminSystemConfig() {
         const { data, error } = await supabase
           .from('system_config')
           .select('key, value');
-        
+
         if (error) throw error;
-        
+
         (data || []).forEach((row: { key: string; value: any }) => {
           if (row.key === 'maintenance_mode') {
             setMaintenanceMode(row.value?.enabled ?? false);
@@ -205,7 +198,7 @@ export function AdminSystemConfig() {
   }, []);
 
   const toggleFeatureFlag = (flagId: string) => {
-    setFeatureFlags(flags => 
+    setFeatureFlags(flags =>
       flags.map(f => f.id === flagId ? { ...f, enabled: !f.enabled } : f)
     );
   };
@@ -216,8 +209,8 @@ export function AdminSystemConfig() {
       // Persist maintenance mode
       await supabase
         .from('system_config')
-        .upsert({ 
-          key: 'maintenance_mode', 
+        .upsert({
+          key: 'maintenance_mode',
           value: { enabled: maintenanceMode, message: maintenanceMessage },
           updated_at: new Date().toISOString(),
         }, { onConflict: 'key' });
@@ -225,8 +218,8 @@ export function AdminSystemConfig() {
       // Persist announcement banner
       await supabase
         .from('system_config')
-        .upsert({ 
-          key: 'announcement_banner', 
+        .upsert({
+          key: 'announcement_banner',
           value: { enabled: bannerEnabled, message: announcementBanner, type: bannerType },
           updated_at: new Date().toISOString(),
         }, { onConflict: 'key' });
@@ -236,8 +229,8 @@ export function AdminSystemConfig() {
       featureFlags.forEach(f => { flagOverrides[f.id] = f.enabled; });
       await supabase
         .from('system_config')
-        .upsert({ 
-          key: 'feature_flags', 
+        .upsert({
+          key: 'feature_flags',
           value: flagOverrides,
           updated_at: new Date().toISOString(),
         }, { onConflict: 'key' });
@@ -251,114 +244,102 @@ export function AdminSystemConfig() {
     }
   };
 
-  const getStatusColor = (status: 'operational' | 'degraded' | 'down') => {
+  const getStatusTone = (status: 'operational' | 'degraded' | 'down') => {
     switch (status) {
-      case 'operational': return 'bg-success text-success-foreground';
-      case 'degraded': return 'bg-warning text-warning-foreground';
-      case 'down': return 'bg-destructive text-destructive-foreground';
+      case 'operational': return 'positive' as const;
+      case 'degraded': return 'warn' as const;
+      case 'down': return 'danger' as const;
     }
   };
 
-  const getCategoryColor = (category: FeatureFlag['category']) => {
+  const getCategoryTone = (category: FeatureFlag['category']) => {
     switch (category) {
-      case 'core': return 'bg-primary/10 text-primary border-primary/20';
-      case 'beta': return 'bg-info/10 text-info border-info/20';
-      case 'experimental': return 'bg-warning/10 text-warning border-warning/20';
+      case 'core': return 'accent' as const;
+      case 'beta': return 'accent' as const;
+      case 'experimental': return 'warn' as const;
     }
   };
+
+  const renderFlagRow = (flag: FeatureFlag) => (
+    <div key={flag.id} className="flex items-center justify-between p-3 rounded-lg bg-white/[0.03]">
+      <div className="space-y-0.5">
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-[13px] text-white">{flag.name}</span>
+          <StatusPill tone={getCategoryTone(flag.category)}>{flag.category}</StatusPill>
+        </div>
+        <p className="text-xs text-white/45">{flag.description}</p>
+      </div>
+      <Switch
+        checked={flag.enabled}
+        onCheckedChange={() => toggleFeatureFlag(flag.id)}
+      />
+    </div>
+  );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-            <Settings className="w-5 h-5 text-primary" />
+          <h2 className="font-display text-[17px] font-semibold tracking-tight text-white flex items-center gap-2">
+            <Settings className="w-5 h-5 text-white/60" />
             System Configuration
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-[13px] text-white/55">
             Manage feature flags, maintenance mode, and system settings
           </p>
         </div>
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+        <DeckButton primary onClick={handleSave} disabled={saving}>
+          {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin mr-2" /> : <Save className="w-3.5 h-3.5 mr-2" />}
           Save Changes
-        </Button>
+        </DeckButton>
       </div>
 
       {/* System Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Activity className="w-5 h-5" />
-            System Status
-            {statusLoading && <RefreshCw className="w-3 h-3 animate-spin text-muted-foreground" />}
-          </CardTitle>
-          <CardDescription>
-            Live status from the last 60 minutes of API activity
-            {statusUpdatedAt && ` · updated ${statusUpdatedAt.toLocaleTimeString()}`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-2">
-                <Cloud className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm">Veo API</span>
-              </div>
-              <Badge className={getStatusColor(systemStatus.veoApi)}>
-                {systemStatus.veoApi}
-              </Badge>
+      <FloatSection
+        title="System Status"
+        meta={`live · last 60m${statusUpdatedAt ? ` · updated ${statusUpdatedAt.toLocaleTimeString()}` : ''}`}
+        actions={statusLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-white/40" /> : undefined}
+      >
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="flex items-center justify-between p-3 rounded-lg bg-white/[0.03]">
+            <div className="flex items-center gap-2">
+              <Cloud className="w-4 h-4 text-white/40" />
+              <span className="text-[13px] text-white/70">Veo API</span>
             </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-2">
-                <Server className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm">Stitcher</span>
-              </div>
-              <Badge className={getStatusColor(systemStatus.stitcher)}>
-                {systemStatus.stitcher}
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-2">
-                <Database className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm">Database</span>
-              </div>
-              <Badge className={getStatusColor(systemStatus.database)}>
-                {systemStatus.database}
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-2">
-                <Cloud className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm">Storage</span>
-              </div>
-              <Badge className={getStatusColor(systemStatus.storage)}>
-                {systemStatus.storage}
-              </Badge>
-            </div>
+            <StatusPill tone={getStatusTone(systemStatus.veoApi)}>{systemStatus.veoApi}</StatusPill>
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex items-center justify-between p-3 rounded-lg bg-white/[0.03]">
+            <div className="flex items-center gap-2">
+              <Server className="w-4 h-4 text-white/40" />
+              <span className="text-[13px] text-white/70">Stitcher</span>
+            </div>
+            <StatusPill tone={getStatusTone(systemStatus.stitcher)}>{systemStatus.stitcher}</StatusPill>
+          </div>
+          <div className="flex items-center justify-between p-3 rounded-lg bg-white/[0.03]">
+            <div className="flex items-center gap-2">
+              <Database className="w-4 h-4 text-white/40" />
+              <span className="text-[13px] text-white/70">Database</span>
+            </div>
+            <StatusPill tone={getStatusTone(systemStatus.database)}>{systemStatus.database}</StatusPill>
+          </div>
+          <div className="flex items-center justify-between p-3 rounded-lg bg-white/[0.03]">
+            <div className="flex items-center gap-2">
+              <Cloud className="w-4 h-4 text-white/40" />
+              <span className="text-[13px] text-white/70">Storage</span>
+            </div>
+            <StatusPill tone={getStatusTone(systemStatus.storage)}>{systemStatus.storage}</StatusPill>
+          </div>
+        </div>
+      </FloatSection>
 
       {/* Maintenance Mode */}
-      <Card className={cn(
-        maintenanceMode && "border-warning/50 bg-warning/5"
-      )}>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Wrench className="w-5 h-5" />
-            Maintenance Mode
-          </CardTitle>
-          <CardDescription>
-            Disable video generation while performing system maintenance
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <FloatSection title="Maintenance Mode" meta={maintenanceMode ? 'active' : undefined}>
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Enable Maintenance Mode</Label>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-white/45">
                 When enabled, users cannot start new video generations
               </p>
             </div>
@@ -367,7 +348,7 @@ export function AdminSystemConfig() {
               onCheckedChange={setMaintenanceMode}
             />
           </div>
-          
+
           {maintenanceMode && (
             <div className="space-y-2">
               <Label htmlFor="maintenance-message">Maintenance Message</Label>
@@ -380,25 +361,16 @@ export function AdminSystemConfig() {
               />
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </FloatSection>
 
       {/* Announcement Banner */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Bell className="w-5 h-5" />
-            Announcement Banner
-          </CardTitle>
-          <CardDescription>
-            Display a banner message to all users
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <FloatSection title="Announcement Banner">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Show Banner</Label>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-white/45">
                 Display announcement banner across the app
               </p>
             </div>
@@ -407,7 +379,7 @@ export function AdminSystemConfig() {
               onCheckedChange={setBannerEnabled}
             />
           </div>
-          
+
           {bannerEnabled && (
             <>
               <div className="space-y-2">
@@ -419,26 +391,26 @@ export function AdminSystemConfig() {
                   <SelectContent>
                     <SelectItem value="info">
                       <div className="flex items-center gap-2">
-                        <Info className="w-4 h-4 text-info" />
+                        <Info className="w-4 h-4" />
                         Info
                       </div>
                     </SelectItem>
                     <SelectItem value="warning">
                       <div className="flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4 text-warning" />
+                        <AlertTriangle className="w-4 h-4" />
                         Warning
                       </div>
                     </SelectItem>
                     <SelectItem value="success">
                       <div className="flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-success" />
+                        <Zap className="w-4 h-4" />
                         Success
                       </div>
                     </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="banner-message">Banner Message</Label>
                 <Input
@@ -448,140 +420,74 @@ export function AdminSystemConfig() {
                   placeholder="🎉 New feature: Multi-character support is now live!"
                 />
               </div>
-              
+
               {/* Preview */}
               {announcementBanner && (
-                <div className={cn(
-                  "p-3 rounded-lg text-sm",
-                  bannerType === 'info' && "bg-info/10 text-info border border-info/20",
-                  bannerType === 'warning' && "bg-warning/10 text-warning border border-warning/20",
-                  bannerType === 'success' && "bg-success/10 text-success border border-success/20"
-                )}>
-                  <p className="font-medium">Preview:</p>
-                  <p>{announcementBanner}</p>
+                <div className="p-3 rounded-lg text-[13px] bg-white/[0.03]">
+                  <p className="font-medium text-white/60 text-xs uppercase tracking-wide">Preview</p>
+                  <p className="mt-1 text-white/80">{announcementBanner}</p>
                 </div>
               )}
             </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </FloatSection>
 
       {/* Feature Flags */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Zap className="w-5 h-5" />
-            Feature Flags
-          </CardTitle>
-          <CardDescription>
-            Enable or disable features across the application
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
+      <FloatSection title="Feature Flags" meta="enable / disable">
+        <div className="space-y-6">
           {/* Core Features */}
           <div className="space-y-3">
-            <h4 className="text-sm font-medium flex items-center gap-2">
-              <Shield className="w-4 h-4" />
+            <h4 className="text-[13px] font-medium text-white flex items-center gap-2">
+              <Shield className="w-4 h-4 text-white/50" />
               Core Features
             </h4>
             <div className="grid gap-3">
-              {featureFlags.filter(f => f.category === 'core').map((flag) => (
-                <div key={flag.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm">{flag.name}</span>
-                      <Badge className={getCategoryColor(flag.category)} variant="outline">
-                        {flag.category}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{flag.description}</p>
-                  </div>
-                  <Switch
-                    checked={flag.enabled}
-                    onCheckedChange={() => toggleFeatureFlag(flag.id)}
-                  />
-                </div>
-              ))}
+              {featureFlags.filter(f => f.category === 'core').map(renderFlagRow)}
             </div>
           </div>
-          
-          <Separator />
-          
+
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+
           {/* Beta Features */}
           <div className="space-y-3">
-            <h4 className="text-sm font-medium flex items-center gap-2">
-              <Eye className="w-4 h-4" />
+            <h4 className="text-[13px] font-medium text-white flex items-center gap-2">
+              <Eye className="w-4 h-4 text-white/50" />
               Beta Features
             </h4>
             <div className="grid gap-3">
-              {featureFlags.filter(f => f.category === 'beta').map((flag) => (
-                <div key={flag.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm">{flag.name}</span>
-                      <Badge className={getCategoryColor(flag.category)} variant="outline">
-                        {flag.category}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{flag.description}</p>
-                  </div>
-                  <Switch
-                    checked={flag.enabled}
-                    onCheckedChange={() => toggleFeatureFlag(flag.id)}
-                  />
-                </div>
-              ))}
+              {featureFlags.filter(f => f.category === 'beta').map(renderFlagRow)}
             </div>
           </div>
-          
-          <Separator />
-          
+
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+
           {/* Experimental Features */}
           <div className="space-y-3">
-            <h4 className="text-sm font-medium flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-warning" />
+            <h4 className="text-[13px] font-medium text-white flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" style={{ color: 'hsl(38 96% 62%)' }} />
               Experimental Features
             </h4>
             <div className="grid gap-3">
-              {featureFlags.filter(f => f.category === 'experimental').map((flag) => (
-                <div key={flag.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm">{flag.name}</span>
-                      <Badge className={getCategoryColor(flag.category)} variant="outline">
-                        {flag.category}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{flag.description}</p>
-                  </div>
-                  <Switch
-                    checked={flag.enabled}
-                    onCheckedChange={() => toggleFeatureFlag(flag.id)}
-                  />
-                </div>
-              ))}
+              {featureFlags.filter(f => f.category === 'experimental').map(renderFlagRow)}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </FloatSection>
 
       {/* Info */}
-      <Card className="border-info/50 bg-info/5">
-        <CardContent className="pt-4">
-          <div className="flex items-start gap-3">
-            <Info className="w-5 h-5 text-info flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="font-medium text-foreground">Configuration Notes</p>
-              <ul className="text-sm text-muted-foreground mt-2 space-y-1">
-                <li>• Feature flags take effect immediately after saving</li>
-                <li>• Maintenance mode blocks new generations but allows existing ones to complete</li>
-                <li>• Announcement banners are shown to all authenticated users</li>
-                <li>• System status is updated automatically based on API health checks</li>
-              </ul>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex items-start gap-3">
+        <Info className="w-5 h-5 text-white/50 flex-shrink-0 mt-0.5" />
+        <div>
+          <p className="font-medium text-white">Configuration Notes</p>
+          <ul className="text-[13px] text-white/55 mt-2 space-y-1">
+            <li>• Feature flags take effect immediately after saving</li>
+            <li>• Maintenance mode blocks new generations but allows existing ones to complete</li>
+            <li>• Announcement banners are shown to all authenticated users</li>
+            <li>• System status is updated automatically based on API health checks</li>
+          </ul>
+        </div>
+      </div>
     </div>
   );
 }

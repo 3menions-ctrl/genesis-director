@@ -96,7 +96,7 @@ export default function BusinessReports() {
         {REPORTS.map((r) => (
           <div
             key={r.key}
-            className="flex items-center gap-4 rounded-2xl p-5 ring-1 ring-white/[0.07] bg-white/[0.015] transition-colors"
+            className="flex items-center gap-4 rounded-2xl p-5 transition-colors"
           >
             <div className="flex-1 min-w-0">
               <div className="text-[14px] text-white font-light truncate">{r.label}</div>

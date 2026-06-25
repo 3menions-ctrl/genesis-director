@@ -114,7 +114,7 @@ export default function BusinessTemplates() {
       {loading ? (
         <div className="flex items-center gap-3 py-16 text-white/50"><Spinner size="sm" tone="muted" /><span className={cn(TYPE_META)}>Loading…</span></div>
       ) : rows.length === 0 ? (
-        <div className="rounded-2xl ring-1 ring-white/[0.07] bg-gradient-to-br from-[hsl(215_40%_10%)]/40 to-[#0a0a0f] px-6 py-16 text-center">
+        <div className="rounded-2xl bg-gradient-to-br from-[hsl(215_40%_10%)]/40 to-[#0a0a0f] px-6 py-16 text-center">
           <span className="inline-flex w-14 h-14 items-center justify-center rounded-2xl bg-white/[0.04] ring-1 ring-white/10"><LayoutTemplate className="w-6 h-6 text-[hsl(215,100%,72%)]" strokeWidth={1.4} /></span>
           <h3 className="mt-5 font-display italic font-light text-[22px] text-white tracking-[-0.01em]">No templates yet.</h3>
           <p className="mt-2 text-[13px] text-white/55">Save a named template so the team has a shared reference for production setups.</p>
@@ -131,7 +131,7 @@ export default function BusinessTemplates() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {rows.map((r) => (
-            <div key={r.id} className="group relative rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] hover:ring-white/20 transition-all p-5">
+            <div key={r.id} className="group relative rounded-2xl transition-all p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="inline-flex w-10 h-10 items-center justify-center rounded-xl bg-white/[0.04] ring-1 ring-white/10 shrink-0">
@@ -165,7 +165,7 @@ export default function BusinessTemplates() {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => !saving && setOpen(false)}>
-          <div className="w-full max-w-lg rounded-2xl ring-1 ring-white/[0.07] bg-[#0a0a0f] p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-lg rounded-2xl bg-[#0a0a0f] p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-display italic font-light text-[20px] text-white tracking-[-0.01em]">New template</h2>
               <button type="button" onClick={() => !saving && setOpen(false)} className="p-1 text-white/45 hover:text-white transition" aria-label="Close"><X className="w-4 h-4" /></button>

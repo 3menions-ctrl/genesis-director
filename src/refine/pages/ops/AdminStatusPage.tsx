@@ -2,8 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Activity, CheckCircle2, RefreshCw, XCircle } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { FloatSection, FloatRow } from "@/admin/ui/primitives";
-import { Button } from "@/components/ui/button";
+import { FloatSection, FloatRow, DeckButton } from "@/admin/ui/primitives";
 import { supabase } from "@/integrations/supabase/client";
 
 type Component = { name: string; status: "operational" | "degraded" | "outage"; detail: string };
@@ -78,7 +77,7 @@ export default function AdminStatusPage() {
         { label: "Healthy", value: components.filter(c => c.status === "operational").length, tone: "emerald" },
         { label: "Issues", value: components.filter(c => c.status !== "operational").length, tone: components.some(c => c.status !== "operational") ? "rose" : "neutral" },
       ]}
-      actions={<Button variant="outline" size="sm" onClick={() => setReload(k=>k+1)} disabled={loading}><RefreshCw className={`w-3.5 h-3.5 mr-2 ${loading?"animate-spin":""}`} /> Refresh</Button>}
+      actions={<DeckButton onClick={() => setReload(k=>k+1)} disabled={loading}><RefreshCw className={`w-3.5 h-3.5 mr-2 ${loading?"animate-spin":""}`} /> Refresh</DeckButton>}
     >
       <FloatSection title="Components" meta="live health">
         {loading ? (

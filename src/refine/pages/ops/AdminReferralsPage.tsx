@@ -2,10 +2,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { GitBranch, RefreshCw, Search } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { FloatSection, FloatTable } from "@/admin/ui/primitives";
-import { Button } from "@/components/ui/button";
+import { FloatSection, FloatTable, DeckButton, StatusPill } from "@/admin/ui/primitives";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { ListPagination, usePagination } from "@/components/ui/list-pagination";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -65,9 +63,9 @@ export default function AdminReferralsPage() {
         { label: "Pending Credit", value: totalPending, tone: totalPending > 0 ? "amber" : "neutral" },
       ]}
       actions={
-        <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+        <DeckButton onClick={load} disabled={loading}>
           <RefreshCw className={`w-3.5 h-3.5 mr-2 ${loading ? "animate-spin" : ""}`} /> Refresh
-        </Button>
+        </DeckButton>
       }
     >
       <FloatSection
@@ -100,8 +98,8 @@ export default function AdminReferralsPage() {
               code: <><GitBranch className="w-3 h-3 inline mr-2 text-white/30" /><span className="text-primary/80 font-mono text-[12px]">{r.code}</span></>,
               referrer: <span className="text-white/70 font-mono text-[11px]">{r.referrer_email ?? r.referrer_id.slice(0, 8) + "…"}</span>,
               total: <span className="text-white/80 font-mono tabular-nums text-[12px]">{r.total_redemptions}</span>,
-              credited: <Badge variant="default" className="font-mono text-[10px]">{r.credited_redemptions}</Badge>,
-              pending: Number(r.pending_redemptions) > 0 ? <Badge variant="secondary" className="font-mono text-[10px]">{r.pending_redemptions}</Badge> : <span className="text-white/30 font-mono text-[11px]">0</span>,
+              credited: <StatusPill tone="accent">{r.credited_redemptions}</StatusPill>,
+              pending: Number(r.pending_redemptions) > 0 ? <StatusPill tone="neutral">{r.pending_redemptions}</StatusPill> : <span className="text-white/30 font-mono text-[11px]">0</span>,
               created: <span className="text-white/40 font-mono text-[10px] whitespace-nowrap">{new Date(r.created_at).toLocaleDateString()}</span>,
             }))}
             empty={loading ? "Loading…" : "No referral codes."}

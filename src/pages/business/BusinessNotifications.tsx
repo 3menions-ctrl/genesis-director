@@ -126,7 +126,7 @@ export function NotificationsContent() {
       {loading ? (
         <SkeletonRows rows={6} />
       ) : (
-        <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] divide-y divide-white/[0.05]">
+        <div className="rounded-2xl divide-y divide-white/[0.05]">
           {ROUTES.map((r) => {
             const p = prefs[r.key];
             return (

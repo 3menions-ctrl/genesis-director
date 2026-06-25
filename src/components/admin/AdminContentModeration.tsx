@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FloatStat, StatusPill, DeckButton } from '@/admin/ui/primitives';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -179,7 +178,7 @@ export function AdminContentModeration() {
   if (loading && filteredVideos.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="w-8 h-8 animate-spin text-white/60" />
       </div>
     );
   }
@@ -189,60 +188,25 @@ export function AdminContentModeration() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-            <Shield className="w-5 h-5 text-primary" />
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+            <Shield className="w-5 h-5" style={{ color: 'hsl(214 90% 62%)' }} />
             Content Moderation
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-white/60">
             Review and manage public video content
           </p>
         </div>
-        <Button onClick={fetchVideos} variant="outline" size="sm" disabled={loading}>
+        <DeckButton onClick={fetchVideos} disabled={loading}>
           {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
           Refresh
-        </Button>
+        </DeckButton>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2">
-              <Globe className="w-4 h-4" />
-              Public Videos
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalPublic}</div>
-            <p className="text-xs text-muted-foreground">Visible to all users</p>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20">
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2">
-              <Heart className="w-4 h-4 text-success" />
-              Total Likes
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalLikes}</div>
-            <p className="text-xs text-muted-foreground">Community engagement</p>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-gradient-to-br from-warning/10 to-warning/5 border-warning/20">
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-warning" />
-              New Today
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.recentPublic}</div>
-            <p className="text-xs text-muted-foreground">Published in last 24h</p>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-x-10 gap-y-8">
+        <FloatStat label="Public Videos" value={stats.totalPublic} icon={Globe} sub="Visible to all users" index={0} />
+        <FloatStat label="Total Likes" value={stats.totalLikes} icon={Heart} accentNumber sub="Community engagement" index={1} />
+        <FloatStat label="New Today" value={stats.recentPublic} icon={Calendar} sub="Published in last 24h" index={2} />
       </div>
 
       {/* Content Tabs */}
@@ -260,7 +224,7 @@ export function AdminContentModeration() {
           </TabsList>
           
           <div className="relative flex-1 max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
             <Input
               placeholder="Search videos, users..."
               value={search}
@@ -399,21 +363,23 @@ function VideoGrid({ videos, onAction, processing }: VideoGridProps) {
 
   if (videos.length === 0) {
     return (
-      <Card>
-        <CardContent className="py-12 text-center text-muted-foreground">
-          <Film className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>No videos found</p>
-        </CardContent>
-      </Card>
+      <div className="py-12 text-center text-white/40">
+        <Film className="w-12 h-12 mx-auto mb-4 opacity-50" />
+        <p>No videos found</p>
+      </div>
     );
   }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {videos.map((video) => (
-        <Card key={video.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+        <div
+          key={video.id}
+          className="overflow-hidden rounded-2xl backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5"
+          style={{ background: 'linear-gradient(165deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02) 60%, rgba(255,255,255,0.015))' }}
+        >
           {/* Thumbnail */}
-          <div className="aspect-video bg-muted relative group">
+          <div className="aspect-video bg-white/[0.04] relative group">
             {video.thumbnail_url ? (
               <img 
                 src={video.thumbnail_url} 
@@ -422,10 +388,10 @@ function VideoGrid({ videos, onAction, processing }: VideoGridProps) {
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <Film className="w-12 h-12 text-muted-foreground/50" />
+                <Film className="w-12 h-12 text-white/30" />
               </div>
             )}
-            
+
             {/* Overlay on hover */}
             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
               {video.video_url && (
@@ -436,9 +402,7 @@ function VideoGrid({ videos, onAction, processing }: VideoGridProps) {
                       Play
                     </a>
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
+                  <DeckButton
                     onClick={() => handleDownload(video)}
                     disabled={downloading === video.id}
                   >
@@ -448,41 +412,41 @@ function VideoGrid({ videos, onAction, processing }: VideoGridProps) {
                       <Download className="w-4 h-4 mr-1" />
                     )}
                     Download
-                  </Button>
+                  </DeckButton>
                 </>
               )}
             </div>
-            
+
             {/* Status badges */}
             <div className="absolute top-2 right-2 flex gap-1">
               {video.is_public ? (
-                <Badge className="bg-success/90 text-white">
-                  <Globe className="w-3 h-3 mr-1" />
+                <StatusPill tone="positive">
+                  <Globe className="w-3 h-3" />
                   Public
-                </Badge>
+                </StatusPill>
               ) : (
-                <Badge variant="secondary">
-                  <Lock className="w-3 h-3 mr-1" />
+                <StatusPill tone="neutral">
+                  <Lock className="w-3 h-3" />
                   Private
-                </Badge>
+                </StatusPill>
               )}
             </div>
           </div>
-          
-          <CardContent className="p-4 space-y-3">
+
+          <div className="p-4 space-y-3">
             {/* Title & Genre */}
             <div>
-              <h3 className="font-medium text-foreground line-clamp-1">{video.title}</h3>
-              <Badge variant="outline" className="mt-1 capitalize">{video.genre}</Badge>
+              <h3 className="font-medium text-white line-clamp-1">{video.title}</h3>
+              <div className="mt-1 capitalize"><StatusPill tone="neutral">{video.genre}</StatusPill></div>
             </div>
-            
+
             {/* Synopsis */}
             {video.synopsis && (
-              <p className="text-sm text-muted-foreground line-clamp-2">{video.synopsis}</p>
+              <p className="text-sm text-white/60 line-clamp-2">{video.synopsis}</p>
             )}
-            
+
             {/* Meta */}
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <div className="flex items-center justify-between text-xs text-white/60">
               <div className="flex items-center gap-1">
                 <User className="w-3 h-3" />
                 <span className="truncate max-w-24">{video.user_name || video.user_email}</span>
@@ -495,47 +459,39 @@ function VideoGrid({ videos, onAction, processing }: VideoGridProps) {
                 <span>{format(new Date(video.created_at), 'MMM d')}</span>
               </div>
             </div>
-            
+
             {/* Actions */}
-            <div className="flex items-center gap-2 pt-2 border-t border-border/50">
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="flex-1"
-                onClick={() => onAction(video, 'approve')}
-                disabled={processing === video.id}
-              >
-                <CheckCircle className="w-3 h-3 mr-1" />
-                Approve
-              </Button>
+            <div className="flex items-center gap-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <span className="flex-1">
+                <DeckButton
+                  onClick={() => onAction(video, 'approve')}
+                  disabled={processing === video.id}
+                >
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                  Approve
+                </DeckButton>
+              </span>
               {video.is_public && (
-                <Button 
-                  size="sm" 
-                  variant="outline"
+                <DeckButton
                   onClick={() => onAction(video, 'hide')}
                   disabled={processing === video.id}
                 >
                   <EyeOff className="w-3 h-3" />
-                </Button>
+                </DeckButton>
               )}
               {video.video_url && (
-                <Button
-                  size="sm"
-                  variant="outline"
+                <DeckButton
                   onClick={() => handleDownload(video)}
                   disabled={downloading === video.id}
-                  title="Download video"
                 >
                   {downloading === video.id ? (
                     <Loader2 className="w-3 h-3 animate-spin" />
                   ) : (
                     <Download className="w-3 h-3" />
                   )}
-                </Button>
+                </DeckButton>
               )}
-              <Button 
-                size="sm" 
-                variant="destructive"
+              <DeckButton
                 onClick={() => onAction(video, 'delete')}
                 disabled={processing === video.id}
               >
@@ -544,10 +500,10 @@ function VideoGrid({ videos, onAction, processing }: VideoGridProps) {
                 ) : (
                   <Trash2 className="w-3 h-3" />
                 )}
-              </Button>
+              </DeckButton>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ))}
     </div>
   );

@@ -32,7 +32,6 @@ import { ErrorBoundary } from "@/components/ui/error-boundary";
 // re-rendered on every route change. Lazy + Suspense pushes them out
 // of the initial bundle; React.memo on each prevents re-renders when
 // no props changed (and none do — these read from contexts internally).
-const WelcomeVideoModal = lazy(() => import("@/components/welcome/WelcomeVideoModal").then(m => ({ default: m.WelcomeVideoModal })));
 const GlobalPublishWizard = lazy(() => import("@/components/publish/GlobalPublishWizard").then(m => ({ default: m.GlobalPublishWizard })));
 const GlobalConfirmHost = lazy(() => import("@/components/ui/global-confirm").then(m => ({ default: m.GlobalConfirmHost })));
 import { SkipToContent } from "@/components/a11y/SkipToContent";
@@ -900,7 +899,6 @@ const App = () => {
                     paint. Each component reads from context internally;
                     they self-gate their UI visibility. */}
                 <Suspense fallback={null}>
-                  <WelcomeVideoModal />
                   <GlobalPublishWizard />
                   <GlobalConfirmHost />
                   <ConcentrationOverlay />

@@ -2,8 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Download, FileText, Filter, RefreshCw, Search } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { FloatSection } from "@/admin/ui/primitives";
-import { Button } from "@/components/ui/button";
+import { FloatSection, DeckButton } from "@/admin/ui/primitives";
 import { Input } from "@/components/ui/input";
 import { ListPagination, usePagination } from "@/components/ui/list-pagination";
 import { supabase } from "@/integrations/supabase/client";
@@ -77,12 +76,12 @@ export default function AdminAuditLogPage() {
       ]}
       actions={
         <>
-          <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+          <DeckButton onClick={load} disabled={loading}>
             <RefreshCw className={`w-3.5 h-3.5 mr-2 ${loading ? "animate-spin" : ""}`} /> Refresh
-          </Button>
-          <Button variant="outline" size="sm" onClick={exportCsv} disabled={!filtered.length}>
+          </DeckButton>
+          <DeckButton onClick={exportCsv} disabled={!filtered.length}>
             <Download className="w-3.5 h-3.5 mr-2" /> Export CSV
-          </Button>
+          </DeckButton>
         </>
       }
     >

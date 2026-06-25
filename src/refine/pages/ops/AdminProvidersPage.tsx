@@ -2,8 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { FloatSection, FloatTable } from "@/admin/ui/primitives";
-import { Button } from "@/components/ui/button";
+import { FloatSection, FloatTable, DeckButton } from "@/admin/ui/primitives";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -74,7 +73,7 @@ export default function AdminProvidersPage() {
         { label: "Invocations", value: rows.length, tone: "emerald" },
         { label: "Failures", value: groups.reduce((s,g)=>s+g.failures,0), tone: "rose" },
       ]}
-      actions={<Button variant="outline" size="sm" onClick={() => setReload(k=>k+1)} disabled={loading}><RefreshCw className={`w-3.5 h-3.5 mr-2 ${loading?"animate-spin":""}`} /> Refresh</Button>}
+      actions={<DeckButton onClick={() => setReload(k=>k+1)} disabled={loading}><RefreshCw className={`w-3.5 h-3.5 mr-2 ${loading?"animate-spin":""}`} /> Refresh</DeckButton>}
     >
       <FloatSection title="Providers" meta="7-day spend & reliability">
         {loading ? (

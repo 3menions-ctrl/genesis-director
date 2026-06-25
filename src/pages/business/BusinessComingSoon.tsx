@@ -16,7 +16,7 @@ export default function BusinessComingSoon({ title, description }: { title: stri
       title={title}
       subtitle={description}
     >
-      <div className="relative overflow-hidden rounded-2xl ring-1 ring-white/[0.07]">
+      <div className="relative overflow-hidden rounded-2xl">
         <div className="flex flex-col items-center text-center px-6 py-20 bg-gradient-to-br from-[hsl(215_40%_10%)]/40 to-[#0a0a0f]">
           <span className="inline-flex w-14 h-14 items-center justify-center rounded-2xl bg-white/[0.04] ring-1 ring-white/10">
             <Hammer className="w-6 h-6 text-[hsl(215,100%,72%)]" strokeWidth={1.4} />

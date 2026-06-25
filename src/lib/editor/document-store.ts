@@ -51,7 +51,7 @@ interface DocumentStoreState {
   lastError: string | null;
 }
 
-const state: DocumentStoreState = {
+let state: DocumentStoreState = {
   doc: null,
   lastFlushAt: null,
   dirtyAt: null,
@@ -71,7 +71,17 @@ export function subscribeDocument(listener: () => void): () => void {
   };
 }
 
+// LOGIC FIX RU-1: getDocumentState() is the `getSnapshot` for
+// useSyncExternalStore. Previously `state` was mutated in place and the same
+// object reference was returned every time, so React's Object.is snapshot check
+// always bailed and subscribers NEVER re-rendered (the ScriptDocument editor
+// would stay stuck in `loading`). Swap the top-level reference on every notify
+// so the snapshot changes when — and only when — something changed. (Deep doc
+// fields are still updated in place by the mutators; the fresh top-level ref is
+// what React needs to detect the change. Reference is stable between notifies,
+// so no infinite re-render.)
 function notify(): void {
+  state = { ...state };
   for (const l of listeners) l();
 }
 

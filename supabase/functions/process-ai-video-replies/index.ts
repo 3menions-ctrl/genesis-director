@@ -24,6 +24,7 @@
  * phases the next invocation simply picks up where it left off.
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { requireCronSecret } from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -218,6 +219,17 @@ async function deliverReady(supabase: any): Promise<number> {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // AUDIT FIX L-19: this internal cron worker (service-role queue processing)
+  // had no trust boundary, so it could be invocation-flooded. Require the cron
+  // secret or a service-role bearer (cron jobs set x-cron-secret; on-demand
+  // server triggers use the service-role key).
+  if (!requireCronSecret(req)) {
+    return new Response(JSON.stringify({ ok: false, error: "forbidden" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },

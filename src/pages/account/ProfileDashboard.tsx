@@ -20,7 +20,7 @@
  * independently — one failure can't blank the page.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion, useMotionValue, useTransform } from "framer-motion";
 import {
   Film,
@@ -257,6 +257,7 @@ export default function ProfileDashboard() {
   //     RPC to a UUID
   // When no param, we're on the owner's own /account or /profile.
   const { id: routeParam } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [resolvedRouteId, setResolvedRouteId] = useState<string | null>(routeParam ?? null);
   const [resolving, setResolving] = useState<boolean>(false);
   useEffect(() => {
@@ -939,6 +940,11 @@ export default function ProfileDashboard() {
   }, [load, viewedUserId]);
 
   // ── Achievements ────────────────────────────────────────────────────
+  // AUDIT FIX L-7: total number of achievement definitions below. The header
+  // fraction (achievements.length / ACHIEVEMENT_TOTAL) was hardcoded "/12" while
+  // there are 13 conditions and the list was capped at 8 — so it could never be
+  // correct. Keep this in sync if conditions are added/removed.
+  const ACHIEVEMENT_TOTAL = 13;
   const achievements = useMemo(() => {
     const list: Array<{ label: string; sub: string; tier: 1 | 2 | 3 }> = [];
     if (data.totalFilms >= 1) list.push({ label: "First Film", sub: "Directed your first reel", tier: 1 });
@@ -954,7 +960,7 @@ export default function ProfileDashboard() {
     if (data.streakDays >= 7) list.push({ label: "Week-Long Streak", sub: "7-day directing streak", tier: 2 });
     if (data.streakDays >= 30) list.push({ label: "Iron Director", sub: "30-day streak", tier: 3 });
     if (data.followerCount >= 10) list.push({ label: "First Followers", sub: "10 followers", tier: 1 });
-    return list.slice(0, 8);
+    return list;
   }, [data]);
 
   const memberFor = useMemo(() => {
@@ -1292,7 +1298,7 @@ export default function ProfileDashboard() {
               hasTagline={!!tagline && tagline.trim().length > 0}
               hasLocation={!!location && location.trim().length > 0}
               hasLinks={Object.values(externalLinks).filter(Boolean).length > 0}
-              hasInterests={(viewed?.country !== null) && ((viewed as any)?.interests?.length ?? 0) >= 2}
+              hasInterests={((viewed as any)?.interests?.length ?? 0) >= 2}
               hasPinned={data.pinnedReels.length > 0}
               hasFeaturedReel={!!featuredReel}
               hasVerified={!!viewed?.verified_at}
@@ -3494,7 +3500,7 @@ function AchievementsFloat({
           </h3>
         </div>
         <div className={cn(TYPE_META, "text-accent/85 tabular-nums tracking-[0.28em]")}>
-          {achievements.length}/12
+          {achievements.length}/{ACHIEVEMENT_TOTAL}
         </div>
       </header>
 

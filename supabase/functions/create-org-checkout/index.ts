@@ -42,7 +42,11 @@ Deno.serve(async (req) => {
     const orgName = typeof body?.orgName === "string" ? body.orgName.trim() : null;
     const organizationId = typeof body?.organizationId === "string" ? body.organizationId : null;
     const returnUrl = typeof body?.returnUrl === "string" ? body.returnUrl : null;
-    const env: StripeEnv = body?.environment === "sandbox" ? "sandbox" : "live";
+    // AUDIT FIX M-2: only local origins may request sandbox (hosted = always
+    // live), to prevent a "sandbox" request falling back to the live key in prod.
+    const originHeaderEnv = req.headers.get("origin") || req.headers.get("referer") || "";
+    const isLocalOriginEnv = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?(\/|$)/.test(originHeaderEnv);
+    const env: StripeEnv = (isLocalOriginEnv && body?.environment === "sandbox") ? "sandbox" : "live";
 
     const plan = ORG_PLAN_CATALOG[planKey];
     if (!plan) {
@@ -72,6 +76,27 @@ Deno.serve(async (req) => {
       });
     }
 
+    // AUDIT FIX H-7 (High): when binding a paid subscription to an existing org,
+    // the caller MUST be an org admin — otherwise any authenticated user could
+    // attach billing to an arbitrary organization_id (IDOR). Mirrors the
+    // polar-checkout guard (fn_org_has_min_role is SECURITY DEFINER).
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (organizationId) {
+      if (!UUID_RE.test(organizationId)) {
+        return new Response(JSON.stringify({ error: "Invalid organizationId" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: isAdmin } = await supabase.rpc("fn_org_has_min_role", {
+        _org_id: organizationId, _user_id: user.id, _min: "admin",
+      });
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ error: "Not an admin of this organization" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     log("Auth ok", { userId: user.id, planKey, seats, env, organizationId });
 
     const stripe = createStripeClient(env);
@@ -88,6 +113,12 @@ Deno.serve(async (req) => {
       requestUrl: req.url,
     });
 
+    // AUDIT FIX H-7 (High): the webhook reads `organization_id` (snake_case);
+    // this previously wrote only `organizationId`, so org subscriptions were
+    // stored with organization_id = null and never linked to the org (breaking
+    // monthly_org_credit_refill and sync-org-seats, which key off it). Emit the
+    // snake_case key the webhook actually reads (keep camelCase for any client
+    // reference).
     const subMetadata = {
       userId: user.id,
       planKey,
@@ -96,6 +127,7 @@ Deno.serve(async (req) => {
       includedCredits: String(plan.includedCredits),
       orgName: orgName ?? "",
       organizationId: organizationId ?? "",
+      organization_id: organizationId ?? "",
       source: "org_checkout",
     };
 

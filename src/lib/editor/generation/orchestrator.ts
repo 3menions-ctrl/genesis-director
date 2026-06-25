@@ -101,7 +101,7 @@ interface EnqueueArgs {
  */
 export function enqueueShot(args: EnqueueArgs): string {
   const jobId = newScriptId("job");
-  const now = new Date(0).toISOString();
+  const now = new Date().toISOString();
   const job: GenerationJob = {
     id: jobId,
     projectId: args.projectId,
@@ -157,22 +157,22 @@ export function transitionJob(
     timeline: {
       ...job.timeline,
       ...(stage === "preparing" && !job.timeline.preparingAt
-        ? { preparingAt: new Date(0).toISOString() }
+        ? { preparingAt: new Date().toISOString() }
         : {}),
       ...(stage === "submitting" && !job.timeline.submittingAt
-        ? { submittingAt: new Date(0).toISOString() }
+        ? { submittingAt: new Date().toISOString() }
         : {}),
       ...(stage === "rendering" && !job.timeline.renderingAt
-        ? { renderingAt: new Date(0).toISOString() }
+        ? { renderingAt: new Date().toISOString() }
         : {}),
       ...(stage === "post-processing" && !job.timeline.postProcessingAt
-        ? { postProcessingAt: new Date(0).toISOString() }
+        ? { postProcessingAt: new Date().toISOString() }
         : {}),
       ...(stage === "completed"
-        ? { completedAt: new Date(0).toISOString() }
+        ? { completedAt: new Date().toISOString() }
         : {}),
       ...(stage === "failed"
-        ? { failedAt: new Date(0).toISOString() }
+        ? { failedAt: new Date().toISOString() }
         : {}),
     },
   };
@@ -302,7 +302,7 @@ function emit(job: GenerationJob, stage: JobStage, message: string): void {
     stage,
     progress: estimateProgress({ ...job, stage }),
     message,
-    at: new Date(0).toISOString(),
+    at: new Date().toISOString(),
   });
   // Re-export for callers that want the type:
   void jobStageToApprovalState;

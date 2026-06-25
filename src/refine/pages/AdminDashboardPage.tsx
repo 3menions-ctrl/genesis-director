@@ -1,9 +1,9 @@
 /**
- * AdminDashboardPage — Mission Control (premium rebuild).
+ * AdminDashboardPage — Mission Control (Horizon kit).
  *
- * The bar-setter for the admin rebuild: borderless glass, single blue accent,
- * Fraunces, real charts. KPI tiles + live visualizations + an attention queue
- * + hub nav, all on the shared admin UI primitives (src/admin/ui).
+ * Borderless floating figures over the shared aurora: a StatOrb KPI rail, live
+ * FloatSection visualizations, an attention queue and hub nav. Built entirely on
+ * the canonical admin primitives (src/admin/ui) + AdminPageShell hero.
  *
  * Data path is preserved: one `admin_dashboard_pulse` RPC with a parallel-count
  * fallback, plus a real 14-day signups series for the trend chart.
@@ -20,21 +20,11 @@ import {
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { AdminPageShell } from "../components/AdminPageShell";
 import {
-  AdminPageHeader, AdminCard, KpiTile, ChartCard, AttentionCard,
+  StatOrb, FloatSection, FloatRow, DeckButton, AttentionCard, ORB_AURAS,
   ACCENT_HSL, accent, CYAN, VIOLET, ROSE, AMBER,
 } from "@/admin/ui/primitives";
-
-const AURORA_CSS = `
-.admin-aurora{position:absolute;border-radius:9999px;filter:blur(90px);opacity:.55;will-change:transform}
-.admin-aurora-1{top:-180px;left:6%;width:540px;height:540px;background:radial-gradient(closest-side, hsl(214 90% 62% / .28), transparent 70%);animation:admAur1 24s ease-in-out infinite}
-.admin-aurora-2{top:-90px;right:4%;width:480px;height:480px;background:radial-gradient(closest-side, hsl(188 92% 58% / .20), transparent 70%);animation:admAur2 30s ease-in-out infinite}
-.admin-aurora-3{top:220px;left:42%;width:520px;height:520px;background:radial-gradient(closest-side, hsl(256 88% 72% / .16), transparent 70%);animation:admAur3 34s ease-in-out infinite}
-@keyframes admAur1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(46px,34px) scale(1.08)}}
-@keyframes admAur2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-54px,22px) scale(.94)}}
-@keyframes admAur3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(24px,-34px) scale(1.06)}}
-@media (prefers-reduced-motion: reduce){.admin-aurora{animation:none!important}}
-`;
 
 interface Pulse {
   users:    { total_users: number; signups_24h: number; signups_7d: number };
@@ -134,137 +124,135 @@ export default function AdminDashboardPage() {
   const spark = useMemo(() => series.map((s) => s.signups), [series]);
 
   return (
-    <div className="relative isolate mx-auto w-full max-w-7xl px-6 py-8 sm:px-8">
-      <style>{AURORA_CSS}</style>
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-        <div className="admin-aurora admin-aurora-1" />
-        <div className="admin-aurora admin-aurora-2" />
-        <div className="admin-aurora admin-aurora-3" />
-      </div>
-      <AdminPageHeader
-        eyebrow="01 · Pulse"
-        title={<>Mission <span className="italic">control</span>.</>}
-        sub="What needs you right now — and the signals behind it. Drill into any card to act."
-        actions={
-          <button onClick={() => void load(true)} disabled={refreshing}
-            className="inline-flex items-center gap-2 rounded-full bg-white/[0.06] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.22em] text-white/60 transition-colors hover:bg-white/[0.1] hover:text-white disabled:opacity-40">
-            <RefreshCw className={cn("h-3 w-3", refreshing && "animate-spin")} />
-            {refreshing ? "Refreshing" : lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Refresh"}
-          </button>
-        }
-      />
+    <AdminPageShell
+      eyebrow="01 // PULSE"
+      code="HQ"
+      title="Mission"
+      italic="control."
+      description="What needs you right now — and the signals behind it. Drill into any card to act."
+      actions={
+        <DeckButton onClick={() => void load(true)} disabled={refreshing}>
+          <RefreshCw className={cn("h-3 w-3", refreshing && "animate-spin")} />
+          {refreshing ? "Refreshing" : lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Refresh"}
+        </DeckButton>
+      }
+    >
+      <div className="space-y-14">
+        {/* KPI rail — floating figures */}
+        <div className="grid grid-cols-2 gap-x-10 gap-y-12 md:grid-cols-3 xl:grid-cols-6">
+          <StatOrb index={0} aura={ORB_AURAS[0]} label="Total users" value={pulse.users.total_users} icon={Users} delta={pulse.users.signups_24h} deltaLabel="today" sparkData={spark} />
+          <StatOrb index={1} aura={ORB_AURAS[1]} label="New · 7d" value={pulse.users.signups_7d} icon={TrendingUp} accentNumber sparkData={spark} />
+          <StatOrb index={2} aura={ORB_AURAS[2]} label="Projects" value={pulse.projects.total} icon={FolderKanban} delta={pulse.projects.created_24h} deltaLabel="new" />
+          <StatOrb index={3} aura={ORB_AURAS[3]} label="In flight" value={pulse.projects.in_flight} icon={Activity} sub="rendering now" />
+          <StatOrb index={4} aura={ORB_AURAS[4]} label="Failed" value={pulse.projects.failed} icon={AlertTriangle} sub={pulse.projects.failed > 0 ? "need attention" : "all clear"} />
+          <StatOrb index={5} aura={ORB_AURAS[5]} label="Open tickets" value={pulse.support.open_tickets} icon={MessageSquare} sub="support" />
+        </div>
 
-      {/* KPI rail */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-        <KpiTile index={0} label="Total users" value={pulse.users.total_users} icon={Users} delta={pulse.users.signups_24h} deltaLabel="today" sparkData={spark} />
-        <KpiTile index={1} label="New · 7d" value={pulse.users.signups_7d} icon={TrendingUp} accentNumber sparkData={spark} />
-        <KpiTile index={2} label="Projects" value={pulse.projects.total} icon={FolderKanban} delta={pulse.projects.created_24h} deltaLabel="new" />
-        <KpiTile index={3} label="In flight" value={pulse.projects.in_flight} icon={Activity} deltaLabel="rendering now" />
-        <KpiTile index={4} label="Failed" value={pulse.projects.failed} icon={AlertTriangle} deltaLabel={pulse.projects.failed > 0 ? "need attention" : "all clear"} />
-        <KpiTile index={5} label="Open tickets" value={pulse.support.open_tickets} icon={MessageSquare} deltaLabel="support" />
-      </div>
-
-      {/* Charts */}
-      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-[1.6fr_1fr]">
-        <ChartCard title="Sign-ups" meta="last 14 days">
-          <div className="h-60">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={series} margin={{ top: 10, right: 8, left: -18, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={ACCENT_HSL} stopOpacity={0.6} />
-                    <stop offset="45%" stopColor={CYAN} stopOpacity={0.24} />
-                    <stop offset="100%" stopColor={CYAN} stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="areaStroke" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor={ACCENT_HSL} />
-                    <stop offset="100%" stopColor={CYAN} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="day" tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }} tickLine={false} axisLine={false} interval={1} />
-                <YAxis tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} width={28} />
-                <Tooltip contentStyle={{ background: "#0a0d14", border: "none", borderRadius: 12, boxShadow: "0 20px 60px -20px rgba(0,0,0,0.9)", fontSize: 12 }} labelStyle={{ color: "rgba(255,255,255,0.6)" }} itemStyle={{ color: "#fff" }} cursor={{ stroke: accent(0.4) }} />
-                <Area type="monotone" dataKey="signups" stroke="url(#areaStroke)" strokeWidth={2.5} fill="url(#areaFill)" dot={false} activeDot={{ r: 5, fill: CYAN, stroke: ACCENT_HSL, strokeWidth: 2 }} isAnimationActive animationDuration={1200} style={{ filter: `drop-shadow(0 6px 16px ${accent(0.4)})` }} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </ChartCard>
-
-        <ChartCard title="Projects by status" meta={`${pulse.projects.total.toLocaleString()} total`}>
-          <div className="flex h-60 items-center">
-            <div className="relative h-48 w-48 shrink-0">
+        {/* Charts */}
+        <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-[1.6fr_1fr]">
+          <FloatSection title="Sign-ups" meta="last 14 days">
+            <div className="h-60">
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
+                <AreaChart data={series} margin={{ top: 10, right: 8, left: -18, bottom: 0 }}>
                   <defs>
-                    {statusData.map((d) => (
-                      <linearGradient key={d.key} id={`seg-${d.key}`} x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stopColor={d.from} /><stop offset="100%" stopColor={d.to} />
-                      </linearGradient>
-                    ))}
+                    <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={ACCENT_HSL} stopOpacity={0.6} />
+                      <stop offset="45%" stopColor={CYAN} stopOpacity={0.24} />
+                      <stop offset="100%" stopColor={CYAN} stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="areaStroke" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor={ACCENT_HSL} />
+                      <stop offset="100%" stopColor={CYAN} />
+                    </linearGradient>
                   </defs>
-                  <Pie data={statusData} dataKey="value" nameKey="name" innerRadius={56} outerRadius={78} paddingAngle={4} cornerRadius={6} stroke="none" isAnimationActive animationDuration={1100} style={{ filter: `drop-shadow(0 4px 16px ${accent(0.35)})` }}>
-                    {statusData.map((d) => <Cell key={d.key} fill={`url(#seg-${d.key})`} />)}
-                  </Pie>
-                  <Tooltip contentStyle={{ background: "#0a0d14", border: "none", borderRadius: 12, fontSize: 12 }} itemStyle={{ color: "#fff" }} />
-                </PieChart>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <XAxis dataKey="day" tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }} tickLine={false} axisLine={false} interval={1} />
+                  <YAxis tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} width={28} />
+                  <Tooltip contentStyle={{ background: "#0a0d14", border: "none", borderRadius: 12, boxShadow: "0 20px 60px -20px rgba(0,0,0,0.9)", fontSize: 12 }} labelStyle={{ color: "rgba(255,255,255,0.6)" }} itemStyle={{ color: "#fff" }} cursor={{ stroke: accent(0.4) }} />
+                  <Area type="monotone" dataKey="signups" stroke="url(#areaStroke)" strokeWidth={2.5} fill="url(#areaFill)" dot={false} activeDot={{ r: 5, fill: CYAN, stroke: ACCENT_HSL, strokeWidth: 2 }} isAnimationActive animationDuration={1200} style={{ filter: `drop-shadow(0 6px 16px ${accent(0.4)})` }} />
+                </AreaChart>
               </ResponsiveContainer>
-              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                <span className="font-display text-[26px] font-semibold leading-none text-white" style={{ textShadow: `0 0 22px ${accent(0.5)}` }}>{pulse.projects.total.toLocaleString()}</span>
-                <span className="mt-1 font-mono text-[8px] uppercase tracking-[0.2em] text-white/40">projects</span>
+            </div>
+          </FloatSection>
+
+          <FloatSection title="Projects by status" meta={`${pulse.projects.total.toLocaleString()} total`}>
+            <div className="flex h-60 items-center">
+              <div className="relative h-48 w-48 shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <defs>
+                      {statusData.map((d) => (
+                        <linearGradient key={d.key} id={`seg-${d.key}`} x1="0" y1="0" x2="1" y2="1">
+                          <stop offset="0%" stopColor={d.from} /><stop offset="100%" stopColor={d.to} />
+                        </linearGradient>
+                      ))}
+                    </defs>
+                    <Pie data={statusData} dataKey="value" nameKey="name" innerRadius={56} outerRadius={78} paddingAngle={4} cornerRadius={6} stroke="none" isAnimationActive animationDuration={1100} style={{ filter: `drop-shadow(0 4px 16px ${accent(0.35)})` }}>
+                      {statusData.map((d) => <Cell key={d.key} fill={`url(#seg-${d.key})`} />)}
+                    </Pie>
+                    <Tooltip contentStyle={{ background: "#0a0d14", border: "none", borderRadius: 12, fontSize: 12 }} itemStyle={{ color: "#fff" }} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="font-display text-[26px] font-semibold leading-none text-white" style={{ textShadow: `0 0 22px ${accent(0.5)}` }}>{pulse.projects.total.toLocaleString()}</span>
+                  <span className="mt-1 font-mono text-[8px] uppercase tracking-[0.2em] text-white/40">projects</span>
+                </div>
+              </div>
+              <div className="flex-1 space-y-3 pl-3">
+                {statusData.length === 0 && <div className="text-[13px] font-light text-white/40">No projects yet.</div>}
+                {statusData.map((d) => (
+                  <div key={d.key} className="flex items-center justify-between">
+                    <span className="inline-flex items-center gap-2.5 text-[13px] text-white/70">
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ background: `linear-gradient(135deg, ${d.from}, ${d.to})`, boxShadow: `0 0 8px ${d.from}` }} />{d.name}
+                    </span>
+                    <span className="font-display text-[15px] font-semibold tabular-nums text-white">{d.value.toLocaleString()}</span>
+                  </div>
+                ))}
               </div>
             </div>
-            <div className="flex-1 space-y-3 pl-3">
-              {statusData.length === 0 && <div className="text-[13px] font-light text-white/40">No projects yet.</div>}
-              {statusData.map((d) => (
-                <div key={d.key} className="flex items-center justify-between">
-                  <span className="inline-flex items-center gap-2.5 text-[13px] text-white/70">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: `linear-gradient(135deg, ${d.from}, ${d.to})`, boxShadow: `0 0 8px ${d.from}` }} />{d.name}
-                  </span>
-                  <span className="font-display text-[15px] font-semibold tabular-nums text-white">{d.value.toLocaleString()}</span>
-                </div>
+          </FloatSection>
+        </div>
+
+        {/* Attention queue + hubs */}
+        <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-[1.5fr_1fr]">
+          <FloatSection title="Action queue">
+            {loading ? (
+              <div className="flex items-center justify-center gap-3 py-20 text-white/50">
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                <span className="font-mono text-[11px] uppercase tracking-[0.22em]">Reading pulse…</span>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {cards.map((c, i) => <AttentionCard key={i} index={i} {...c} />)}
+              </div>
+            )}
+          </FloatSection>
+
+          <FloatSection title="Hubs">
+            <div>
+              {HUBS.map((h, i) => (
+                <Link key={h.to} to={h.to} className="group block">
+                  <FloatRow
+                    last={i === HUBS.length - 1}
+                    left={
+                      <span className="flex items-center gap-3.5">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: accent(0.12), color: ACCENT_HSL }}>
+                          <h.icon className="h-4 w-4" strokeWidth={1.8} />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block font-display text-[15px] font-semibold text-white">{h.title}</span>
+                          <span className="block truncate font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">{h.sub}</span>
+                        </span>
+                      </span>
+                    }
+                    right={<ChevronRight className="h-4 w-4 text-white/25 transition-all group-hover:translate-x-0.5 group-hover:text-white/60" />}
+                  />
+                </Link>
               ))}
             </div>
-          </div>
-        </ChartCard>
-      </div>
-
-      {/* Attention queue + hubs */}
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1.5fr_1fr]">
-        <div>
-          <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.24em] text-white/40">Action queue</div>
-          {loading ? (
-            <AdminCard className="flex items-center justify-center gap-3 py-20 text-white/50">
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              <span className="font-mono text-[11px] uppercase tracking-[0.22em]">Reading pulse…</span>
-            </AdminCard>
-          ) : (
-            <div className="space-y-4">
-              {cards.map((c, i) => <AttentionCard key={i} index={i} {...c} />)}
-            </div>
-          )}
-        </div>
-
-        <div>
-          <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.24em] text-white/40">Hubs</div>
-          <div className="space-y-3">
-            {HUBS.map((h) => (
-              <Link key={h.to} to={h.to} className="group block">
-                <AdminCard interactive className="flex items-center gap-3.5 p-4">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: accent(0.12), color: ACCENT_HSL }}>
-                    <h.icon className="h-4.5 w-4.5" strokeWidth={1.8} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-display text-[15px] font-semibold text-white">{h.title}</div>
-                    <div className="truncate font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">{h.sub}</div>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-white/25 transition-all group-hover:translate-x-0.5 group-hover:text-white/60" />
-                </AdminCard>
-              </Link>
-            ))}
-          </div>
+          </FloatSection>
         </div>
       </div>
-    </div>
+    </AdminPageShell>
   );
 }

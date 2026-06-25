@@ -27,9 +27,27 @@ function generateToken(): string {
     .join('')
 }
 
-// Auth note: this function uses verify_jwt = true in config.toml, so Supabase's
-// gateway validates the caller's JWT (anon or service_role) before the request
-// reaches this code. No in-function auth check is needed.
+// Parse JWT claims (no signature check — verify_jwt=true already validated the
+// signature at the gateway; this only reads the role claim).
+function parseJwtClaims(token: string): Record<string, unknown> | null {
+  const parts = token.split('.')
+  if (parts.length < 2) return null
+  try {
+    const payload = parts[1]
+      .replaceAll('-', '+')
+      .replaceAll('_', '/')
+      .padEnd(Math.ceil(parts[1].length / 4) * 4, '=')
+    return JSON.parse(atob(payload)) as Record<string, unknown>
+  } catch {
+    return null
+  }
+}
+
+// AUDIT FIX C-2 (Critical): verify_jwt=true only proves the caller holds *a*
+// valid JWT — the PUBLIC anon key shipped to every browser qualifies, which let
+// anyone send brand email to arbitrary recipients. This function is internal-only
+// (called by admin-alert-dispatch / update-user-email / auto-stitch-trigger, all
+// using the service-role key), so require the service_role claim explicitly.
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
@@ -49,6 +67,23 @@ Deno.serve(async (req) => {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
+    )
+  }
+
+  // Defense in depth: require a service-role caller (verify_jwt=true alone is
+  // satisfied by the public anon key). See AUDIT FIX C-2 note above.
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader?.startsWith('Bearer ')) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+  const claims = parseJwtClaims(authHeader.slice('Bearer '.length).trim())
+  if (claims?.role !== 'service_role') {
+    return new Response(
+      JSON.stringify({ error: 'Forbidden' }),
+      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 

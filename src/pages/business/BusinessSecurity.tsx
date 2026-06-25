@@ -147,7 +147,7 @@ export function SecurityContent() {
         label="Two-factor authentication"
         action={<Badge tone={require2fa ? "good" : "neutral"}>{require2fa ? "Required" : "Optional"}</Badge>}
       />
-      <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] p-5">
+      <div className="rounded-2xl p-5">
         <p className="text-[13px] font-light leading-relaxed text-white/55 max-w-2xl">
           When required, every member must enroll a TOTP authenticator before they can access the workspace.
         </p>
@@ -183,7 +183,7 @@ export function SecurityContent() {
           <Globe className="w-4 h-4 text-white/35" strokeWidth={1.6} />
         }
       />
-      <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] p-5">
+      <div className="rounded-2xl p-5">
         <p className="text-[13px] font-light leading-relaxed text-white/55 max-w-2xl">
           Claim your email domain so new signups land in this workspace automatically.
         </p>
@@ -192,7 +192,7 @@ export function SecurityContent() {
         )}
         <ul className="mt-4 space-y-2">
           {domains.map((d) => (
-            <li key={d.id} className="rounded-xl ring-1 ring-white/[0.07] bg-white/[0.02] p-3">
+            <li key={d.id} className="rounded-xl p-3">
               <div className="flex items-center gap-3 flex-wrap">
                 <div className="flex-1 min-w-0">
                   <div className="text-[14px] text-white font-light">{d.domain}</div>
@@ -261,7 +261,7 @@ export function SecurityContent() {
         label="SAML single sign-on"
         action={<Badge tone={ssoAvailable ? "good" : "warn"}>{ssoAvailable ? "Available" : "Business plan"}</Badge>}
       />
-      <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] p-5">
+      <div className="rounded-2xl p-5">
         <p className="text-[13px] font-light leading-relaxed text-white/55 max-w-2xl">
           Connect Okta, Entra ID, OneLogin or any SAML 2.0 identity provider. Members from your verified domains can sign in via SSO.
         </p>
@@ -291,7 +291,7 @@ export function SecurityContent() {
         count={signins.length || undefined}
         action={<ShieldCheck className="w-4 h-4 text-white/35" strokeWidth={1.6} />}
       />
-      <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] p-5">
+      <div className="rounded-2xl p-5">
         <p className="text-[13px] font-light leading-relaxed text-white/55 max-w-2xl">
           The latest authentication attempts for your account ({user?.email ?? "—"}). Review for anything you don't recognise.
         </p>
@@ -300,7 +300,7 @@ export function SecurityContent() {
         ) : (
           <ul className="mt-4 space-y-2">
             {signins.map((s) => (
-              <li key={s.id} className="flex items-center gap-3 rounded-xl ring-1 ring-white/[0.07] bg-white/[0.02] px-3 py-2.5">
+              <li key={s.id} className="flex items-center gap-3 rounded-xl px-3 py-2.5">
                 <div className={cn(
                   "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ring-1",
                   s.success ? "text-emerald-300 ring-emerald-400/25 bg-emerald-400/10" : "text-rose-300 ring-rose-400/25 bg-rose-400/10",

@@ -2,8 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { RefreshCw, Loader2, AlertTriangle, Inbox } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { FloatSection, FloatTable } from "@/admin/ui/primitives";
-import { Button } from "@/components/ui/button";
+import { FloatSection, FloatTable, DeckButton } from "@/admin/ui/primitives";
 import { supabase } from "@/integrations/supabase/client";
 
 type Intent = {
@@ -132,9 +131,9 @@ export default function AdminOnboardingAnalyticsPage() {
               {accountTypes.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
           )}
-          <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+          <DeckButton onClick={load} disabled={loading}>
             <RefreshCw className={`w-3.5 h-3.5 mr-2 ${loading ? "animate-spin" : ""}`} /> Refresh
-          </Button>
+          </DeckButton>
         </div>
       }
     >

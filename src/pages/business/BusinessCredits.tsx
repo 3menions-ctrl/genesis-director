@@ -119,12 +119,14 @@ export default function BusinessCredits() {
       }
 
       const [txnRes, projRes] = await Promise.all([
-        supabase
-          .from("credit_transactions")
-          .select("id, user_id, amount, created_at, transaction_type, description, balance_after, project_id")
-          .in("user_id", userIds)
-          .order("created_at", { ascending: false })
-          .limit(TXN_LIMIT),
+        // AUDIT FIX B-2: org-scoped ledger via SECURITY DEFINER RPC (tagged by
+        // the project's org), not credit_transactions.in(user_id) which RLS
+        // narrowed to the viewer and mixed in other orgs' rows.
+        (supabase.rpc as unknown as (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => Promise<{ data: Txn[] | null }>
+        )("org_credit_transactions", { p_org_id: orgId }),
         supabase
           .from("movie_projects")
           .select("id, title")
@@ -132,7 +134,7 @@ export default function BusinessCredits() {
           .limit(1000),
       ]);
 
-      setTxns((txnRes.data ?? []) as unknown as Txn[]);
+      setTxns(((txnRes.data ?? []) as unknown as Txn[]).slice(0, TXN_LIMIT));
       setProjectTitles(new Map(((projRes.data ?? []) as { id: string; title: string | null }[])
         .map((p) => [p.id, p.title || "Untitled"])));
     } catch (e) {
@@ -342,7 +344,7 @@ export default function BusinessCredits() {
         }
       />
       {loading ? (
-        <div className="h-[280px] rounded-2xl bg-white/[0.02] ring-1 ring-white/[0.06] animate-pulse" />
+        <div className="h-[280px] rounded-2xl bg-white/[0.02] animate-pulse" />
       ) : ledgerRows.length === 0 ? (
         <EmptyState
           icon={Coins}
@@ -363,7 +365,7 @@ export default function BusinessCredits() {
         </Link>
       } />
       {loading ? (
-        <div className="h-[200px] rounded-2xl bg-white/[0.02] ring-1 ring-white/[0.06] animate-pulse" />
+        <div className="h-[200px] rounded-2xl bg-white/[0.02] animate-pulse" />
       ) : a.topProjects.length === 0 ? (
         <EmptyState
           icon={Film}
@@ -387,7 +389,7 @@ export default function BusinessCredits() {
         label="Auto-recharge"
         action={<Badge tone={enabled ? "good" : "neutral"}>{enabled ? "Armed" : "Disabled"}</Badge>}
       />
-      <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] p-5">
+      <div className="rounded-2xl p-5">
         <p className="text-[12.5px] text-white/55 max-w-xl font-light leading-relaxed">
           Set a balance threshold and top-up size. Automatic purchasing isn&apos;t live yet —
           saving your preference here readies it for when billing automation is enabled.
@@ -423,7 +425,7 @@ export default function BusinessCredits() {
         label="Spend alerts"
         action={<Badge tone={alertsArmed ? "good" : "neutral"}>{alertsArmed ? "Armed" : "Off"}</Badge>}
       />
-      <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] p-5">
+      <div className="rounded-2xl p-5">
         <p className="text-[12.5px] text-white/55 max-w-xl font-light leading-relaxed">
           Set daily or weekly spend thresholds for the workspace. Alert delivery isn&apos;t live yet —
           your thresholds are saved and will be used once it is. Leave a field blank to disable that alert.

@@ -22,6 +22,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { Resvg, initWasm } from "https://esm.sh/@resvg/resvg-wasm@2.6.2";
+import { requireServiceRole } from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -59,6 +60,20 @@ async function ensureWasm(): Promise<void> {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // AUDIT FIX C-3 (Critical): this worker uses the service-role key (RLS bypass)
+  // and writes PNGs to an attacker-controllable `${namespaceId}/${id}.png` key
+  // with upsert:true. It was unauthenticated, so anyone could overwrite any
+  // project's overlay PNGs (poisoning other users' renders) and flood storage.
+  // It is an internal worker (invoked by seamless-stitcher with the service-role
+  // key), so require the service-role caller explicitly.
+  if (!requireServiceRole(req)) {
+    return new Response(JSON.stringify({ ok: false, error: "forbidden" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const body = (await req.json()) as Req;
     if (!Array.isArray(body.items) || body.items.length === 0) {

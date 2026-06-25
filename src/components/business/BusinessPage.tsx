@@ -54,7 +54,7 @@ export function BusinessPage({ eyebrow, title, accent, subtitle, actions, childr
             <div className="text-[10px] font-mono uppercase tracking-[0.22em] mb-3 flex items-center gap-2.5 flex-wrap text-white/45">
               {eyebrow}
             </div>
-            <h1 className="font-display italic font-light text-[clamp(2rem,4.6vw,3.15rem)] leading-[1.04] tracking-tight text-white">
+            <h1 className="font-display font-light text-[clamp(2rem,4.6vw,3.15rem)] leading-[1.04] tracking-tight text-white">
               {title}{accent && <> <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(120deg, hsl(215 100% 70%), hsl(200 100% 72%))" }}>{accent}</span></>}
             </h1>
             {subtitle && (
@@ -121,32 +121,37 @@ function CoverGallery({ images, reducedMotion }: { images: string[]; reducedMoti
 
 // ── Shared business surface primitives (borderless, hairline-only) ─────────
 
+// Horizon: figures FLOAT on the page — no box, no ring. Big Fraunces numeral,
+// mono uppercase label. (Same API as before; borderless rendering.)
 export function StatCard({ label, value, hint, accent, loading }: {
   label: string; value: ReactNode; hint?: string; accent?: boolean; loading?: boolean;
 }) {
   return (
-    <div className={cn(
-      "rounded-2xl p-5 ring-1 transition-colors",
-      accent ? "ring-[hsl(215_90%_60%/0.25)] bg-[hsl(215_90%_55%/0.06)]" : "ring-white/[0.07] bg-white/[0.015]",
-    )}>
+    <div>
       <div className={cn(TYPE_META, "text-white/45 tracking-[0.22em]")}>{label}</div>
       {loading ? (
-        <div className="mt-3 h-[26px] w-16 rounded-md bg-white/[0.06] animate-pulse" />
+        <div className="mt-3 h-[30px] w-16 rounded-md bg-white/[0.06] animate-pulse" />
       ) : (
-        <div className="mt-2 font-display font-light text-[30px] leading-none tracking-[-0.02em] text-white tabular-nums">{value}</div>
+        <div
+          className="mt-2.5 font-display font-semibold text-[34px] leading-[0.95] tracking-tight tabular-nums"
+          style={accent ? { color: "hsl(215 100% 72%)", textShadow: "0 0 30px hsl(215 90% 60% / 0.5)" } : { color: "#fff" }}
+        >{value}</div>
       )}
       {hint && !loading && <div className="mt-2 text-[12px] text-white/40">{hint}</div>}
     </div>
   );
 }
 
+// Horizon section heading: accent-tick gradient bar + Fraunces title (no rule).
 export function SectionHead({ label, count, action }: { label: string; count?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="flex items-center gap-2.5 mb-4 mt-10">
-      <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/45">{label}</span>
-      <span className="h-px flex-1 bg-gradient-to-r from-white/[0.09] to-transparent" />
-      {count !== undefined && count !== null && <span className={cn(TYPE_META, "text-white/35 tracking-[0.22em]")}>{count}</span>}
-      {action}
+    <div className="flex items-end justify-between gap-3 mb-4 mt-10">
+      <div className="flex items-center gap-2.5">
+        <span aria-hidden className="h-4 w-1 rounded-full" style={{ background: "linear-gradient(hsl(215 90% 60%), hsl(188 92% 58%))" }} />
+        <h2 className="font-display text-[17px] font-semibold tracking-tight text-white">{label}</h2>
+        {count !== undefined && count !== null && <span className={cn(TYPE_META, "ml-1 text-white/35 tracking-[0.18em]")}>{count}</span>}
+      </div>
+      {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
     </div>
   );
 }
@@ -155,12 +160,13 @@ export function SectionHead({ label, count, action }: { label: string; count?: R
 
 type BadgeTone = "good" | "bad" | "neutral" | "warn" | "accent";
 
+// Horizon StatusPill idiom: tone background + tone text, NO ring/border.
 const BADGE_TONE: Record<BadgeTone, string> = {
-  good: "text-emerald-300/90 ring-emerald-400/30 bg-emerald-400/10",
-  bad: "text-rose-300/90 ring-rose-400/30 bg-rose-400/10",
-  warn: "text-amber-300/90 ring-amber-400/30 bg-amber-400/10",
-  neutral: "text-white/45 ring-white/[0.12] bg-white/[0.03]",
-  accent: "text-[hsl(215,100%,78%)] ring-[hsl(215,90%,60%/0.3)] bg-[hsl(215,90%,55%/0.1)]",
+  good: "text-emerald-300/90 bg-emerald-400/12",
+  bad: "text-rose-300/90 bg-rose-400/12",
+  warn: "text-amber-300/90 bg-amber-400/12",
+  neutral: "text-white/55 bg-white/[0.06]",
+  accent: "text-[hsl(215,100%,78%)] bg-[hsl(215,90%,55%/0.14)]",
 };
 
 export function Badge({ tone = "neutral", className, children }: {
@@ -168,7 +174,7 @@ export function Badge({ tone = "neutral", className, children }: {
 }) {
   return (
     <span className={cn(
-      "inline-flex items-center gap-1 px-2 h-5 rounded-full text-[10px] font-mono uppercase tracking-[0.22em] ring-1",
+      "inline-flex items-center gap-1 px-2.5 h-5 rounded-full text-[9.5px] font-mono font-medium uppercase tracking-[0.16em]",
       BADGE_TONE[tone],
       className,
     )}>
@@ -188,15 +194,15 @@ export function EmptyState({ icon: Icon, title, description, action, className }
 }) {
   return (
     <div className={cn(
-      "rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] px-6 py-12 flex flex-col items-center text-center",
+      "px-6 py-14 flex flex-col items-center text-center",
       className,
     )}>
       {Icon && (
-        <div className="w-12 h-12 rounded-2xl ring-1 ring-white/[0.07] bg-gradient-to-br from-white/[0.06] to-white/[0.015] flex items-center justify-center mb-4">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.015] flex items-center justify-center mb-4">
           <Icon className="w-5 h-5 text-white/40" strokeWidth={1.5} />
         </div>
       )}
-      <div className="font-display italic font-light text-[19px] text-white/90 tracking-tight">{title}</div>
+      <div className="font-display font-semibold text-[19px] text-white/90 tracking-tight">{title}</div>
       {description && (
         <p className="mt-1.5 max-w-sm text-[13px] leading-relaxed text-white/45 font-light">{description}</p>
       )}
@@ -213,7 +219,7 @@ export function SkeletonRows({ rows = 4, className }: { rows?: number; className
       {Array.from({ length: rows }).map((_, i) => (
         <div
           key={i}
-          className="h-14 rounded-2xl ring-1 ring-white/[0.06] bg-white/[0.02] animate-pulse"
+          className="h-14 rounded-2xl bg-white/[0.03] animate-pulse"
           style={{ animationDelay: `${i * 80}ms` }}
         />
       ))}
@@ -227,7 +233,7 @@ export function SkeletonCards({ count = 6, grid, className }: { count?: number; 
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="aspect-video rounded-2xl ring-1 ring-white/[0.06] bg-white/[0.02] animate-pulse"
+          className="aspect-video rounded-2xl bg-white/[0.03] animate-pulse"
           style={{ animationDelay: `${i * 70}ms` }}
         />
       ))}

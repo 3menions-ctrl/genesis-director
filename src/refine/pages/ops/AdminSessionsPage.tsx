@@ -2,10 +2,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { LogOut, Power, RefreshCw, Search } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { FloatSection } from "@/admin/ui/primitives";
+import { FloatSection, DeckButton, StatusPill } from "@/admin/ui/primitives";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { ListPagination, usePagination } from "@/components/ui/list-pagination";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -83,9 +82,9 @@ export default function AdminSessionsPage() {
       ]}
       actions={
         <>
-          <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+          <DeckButton onClick={load} disabled={loading}>
             <RefreshCw className={`w-3.5 h-3.5 mr-2 ${loading ? "animate-spin" : ""}`} /> Refresh
-          </Button>
+          </DeckButton>
           <Button variant="destructive" size="sm" onClick={killAll} disabled={bulkBusy}>
             <Power className="w-3.5 h-3.5 mr-2" /> Kill Fleet
           </Button>
@@ -133,9 +132,9 @@ export default function AdminSessionsPage() {
                     {r.last_sign_in_at ? new Date(r.last_sign_in_at).toLocaleString() : "—"}
                   </td>
                   <td className="py-3.5 pr-4">
-                    <Badge variant={r.is_active_24h ? "default" : "secondary"} className="font-mono text-[10px]">
+                    <StatusPill tone={r.is_active_24h ? "accent" : "neutral"}>
                       {r.is_active_24h ? "active" : r.is_idle_24h ? "idle" : "—"}
-                    </Badge>
+                    </StatusPill>
                   </td>
                   <td className="py-3.5 pr-4 text-white/40 font-mono text-[10px] whitespace-nowrap">
                     {r.created_at ? new Date(r.created_at).toLocaleDateString() : "—"}

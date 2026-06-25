@@ -57,18 +57,18 @@ export default function You() {
   if (!user) {
     return (
       <div
-        className="fixed inset-0 flex flex-col items-center justify-center gap-5 px-8 text-center text-white"
+        className="fixed inset-0 flex flex-col items-center justify-center gap-5 px-8 text-center text-[#f3ece0]"
         style={{ paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px))' }}
       >
         <AuroraBackdrop />
-        <Sparkles className="relative z-10 h-9 w-9 text-[#7aa2ff]" />
+        <Sparkles className="relative z-10 h-9 w-9 text-champagne" />
         <div className="relative z-10 text-[24px] font-light italic" style={{ fontFamily: 'Fraunces, serif' }}>Sign in to see your studio</div>
-        <p className="relative z-10 max-w-[260px] text-[14px] text-white/55">
+        <p className="relative z-10 max-w-[260px] text-[14px] text-[#f3ece0]/55">
           Track your films, levels, streaks and credits — and remix anything from the feed.
         </p>
         <button
           onClick={() => navigate('/auth')}
-          className="relative z-10 mt-1 flex h-12 items-center gap-2 rounded-full bg-gradient-to-r from-[#2f6bff] to-[#7a3bff] px-7 font-display text-[15px] font-bold shadow-[0_16px_40px_-12px_rgba(80,90,255,.7)]"
+          className="btn-gold relative z-10 mt-1 flex h-11 items-center gap-2 rounded-full px-7 font-display text-[15px] font-bold"
         >
           <LogIn className="h-[18px] w-[18px]" /> Sign in
         </button>
@@ -77,7 +77,7 @@ export default function You() {
   }
 
   return (
-    <div className="fixed inset-0 overflow-y-auto text-white">
+    <div className="fixed inset-0 overflow-y-auto text-[#f3ece0]">
       <AuroraBackdrop />
       <div
         className="relative z-10 px-5"
@@ -89,28 +89,28 @@ export default function You() {
         {/* Header */}
         <div className="flex items-center gap-4">
           {profile?.avatar_url ? (
-            <img src={profile.avatar_url} alt="" className="h-[74px] w-[74px] rounded-full object-cover shadow-[0_10px_30px_-8px_rgba(0,0,0,.7)] ring-1 ring-white/10" />
+            <img src={profile.avatar_url} alt="" className="h-[74px] w-[74px] rounded-full object-cover shadow-[0_10px_30px_-8px_rgba(0,0,0,.7)] ring-1 ring-[#f3ece0]/10" />
           ) : (
-            <span className="grid h-[74px] w-[74px] place-items-center rounded-full bg-gradient-to-br from-[#ffb86b] to-[#ff6bcb] font-display text-2xl font-bold shadow-[0_12px_34px_-8px_rgba(255,120,180,.5)]">
+            <span className="grid h-[74px] w-[74px] place-items-center rounded-full bg-gradient-to-br from-[#e8c9a0] to-[#c8924a] font-display text-2xl font-bold text-[#1b1610] shadow-[0_12px_34px_-8px_rgba(180,130,60,.5)]">
               {initial}
             </span>
           )}
           <div className="min-w-0">
             <div className="truncate text-[24px] font-light" style={{ fontFamily: 'Fraunces, serif' }}>{name}</div>
-            <div className="font-mono text-[13px] text-white/40">{handle}</div>
+            <div className="font-mono text-[13px] text-[#f3ece0]/40">{handle}</div>
           </div>
         </div>
 
         {/* Level / XP / streak — borderless, lit by its own bloom */}
-        <div className="lit-edge relative mt-6 overflow-hidden rounded-[28px] bg-gradient-to-br from-[#2f6bff]/24 to-[#7a3bff]/12 p-5">
-          <div className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-[#7a3bff]/30 blur-3xl" />
+        <div className="lit-edge relative mt-6 overflow-hidden rounded-[28px] bg-gradient-to-br from-[#caa05a]/20 to-[#8a5a2b]/10 p-5">
+          <div className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-[#c8924a]/28 blur-3xl" />
           <div className="relative flex items-center gap-4">
             <LevelRing level={level} pct={pct} />
             <div className="min-w-0 flex-1">
               <div className="text-[19px] font-normal italic leading-tight" style={{ fontFamily: 'Fraunces, serif' }}>
                 {title}
               </div>
-              <div className="mt-1 font-mono text-[11px] tabular-nums text-[#9ab4ff]">
+              <div className="mt-1 font-mono text-[11px] tabular-nums text-champagne">
                 {intoLevel} / {XP_PER_LEVEL} XP to Level {level + 1}
               </div>
             </div>
@@ -119,7 +119,7 @@ export default function You() {
               <span className="font-display text-[13px] font-bold tabular-nums">{streak}</span>
             </div>
           </div>
-          <div className="relative mt-4 font-mono text-[11px] text-white/55">
+          <div className="relative mt-4 font-mono text-[11px] text-[#f3ece0]/55">
             {streak > 0 ? `${streak}-day streak — keep it alive, make a film today` : 'Make a film today to start a streak 🔥'}
           </div>
         </div>
@@ -129,11 +129,11 @@ export default function You() {
           <Stat icon={<Film className="h-4 w-4" />} value={String(films.length)} label="Films" />
           <Stat icon={<Heart className="h-4 w-4" />} value={compact(totalLikes)} label="Likes" />
           {/* Credits — spend-only: balance shown, never a buy button. */}
-          <Stat icon={<Zap className="h-4 w-4 text-[#7aa2ff]" />} value={`◇ ${compact(available)}`} label="Credits" accent />
+          <Stat icon={<Zap className="h-4 w-4 text-champagne" />} value={`◇ ${compact(available)}`} label="Credits" accent />
         </div>
 
         {/* Badges */}
-        <div className="mb-3.5 mt-7 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">
+        <div className="mb-3.5 mt-7 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.22em] text-[#f3ece0]/45">
           <span className="flex items-center gap-1.5"><Trophy className="h-3.5 w-3.5" /> Badges</span>
         </div>
         <div className="flex gap-3">
@@ -152,7 +152,7 @@ export default function You() {
         </div>
 
         {/* Films grid */}
-        <div className="mb-3.5 mt-7 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">Your films</div>
+        <div className="mb-3.5 mt-7 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#f3ece0]/45">Your films</div>
         {loading ? (
           <div className="grid grid-cols-3 gap-2.5">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -162,13 +162,13 @@ export default function You() {
         ) : films.length === 0 ? (
           <div className="surface-1 rounded-[24px] px-5 py-9 text-center">
             <div className="text-[17px] font-light italic" style={{ fontFamily: 'Fraunces, serif' }}>No films yet</div>
-            <p className="mt-1.5 text-[13px] text-white/45">Tap + to create your first one.</p>
+            <p className="mt-1.5 text-[13px] text-[#f3ece0]/45">Tap + to create your first one.</p>
             <button
               onClick={() => {
                 void hapticTap();
                 navigate('/create');
               }}
-              className="mt-5 inline-flex h-11 items-center gap-2 rounded-full bg-gradient-to-r from-[#2f6bff] to-[#7a3bff] px-6 font-display text-[14px] font-bold shadow-[0_14px_34px_-12px_rgba(80,90,255,.7)]"
+              className="btn-gold mt-5 inline-flex h-10 items-center gap-2 rounded-full px-6 font-display text-[14px] font-bold"
             >
               <Star className="h-4 w-4" /> Create
             </button>
@@ -212,7 +212,7 @@ function Stat({
 }) {
   return (
     <div className="surface-1 flex-1 rounded-[20px] py-4 text-center">
-      <div className={cn('flex items-center justify-center gap-1 font-display text-[22px] font-semibold tabular-nums', accent && 'text-[#7aa2ff]')}>
+      <div className={cn('flex items-center justify-center gap-1 font-display text-[22px] font-semibold tabular-nums', accent && 'text-champagne')}>
         {value}
       </div>
       <div className="mt-1 flex items-center justify-center gap-1 font-mono text-[10px] uppercase tracking-[0.12em] text-white/40">
@@ -244,8 +244,8 @@ function LevelRing({ level, pct }: { level: number; pct: number }) {
         />
         <defs>
           <linearGradient id="xpgrad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#3f78ff" />
-            <stop offset="100%" stopColor="#a061ff" />
+            <stop offset="0%" stopColor="#ecd29c" />
+            <stop offset="100%" stopColor="#c8924a" />
           </linearGradient>
         </defs>
       </svg>

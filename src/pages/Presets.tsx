@@ -57,7 +57,7 @@ export default function Presets() {
   };
 
   return (
-    <div className="fixed inset-0 flex flex-col text-white">
+    <div className="fixed inset-0 flex flex-col text-[#f3ece0]">
       <AuroraBackdrop />
       {/* Preview */}
       <div className="relative z-10" style={{ height: '46%', marginTop: 'var(--safe-top, 0px)' }}>
@@ -103,11 +103,11 @@ export default function Presets() {
             onMouseLeave={() => setShowBefore(false)}
             onTouchStart={() => setShowBefore(true)}
             onTouchEnd={() => setShowBefore(false)}
-            className={cn('rounded-full px-4 py-1.5 font-display text-[12px] font-semibold', showBefore ? 'bg-white text-black' : 'text-white/70')}
+            className={cn('rounded-full px-4 py-1.5 font-display text-[12px] font-semibold', showBefore ? 'bg-white text-black' : 'text-[#f3ece0]/70')}
           >
             Hold: Before
           </button>
-          <span className={cn('rounded-full px-4 py-1.5 font-display text-[12px] font-semibold', !showBefore ? 'bg-white text-black' : 'text-white/70')}>
+          <span className={cn('rounded-full px-4 py-1.5 font-display text-[12px] font-semibold', !showBefore ? 'bg-white text-black' : 'text-[#f3ece0]/70')}>
             After
           </span>
         </div>
@@ -115,9 +115,9 @@ export default function Presets() {
 
       {/* Deck */}
       <div className="relative z-10 flex flex-1 flex-col px-1 pt-5">
-        <div className="px-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">
+        <div className="px-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#f3ece0]/45">
           Editing is just presets
-          <span className="mt-1.5 block text-[17px] font-light italic text-white" style={{ fontFamily: 'Fraunces, serif' }}>
+          <span className="mt-1.5 block text-[17px] font-light italic text-[#f3ece0]" style={{ fontFamily: 'Fraunces, serif' }}>
             Tap a look. It applies instantly.
           </span>
         </div>
@@ -138,7 +138,7 @@ export default function Presets() {
                 className={cn(
                   'relative h-[152px] w-[110px] flex-none overflow-hidden rounded-[22px] transition-all duration-200',
                   on
-                    ? 'scale-[1.05] shadow-[inset_0_1px_0_rgba(255,255,255,.2),0_18px_42px_-8px_rgba(47,107,255,.9)]'
+                    ? 'scale-[1.05] shadow-[inset_0_1px_0_rgba(255,255,255,.2),0_18px_42px_-8px_rgba(205,160,90,.9)]'
                     : 'shadow-[inset_0_1px_0_rgba(255,255,255,.1),0_12px_26px_-14px_rgba(0,0,0,.8)]',
                 )}
               >
@@ -146,12 +146,12 @@ export default function Presets() {
                 <span className="absolute right-2.5 top-2.5 text-[22px]">{l.emoji}</span>
                 {l.premium && (
                   <span className="absolute left-2.5 top-2.5">
-                    <Lock className="h-[15px] w-[15px] text-white/85" />
+                    <Lock className="h-[15px] w-[15px] text-[#f3ece0]/85" />
                   </span>
                 )}
                 {on && (
-                  <span className="absolute right-2 bottom-9 grid h-5 w-5 place-items-center rounded-full bg-[#2f6bff]">
-                    <Check className="h-3 w-3" strokeWidth={3} />
+                  <span className="absolute right-2 bottom-9 grid h-5 w-5 place-items-center rounded-full bg-[#e9cf9c]">
+                    <Check className="h-3 w-3 text-[#1b1610]" strokeWidth={3} />
                   </span>
                 )}
                 <span className="absolute inset-x-2.5 bottom-2.5 text-left font-display text-[13px] font-bold drop-shadow">
@@ -166,7 +166,7 @@ export default function Presets() {
       {/* Apply */}
       <button
         onClick={apply}
-        className="absolute left-5 right-5 z-10 flex h-[58px] items-center justify-center gap-2 rounded-full bg-gradient-to-b from-white to-[#e9ecf5] font-display text-[16px] font-bold text-black shadow-[inset_0_1px_0_rgba(255,255,255,.9),0_20px_48px_-14px_rgba(255,255,255,.4)]"
+        className="btn-gold absolute left-5 right-5 z-10 flex h-[50px] items-center justify-center gap-2 rounded-full font-display text-[15px] font-bold"
         style={{ bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 16px)' }}
       >
         {look.premium ? <Lock className="h-[18px] w-[18px]" /> : <Check className="h-[18px] w-[18px]" strokeWidth={2.5} />}

@@ -73,6 +73,48 @@ export function useLikedReels(userId: string | undefined, enabled: boolean) {
   return { items, loading };
 }
 
+/** Pinned/featured reels for the highlights rail, in pinned order. */
+export function usePinnedReels(ids: string[] | undefined) {
+  const key = (ids ?? []).join(',');
+  const [items, setItems] = useState<GridItem[]>([]);
+  useEffect(() => {
+    if (!ids?.length) { setItems([]); return; }
+    let cancel = false;
+    (async () => {
+      try {
+        const { data } = await supabase.from('published_reels' as never).select('id, title, thumbnail_url, video_url, play_count').in('id', ids).eq('is_taken_down', false);
+        const byId = new Map(((data ?? []) as unknown as GridItem[]).map((r) => [r.id, { ...r, title: r.title ?? 'Untitled' }]));
+        if (!cancel) setItems(ids.map((id) => byId.get(id)).filter(Boolean) as GridItem[]);
+      } catch { if (!cancel) setItems([]); }
+    })();
+    return () => { cancel = true; };
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  return items;
+}
+
+/** Daily creation counts for the last ~12 weeks (activity heatmap). */
+export function useActivityHeatmap(userId: string | undefined) {
+  const [days, setDays] = useState<Record<string, number>>({});
+  useEffect(() => {
+    if (!userId) return;
+    let cancel = false;
+    (async () => {
+      try {
+        const since = new Date(Date.now() - 84 * 86400000).toISOString();
+        const { data } = await supabase.from('movie_projects' as never).select('created_at').eq('user_id', userId).gte('created_at', since).limit(1000);
+        const m: Record<string, number> = {};
+        for (const r of (data ?? []) as unknown as { created_at: string }[]) {
+          const k = (r.created_at ?? '').slice(0, 10);
+          if (k) m[k] = (m[k] ?? 0) + 1;
+        }
+        if (!cancel) setDays(m);
+      } catch { /* ignore */ }
+    })();
+    return () => { cancel = true; };
+  }, [userId]);
+  return days;
+}
+
 /** The user's in-progress / draft projects. */
 export function useDrafts(userId: string | undefined, enabled: boolean) {
   const [items, setItems] = useState<GridItem[]>([]);

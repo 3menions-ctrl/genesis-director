@@ -6,24 +6,27 @@
  * (spend-only), and content tabs: Films · Liked · Drafts. Edit and settings are
  * bottom sheets. All wired to real tables (see useMyFilms + useProfileData).
  */
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Flame, LogIn, Sparkles, Settings, Pencil, X, Heart, Film, Layers,
-  ChevronRight, LogOut, CreditCard, Loader2,
+  ChevronRight, LogOut, CreditCard, Loader2, Trophy, Crown, Lock, Play,
+  type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
+import { useGamification } from '@/hooks/useGamification';
 import { useMyFilms } from '@/hooks/useMyFilms';
-import { useFollowCounts, useFollowList, useLikedReels, useDrafts, type GridItem, type Person } from '@/hooks/useProfileData';
+import { useFollowCounts, useFollowList, useLikedReels, useDrafts, usePinnedReels, useActivityHeatmap, type GridItem, type Person } from '@/hooks/useProfileData';
 import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
 import { hapticTap } from '@/lib/native/shell';
 import { cn } from '@/lib/utils';
 
 const TITLES = ['Newcomer', 'Creator', 'Director', 'Auteur', 'Visionary', 'Legend'];
 const XP_PER_LEVEL = 500;
+const RARITY: Record<string, string> = { common: '#9aa3b2', rare: '#5b9bff', epic: '#a855f7', legendary: '#ffd76b' };
 const compact = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1).replace(/\.0$/, '')}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1).replace(/\.0$/, '')}k` : String(n));
 
 type Tab = 'films' | 'liked' | 'drafts';
@@ -33,19 +36,26 @@ export default function You() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile, signOut } = useAuth();
   const { available } = useCredits();
-  const { films, totalLikes, totalPlays, streak } = useMyFilms();
+  const { films, totalLikes } = useMyFilms();
   const counts = useFollowCounts(user?.id);
+  const gam = useGamification();
+  const pinned = usePinnedReels((profile as { pinned_reel_ids?: string[] })?.pinned_reel_ids);
+  const heat = useActivityHeatmap(user?.id);
   const [tab, setTab] = useState<Tab>('films');
   const [sheet, setSheet] = useState<Sheet>(null);
 
   const liked = useLikedReels(user?.id, tab === 'liked');
   const drafts = useDrafts(user?.id, tab === 'drafts');
 
-  const { level, title, intoLevel, pct } = useMemo(() => {
-    const xp = films.length * 100 + totalLikes * 5 + totalPlays;
-    const lvl = Math.floor(xp / XP_PER_LEVEL) + 1;
-    return { level: lvl, title: TITLES[Math.min(lvl - 1, TITLES.length - 1)], intoLevel: xp % XP_PER_LEVEL, pct: Math.round(((xp % XP_PER_LEVEL) / XP_PER_LEVEL) * 100) };
-  }, [films.length, totalLikes, totalPlays]);
+  // Real gamification (xp/level/streak/rank), falling back to a films-derived
+  // level so the bar is never empty before the gamification row exists.
+  const filmsXp = films.length * 100 + totalLikes * 5;
+  const level = gam.stats?.level && gam.stats.xp_total ? gam.stats.level : Math.floor(filmsXp / XP_PER_LEVEL) + 1;
+  const title = TITLES[Math.min(level - 1, TITLES.length - 1)];
+  const streak = gam.stats?.current_streak ?? 0;
+  const pct = Math.max(0, Math.min(100, gam.xpProgress?.percentage ?? Math.round(((filmsXp % XP_PER_LEVEL) / XP_PER_LEVEL) * 100)));
+  const rank = gam.leaderboard?.find((e) => e.user_id === user?.id)?.rank ?? null;
+  const views = (profile as { profile_view_count?: number })?.profile_view_count ?? 0;
 
   const name = profile?.display_name || profile?.full_name || user?.email?.split('@')[0] || 'You';
   const handle = `@${name.replace(/\s+/g, '').toLowerCase()}`;
@@ -105,16 +115,16 @@ export default function You() {
           <Count label="Followers" value={compact(counts.followers)} onClick={() => setSheet('followers')} />
           <Count label="Following" value={compact(counts.following)} onClick={() => setSheet('following')} divider />
           <Count label="Films" value={String(films.length)} divider />
-          <Count label="Likes" value={compact(totalLikes)} divider />
+          <Count label="Views" value={compact(views)} divider />
         </div>
 
-        {/* Level / streak + credits */}
+        {/* Level / streak + rank + credits */}
         <div className="lit-edge relative mt-6 overflow-hidden rounded-[24px] bg-gradient-to-br from-[#2f6bff]/20 to-[#7a3bff]/10 p-4">
           <div className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full bg-[#7a3bff]/25 blur-3xl" />
           <div className="relative flex items-center justify-between">
-            <div>
-              <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#9ab4ff]">{title} · Level {level}</div>
-              <div className="mt-1 font-mono text-[10px] tabular-nums text-white/45">{intoLevel} / {XP_PER_LEVEL} XP</div>
+            <div className="flex items-center gap-2">
+              <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#9ab4ff]">{title} · Lv {level}</div>
+              {rank != null && <span className="inline-flex items-center gap-1 rounded-full bg-[#ffd76b]/15 px-2 py-0.5 font-mono text-[10px] font-semibold text-[#ffd76b]"><Crown className="h-3 w-3" />#{rank}</span>}
             </div>
             <div className="flex items-center gap-3.5">
               <span className="flex items-center gap-1 text-[13px] font-semibold"><Flame className={cn('h-5 w-5', streak > 0 ? 'fill-orange-500 text-orange-400' : 'text-white/25')} />{streak}</span>
@@ -123,6 +133,47 @@ export default function You() {
           </div>
           <div className="relative mt-3 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-gradient-to-r from-[#3f78ff] to-[#a061ff]" style={{ width: `${pct}%` }} /></div>
         </div>
+
+        {/* Pinned Highlights */}
+        {pinned.length > 0 && (
+          <Section title="Highlights" icon={Sparkles}>
+            <div className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-1" style={{ scrollbarWidth: 'none' }}>
+              {pinned.map((p) => (
+                <button key={p.id} onClick={() => navigate(`/r/${p.id}`)} className="lit-edge relative aspect-video w-[160px] flex-none overflow-hidden rounded-[16px] bg-black/30">
+                  {p.thumbnail_url ? <img src={p.thumbnail_url} alt={p.title} className="absolute inset-0 h-full w-full object-cover" /> : <div className="absolute inset-0 bg-gradient-to-br from-[#241a3a] to-[#0a0a0a]" />}
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/65 to-transparent" />
+                  <span className="absolute bottom-1.5 left-2 right-2 truncate text-left font-display text-[12px] font-semibold drop-shadow">{p.title}</span>
+                  <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-black/45"><Play className="h-3 w-3 fill-white" /></span>
+                </button>
+              ))}
+            </div>
+          </Section>
+        )}
+
+        {/* Achievements */}
+        {gam.achievements && gam.achievements.length > 0 && (
+          <Section title="Achievements" icon={Trophy} trailing={`${gam.unlockedAchievements?.length ?? 0}/${gam.achievements.length}`}>
+            <div className="-mx-5 flex gap-4 overflow-x-auto px-5 pb-1" style={{ scrollbarWidth: 'none' }}>
+              {gam.achievements.map((a) => {
+                const got = gam.unlockedAchievements?.some((u) => u.achievement_id === a.id);
+                const c = RARITY[a.rarity] ?? RARITY.common;
+                return (
+                  <div key={a.id} title={a.description ?? a.name} className="flex w-[64px] flex-none flex-col items-center gap-1.5 text-center">
+                    <span className="relative grid h-12 w-12 place-items-center rounded-2xl" style={{ background: got ? `${c}22` : 'rgba(255,255,255,.03)', boxShadow: got ? `inset 0 0 0 1px ${c}66, 0 8px 20px -10px ${c}` : undefined }}>
+                      {got ? <Trophy className="h-6 w-6" style={{ color: c }} /> : <Lock className="h-4 w-4 text-white/25" />}
+                    </span>
+                    <span className={cn('text-[9px] font-medium leading-tight', got ? 'text-white/80' : 'text-white/35')}>{a.name}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </Section>
+        )}
+
+        {/* Activity heatmap */}
+        <Section title="Activity" icon={Flame}>
+          <Heatmap days={heat} />
+        </Section>
 
         {/* Tabs */}
         <div className="mt-6 flex items-center justify-around">
@@ -176,6 +227,42 @@ export default function You() {
 }
 
 /* ───────────────────────── pieces ───────────────────────── */
+
+function Section({ title, icon: Icon, trailing, children }: { title: string; icon: LucideIcon; trailing?: string; children: React.ReactNode }) {
+  return (
+    <div className="mt-7">
+      <div className="mb-3 flex items-center gap-2">
+        <Icon className="h-3.5 w-3.5 text-white/45" strokeWidth={1.8} />
+        <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/45">{title}</span>
+        {trailing && <span className="ml-auto font-mono text-[10px] tabular-nums text-white/30">{trailing}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Heatmap({ days }: { days: Record<string, number> }) {
+  const today = new Date();
+  const cells: { key: string; count: number }[] = [];
+  for (let i = 83; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const k = d.toISOString().slice(0, 10);
+    cells.push({ key: k, count: days[k] ?? 0 });
+  }
+  const weeks: { key: string; count: number }[][] = [];
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+  const color = (c: number) => (c === 0 ? 'rgba(255,255,255,.05)' : c === 1 ? 'rgba(63,120,255,.4)' : c <= 3 ? 'rgba(63,120,255,.75)' : '#7a3bff');
+  return (
+    <div className="flex gap-1 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+      {weeks.map((w, wi) => (
+        <div key={wi} className="flex flex-col gap-1">
+          {w.map((c) => <span key={c.key} className="h-3.5 w-3.5 rounded-[3px]" style={{ background: color(c.count) }} />)}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function IconBtn({ children, label, onClick }: { children: React.ReactNode; label: string; onClick: () => void }) {
   return <button onClick={onClick} aria-label={label} title={label} className="grid h-9 w-9 place-items-center rounded-full bg-black/35 text-white backdrop-blur-md">{children}</button>;

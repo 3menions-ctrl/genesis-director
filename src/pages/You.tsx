@@ -10,7 +10,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Flame, LogIn, Sparkles, Settings, Pencil, X, Heart, Film, Layers,
-  ChevronRight, LogOut, CreditCard, Loader2, Trophy, Crown, Lock, Check,
+  ChevronRight, LogOut, CreditCard, Loader2, Trophy, Crown, Lock, Check, MessageCircle,
   type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -89,6 +89,7 @@ export default function You() {
 
       {/* Floating actions over the shared Aurora backdrop (no cover banner) */}
       <div className="fixed right-4 z-20 flex gap-2" style={{ top: 'calc(var(--safe-top,0px) + 12px)' }}>
+        <IconBtn label="Messages" onClick={() => { void hapticTap(); navigate('/messages'); }}><MessageCircle className="h-[18px] w-[18px]" /></IconBtn>
         <IconBtn label="Edit profile" onClick={() => { void hapticTap(); setSheet('edit'); }}><Pencil className="h-[18px] w-[18px]" /></IconBtn>
         <IconBtn label="Settings" onClick={() => { void hapticTap(); setSheet('settings'); }}><Settings className="h-[18px] w-[18px]" /></IconBtn>
       </div>
@@ -344,9 +345,12 @@ function EditSheet({ initial, onClose, onSaved }: { initial: { display_name: str
         <Field label="Name"><input value={name} onChange={(e) => setName(e.target.value)} className="surface-1 h-11 w-full rounded-full bg-transparent px-4 text-[15px] text-white outline-none" /></Field>
         <Field label="Tagline"><input value={tagline} onChange={(e) => setTagline(e.target.value)} placeholder="One line about you" className="surface-1 h-11 w-full rounded-full bg-transparent px-4 text-[15px] text-white outline-none placeholder:text-white/30" /></Field>
         <Field label="Bio"><textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} placeholder="A little more about you…" className="surface-1 w-full resize-none rounded-[18px] bg-transparent px-4 py-3 text-[15px] text-white outline-none placeholder:text-white/30" /></Field>
-        <button onClick={save} disabled={saving} className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#2f6bff] to-[#7a3bff] font-display text-[15px] font-bold disabled:opacity-50">
-          {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Check className="h-[18px] w-[18px]" />Save</>}
-        </button>
+        <div className="flex justify-center pt-1">
+          <button onClick={save} disabled={saving} aria-label="Save" title="Save"
+            className="surface-1 grid h-14 w-14 place-items-center rounded-2xl text-[#8fb4ff] transition-transform active:scale-95 disabled:opacity-50">
+            {saving ? <Loader2 className="h-6 w-6 animate-spin" /> : <Check className="h-7 w-7" strokeWidth={2.2} />}
+          </button>
+        </div>
         <p className="text-center text-[11px] text-white/30">Avatar &amp; cover editing coming soon.</p>
       </div>
     </SheetShell>

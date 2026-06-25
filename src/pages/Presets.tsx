@@ -117,14 +117,13 @@ export default function Presets() {
           <span className="font-display text-[10px] font-medium">Reset</span>
         </button>
 
-        {/* Save — borderless, floating accent icon */}
+        {/* Save — accent icon in a translucent container */}
         <button onClick={save}
           aria-label={look.premium ? `${look.name} is Pro` : `Save with ${look.name}`}
           title={look.premium ? `${look.name} is Pro` : `Save with ${look.name}`}
-          className="relative flex flex-col items-center gap-1 text-[#8fb4ff] transition-transform active:scale-95">
-          <span className="relative grid place-items-center">
-            <span className="pointer-events-none absolute h-9 w-9 rounded-full bg-[#3f78ff]/35 blur-md" />
-            {look.premium ? <Lock className="relative h-[24px] w-[24px]" /> : <Save className="relative h-[24px] w-[24px]" strokeWidth={1.9} />}
+          className="flex flex-col items-center gap-1 text-[#8fb4ff] transition-transform active:scale-95">
+          <span className="surface-1 grid h-12 w-12 place-items-center rounded-2xl">
+            {look.premium ? <Lock className="h-[23px] w-[23px]" /> : <Save className="h-[23px] w-[23px]" strokeWidth={1.9} />}
           </span>
           <span className="font-display text-[10px] font-semibold drop-shadow">{look.premium ? 'Pro' : 'Save'}</span>
         </button>

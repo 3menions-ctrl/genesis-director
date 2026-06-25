@@ -9,11 +9,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, useMotionValue, useTransform, animate, type PanInfo } from 'framer-motion';
-import { X, MessageCircle, UserPlus, UserCheck, Send, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { X, MessageCircle, UserPlus, UserCheck, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePublicProfile } from '@/hooks/usePublicProfile';
+import { MessageThread } from '@/components/social/MessageThread';
 import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
 import { hapticTap } from '@/lib/native/shell';
 import { cn } from '@/lib/utils';
@@ -81,7 +81,7 @@ export default function CreatorProfile() {
           style={{ top: 'calc(var(--safe-top,0px) + 12px)', left: '14px' }}><X className="h-5 w-5" /></button>
       )}
 
-      {messaging && id && profile && <MessageSheet recipientId={id} name={profile.display_name ?? 'creator'} onClose={() => setMessaging(false)} />}
+      {messaging && id && profile && <MessageThread recipientId={id} name={profile.display_name ?? 'creator'} avatar={profile.avatar_url} onClose={() => setMessaging(false)} />}
     </div>
   );
 }
@@ -174,48 +174,5 @@ function FloatIcon({ children, label, active, onClick }: { children: React.React
       </span>
       <span className="font-display text-[11px] font-semibold drop-shadow">{label}</span>
     </button>
-  );
-}
-
-function MessageSheet({ recipientId, name, onClose }: { recipientId: string; name: string; onClose: () => void }) {
-  const [text, setText] = useState('');
-  const [sending, setSending] = useState(false);
-  const send = async () => {
-    const body = text.trim();
-    if (!body || sending) return;
-    void hapticTap();
-    setSending(true);
-    try {
-      const { error } = await supabase.rpc('send_direct_message' as never, { p_recipient: recipientId, p_content: body } as never);
-      if (error) {
-        const m = error.message || '';
-        if (m.includes('recipient_dms_disabled')) throw new Error("This creator isn't accepting messages.");
-        if (m.includes('recipient_dms_followers_only')) throw new Error('They only accept messages from people they follow.');
-        if (m.includes('blocked')) throw new Error('You can’t message this creator.');
-        throw new Error(m || 'Could not send');
-      }
-      toast.success(`Message sent to ${name}`);
-      onClose();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Could not send');
-    } finally { setSending(false); }
-  };
-  return (
-    <div className="fixed inset-0 z-[60]">
-      <div onClick={onClose} className="absolute inset-0 bg-black/55" />
-      <div className="absolute inset-x-0 bottom-0 rounded-t-[28px] bg-[#0d0d14]/85 px-5 pt-3 backdrop-blur-2xl shadow-[0_-24px_70px_-24px_rgba(0,0,0,.9),inset_0_1px_0_rgba(255,255,255,.08)]" style={{ paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 14px)' }}>
-        <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-white/15" />
-        <div className="mb-3 flex items-center justify-between">
-          <span className="font-display text-[15px] font-semibold">Message {name}</span>
-          <button onClick={onClose} aria-label="Close" className="text-white/50"><X className="h-5 w-5" /></button>
-        </div>
-        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} autoFocus placeholder={`Say something to ${name}…`}
-          className="surface-1 w-full resize-none rounded-[18px] bg-transparent px-4 py-3 text-[15px] text-white outline-none placeholder:text-white/30" />
-        <button onClick={send} disabled={!text.trim() || sending}
-          className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#2f6bff] to-[#7a3bff] font-display text-[15px] font-bold disabled:opacity-50">
-          {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Send className="h-[18px] w-[18px]" />Send</>}
-        </button>
-      </div>
-    </div>
   );
 }

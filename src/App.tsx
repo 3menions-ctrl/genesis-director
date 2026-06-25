@@ -81,6 +81,8 @@ const Feed = lazy(() => import("./pages/Feed"));
 const Discover = lazy(() => import("./pages/Discover"));
 // Mobile public creator profile (view media, follow, message).
 const CreatorProfile = lazy(() => import("./pages/CreatorProfile"));
+// Mobile DM inbox.
+const Messages = lazy(() => import("./pages/Messages"));
 // Mobile-first one-prompt create screen (hands off to Studio's engine).
 const Create = lazy(() => import("./pages/Create"));
 // Mobile-first presets "editor" (one-tap looks) + gamified profile.
@@ -324,6 +326,12 @@ const App = () => {
                 <Route path="/u/:id" element={
                   <RouteContainer fallbackMessage="Loading profile…">
                     <CreatorProfile />
+                  </RouteContainer>
+                } />
+                {/* Mobile DM inbox. */}
+                <Route path="/messages" element={
+                  <RouteContainer fallbackMessage="Loading messages…">
+                    <Messages />
                   </RouteContainer>
                 } />
                 {/* Mobile one-prompt create screen (hands the prompt to Studio). */}

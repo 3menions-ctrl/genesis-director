@@ -165,7 +165,7 @@ export function FeedComments({ open, reelId, isStatic, onClose, onPosted }: Prop
               className="surface-1 h-11 flex-1 rounded-full bg-transparent px-4 text-[14px] text-white outline-none placeholder:text-white/35"
             />
             <button onClick={submit} disabled={!draft.trim() || posting} aria-label="Send"
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#2f6bff] to-[#7a3bff] text-white transition-opacity disabled:opacity-40">
+              className="surface-1 grid h-11 w-11 shrink-0 place-items-center rounded-full text-[#8fb4ff] transition-transform active:scale-95 disabled:opacity-40">
               <Send className="h-[18px] w-[18px]" />
             </button>
           </div>

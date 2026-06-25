@@ -60,8 +60,18 @@ const state: DocumentStoreState = {
 
 const listeners = new Set<() => void>();
 
+// Snapshot handed to useSyncExternalStore subscribers. Mutators below edit
+// `state` (and `state.doc`) IN PLACE, so the snapshot's identity must be
+// refreshed on every notify() — otherwise getDocumentState() keeps returning
+// the same object reference, React's Object.is bail-out skips the re-render,
+// and surfaces like CastEditor never reflect add/remove/edit. We recreate a
+// shallow copy only inside notify() (never on every getSnapshot call) so
+// repeated getDocumentState() reads between mutations stay referentially
+// stable and don't trip the "getSnapshot should be cached" warning / loop.
+let snapshot: DocumentStoreState = { ...state };
+
 export function getDocumentState(): DocumentStoreState {
-  return state;
+  return snapshot;
 }
 
 export function subscribeDocument(listener: () => void): () => void {
@@ -72,6 +82,7 @@ export function subscribeDocument(listener: () => void): () => void {
 }
 
 function notify(): void {
+  snapshot = { ...state };
   for (const l of listeners) l();
 }
 

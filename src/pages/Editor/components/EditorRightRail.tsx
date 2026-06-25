@@ -168,6 +168,17 @@ export function EditorRightRail({
     return () => window.removeEventListener("keydown", onKey);
   }, [setTab, setCollapsed]);
 
+  // Open the Text tab on demand — fired when the user clicks a text
+  // overlay on the timeline (TextOverlayTrack → Timeline onSelect).
+  useEffect(() => {
+    const onOpenText = () => {
+      setCollapsed(false);
+      setTab("text");
+    };
+    window.addEventListener("editor:open-text-tab", onOpenText);
+    return () => window.removeEventListener("editor:open-text-tab", onOpenText);
+  }, [setTab, setCollapsed]);
+
   // `[` toggles collapse. Skip when typing in an input.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -282,6 +293,7 @@ export function EditorRightRail({
           <ToolsPanel
             project={project}
             selectedClipId={selectedClipId}
+            onRequestInspector={() => setTab("inspector")}
             onOpenEffectsPalette={onOpenEffectsPalette}
             onOpenAudioMixer={onOpenAudioMixer}
             onOpenCrossover={onOpenCrossover}
@@ -366,11 +378,15 @@ function RailIconButton({
 // TOOLS PANEL — always-on quick-apply toolkit
 // ─────────────────────────────────────────────────────────────────────────────
 function ToolsPanel({
-  project, selectedClipId,
+  project, selectedClipId, onRequestInspector,
   onOpenEffectsPalette, onOpenAudioMixer, onOpenCrossover, onOpenDirector, onOpenTemplates,
 }: {
   project: EditorProject;
   selectedClipId: string | null;
+  /** Switch the rail to the Inspector tab. Threaded from the parent
+   *  because ToolsPanel is a module-level component and can't reach the
+   *  parent's setTab directly. */
+  onRequestInspector?: () => void;
   onOpenEffectsPalette?: () => void;
   onOpenAudioMixer?: () => void;
   onOpenCrossover?: () => void;
@@ -441,7 +457,11 @@ function ToolsPanel({
               // the Inspector tab. Dispatching the synthetic key from here (the
               // Tools tab) hit no listener. Switch to Inspector first, then fire
               // R once TakesDrawer (and its listener) has mounted.
-              setTab("inspector");
+              // NOTE: setTab lives on the parent EditorRightRail — ToolsPanel
+              // is module-level and can't reach it, so it's threaded in as
+              // onRequestInspector. Calling setTab here was a ReferenceError
+              // that crashed the handler before the key ever dispatched.
+              onRequestInspector?.();
               setTimeout(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "R" })), 80);
             }}
           />

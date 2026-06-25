@@ -903,11 +903,12 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
         toggleFullscreen();
         return;
       }
-      if (!meta && e.shiftKey && (e.key === "T")) {
-        e.preventDefault();
-        toggleTheaterMode();
-        return;
-      }
+      // NOTE: Shift+T (theater) is intentionally NOT handled here. EditorShell
+      // owns that global shortcut so it works in every view. Binding it here
+      // too made BOTH handlers fire on one keypress — a double toggle that
+      // netted no change, so Shift+T appeared dead in Stage view (where this
+      // monitor is mounted). The Theater button below still calls
+      // toggleTheaterMode directly.
       if (!meta && (e.key === "p" || e.key === "P")) {
         e.preventDefault();
         void togglePiP();
@@ -1369,13 +1370,31 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
             }
           />
 
-          {/* Scrub bar with clip dividers + transition pip markers */}
+          {/* Scrub bar with clip dividers + transition pip markers.
+              role=slider + arrow-key handling make the program scrub
+              reachable by keyboard and screen readers (it was a bare
+              click-target before). */}
           <div
+            role="slider"
+            aria-label="Scrub"
+            aria-valuemin={0}
+            aria-valuemax={Math.round(totalSec)}
+            aria-valuenow={Math.round(playheadSec)}
+            tabIndex={0}
             className="relative flex-1 h-1.5 rounded-full bg-white/[0.05] overflow-hidden cursor-pointer"
             onClick={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
               const pct = (e.clientX - rect.left) / rect.width;
               setPlayhead(Math.max(0, Math.min(totalSec, pct * totalSec)));
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowLeft") {
+                e.preventDefault();
+                setPlayhead(Math.max(0, playheadSec - 1));
+              } else if (e.key === "ArrowRight") {
+                e.preventDefault();
+                setPlayhead(Math.min(totalSec, playheadSec + 1));
+              }
             }}
           >
             <div

@@ -735,8 +735,12 @@ export function Timeline({
                   height={V_TEXT_HEIGHT}
                   totalSec={totalSec}
                   onSelect={(id) => {
-                    selectClip(null);
-                    void id;
+                    // Clicking a text overlay focuses the right rail's Text
+                    // tab (where it's edited). Previously this cleared clip
+                    // selection and threw the id away — a dead control.
+                    window.dispatchEvent(
+                      new CustomEvent("editor:open-text-tab", { detail: { id } }),
+                    );
                   }}
                 />
 
@@ -818,7 +822,7 @@ export function Timeline({
                     swaps the kind. The handles z-index above the
                     Reorder.Group via absolute positioning. */}
                 <TransitionLayer
-                  top={V_OVERLAY_HEIGHT + TRACK_GAP}
+                  top={offsetOf("sys:V1")}
                   height={V_TRACK_HEIGHT}
                   clips={localOrder}
                   transitions={project.transitions ?? []}

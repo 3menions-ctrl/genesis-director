@@ -165,7 +165,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { profile: profileData, authoritative } = await fetchProfile(user.id);
       setProfile(reconcileProfile(profileRef.current, profileData, authoritative));
     }
-  }, [user]);
+    // Key on user?.id, not the whole `user` object: every TOKEN_REFRESHED
+    // hands setUser a brand-new User object with the same id. Depending on
+    // the object recreated this callback on every refresh/tab-focus, which
+    // cascaded into a credit-reconcile + re-render storm across consumers.
+  }, [user?.id]);
 
   const patchProfile = useCallback((patch: Partial<UserProfile>) => {
     // Update the ref synchronously too, so a reconcile that fires before the

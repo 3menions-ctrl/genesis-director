@@ -139,19 +139,20 @@ const shouldReduceMotion = () => {
    useEffect(() => {
      const vid = videoRef.current;
      if (!vid || !videoSrc) return;
-     
+
+     let onCanPlay: (() => void) | null = null;
      if (isHovered) {
        vid.muted = true;
        const attemptPlay = () => {
          if (!videoRef.current) return;
          safePlay(videoRef.current);
        };
-       
+
        if (vid.readyState >= 3) {
          attemptPlay();
        } else {
-         const onCanPlay = () => {
-           vid.removeEventListener('canplay', onCanPlay);
+         onCanPlay = () => {
+           vid.removeEventListener('canplay', onCanPlay!);
            attemptPlay();
          };
          vid.addEventListener('canplay', onCanPlay);
@@ -162,6 +163,10 @@ const shouldReduceMotion = () => {
        const targetTime = isSafeVideoNumber(vid.duration) ? Math.min(vid.duration * 0.1, 0.5) : 0;
        safeSeek(vid, targetTime);
      }
+     // Without this, leaving the card before `canplay` fired left the listener
+     // attached → the video started playing after mouse-out, and listeners
+     // accumulated across a wall of cards on rapid hover in/out.
+     return () => { if (onCanPlay) vid.removeEventListener('canplay', onCanPlay); };
    }, [isHovered, videoSrc]);
    
    // Fallback timeout

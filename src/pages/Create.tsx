@@ -116,8 +116,8 @@ export default function Create() {
   return (
     <div className="fixed inset-0 text-white">
       <AuroraBackdrop />
-      <div className="relative z-10 flex h-full" style={{ paddingTop: 'var(--safe-top,0px)', paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px))', boxSizing: 'border-box' }}>
-        {/* ── RAIL (transparent icons + labels) ── */}
+      <div className="relative z-10 flex h-full flex-row-reverse" style={{ paddingTop: 'var(--safe-top,0px)', paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px))', boxSizing: 'border-box' }}>
+        {/* ── RAIL (transparent icons + labels) — page controls on the right ── */}
         <nav className="flex w-[68px] shrink-0 flex-col items-center gap-0.5 overflow-y-auto py-2" style={{ scrollbarWidth: 'none' }}>
           {GROUPS.map((g, gi) => (
             <div key={g} className="flex w-full flex-col items-center gap-0.5">
@@ -130,7 +130,7 @@ export default function Create() {
         </nav>
 
         {/* ── CANVAS ── */}
-        <div className="relative flex flex-1 flex-col overflow-hidden pr-4">
+        <div className="relative flex flex-1 flex-col overflow-hidden pl-4 pr-3">
           <div className="flex-1 overflow-y-auto pb-3 pt-2">
             {isCreateModule ? (
               <div className="flex flex-col gap-5">

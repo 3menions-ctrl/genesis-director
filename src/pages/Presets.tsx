@@ -165,8 +165,8 @@ export default function Presets() {
         onClick={save}
         aria-label={look.premium ? `${look.name} is Pro` : `Save with ${look.name}`}
         title={look.premium ? `${look.name} is Pro` : `Save with ${look.name}`}
-        className="absolute inset-x-0 z-10 mx-auto flex w-max flex-col items-center gap-1.5 text-[#7aa2ff]"
-        style={{ bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 22px)' }}
+        className="absolute inset-x-0 z-10 mx-auto flex w-max flex-col items-center gap-1.5 rounded-[20px] border border-[#7aa2ff]/45 bg-transparent px-7 py-2.5 text-[#7aa2ff]"
+        style={{ bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 18px)' }}
       >
         {look.premium ? <Lock className="h-[26px] w-[26px]" /> : <Save className="h-[26px] w-[26px]" strokeWidth={1.9} />}
         <span className="font-display text-[11px] font-semibold tracking-[0.04em]">{look.premium ? 'Pro look' : 'Save'}</span>

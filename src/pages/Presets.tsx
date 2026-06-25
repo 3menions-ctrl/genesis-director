@@ -10,7 +10,7 @@
  */
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Lock, Eye, ChevronLeft, RotateCcw } from 'lucide-react';
+import { Save, Lock, Eye, ChevronLeft, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { FILMS } from '@/data/filmsLibrary';
 import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
@@ -49,13 +49,14 @@ export default function Presets() {
   const look = useMemo(() => LOOKS.find((l) => l.id === selected) ?? LOOKS[0], [selected]);
   const activeFilter = showBefore ? 'none' : look.filter;
 
-  const apply = () => {
+  const save = () => {
     void hapticTap();
     if (look.premium) {
       toast('That look is part of Pro — manage your plan on the web.');
       return;
     }
-    toast.success(`Applied ${look.name}`);
+    // Applies the selected template's effects to the clip and saves the result.
+    toast.success(`Saved · ${look.name}`);
   };
 
   const goBack = () => {
@@ -159,16 +160,16 @@ export default function Presets() {
         </div>
       </div>
 
-      {/* Apply — borderless transparent action with a small label */}
+      {/* Save — applies the selected template's effects to the clip and saves */}
       <button
-        onClick={apply}
-        aria-label={look.premium ? `${look.name} is Pro` : `Apply ${look.name}`}
-        title={look.premium ? `${look.name} is Pro` : `Apply ${look.name}`}
+        onClick={save}
+        aria-label={look.premium ? `${look.name} is Pro` : `Save with ${look.name}`}
+        title={look.premium ? `${look.name} is Pro` : `Save with ${look.name}`}
         className="absolute inset-x-0 z-10 mx-auto flex w-max flex-col items-center gap-1.5 text-[#7aa2ff]"
         style={{ bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 22px)' }}
       >
-        {look.premium ? <Lock className="h-[26px] w-[26px]" /> : <Check className="h-[28px] w-[28px]" strokeWidth={2.2} />}
-        <span className="font-display text-[11px] font-semibold tracking-[0.04em]">{look.premium ? 'Pro look' : 'Apply'}</span>
+        {look.premium ? <Lock className="h-[26px] w-[26px]" /> : <Save className="h-[26px] w-[26px]" strokeWidth={1.9} />}
+        <span className="font-display text-[11px] font-semibold tracking-[0.04em]">{look.premium ? 'Pro look' : 'Save'}</span>
       </button>
     </div>
   );

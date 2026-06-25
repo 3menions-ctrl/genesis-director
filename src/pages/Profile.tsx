@@ -181,7 +181,7 @@ export default function Profile() {
       // flag separately so the owner's "open my door" toggle has truth.
       try {
         const { data: extra } = await supabase
-          .from("profiles")
+          .from("profiles_public" as never)
           .select("is_discoverable")
           .eq("id", viewedId)
           .maybeSingle();

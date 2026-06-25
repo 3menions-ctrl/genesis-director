@@ -851,7 +851,7 @@ export default function ProfileDashboard() {
     // rows so the rail can render thumbnails just like Recent Films.
     try {
       const { data: prof } = await supabase
-        .from("profiles")
+        .from("profiles_public" as never)
         .select("pinned_reel_ids")
         .eq("id", viewedUserId)
         .maybeSingle();
@@ -898,7 +898,7 @@ export default function ProfileDashboard() {
       next.followerCount = followerCount ?? 0;
       // Joined date from profiles (anon-safe via "Public profile read" policy).
       const { data: prof } = await supabase
-        .from("profiles")
+        .from("profiles_public" as never)
         .select("created_at")
         .eq("id", viewedUserId)
         .maybeSingle();

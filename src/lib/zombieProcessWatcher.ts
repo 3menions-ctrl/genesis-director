@@ -228,29 +228,13 @@ export async function cleanupZombieProject(
       return { success: false, creditsRefunded: 0, error: updateError.message };
     }
     
-    // Refund credits by updating profile directly
+    // Refund credits via the authoritative ledger only. profiles.credits_balance
+    // is a non-authoritative display cache (and after the H1 column lockdown it
+    // is neither client-readable nor client-writable); the balance shown in the
+    // UI is derived from credit_transactions, so recording the ledger row IS the
+    // refund. (Previously this did a racy read-then-write of credits_balance —
+    // removed per the L12 fix.)
     if (creditsToRefund > 0) {
-      // Use direct profile update for credit refund
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('credits_balance')
-        .eq('id', userId)
-        .maybeSingle();
-      
-      if (profile) {
-        const { error: refundError } = await supabase
-          .from('profiles')
-          .update({
-            credits_balance: (profile.credits_balance || 0) + creditsToRefund,
-          })
-          .eq('id', userId);
-        
-        if (refundError) {
-          console.warn('[ZombieWatcher] Credit refund failed:', refundError);
-        }
-      }
-      
-      // Log the refund transaction
       await supabase.from('credit_transactions').insert({
         user_id: userId,
         amount: creditsToRefund,

@@ -45,6 +45,7 @@ import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/na
 
 import { NavigationGuardProvider, NavigationBridge } from "@/lib/navigation";
 import { NativeShell } from "@/components/native/NativeShell";
+import { MobileTabBar } from "@/components/native/MobileTabBar";
 import { AppShell } from "@/components/shell/AppShell";
 import { AdaptiveShell } from "@/components/shell/AdaptiveShell";
 
@@ -76,6 +77,8 @@ function QueryPreservingRedirect({ to }: { to: string }) {
 const Cinema = lazy(() => import("./pages/Cinema"));
 // Mobile-first vertical "For You" feed — native landing route (also at /feed on web).
 const Feed = lazy(() => import("./pages/Feed"));
+// Mobile-first one-prompt create screen (hands off to Studio's engine).
+const Create = lazy(() => import("./pages/Create"));
 const StudioShowcase = lazy(() => import("./pages/StudioShowcase"));
 const FilmsGallery = lazy(() => import("./pages/FilmsGallery"));
 const Studio = lazy(() => import("./pages/Studio"));
@@ -302,6 +305,12 @@ const App = () => {
                 <Route path="/feed" element={
                   <RouteContainer fallbackMessage="Loading feed…">
                     <Feed />
+                  </RouteContainer>
+                } />
+                {/* Mobile one-prompt create screen (hands the prompt to Studio). */}
+                <Route path="/create" element={
+                  <RouteContainer fallbackMessage="Loading…">
+                    <Create />
                   </RouteContainer>
                 } />
                 {/* Legacy /cinema path redirects to the one home page. */}
@@ -920,6 +929,8 @@ const App = () => {
                 </Suspense>
                 {/* Command Center (Cmd+K / "/") — primary navigation surface */}
                 <CommandCenter />
+                {/* Bottom tab bar — native shell only; null on web. */}
+                <MobileTabBar />
               </PageToneProvider>
               </StudioProvider>
               </WorkspaceProvider>

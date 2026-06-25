@@ -2774,6 +2774,15 @@ img, a, button {
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
+  /* Height reserved for the mobile bottom tab bar. 0 on web (no tab bar);
+     overridden under .capacitor-native so full-bleed screens (the feed) leave
+     room for it. */
+  --tabbar-h: 0px;
+}
+
+.capacitor-native,
+.mobile-shell-preview {
+  --tabbar-h: 64px;
 }
 
 .capacitor-native {

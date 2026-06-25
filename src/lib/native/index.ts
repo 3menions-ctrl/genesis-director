@@ -24,3 +24,37 @@ export const IS_ANDROID: boolean = PLATFORM === 'android';
 export function isPluginAvailable(name: string): boolean {
   return Capacitor.isPluginAvailable(name);
 }
+
+/**
+ * Whether to show the mobile app chrome (bottom tab bar, mobile-only screens).
+ * True inside the native shell, and ALSO on the web when previewing the mobile
+ * UI via `?shell=mobile` (sticky via localStorage; `?shell=web` clears it).
+ * This lets the iPhone-style UI be previewed in a desktop/mobile browser
+ * without a device build.
+ */
+function computeMobileShell(): boolean {
+  if (IS_NATIVE) return true;
+  if (typeof window === 'undefined') return false;
+  try {
+    const param = new URL(window.location.href).searchParams.get('shell');
+    if (param === 'mobile') {
+      window.localStorage.setItem('sb_shell', 'mobile');
+      return true;
+    }
+    if (param === 'web') {
+      window.localStorage.removeItem('sb_shell');
+      return false;
+    }
+    return window.localStorage.getItem('sb_shell') === 'mobile';
+  } catch {
+    return false;
+  }
+}
+
+export const IS_MOBILE_SHELL: boolean = computeMobileShell();
+
+// Apply a class so CSS (e.g. --tabbar-h) reacts in the web preview too. On
+// native this class is added by the shell bootstrap instead.
+if (typeof document !== 'undefined' && IS_MOBILE_SHELL && !IS_NATIVE) {
+  document.documentElement.classList.add('mobile-shell-preview');
+}

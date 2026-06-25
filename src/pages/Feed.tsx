@@ -217,7 +217,7 @@ const FeedCard = ({ innerRef, index, item, active, muted }: FeedCardProps & { in
       {/* right action rail */}
       <div
         className="absolute right-3 z-20 flex flex-col items-center gap-5"
-        style={{ bottom: 'calc(var(--safe-bottom, 0px) + 132px)' }}
+        style={{ bottom: 'calc(var(--safe-bottom, 0px) + var(--tabbar-h, 0px) + 132px)' }}
       >
         <button onClick={() => navigate('/profile')} className="relative" aria-label="Creator">
           {item.creator_avatar ? (
@@ -248,7 +248,7 @@ const FeedCard = ({ innerRef, index, item, active, muted }: FeedCardProps & { in
       {/* caption */}
       <div
         className="absolute left-4 z-20 max-w-[72%]"
-        style={{ bottom: 'calc(var(--safe-bottom, 0px) + 96px)' }}
+        style={{ bottom: 'calc(var(--safe-bottom, 0px) + var(--tabbar-h, 0px) + 96px)' }}
       >
         <div className="flex items-center gap-2 font-display text-[16px] font-bold">
           @{(item.creator_name ?? 'smallbridges').replace(/\s+/g, '').toLowerCase()}
@@ -271,7 +271,7 @@ const FeedCard = ({ innerRef, index, item, active, muted }: FeedCardProps & { in
         onClick={remix}
         disabled={busy}
         className="absolute left-4 right-4 z-20 flex h-[50px] items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#2f6bff] to-[#7a3bff] font-display text-[15px] font-bold shadow-[0_14px_30px_-8px_rgba(80,80,255,.6)] disabled:opacity-60"
-        style={{ bottom: 'calc(var(--safe-bottom, 0px) + 38px)' }}
+        style={{ bottom: 'calc(var(--safe-bottom, 0px) + var(--tabbar-h, 0px) + 38px)' }}
       >
         <Repeat2 className="h-[18px] w-[18px]" />
         {busy ? 'Starting remix…' : 'Remix this into your own film'}

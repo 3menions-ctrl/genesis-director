@@ -20,7 +20,7 @@ const TABS = [
   { to: '/feed', label: 'Feed', icon: Clapperboard },
   { to: '/search', label: 'Discover', icon: Compass },
   { to: '/presets', label: 'Presets', icon: SlidersHorizontal },
-  { to: '/you', label: 'You', icon: User },
+  { to: '/you', label: 'Profile', icon: User },
 ] as const;
 
 // Routes where the tab bar should not appear.

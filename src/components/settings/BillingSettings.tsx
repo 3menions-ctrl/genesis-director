@@ -83,11 +83,18 @@ export const BillingSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - 7);
 
+    // Bound to the window the calculations actually use (this-month / last-month
+    // / this-week all fall on/after startOfLastMonth). Without a date bound (and
+    // ordering) PostgREST's default max-rows silently truncated a heavy user's
+    // history, undercounting spend non-deterministically.
     const { data } = await supabase
       .from('credit_transactions_safe')
       .select('amount, created_at, transaction_type')
       .eq('user_id', user.id)
-      .eq('transaction_type', 'usage');
+      .eq('transaction_type', 'usage')
+      .gte('created_at', startOfLastMonth.toISOString())
+      .order('created_at', { ascending: false })
+      .limit(10000);
 
     if (data) {
       const thisMonth = Math.abs(

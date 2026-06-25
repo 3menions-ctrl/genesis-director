@@ -13,7 +13,13 @@ import { creditsForScene, type EngineId } from '@/lib/video/engines';
  *
  * TARGET: ≥30% gross margin on every clip
  *
- * Standard (T2V / I2V):
+ * ⚠️ Canonical per-clip prices are DERIVED from src/lib/video/engines.ts via
+ * creditsForScene() (see CREDIT_SYSTEM.BASE_CREDITS_PER_CLIP below). The credit
+ * figures in this doc block and in COST_PER_CLIP are LEGACY and feed only the
+ * dead chargePreProduction/chargeProduction path — do NOT trust them as the
+ * live price (a 10s Kling clip is 35 credits, not 50).
+ *
+ * Standard (T2V / I2V):  [legacy figures]
  *   - 10s clip: 50 credits ($5.00) — real cost $3.38, margin 32%
  *   - 15s clip: 75 credits ($7.50) — real cost ~$5.07, margin 32%
  *
@@ -62,6 +68,9 @@ export const CREDIT_SYSTEM = {
   // Stripe pricing: 1 credit = $0.10
   CENTS_PER_CREDIT: 10,
 
+  // LEGACY phase-split breakdown — used only by the dead chargePreProduction/
+  // chargeProduction path. The live per-clip price is BASE_CREDITS_PER_CLIP
+  // (derived). Do not use these for new code.
   // Cost per clip breakdown — Standard T2V/I2V 10s
   COST_PER_CLIP: {
     PRE_PRODUCTION: 8,

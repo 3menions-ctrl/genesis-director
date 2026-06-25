@@ -152,7 +152,10 @@ export const AdminGalleryManager = memo(function AdminGalleryManager() {
       <div className="grid gap-3">
         <AnimatePresence mode="popLayout">
           {items?.map((item, index) => {
-            const Icon = CATEGORY_CONFIG[item.category].icon;
+            // Guard against an unknown/new category value — an unguarded map
+            // lookup here would deref `undefined.icon` and crash the whole list.
+            const catCfg = CATEGORY_CONFIG[item.category] ?? { label: item.category || 'Other', icon: Film };
+            const Icon = catCfg.icon;
             return (
               <motion.div
                 key={item.id}
@@ -203,7 +206,7 @@ export const AdminGalleryManager = memo(function AdminGalleryManager() {
                     <h3 className="font-medium text-white truncate">{item.title}</h3>
                     <StatusPill tone="neutral">
                       <Icon className="w-3 h-3" />
-                      {CATEGORY_CONFIG[item.category].label}
+                      {catCfg.label}
                     </StatusPill>
                   </div>
                   {item.description && (

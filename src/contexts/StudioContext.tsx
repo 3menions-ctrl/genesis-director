@@ -130,6 +130,11 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
   const activeProject = projects.find((p) => p.id === activeProjectId) || null;
 
+  // Keep an always-current ref to refreshProfile so refreshCredits can stay a
+  // stable callback even if AuthContext hands us a new function each render.
+  const refreshProfileRef = useRef(refreshProfile);
+  refreshProfileRef.current = refreshProfile;
+
   // Internal function that loads and returns projects - ALWAYS verify session first
   // CRITICAL: Uses isMountedRef for safe state updates during async operations
   // FIX: Removed projects and activeProjectId from dependencies to prevent stale closure race
@@ -246,9 +251,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   }, []); // FIX: Empty deps - function uses refs and functional updates instead
 
   // Public function that doesn't return projects
-  const refreshProjects = async (): Promise<void> => {
+  const refreshProjects = useCallback(async (): Promise<void> => {
     await loadProjects();
-  };
+  }, [loadProjects]);
 
   // Load projects when auth finishes loading
   useEffect(() => {
@@ -296,7 +301,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('credits-updated', handleCreditsUpdated);
   }, [ledgerCredits]);
 
-  const createProject = async (): Promise<string | null> => {
+  const createProject = useCallback(async (): Promise<string | null> => {
     // Verify we have a valid session before creating
     const { data: { session: currentSession } } = await supabase.auth.getSession();
     
@@ -343,9 +348,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       toast.error('Failed to create project');
       return null;
     }
-  };
+  }, []);
 
-  const deleteProject = async (projectId: string) => {
+  const deleteProject = useCallback(async (projectId: string) => {
     // Verify session before deleting
     const { data: { session: currentSession } } = await supabase.auth.getSession();
     if (!currentSession) {
@@ -377,9 +382,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       console.error('Error deleting project:', err);
       toast.error('Failed to delete project');
     }
-  };
+  }, [activeProjectId, projects]);
 
-  const updateProject = async (id: string, updates: Partial<Project>) => {
+  const updateProject = useCallback(async (id: string, updates: Partial<Project>) => {
     // Update local state immediately for responsive UI
     setProjects((prev) =>
       prev.map((p) => (p.id === id ? { ...p, ...updates, updated_at: new Date().toISOString() } : p))
@@ -429,16 +434,17 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       console.error('Error updating project:', err);
       toast.error('Failed to save changes');
     }
-  };
+  }, [refreshProjects]);
 
-  const updateSettings = (newSettings: Partial<StudioSettings>) => {
+  const updateSettings = useCallback((newSettings: Partial<StudioSettings>) => {
     setSettings((prev) => ({ ...prev, ...newSettings }));
-  };
+  }, []);
 
-  // Refresh credits from profile - used after billing operations
-  const refreshCredits = async () => {
-    await refreshProfile();
-  };
+  // Refresh credits from profile - used after billing operations.
+  // Calls through a ref so this callback stays stable across renders.
+  const refreshCredits = useCallback(async () => {
+    await refreshProfileRef.current();
+  }, []);
 
   // Check if user can afford a number of shots with tier-aware pricing
   // Uses calculateCreditsRequired which accounts for extended pricing (clips 7+ or >6s)
@@ -454,27 +460,38 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     return canAfford;
   }, [credits.remaining]);
 
+  // Memoize the context value so consumers of useStudio() don't re-render on
+  // every StudioProvider render (e.g. a parent re-render) — only when the data
+  // or one of the now-stable callbacks actually changes. setActiveProjectId is
+  // a stable state setter, so it's intentionally not in the dep list.
+  const value = useMemo(
+    () => ({
+      projects,
+      activeProjectId,
+      activeProject,
+      credits,
+      layers,
+      settings,
+      isLoading,
+      hasLoadedOnce,
+      setActiveProjectId,
+      createProject,
+      deleteProject,
+      updateProject,
+      updateSettings,
+      refreshCredits,
+      refreshProjects,
+      canAffordShots,
+    }),
+    [
+      projects, activeProjectId, activeProject, credits, layers, settings,
+      isLoading, hasLoadedOnce, createProject, deleteProject, updateProject,
+      updateSettings, refreshCredits, refreshProjects, canAffordShots,
+    ],
+  );
+
   return (
-    <StudioContext.Provider
-      value={{
-        projects,
-        activeProjectId,
-        activeProject,
-        credits,
-        layers,
-        settings,
-        isLoading,
-        hasLoadedOnce,
-        setActiveProjectId,
-        createProject,
-        deleteProject,
-        updateProject,
-        updateSettings,
-        refreshCredits,
-        refreshProjects,
-        canAffordShots,
-      }}
-    >
+    <StudioContext.Provider value={value}>
       {children}
     </StudioContext.Provider>
   );

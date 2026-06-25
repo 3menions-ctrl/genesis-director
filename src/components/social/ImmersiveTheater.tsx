@@ -83,6 +83,9 @@ export function ImmersiveTheater({ reel, onClose, queue, onSwitch }: Props) {
   // Tracks the post-animation 1 s hold timer so we can cancel it on
   // reel switch, close, or explicit skip.
   const introHoldTimerRef = useRef<number | null>(null);
+  // Tracks the reel currently on screen so async like/comment loads from a
+  // PREVIOUS reel can't apply their results after the user switches reels.
+  const currentReelIdRef = useRef<string | null>(null);
 
   const [muted, setMuted] = useState(true);
   const [playing, setPlaying] = useState(true);
@@ -177,6 +180,7 @@ export function ImmersiveTheater({ reel, onClose, queue, onSwitch }: Props) {
   // Init state on reel change
   useEffect(() => {
     if (!reel) return;
+    currentReelIdRef.current = reel.id;
     setLikeCount(reel.like_count);
     setLiked(false);
     setComments([]);
@@ -192,13 +196,15 @@ export function ImmersiveTheater({ reel, onClose, queue, onSwitch }: Props) {
     // Optimistic: check if user already liked
     (async () => {
       if (!user) return;
+      const reelId = reel.id;
       const { data } = await supabase
         .from("reel_likes" as never)
         .select("user_id")
-        .eq("reel_id", reel.id)
+        .eq("reel_id", reelId)
         .eq("user_id", user.id)
         .maybeSingle();
-      if (data) setLiked(true);
+      // Ignore a late response if the user already switched reels.
+      if (data && currentReelIdRef.current === reelId) setLiked(true);
     })();
   }, [reel, user]);
 
@@ -234,12 +240,17 @@ export function ImmersiveTheater({ reel, onClose, queue, onSwitch }: Props) {
   // Load comments
   const loadComments = useCallback(async () => {
     if (!reel) return;
+    const reelId = reel.id;
     setLoadingComments(true);
     try {
       const { data, error } = await supabase.rpc("reel_comments_for" as never, {
-        p_reel_id: reel.id, p_before_ts: null, p_limit: 50,
+        p_reel_id: reelId, p_before_ts: null, p_limit: 50,
       } as never);
       if (error) throw error;
+      // Ignore a late response if the user already switched reels, otherwise
+      // reel A's comments would render under reel B (and B's realtime INSERTs
+      // would append onto the wrong base).
+      if (currentReelIdRef.current !== reelId) return;
       setComments(((data as Comment[]) ?? []).slice().reverse()); // oldest -> newest for chat-style
     } catch (e) {
       // eslint-disable-next-line no-console

@@ -281,7 +281,11 @@ export default function AdminAnalyticsPage() {
       }
       stats={[
         { label: "Active 24H", value: data ? fmtN(data.kpis.active1d) : "—", tone: "blue", sub: data ? `Stick ${data.kpis.stickiness}%` : undefined },
-        { label: `Signups ${windowDays}D`, value: data ? fmtN(windowDays === 7 ? data.kpis.signups7d : data.kpis.signups30d) : "—", tone: "emerald", sub: data?.deltas ? deltaSub(data.deltas.signups, "vs prev") : undefined },
+        // Sum the window-scoped daily signups series so the value matches the
+        // selected window (7/30/90). PREVIOUSLY this fell back to signups30d for
+        // any window other than 7 — so the 90D selection showed the 30-day count
+        // under a "Signups 90D" label.
+        { label: `Signups ${windowDays}D`, value: data ? fmtN(data.series.signups.reduce((t, d) => t + d.value, 0)) : "—", tone: "emerald", sub: data?.deltas ? deltaSub(data.deltas.signups, "vs prev") : undefined },
         { label: "Completion", value: data ? `${data.kpis.completionRate}%` : "—", tone: "amber", sub: data?.deltas ? deltaSub(data.deltas.completionRate, "pp Δ", true) : undefined },
         { label: `Revenue ${windowDays}D`, value: data ? fmtUsd(data.kpis.grossRevenue) : "—", tone: "neutral", sub: data?.deltas ? deltaSub(data.deltas.revenue, "vs prev") : undefined },
       ]}

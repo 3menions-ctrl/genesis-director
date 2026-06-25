@@ -61,15 +61,21 @@ export default function WorkspaceOverview() {
       const memberIds: string[] = (memberRows.data ?? []).map((r: any) => r.user_id).filter(Boolean);
       let used = 0;
       if (memberIds.length > 0) {
-        const txn = await sb.from('credit_transactions')
-          .select('amount, project_id')
-          .in('user_id', memberIds)
-          .eq('transaction_type', 'consumption')
-          .gte('created_at', since);
-        // Filter to org projects to avoid counting member's personal spend
+        // Org-scoped ledger via SECURITY DEFINER RPC. `.in('user_id', memberIds)`
+        // was re-narrowed by the `user_id = auth.uid()` RLS policy to the
+        // viewer's own rows — so "Burn 30d" was founder-only despite the
+        // member-id list. The RPC returns the whole org's (org-tagged) ledger.
+        const txn = await (
+          sb.rpc as unknown as (
+            fn: string,
+            args: Record<string, unknown>,
+          ) => Promise<{ data: Array<{ amount: number; project_id: string | null; transaction_type: string }> | null }>
+        )('org_credit_transactions', { p_org_id: currentOrg.id, p_since: since });
+        // Filter to org projects to avoid counting any member's personal spend
         const projRows = await sb.from('movie_projects').select('id').eq('organization_id', currentOrg.id);
         const orgProjectIds = new Set((projRows.data ?? []).map((p: any) => p.id));
-        used = (txn.data ?? []).reduce((s: number, t: any) => {
+        used = (txn.data ?? []).reduce((s: number, t) => {
+          if (t.transaction_type !== 'consumption') return s;
           if (!t.project_id || orgProjectIds.has(t.project_id)) return s + Math.abs(t.amount ?? 0);
           return s;
         }, 0);

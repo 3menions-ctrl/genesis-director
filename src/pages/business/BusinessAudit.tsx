@@ -76,11 +76,17 @@ export default function BusinessAudit() {
       const projIds = (projects ?? []).map((p) => p.id);
       const titleMap = new Map<string, string>((projects ?? []).map((p) => [p.id, p.title]));
 
-      const creditPromise = projIds.length
-        ? supabase.from("credit_transactions")
-            .select("id, amount, transaction_type, description, project_id, created_at")
-            .in("project_id", projIds).order("created_at", { ascending: false }).limit(250)
-        : Promise.resolve({ data: [] as CreditTx[] });
+      // Org-scoped ledger via SECURITY DEFINER RPC. Filtering the base table by
+      // `.in("project_id", orgProjectIds)` did NOT escape the `user_id =
+      // auth.uid()` RLS policy, so credit events on org projects created by
+      // OTHER members were invisible in the audit trail. The RPC returns the
+      // whole org's (org-tagged) ledger, membership-gated.
+      const creditPromise = (
+        supabase.rpc as unknown as (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => Promise<{ data: CreditTx[] | null }>
+      )("org_credit_transactions", { p_org_id: currentOrg.id });
 
       const [{ data: wsEvents }, { data: credits }] = await Promise.all([
         wsPromise as Promise<{ data: WsEvent[] | null }>,
@@ -94,7 +100,7 @@ export default function BusinessAudit() {
           detail: e.target_kind ? `${e.target_kind}${e.target_id ? ` · ${String(e.target_id).slice(0, 8)}` : ""}` : (e.actor_name ?? ""),
           amount: null, category: e.category, actor: e.actor_name, metadata: e.metadata,
         })),
-        ...(credits ?? []).map((c) => ({
+        ...(credits ?? []).slice(0, 250).map((c) => ({
           id: `cr-${c.id}`, kind: "credit" as const, ts: c.created_at, label: c.transaction_type,
           detail: c.description ?? titleMap.get(c.project_id) ?? "", amount: c.amount, category: "credits",
           actor: null, metadata: { project_id: c.project_id, amount: c.amount, type: c.transaction_type },

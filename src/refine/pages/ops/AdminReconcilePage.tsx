@@ -56,11 +56,13 @@ export default function AdminReconcilePage() {
             { value: "partial", label: "Partial" }, { value: "failed", label: "Failed" }] },
         ]}
         signals={[
-          { label: "Total jobs", value: (r) => r.length, tone: "blue" },
-          { label: "Discrepancies",
+          // Signals are computed over the latest-50 query slice, so the labels
+          // say "latest 50" rather than implying an all-time total.
+          { label: "Jobs · latest 50", value: (r) => r.length, tone: "blue" },
+          { label: "Discrepancies · latest 50",
             value: (r) => r.reduce((s, x) => s + ((x as ReconcileRow).discrepancies ?? 0), 0).toLocaleString(),
             tone: "rose" },
-          { label: "Records scanned",
+          { label: "Scanned · latest 50",
             value: (r) => r.reduce((s, x) => s + ((x as ReconcileRow).scanned ?? 0), 0).toLocaleString(),
             tone: "neutral" },
           { label: "Last run",

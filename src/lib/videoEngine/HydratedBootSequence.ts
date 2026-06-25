@@ -58,6 +58,10 @@ export function waitForCanPlayThrough(
     const timeoutId = setTimeout(() => {
       if (!resolved) {
         resolved = true;
+        // Remove the listeners on the timeout path too — PREVIOUSLY only the
+        // canplaythrough/error branches called cleanup(), so a slow CDN (exactly
+        // when the timeout fires) left three orphaned listeners on the <video>.
+        cleanup();
         // Don't reject - resolve with current state for graceful fallback
         console.warn('[HydratedBoot] Timeout waiting for canplaythrough:', clipId.substring(0, 50));
         resolve(getBufferStatus(video, clipId, video.readyState >= 2 ? 'ready' : 'error'));

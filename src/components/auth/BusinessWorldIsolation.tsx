@@ -27,10 +27,15 @@ import { useAuth } from "@/contexts/AuthContext";
  *
  * Personal, admin, and signed-out users are unaffected.
  */
+// NOTE: "/profile" is intentionally NOT in this deny-list. It's a signed-in
+// user's personal identity page (the /profile route is deliberately reachable
+// by any account type — see App.tsx), and "/c/:id" renders the same
+// ProfileDashboard without being blocked, so denying "/profile" was an
+// asymmetric oversight that made the Profile menu link feel broken for business
+// accounts.
 const CONSUMER_ACCOUNT_PREFIXES = [
   "/lobby",
   "/me",
-  "/profile",
   "/account",
   "/settings",
   "/inbox",

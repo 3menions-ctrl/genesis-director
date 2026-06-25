@@ -66,6 +66,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { GradientBackdrop } from "@/components/foundation/GradientBackdrop";
 import { cn } from "@/lib/utils";
 import { EASE_PREMIUM, TYPE_META } from "@/lib/design-system";
+import { ADMIN_ENABLED } from "@/admin/adminEnabled";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -582,16 +583,22 @@ function StatusPanel({ reducedMotion }: { reducedMotion: boolean }) {
             </span>
           </h2>
         </div>
-        <Link
-          to="/admin/status"
-          className={cn(
-            TYPE_META,
-            "hidden sm:inline-flex items-center gap-1.5 text-muted-foreground/55 hover:text-foreground transition-colors tracking-[0.28em]",
-          )}
-        >
-          FULL STATUS
-          <ArrowUpRight className="h-3 w-3" strokeWidth={1.8} />
-        </Link>
+        {/* /admin/status only exists in the admin build (tree-shaken out of
+            the public prod bundle), and /help is a fully public page — so this
+            link is gated to admin builds to avoid a guaranteed 404 for public
+            desktop visitors. */}
+        {ADMIN_ENABLED && (
+          <Link
+            to="/admin/status"
+            className={cn(
+              TYPE_META,
+              "hidden sm:inline-flex items-center gap-1.5 text-muted-foreground/55 hover:text-foreground transition-colors tracking-[0.28em]",
+            )}
+          >
+            FULL STATUS
+            <ArrowUpRight className="h-3 w-3" strokeWidth={1.8} />
+          </Link>
+        )}
       </div>
 
       <div

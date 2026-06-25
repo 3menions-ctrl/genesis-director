@@ -29,14 +29,12 @@ export function CreatorEarnings({ className }: { className?: string }) {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const [{ data: { user } }, pendingRes, ledgerRes, acctRes] = await Promise.all([
+      const [{ data: { user } }, pendingRes, lifetimeRes, acctRes] = await Promise.all([
         supabase.auth.getUser(),
         supabase.rpc("creator_pending_payout_cents"),
-        supabase
-          .from("creator_earnings_ledger")
-          .select("usd_cents")
-          .order("created_at", { ascending: false })
-          .limit(1000),
+        // Server-side SUM over the FULL ledger — PREVIOUSLY a .limit(1000)
+        // client slice undercounted lifetime earnings past 1,000 rows.
+        supabase.rpc("creator_lifetime_earnings_cents" as never),
         supabase
           .from("creator_payout_accounts")
           .select("stripe_account_id, onboarding_complete, payouts_enabled")
@@ -45,10 +43,7 @@ export function CreatorEarnings({ className }: { className?: string }) {
       if (cancelled) return;
       if (!user) { setLoading(false); return; }
       setPendingCents(typeof pendingRes.data === "number" ? pendingRes.data : 0);
-      setLifetimeCents(
-        ((ledgerRes.data as Array<{ usd_cents?: number }> | null) ?? [])
-          .reduce((sum, r) => sum + (r.usd_cents ?? 0), 0),
-      );
+      setLifetimeCents(typeof lifetimeRes.data === "number" ? lifetimeRes.data : 0);
       setAccount(acctRes.data as PayoutAccount | null);
       setLoading(false);
     })();

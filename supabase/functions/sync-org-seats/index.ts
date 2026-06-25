@@ -29,7 +29,6 @@ serve(async (req) => {
 
     const body = await req.json();
     const orgId: string = body.organizationId;
-    const env: StripeEnv = body.environment === "live" ? "live" : "sandbox";
     if (!orgId) return new Response(JSON.stringify({ error: "missing organizationId" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
 
     // Verify caller has admin permission on the org
@@ -42,12 +41,15 @@ serve(async (req) => {
     const { data: countData } = await sb.rpc("get_org_seat_count", { p_org_id: orgId });
     const activeSeats: number = countData || 1;
 
-    // Find the subscription
+    // Find the org's active subscription across BOTH environments. PREVIOUSLY
+    // this filtered by an env that defaulted to 'sandbox' when the client didn't
+    // pass `environment: "live"` — but webhooks store hosted checkouts as
+    // 'live', so the lookup always missed and returned no_active_subscription.
+    // Derive the Stripe env from the stored row instead of trusting the body.
     const { data: sub } = await sb
       .from("subscriptions")
       .select("stripe_subscription_id, seat_price_id, environment")
       .eq("organization_id", orgId)
-      .eq("environment", env)
       .in("status", ["active", "trialing", "past_due"])
       .order("created_at", { ascending: false })
       .limit(1)
@@ -59,6 +61,7 @@ serve(async (req) => {
       });
     }
 
+    const env: StripeEnv = sub.environment === "live" ? "live" : "sandbox";
     const stripe = createStripeClient(env);
     const stripeSub = await stripe.subscriptions.retrieve(sub.stripe_subscription_id);
     const seatItem = stripeSub.items.data.find((it: any) =>

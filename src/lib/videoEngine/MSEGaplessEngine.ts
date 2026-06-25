@@ -375,6 +375,8 @@ export class MSEGaplessEngine {
    * Process the append queue (handles SourceBuffer async nature)
    */
   private processAppendQueue(): void {
+    // Hoisted so the catch block can re-queue the clip that actually failed.
+    let clipIndex: number | undefined;
     // SAFARI FIX: Wrap entire method in try-catch to prevent crashes
     try {
       if (this.isAppending || this.appendQueue.length === 0 || !this.sourceBuffer) {
@@ -392,7 +394,7 @@ export class MSEGaplessEngine {
         return;
       }
 
-      const clipIndex = this.appendQueue.shift()!;
+      clipIndex = this.appendQueue.shift()!;
       const buffer = this.clipBuffers.get(clipIndex);
 
       if (!buffer) {
@@ -420,9 +422,11 @@ export class MSEGaplessEngine {
       // Handle QuotaExceededError by removing old buffer
       if (errorName === 'QuotaExceededError') {
         this.cleanupBuffer();
-        // Re-queue the clip that failed
-        const failedClip = this.appendQueue[0];
-        if (failedClip !== undefined) {
+        // Re-queue the clip that ACTUALLY failed (already shift()-ed off the
+        // queue above). PREVIOUSLY this inspected appendQueue[0] — the NEXT
+        // clip — so the failed segment was silently dropped, leaving a gap.
+        if (clipIndex !== undefined) {
+          this.appendQueue.unshift(clipIndex);
           setTimeout(() => this.processAppendQueue(), 100);
         }
       } else if (errorName === 'InvalidStateError') {
@@ -443,20 +447,32 @@ export class MSEGaplessEngine {
       let iterationCount = 0;
       const MAX_ITERATIONS = 600; // 30 seconds at 50ms intervals
       
+      // Listener is removed on every resolve path so it doesn't accumulate
+      // across loadAllClips() calls and keep re-firing processAppendQueue on
+      // future buffer mutations (including cleanupBuffer's remove()).
+      const onUpdateEnd = () => {
+        this.isAppending = false;
+        this.processAppendQueue();
+      };
+      const settle = () => {
+        this.sourceBuffer?.removeEventListener('updateend', onUpdateEnd);
+        resolve();
+      };
+
       const check = () => {
         iterationCount++;
-        
+
         // SAFETY: Prevent infinite polling
         if (iterationCount >= MAX_ITERATIONS) {
           console.warn('[MSEEngine] waitForAppendComplete timed out after 30s');
-          resolve();
+          settle();
           return;
         }
-        
+
         if (this.appendQueue.length === 0 && !this.isAppending) {
           // Ensure sourceBuffer is done updating
           if (this.sourceBuffer && !this.sourceBuffer.updating) {
-            resolve();
+            settle();
           } else {
             setTimeout(check, 50);
           }
@@ -464,13 +480,7 @@ export class MSEGaplessEngine {
           setTimeout(check, 50);
         }
       };
-      
-      // Also listen for updateend
-      const onUpdateEnd = () => {
-        this.isAppending = false;
-        this.processAppendQueue();
-      };
-      
+
       this.sourceBuffer?.addEventListener('updateend', onUpdateEnd);
       check();
     });

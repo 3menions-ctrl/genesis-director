@@ -71,6 +71,9 @@ export default function AdminGdprPage() {
           { label: "Complete", icon: Check, show: (r) => r.status === "pending" || r.status === "in_progress",
             onRun: async (r) => {
               const note = prompt("Optional completion note (e.g. export URL, deletion summary):", r.notes ?? "");
+              // prompt() returns null on Cancel — abort rather than flipping a
+              // statutory compliance record to 'completed' and wiping notes.
+              if (note === null) return;
               const { error } = await supabase.from("gdpr_requests")
                 .update({ status: "completed", completed_at: new Date().toISOString(), notes: note }).eq("id", r.id);
               if (error) throw error;

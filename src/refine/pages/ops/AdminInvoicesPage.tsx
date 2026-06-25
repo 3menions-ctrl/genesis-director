@@ -83,7 +83,8 @@ export default function AdminInvoicesPage() {
         { label: "Transactions YTD", value: ytd.length, tone: "blue" },
         { label: "Gross YTD", value: `$${(grossCents/100).toFixed(2)}`, tone: "emerald" },
         { label: "Refunds YTD", value: `$${(refundsCents/100).toFixed(2)}`, tone: refundsCents > 0 ? "rose" : "neutral" },
-        { label: "Total Ledger", value: rows.length, tone: "amber" },
+        // rows is the latest-5000 slice, not the entire ledger — label honestly.
+        { label: "Ledger · latest 5000", value: rows.length, tone: "amber" },
       ]}
       actions={
         <>

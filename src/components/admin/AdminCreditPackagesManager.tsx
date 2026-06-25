@@ -234,6 +234,7 @@ export function AdminCreditPackagesManager() {
   };
 
   const getPricePerCredit = (credits: number, priceCents: number) => {
+    if (!credits) return '0.000'; // guard a legacy/zero-credit row → no Infinity
     return (priceCents / credits / 100).toFixed(3);
   };
 

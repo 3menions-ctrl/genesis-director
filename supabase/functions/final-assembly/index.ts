@@ -55,7 +55,14 @@ serve(async (req) => {
   }
 
   const startTime = Date.now();
-  
+
+  // Hoisted above the try so the catch can write the project's error state.
+  // PREVIOUSLY the catch did `await req.clone().json()`, but the body was
+  // already consumed by the `await req.json()` below, so clone() threw
+  // TypeError and the project was NEVER marked 'error' — it stayed stuck in
+  // 'stitching' relying entirely on the watchdog.
+  let projectId: string | undefined;
+
   try {
     const { validateAuth, unauthorizedResponse, resolveEffectiveUserId, forbiddenResponse } = await import("../_shared/auth-guard.ts");
     const auth = await validateAuth(req);
@@ -64,7 +71,7 @@ serve(async (req) => {
     }
 
     const {
-      projectId,
+      projectId: bodyProjectId,
       userId: bodyUserId,
       forceReconcile,
       masterLoudness,
@@ -78,6 +85,7 @@ serve(async (req) => {
       format,
       crf,
     } = await req.json() as FinalAssemblyRequest;
+    projectId = bodyProjectId;
     // SECURITY: trust JWT, never the body, for end-user calls
     let userId: string | undefined;
     try {
@@ -343,14 +351,15 @@ serve(async (req) => {
     const errorMsg = error instanceof Error ? error.message : "Unknown error";
     console.error("[FinalAssembly] Error:", errorMsg);
     
-    // Try to update project with error state
+    // Try to update project with error state. Use the hoisted `projectId`
+    // (parsed once above) — re-cloning the already-consumed request body here
+    // throws and silently skipped this write.
     try {
-      const body = await req.clone().json() as FinalAssemblyRequest;
-      if (body.projectId) {
+      if (projectId) {
         const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
         const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
         const supabase = createClient(supabaseUrl, supabaseKey);
-        
+
         await supabase
           .from('movie_projects')
           .update({
@@ -362,7 +371,7 @@ serve(async (req) => {
             },
             updated_at: new Date().toISOString(),
           })
-          .eq('id', body.projectId);
+          .eq('id', projectId);
       }
     } catch (updateErr) {
       console.error("[FinalAssembly] Failed to update error state:", updateErr);

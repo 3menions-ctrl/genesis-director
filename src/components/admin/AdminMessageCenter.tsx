@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -53,6 +53,12 @@ export function AdminMessageCenter() {
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMessage, setSelectedMessage] = useState<SupportMessage | null>(null);
+  // Mirror of selectedMessage.id read by the realtime handler. Lets the
+  // subscription effect depend only on a stable fetcher, so selecting a
+  // different message no longer tears down and rebuilds the channel (which
+  // could miss inbound messages during the resubscribe gap).
+  const selectedIdRef = useRef<string | null>(null);
+  useEffect(() => { selectedIdRef.current = selectedMessage?.id ?? null; }, [selectedMessage?.id]);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [adminNotes, setAdminNotes] = useState('');
@@ -100,12 +106,12 @@ export function AdminMessageCenter() {
                 msg.id === payload.new.id ? (payload.new as SupportMessage) : msg
               )
             );
-            if (selectedMessage?.id === payload.new.id) {
+            if (selectedIdRef.current === payload.new.id) {
               setSelectedMessage(payload.new as SupportMessage);
             }
           } else if (payload.eventType === 'DELETE') {
             setMessages((prev) => prev.filter((msg) => msg.id !== payload.old.id));
-            if (selectedMessage?.id === payload.old.id) {
+            if (selectedIdRef.current === payload.old.id) {
               setSelectedMessage(null);
             }
           }
@@ -116,7 +122,7 @@ export function AdminMessageCenter() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchMessages, selectedMessage?.id]);
+  }, [fetchMessages]);
 
   // Update admin notes when selecting a message
   useEffect(() => {
@@ -185,6 +191,8 @@ export function AdminMessageCenter() {
   };
 
   const deleteMessage = async (messageId: string) => {
+    // Hard delete — confirm before destroying a support ticket on a single click.
+    if (!window.confirm('Permanently delete this support message? This cannot be undone.')) return;
     try {
       const { error } = await supabase
         .from('support_messages')
@@ -208,12 +216,13 @@ export function AdminMessageCenter() {
   // Filter and search messages
   const filteredMessages = messages.filter((msg) => {
     const matchesStatus = statusFilter === 'all' || msg.status === statusFilter;
+    const q = searchQuery.toLowerCase();
     const matchesSearch =
       searchQuery === '' ||
-      msg.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      msg.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      msg.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      msg.message.toLowerCase().includes(searchQuery.toLowerCase());
+      (msg.name ?? '').toLowerCase().includes(q) ||
+      (msg.email ?? '').toLowerCase().includes(q) ||
+      (msg.subject ?? '').toLowerCase().includes(q) ||
+      (msg.message ?? '').toLowerCase().includes(q);
     return matchesStatus && matchesSearch;
   });
   const { slice: pagedMessages, page, setPage, totalPages, total, pageSize } = usePagination(filteredMessages, 25);
@@ -353,7 +362,7 @@ export function AdminMessageCenter() {
                             : 'bg-white/[0.06] text-white/60'
                         )}
                       >
-                        {msg.name.charAt(0).toUpperCase()}
+                        {(msg.name ?? '?').charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">

@@ -260,8 +260,16 @@ export function useMSEPlayback(config: MSEPlaybackConfig): UseMSEPlaybackResult 
     init();
 
     return () => {
+      // Reset `initializedRef` here so the NEXT run (after a clip-list change)
+      // actually re-initializes. PREVIOUSLY the cleanup destroyed the engine
+      // but left initializedRef=true, so the re-run hit the `|| initializedRef`
+      // guard and returned immediately — leaving a destroyed/blank player
+      // until controls.retry() was manually invoked.
       engineRef.current?.destroy();
+      engineRef.current = null;
       blobCacheRef.current?.destroy();
+      blobCacheRef.current = null;
+      initializedRef.current = false;
     };
   }, [clips.join(',')]); // Only reinit when clips change
 

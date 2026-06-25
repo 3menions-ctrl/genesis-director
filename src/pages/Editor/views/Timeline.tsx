@@ -119,6 +119,7 @@ import {
 } from "@/lib/editor/upload-ingest";
 import { flushNow as flushDocNow } from "@/lib/editor/document-store";
 import { useAuth as useAuthForUpload } from "@/contexts/AuthContext";
+import { confirmAsync } from "@/components/ui/global-confirm";
 import { ClipFilmstrip } from "../components/ClipFilmstrip";
 import { TextOverlayTrack } from "../components/TextOverlayTrack";
 import { getClipProperty } from "@/lib/editor/types";
@@ -448,9 +449,14 @@ export function Timeline({
   // Confirmation guard so an errant click doesn't nuke a long edit.
   const onClearAll = async () => {
     if (clips.length === 0) return;
-    const ok = window.confirm(
-      `Remove all ${clips.length} clip${clips.length === 1 ? "" : "s"} from the timeline?\n\nUse Cmd-Z to undo.`,
-    );
+    // Route through the branded confirm system (confirm-dialog standard), not
+    // the native window.confirm.
+    const ok = await confirmAsync({
+      title: `Remove all ${clips.length} clip${clips.length === 1 ? "" : "s"}?`,
+      description: "This clears the timeline. Use Cmd-Z to undo.",
+      confirmLabel: "Remove all",
+      destructive: true,
+    });
     if (!ok) return;
     clearAllClips();
     try {

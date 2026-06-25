@@ -11,7 +11,6 @@ describe("isConsumerAccountPath", () => {
       "/lobby",
       "/me",
       "/me/year",
-      "/profile",
       "/account",
       "/account/notifications",
       "/settings",
@@ -23,6 +22,10 @@ describe("isConsumerAccountPath", () => {
 
   it("does NOT flag neutral / shared-infra routes a business user legitimately needs", () => {
     for (const p of [
+      // /profile is a signed-in user's personal identity page, reachable by any
+      // account type (App.tsx) — and /c/:id renders the same page unguarded, so
+      // it is intentionally NOT a consumer-account-isolated surface.
+      "/profile",
       "/business",
       "/business/editor",
       "/business/projects",

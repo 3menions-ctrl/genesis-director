@@ -47,6 +47,25 @@ serve(async (req) => {
     const body = await req.json();
     const action = body.action || "submit";
 
+    // OWNERSHIP: an end-user JWT may only act on its OWN edit session.
+    // Service-role (pipeline-internal) callers are exempt. Without this, any
+    // authenticated caller could drive/read another user's render — and
+    // overwrite its render_settings — by passing that session's id, since the
+    // service-role client bypasses RLS.
+    if (body.sessionId && !auth.isServiceRole) {
+      const { data: owner } = await supabase
+        .from("edit_sessions")
+        .select("user_id")
+        .eq("id", body.sessionId)
+        .maybeSingle();
+      if (!owner || (owner as { user_id?: string }).user_id !== auth.userId) {
+        return new Response(
+          JSON.stringify({ error: "forbidden" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // =========================================================================
     // STATUS: Poll Replicate prediction and return current state
     // =========================================================================

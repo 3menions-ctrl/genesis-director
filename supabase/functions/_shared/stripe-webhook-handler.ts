@@ -276,6 +276,57 @@ async function handlePaymentIntentFailed(pi: any) {
   });
 }
 
+// Reverse the credits granted by an original Stripe purchase when it is
+// refunded or disputed. add_credits stamped credit_transactions.stripe_payment_id
+// with the reference (payment_intent for one-time credit packs, invoice id for
+// Cinema subscriptions), so we find the original grant by any of the candidate
+// references on the charge/dispute and call reverse_credit_purchase (which
+// dedupes on p_reference, so duplicate events are no-ops). Mirrors the Polar
+// order.refunded path. PREVIOUSLY the Stripe refund/dispute handlers only fired
+// an admin alert, so a buyer could refund/chargeback and keep the credits.
+async function reverseStripeCredits(refs: Array<string | null | undefined>, label: string) {
+  const candidates = Array.from(new Set(refs.filter((r): r is string => !!r)));
+  if (candidates.length === 0) {
+    log("reverse: no reference on event", { label });
+    return;
+  }
+  const sb = getSupabase();
+  const { data: orig, error: lookupErr } = await sb
+    .from("credit_transactions")
+    .select("user_id, amount, stripe_payment_id")
+    .in("stripe_payment_id", candidates)
+    .gt("amount", 0)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (lookupErr) {
+    log("reverse: lookup error", { error: lookupErr.message, label });
+    return;
+  }
+  if (!orig) {
+    log("reverse: no matching credit grant", { candidates, label });
+    return;
+  }
+  const userId = (orig as { user_id?: string }).user_id;
+  const amount = (orig as { amount?: number }).amount ?? 0;
+  const reference = (orig as { stripe_payment_id?: string }).stripe_payment_id || candidates[0];
+  if (!userId || !UUID_RE.test(userId) || !Number.isFinite(amount) || amount <= 0) {
+    log("reverse: invalid grant row", { userId, amount, label });
+    return;
+  }
+  const { error } = await sb.rpc("reverse_credit_purchase", {
+    p_user_id: userId,
+    p_amount: amount,
+    p_description: `Refund/chargeback reversal (Stripe ${label} ${reference})`,
+    p_reference: `stripe_reverse_${reference}`,
+  });
+  if (error) {
+    log("reverse_credit_purchase error", { error: error.message, label });
+    throw new Error(`reverse_credit_purchase failed: ${error.message}`);
+  }
+  log("stripe credits reversed", { userId, amount, reference, label });
+}
+
 async function handleChargeRefunded(charge: any) {
   await fireAdminAlert("refund", {
     buyer_email: charge?.billing_details?.email || charge?.receipt_email || null,
@@ -283,6 +334,14 @@ async function handleChargeRefunded(charge: any) {
     stripe_id: charge?.id,
     reason: charge?.refunds?.data?.[0]?.reason || "refund",
   });
+  await reverseStripeCredits(
+    [
+      typeof charge?.payment_intent === "string" ? charge.payment_intent : null,
+      typeof charge?.invoice === "string" ? charge.invoice : null,
+      charge?.id,
+    ],
+    "refund",
+  );
 }
 
 async function handleDisputeCreated(dispute: any) {
@@ -292,6 +351,13 @@ async function handleDisputeCreated(dispute: any) {
     stripe_id: dispute?.id,
     reason: dispute?.reason || "chargeback",
   });
+  await reverseStripeCredits(
+    [
+      typeof dispute?.payment_intent === "string" ? dispute.payment_intent : null,
+      typeof dispute?.charge === "string" ? dispute.charge : null,
+    ],
+    "dispute",
+  );
 }
 
 async function fireAdminAlert(

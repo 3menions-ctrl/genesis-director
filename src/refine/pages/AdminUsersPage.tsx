@@ -85,6 +85,8 @@ export default function AdminUsersPage() {
     if (targetUser.id === user?.id && action === "revoke") {
       toast.error("You cannot remove your own admin role"); return;
     }
+    // Privilege change — confirm before granting/revoking platform admin.
+    if (!window.confirm(`${action === "grant" ? "Grant" : "Revoke"} platform-admin for ${targetUser.email ?? targetUser.id}?`)) return;
     try {
       const { error } = await supabase.rpc("admin_manage_role", {
         p_target_user_id: targetUser.id, p_role: "admin" as any, p_action: action,
@@ -163,6 +165,8 @@ export default function AdminUsersPage() {
   };
 
   const runBulkRestore = async () => {
+    // Confirm for parity with runBulkSuspend (which already prompts).
+    if (!window.confirm(`Restore ${selected.size} user(s)?`)) return;
     setBulkBusy(true);
     try {
       const { data, error } = await supabase.rpc("admin_bulk_restore" as never, {

@@ -63,6 +63,12 @@ export function useCanvas() {
     }, 600);
   }, [canvasId]);
 
+  // Cancel any pending debounced save on unmount so it can't fire setSaving()
+  // after the component is gone (and issue an unobservable write).
+  useEffect(() => () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+  }, []);
+
   const updateGraph = useCallback((updater: (g: CanvasGraph) => CanvasGraph) => {
     setGraph((prev) => {
       const next = updater(prev);

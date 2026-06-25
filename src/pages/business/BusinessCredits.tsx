@@ -77,6 +77,10 @@ export default function BusinessCredits() {
 
   // ── Ledger / analytics data ────────────────────────────────────────────────
   const [txns, setTxns] = useState<Txn[]>([]);
+  // Full ledger (last 365d) used for burn/runway math. `txns` above is the
+  // 200-row display slice — computing burn from it undercounted spend (and so
+  // OVERSTATED runway) once an org had >200 transactions in the window.
+  const [txnsAll, setTxnsAll] = useState<Txn[]>([]);
   const [projectTitles, setProjectTitles] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<LedgerFilter>("all");
@@ -115,6 +119,7 @@ export default function BusinessCredits() {
       const userIds = (memberRes.data ?? []).map((m) => m.user_id);
       if (userIds.length === 0) {
         setTxns([]);
+        setTxnsAll([]);
         setProjectTitles(new Map());
         return;
       }
@@ -135,7 +140,9 @@ export default function BusinessCredits() {
           .limit(1000),
       ]);
 
-      setTxns(((txnRes.data ?? []) as unknown as Txn[]).slice(0, TXN_LIMIT));
+      const allTxns = (txnRes.data ?? []) as unknown as Txn[];
+      setTxnsAll(allTxns);
+      setTxns(allTxns.slice(0, TXN_LIMIT));
       setProjectTitles(new Map(((projRes.data ?? []) as { id: string; title: string | null }[])
         .map((p) => [p.id, p.title || "Untitled"])));
     } catch (e) {
@@ -178,8 +185,8 @@ export default function BusinessCredits() {
 
   // ── Derived analytics ──────────────────────────────────────────────────────
   const a = useMemo(() => {
-    const spends = txns.filter((t) => t.amount < 0);
-    const grants = txns.filter((t) => t.amount > 0);
+    const spends = txnsAll.filter((t) => t.amount < 0);
+    const grants = txnsAll.filter((t) => t.amount > 0);
 
     const burnSeries = bucketByDay(spends, (s) => s.created_at, (s) => Math.abs(s.amount), WINDOW_DAYS);
     const grantSeries = bucketByDay(grants, (g) => g.created_at, (g) => g.amount, WINDOW_DAYS);
@@ -211,7 +218,7 @@ export default function BusinessCredits() {
       grantSpark: grantSeries.map((d) => d.value),
       hasBurn: burnSeries.some((d) => d.value > 0),
     };
-  }, [txns, projectTitles, balance]);
+  }, [txnsAll, projectTitles, balance]);
 
   // ── Ledger (filter → cap → paginate) ───────────────────────────────────────
   const ledgerRows = useMemo(() => {

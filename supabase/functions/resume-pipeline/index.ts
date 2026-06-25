@@ -281,7 +281,12 @@ serve(async (req) => {
       // Pass through original config from pending tasks (with sensible defaults)
       // NOTE: Narration is OFF by default unless explicitly requested
       includeVoice: pendingTasks.config?.includeVoice ?? false,
-      includeMusic: pendingTasks.config?.includeMusic ?? pendingTasks.assets?.musicUrl ? false : true,
+      // Precedence guard: `??` binds tighter than `?:`, so the un-parenthesised
+      // form parsed as `(includeMusic ?? musicUrl) ? false : true`, which
+      // truthiness-INVERTED the user's stored preference. Parenthesise the
+      // ternary so the stored value wins and the musicUrl fallback only
+      // applies when includeMusic is null/undefined.
+      includeMusic: pendingTasks.config?.includeMusic ?? (pendingTasks.assets?.musicUrl ? false : true),
       genre: pendingTasks.config?.genre || project.genre || 'cinematic',
       mood: pendingTasks.config?.mood || project.mood || 'epic',
       colorGrading: pendingTasks.config?.colorGrading || 'cinematic',

@@ -67,7 +67,15 @@ export default function AdminCohortsPage() {
       if (ids.length) {
         const paid = new Set<string>();
         for (let i = 0; i < ids.length; i += 300) {
-          const { data: profs } = await supabase.from("profiles").select("id, account_tier").in("id", ids.slice(i, i + 300));
+          // account_tier is no longer SELECTable from the base profiles table
+          // (cross-tenant leak closed in 20260704001500). Read it through the
+          // is_admin-gated SECURITY DEFINER RPC instead.
+          const { data: profs } = await (
+            supabase.rpc as unknown as (
+              fn: string,
+              args: Record<string, unknown>,
+            ) => Promise<{ data: Array<{ id: string; account_tier: string | null }> | null }>
+          )("admin_profiles_by_ids", { p_ids: ids.slice(i, i + 300) });
           for (const p of (profs as Row[]) ?? []) if ((p.account_tier || "free") !== "free") paid.add(p.id);
         }
         setPaidIds(paid);

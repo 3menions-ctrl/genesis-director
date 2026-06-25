@@ -63,6 +63,11 @@ export function useScriptDocument(projectId: string | undefined): UseScriptDocum
       return;
     }
     let cancelled = false;
+    // Clear the previous project's doc FIRST so `loading` (doc === null) flips
+    // true during the switch. Otherwise the global singleton store still holds
+    // project A's document and the editor renders A's scenes/clips under
+    // project B until B's async load resolves.
+    setDocument(null);
     void (async () => {
       try {
         // Fetch the project row + every legacy table the hydration

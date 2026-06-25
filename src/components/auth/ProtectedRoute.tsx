@@ -284,6 +284,26 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
     );
   }
 
+  // Auth is fully resolved (loading=false, verified=true) but there is NO
+  // session in state. The redirect to /auth is only SCHEDULED (a 500ms buffered
+  // re-check above), so without this guard we would fall through and mount the
+  // protected page — firing its effects/queries — for an unauthenticated
+  // visitor on a hard refresh / deep link. Render the redirect loader instead.
+  // (If the buffered re-check finds a fresh session, state catches up and we
+  // re-render into the children below.)
+  if (authPhase === 'ready' && !hasSessionInState && !hasRenderedChildren.current) {
+    if (navLoadingState.isLoading) {
+      return <div className="fixed inset-0 bg-background" />;
+    }
+    return (
+      <CinemaLoader
+        message="Redirecting to login..."
+        showProgress={false}
+        variant="fullscreen"
+      />
+    );
+  }
+
   // Mark that we've successfully rendered children
   hasRenderedChildren.current = true;
 

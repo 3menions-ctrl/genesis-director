@@ -74,6 +74,8 @@ export default function AdminRefundsPage() {
         actions={[
           { label: "Approve", icon: Check, show: (r) => r.status === "pending",
             onRun: async (r) => {
+              // Money action — confirm before approving a refund.
+              if (!window.confirm(`Approve refund of ${formatCurrency(r.amount_cents, r.currency)}?`)) return;
               const { data: { user } } = await supabase.auth.getUser();
               const { error } = await supabase.from("refund_requests")
                 .update({ status: "approved", handled_by: user?.id }).eq("id", r.id);

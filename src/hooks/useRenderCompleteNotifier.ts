@@ -64,7 +64,14 @@ export function useRenderCompleteNotifier() {
           const prevStatus = lastStatusRef.current.get(next.id);
           lastStatusRef.current.set(next.id, next.status);
 
-          if (!COMPLETED_STATUSES.has(next.status)) return;
+          if (!COMPLETED_STATUSES.has(next.status)) {
+            // Left the completed state (e.g. a re-render). Clear the fired flag
+            // so a genuine future active→completed transition can notify again —
+            // firedRef should only dedupe duplicate replication events for the
+            // SAME completion, not suppress all future completions this session.
+            firedRef.current.delete(next.id);
+            return;
+          }
           if (firedRef.current.has(next.id)) return;
           // Only toast on a genuine active→completed transition.
           if (!prevStatus || !ACTIVE_STATUSES.has(prevStatus)) return;

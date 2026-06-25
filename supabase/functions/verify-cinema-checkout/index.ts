@@ -57,8 +57,11 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const sessionId = String(body?.sessionId ?? "").trim();
-    const rawEnv = body?.environment;
-    const env: StripeEnv = rawEnv === "sandbox" ? "sandbox" : "live";
+    // Derive the Stripe env from the session id prefix itself (cs_test_ =
+    // sandbox, cs_live_ = live) rather than trusting a client-supplied
+    // `environment`, which could send verify at the wrong Stripe mode and 500 on
+    // a live session. Mirrors the create-side hardening (hosted = always live).
+    const env: StripeEnv = /^cs_test_/.test(sessionId) ? "sandbox" : "live";
 
     if (!sessionId || !/^cs_(test|live)_[A-Za-z0-9]+$/.test(sessionId)) {
       return new Response(JSON.stringify({ error: "Invalid sessionId" }), {

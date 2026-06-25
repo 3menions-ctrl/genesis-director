@@ -216,6 +216,20 @@ serve(async (req) => {
     const body = (await req.json()) as StitchRequest;
     bodySnapshot = body;
 
+    // ═══ AUTH GUARD ═══
+    // verify_jwt=true only proves the caller holds *some* JWT (any logged-in
+    // user / the browser anon key). Because this function uses the service
+    // role (which bypasses RLS), charges credits to the project owner, and
+    // overwrites the project's video_url, an unauthorized caller could pass
+    // someone else's projectId to charge that victim and clobber their video.
+    // We re-validate here and enforce project ownership below (service-role
+    // pipeline-internal callers are exempt).
+    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const auth = await validateAuth(req);
+    if (!auth.authenticated) {
+      return unauthorizedResponse(corsHeaders, auth.error);
+    }
+
     // Reject ambiguous calls early.
     const isProjectMode = !!body.projectId;
     const isClipsMode = Array.isArray(body.clips) && body.clips.length > 0;
@@ -275,6 +289,17 @@ serve(async (req) => {
         .maybeSingle();
       if (projectErr || !project) {
         throw new Error(`project_not_found: ${projectErr?.message ?? body.projectId}`);
+      }
+      // OWNERSHIP: an end-user JWT may only stitch their OWN project.
+      // Service-role (pipeline-internal) callers are trusted. Without this,
+      // any authenticated user could re-stitch, charge, and overwrite another
+      // user's project by passing its id.
+      const ownerId = (project as { user_id?: string }).user_id ?? null;
+      if (!auth.isServiceRole && auth.userId !== ownerId) {
+        return new Response(
+          JSON.stringify({ ok: false, error: "forbidden" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
       }
       // Pull the tracks array from editor_state. The track mute/lock/solo
       // toggles in the TrackHeader UI write here via setTrackProps; we

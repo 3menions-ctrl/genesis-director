@@ -128,7 +128,10 @@ export function NavigationLoadingProvider({ children }: { children: ReactNode })
         progress: newProgress,
       }));
     }, messageInterval);
-  }, []);
+    // location.pathname is read above for the diagnostics snapshot; without it
+    // in deps the callback was frozen to the pathname at provider-mount time
+    // (sibling completeNavigation already lists it).
+  }, [location.pathname]);
 
   // Complete navigation (called when page is ready)
   // FIX: Uses refs declared above to prevent memory leaks on unmount

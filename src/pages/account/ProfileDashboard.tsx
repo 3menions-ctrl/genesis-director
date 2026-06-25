@@ -769,17 +769,21 @@ export default function ProfileDashboard() {
         .order("play_count", { ascending: false })
         .limit(24);
       if (reels) {
-        for (const r of reels) {
-          const row = r as {
-            play_count?: number | null;
-            like_count?: number | null;
-            remix_count?: number | null;
-            tip_credits?: number | null;
-          };
-          next.totalPlays += row.play_count ?? 0;
-          next.totalLikes += row.like_count ?? 0;
-          next.totalRemixes += row.remix_count ?? 0;
-          next.totalTipsCredits += row.tip_credits ?? 0;
+        // Lifetime totals come from a server-side aggregate over ALL the
+        // creator's published reels — NOT a sum of this 24-row display slice,
+        // which undercounted plays/likes/remixes/tips for creators with >24
+        // reels (disagreeing with the true totals visitors see via
+        // profile_overview, and potentially leaving achievements locked).
+        const { data: totals } = await (supabase.rpc as unknown as (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => Promise<{ data: { plays?: number; likes?: number; remixes?: number; tips?: number } | null }>
+        )("creator_reel_totals", { p_creator_id: viewedUserId });
+        if (totals) {
+          next.totalPlays = Number(totals.plays ?? 0);
+          next.totalLikes = Number(totals.likes ?? 0);
+          next.totalRemixes = Number(totals.remixes ?? 0);
+          next.totalTipsCredits = Number(totals.tips ?? 0);
         }
         // For public visitors who can't see private project counts,
         // surface published-reel count as the "films" number.

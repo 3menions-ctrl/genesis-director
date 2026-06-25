@@ -253,14 +253,42 @@ export function AdminProjectsBrowser() {
 
   const handleRetryFailedClips = async (projectId: string) => {
     try {
-      const { error } = await supabase
+      // Retry through the REAL generation path (retry-failed-clip →
+      // generate-single-clip). PREVIOUSLY this raw-flipped video_clips.status
+      // to 'pending' and fired a success toast — but that re-renders nothing:
+      // the pipeline watchdog only acts on 'generating' projects and is
+      // disabled by default. Fetch the failed clips and re-queue each.
+      const { data: failedClips, error: fetchErr } = await supabase
         .from('video_clips')
-        .update({ status: 'pending', error_message: null })
+        .select('id, shot_index')
         .eq('project_id', projectId)
-        .eq('status', 'failed');
+        .eq('status', 'failed')
+        .order('shot_index', { ascending: true });
+      if (fetchErr) throw fetchErr;
+      if (!failedClips || failedClips.length === 0) {
+        toast.info('No failed clips to retry');
+        return;
+      }
 
-      if (error) throw error;
-      toast.success('Failed clips queued for retry');
+      // Sequential by shot order: retry-failed-clip holds a per-project
+      // generation lock (concurrent retries 409) and continuity needs order.
+      let ok = 0;
+      for (const clip of failedClips) {
+        const { data, error } = await supabase.functions.invoke('retry-failed-clip', {
+          body: { projectId, clipIndex: (clip as { shot_index: number }).shot_index },
+        });
+        if (error || data?.success === false) {
+          console.warn('[AdminProjects] retry failed for', (clip as { id: string }).id, error?.message ?? data?.message);
+        } else {
+          ok++;
+        }
+      }
+
+      if (ok > 0) {
+        toast.success(`Re-queued ${ok} of ${failedClips.length} failed clip${failedClips.length === 1 ? '' : 's'}`);
+      } else {
+        toast.error('Failed to re-queue clips');
+      }
       if (selectedProject) fetchProjectClips(projectId);
       fetchProjects();
     } catch (err) {

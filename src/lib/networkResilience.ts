@@ -23,9 +23,9 @@ const RETRYABLE_ERRORS = [
   'ETIMEDOUT',
   'Failed to fetch',
   'network request failed',
-  '504',
-  '502',
-  '503',
+  // NB: bare HTTP codes (502/503/504) are matched as standalone tokens in
+  // isRetryableError() via a word-boundary regex — listing them as substrings
+  // here would falsely match digit runs like "1502" or timestamps.
   'Gateway Timeout',
   'Service Unavailable',
   'Bad Gateway',
@@ -148,7 +148,11 @@ export function isRetryableError(error: unknown): boolean {
   if (NON_RETRYABLE_ERRORS.some(pattern => lowered.includes(pattern.toLowerCase()))) {
     return false;
   }
-  
+
+  // HTTP 5xx gateway codes — matched as standalone tokens so a stray "1502" or
+  // a timestamp digit run doesn't falsely trigger a retry.
+  if (/\b(502|503|504)\b/.test(lowered)) return true;
+
   // Check for retryable errors
   return RETRYABLE_ERRORS.some(pattern => lowered.includes(pattern.toLowerCase()));
 }

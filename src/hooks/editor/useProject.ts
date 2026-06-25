@@ -186,6 +186,12 @@ export function useProject(projectId: string | undefined) {
         // the editor. Filter them out here so the timeline only
         // contains things that actually play.
         const playableRows = clipRows.filter((c) => typeof c.video_url === "string" && c.video_url.length > 0);
+        // shot_takes.shot_index keys off the clip's ORIGINAL position (clips are
+        // ordered by created_at). Map each clip id → that original index so
+        // takes attach to the right clip even when an earlier non-playable clip
+        // is filtered out of playableRows (the post-filter index `i` would
+        // otherwise shift every later clip's takes onto the wrong clip).
+        const originalIndexById = new Map(clipRows.map((c, idx) => [c.id, idx]));
         let timelineCursor = 0;
         const clips: EditorClip[] = playableRows.map((c, i) => {
           const dur = c.duration_seconds ?? 4; // sensible default
@@ -223,7 +229,7 @@ export function useProject(projectId: string | undefined) {
             videoUrl: c.video_url,
             thumbnailUrl: c.start_image_url,
             prompt: c.prompt,
-            takes: takesByShot.get(i) ?? [],
+            takes: takesByShot.get(originalIndexById.get(c.id) ?? i) ?? [],
             properties,
             effects,
             keyframes,

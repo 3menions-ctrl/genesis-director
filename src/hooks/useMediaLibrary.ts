@@ -115,7 +115,11 @@ export function useMediaLibrary(opts: Options = {}) {
   const toggleFavorite = useCallback(async (asset: MediaAsset) => {
     const next = !asset.is_favorite;
     setAssets((a) => a.map((x) => x.id === asset.id ? { ...x, is_favorite: next } : x));
-    await supabase.from('user_media_assets').update({ is_favorite: next }).eq('id', asset.id);
+    const { error } = await supabase.from('user_media_assets').update({ is_favorite: next }).eq('id', asset.id);
+    if (error) {
+      // Roll back the optimistic toggle so the UI doesn't diverge from the DB.
+      setAssets((a) => a.map((x) => x.id === asset.id ? { ...x, is_favorite: asset.is_favorite } : x));
+    }
   }, []);
 
   return { assets, loading, error, refresh, remove, toggleFavorite };

@@ -176,7 +176,7 @@ export function PhotoEditorHub() {
     setIsProcessing(true);
     setEditedUrl(null);
     try {
-      const { data: editRecord } = await supabase
+      const { data: editRecord, error: insertErr } = await supabase
         .from('photo_edits')
         .insert({
           user_id: user!.id,
@@ -187,6 +187,10 @@ export function PhotoEditorHub() {
         })
         .select('id')
         .single();
+
+      // Mirror the template path: a failed insert must surface, not silently
+      // send editId: undefined to edit-photo (which loses edit-status tracking).
+      if (insertErr) throw insertErr;
 
       const { data, error } = await supabase.functions.invoke('edit-photo', {
         body: {

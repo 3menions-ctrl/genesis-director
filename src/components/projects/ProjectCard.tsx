@@ -275,7 +275,12 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
   const handleTouchEnd = useCallback(() => {}, []);
 
   const isProcessing = ['generating', 'rendering', 'stitching', 'pending', 'awaiting_approval'].includes(status);
-  const isFailed = status === 'stitching_failed' || status === 'failed';
+  // Backend writes several terminal-failure states the card previously didn't
+  // handle, so failed/errored/cancelled projects rendered as harmless 'draft'
+  // (no error indication, no retry): 'error' (final-assembly), 'payment_failed'
+  // (mode-router), 'cancelled' (cancel-project), 'production_incomplete'
+  // (hollywood-pipeline).
+  const isFailed = ['stitching_failed', 'failed', 'error', 'payment_failed', 'production_incomplete', 'cancelled'].includes(status);
   const visualStatus = hasVideo ? 'ready' : isProcessing ? 'rendering' : isFailed ? 'archived' : 'draft';
 
   // ============= LIST VIEW =============
@@ -721,7 +726,7 @@ function CardDropdown({ onEdit, onOpenInEditor, onTogglePin, isPinned, onRename,
             {project.is_public ? 'Public' : 'Share to Feed'}
           </DropdownMenuItem>
         )}
-        {status === 'stitching_failed' && onRetryStitch && (
+        {(status === 'stitching_failed' || status === 'error') && onRetryStitch && (
           <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onRetryStitch(); }} disabled={isRetrying} className="gap-2 text-sm font-light text-warning focus:text-warning/80 focus:bg-warning/10 rounded-xl py-2 px-2.5">
             <RefreshCw className={cn("w-4 h-4", isRetrying && "animate-spin")} strokeWidth={1.5} />Retry Stitch
           </DropdownMenuItem>

@@ -25,16 +25,21 @@ export interface Presence {
 
 export function usePresence(projectId: string | undefined): Presence {
   const { user, profile } = useAuth();
+  // Key off the stable id, not the whole `user` object. AuthContext replaces
+  // `user` on every TOKEN_REFRESHED (tab focus / heavy-nav), which previously
+  // tore down and rebuilt the presence channel — dropping the presence row and
+  // flickering the "N viewing" pill for everyone during the gap.
+  const userId = user?.id;
   const [state, setState] = useState<Presence>({ count: 1, others: [] });
 
   useEffect(() => {
-    if (!projectId || !user) {
+    if (!projectId || !userId) {
       setState({ count: 1, others: [] });
       return;
     }
 
     const channel = supabase.channel(`presence-${projectId}`, {
-      config: { presence: { key: user.id } },
+      config: { presence: { key: userId } },
     });
 
     channel.on("presence", { event: "sync" }, () => {
@@ -44,7 +49,7 @@ export function usePresence(projectId: string | undefined): Presence {
       >;
       const ids = Object.keys(ps);
       const others = ids
-        .filter((id) => id !== user.id)
+        .filter((id) => id !== userId)
         .map((id) => {
           const first = ps[id][0];
           return {
@@ -69,7 +74,7 @@ export function usePresence(projectId: string | undefined): Presence {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [projectId, user, profile?.display_name, profile?.avatar_url]);
+  }, [projectId, userId, profile?.display_name, profile?.avatar_url]);
 
   return state;
 }

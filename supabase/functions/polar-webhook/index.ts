@@ -105,6 +105,10 @@ async function reverseCredits(order: any) {
   const credits = parseInt(String(md.credits ?? "0"), 10);
   if (!/^[0-9a-f-]{36}$/i.test(userId)) { log("order.refunded: no/invalid user_id", { userId }); return; }
   if (!Number.isFinite(credits) || credits <= 0) { log("order.refunded: nothing to reverse", { credits: md.credits }); return; }
+  // Upper sanity bound mirrors grantCredits (and add_credits' cap) so a
+  // corrupted/huge metadata.credits on a refund event can't reverse an absurd
+  // amount even though reverse_credit_purchase clamps to the original grant.
+  if (credits > 1000000) { log("order.refunded: credits over cap, ignoring", { credits }); return; }
   const ref = `polar_${order.id}`;
 
   const { error } = await sb().rpc("reverse_credit_purchase", {

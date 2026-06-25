@@ -424,7 +424,7 @@ export function AdminPipelineMonitor() {
                       </div>
                     )}
                     <div className="flex justify-between text-xs text-white/45">
-                      <span className="font-mono">{job.projectId.slice(0, 8)}...</span>
+                      <span className="font-mono">{job.projectId?.slice(0, 8) ?? '—'}...</span>
                       <span>{format(new Date(job.startedAt), 'HH:mm:ss')}</span>
                     </div>
                   </div>

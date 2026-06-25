@@ -103,7 +103,15 @@ serve(async (req) => {
   }
 
   const startTime = Date.now();
-  
+
+  // Declared ABOVE the try so the catch block's error-recovery path can read
+  // them. PREVIOUSLY these were `let`/`const` INSIDE the try, so the catch's
+  // `if (projectId)` / `body.projectId` references threw ReferenceError and the
+  // "mark completed if clips exist" recovery was dead code that never ran.
+  let projectId: string | undefined;
+  let userId: string | undefined;
+  let forceStitch = false;
+
   try {
     // ═══ AUTH GUARD ═══
     const { validateAuth, unauthorizedResponse, resolveEffectiveUserId, forbiddenResponse } = await import("../_shared/auth-guard.ts");
@@ -112,11 +120,7 @@ serve(async (req) => {
       return unauthorizedResponse(corsHeaders, auth.error);
     }
 
-    // Parse body ONCE — use closure for error recovery below
-    let projectId: string | undefined;
-    let userId: string | undefined;
-    let forceStitch = false;
-    
+    // Parse body ONCE — projectId is hoisted above for error recovery below
     const body = await req.json() as AutoStitchRequest;
     projectId = body.projectId;
     // SECURITY: trust JWT, never the body, for end-user calls
@@ -300,7 +304,7 @@ serve(async (req) => {
         const { data: clips } = await supabase
           .from('video_clips')
           .select('id')
-          .eq('project_id', body.projectId)
+          .eq('project_id', projectId)
           .eq('status', 'completed');
         
         if (clips && clips.length > 0) {
@@ -319,7 +323,7 @@ serve(async (req) => {
               },
               updated_at: new Date().toISOString(),
             })
-            .eq('id', body.projectId);
+            .eq('id', projectId);
         }
       }
     } catch (recoveryError) {

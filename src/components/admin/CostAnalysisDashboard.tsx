@@ -39,7 +39,7 @@ type DateRangePreset = 'today' | '7days' | '30days' | 'all' | 'custom';
 // These fallbacks are only used if real_cost_cents is 0/null.
 
 const FALLBACK_COST_MAP: Record<string, number> = {
-  'replicate-kling': 5,           // ~$0.05 per clip generation
+  'replicate-kling': 338,         // ~$3.38 per 10s Kling V3 clip (per creditSystem.ts)
   'replicate_minimax': 1,         // ~$0.01 per TTS call
   'openai-tts': 1,                // ~$0.01 per TTS call
   'replicate-musicgen-stereo': 8, // ~$0.08 per music generation
@@ -389,8 +389,17 @@ export function CostAnalysisDashboard() {
   const totalStorageMB = storageCosts.reduce((sum, s) => sum + s.size_mb, 0);
   const totalStorageCostCents = Math.round((totalStorageMB / 1024) * STORAGE_COST_PER_GB_CENTS * 100) / 100;
   const devCostCents = devHours * DEV_HOURLY_RATE_DOLLARS * 100;
-  const lovableCostCents = LOVABLE_MONTHLY_COST_DOLLARS * 100;
-  const supabaseCostCents = SUPABASE_MONTHLY_COST_DOLLARS * 100;
+  // Prorate the fixed MONTHLY platform costs to the selected window. API cost
+  // and revenue are date-filtered (Today/7d/30d), so charging a full month of
+  // fixed cost against a partial window showed a false loss for every window
+  // except a full calendar month. 'All Time' scales by days-since-launch.
+  const { start: costStart, end: costEnd } = getDateRange();
+  const costWindowDays = costStart
+    ? Math.max(1, Math.ceil(((costEnd ?? new Date()).getTime() - costStart.getTime()) / 86_400_000))
+    : Math.max(30, devHours); // 'all' → months since launch
+  const fixedCostFactor = costWindowDays / 30;
+  const lovableCostCents = LOVABLE_MONTHLY_COST_DOLLARS * 100 * fixedCostFactor;
+  const supabaseCostCents = SUPABASE_MONTHLY_COST_DOLLARS * 100 * fixedCostFactor;
 
   // Include retry costs in total (they're real API costs we paid)
   const totalMonthlyCostCents = totalApiCostCents + totalRetryCostCents + totalStorageCostCents + lovableCostCents + supabaseCostCents;

@@ -42,15 +42,18 @@ export default function WorkspaceAnalytics() {
       const profileMap = new Map((profiles ?? []).map(p => [p.id, p]));
 
       const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-      const { data: txns } = await supabase
-        .from('credit_transactions')
-        .select('user_id, amount')
-        .in('user_id', userIds)
-        .lt('amount', 0)
-        .gte('created_at', since);
+      // Org-scoped ledger via SECURITY DEFINER RPC. `.in("user_id", memberIds)`
+      // on the base table was re-narrowed by the `user_id = auth.uid()` RLS
+      // policy to the viewer's own rows, so every other member's burn read 0.
+      const { data: txns } = await (
+        supabase.rpc as unknown as (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => Promise<{ data: Array<{ user_id: string; amount: number }> | null }>
+      )('org_credit_transactions', { p_org_id: currentOrg.id, p_since: since });
       const usageMap = new Map<string, number>();
       (txns ?? []).forEach(t => {
-        usageMap.set(t.user_id, (usageMap.get(t.user_id) ?? 0) + Math.abs(t.amount));
+        if (t.amount < 0) usageMap.set(t.user_id, (usageMap.get(t.user_id) ?? 0) + Math.abs(t.amount));
       });
 
       const { data: projs } = await supabase

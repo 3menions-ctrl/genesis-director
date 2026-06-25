@@ -90,9 +90,10 @@ export default function Presets() {
           />
         </div>
 
-        {/* Live badge — icon only */}
-        <div className="absolute left-4 top-4 grid h-8 w-8 place-items-center rounded-full bg-black/35 backdrop-blur-md" title="Live preview">
-          <SlidersHorizontal className="h-4 w-4" />
+        {/* Live badge — borderless, transparent, with label */}
+        <div className="absolute left-4 top-4 flex flex-col items-center gap-1 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,.7)]" title="Live preview">
+          <SlidersHorizontal className="h-5 w-5" />
+          <span className="font-display text-[10px] font-medium">Live</span>
         </div>
 
         {/* Before/After — hold the eye to compare */}
@@ -105,11 +106,12 @@ export default function Presets() {
           aria-label="Hold to see before"
           title="Hold to see before"
           className={cn(
-            'absolute bottom-4 left-1/2 grid h-10 w-10 -translate-x-1/2 place-items-center rounded-full backdrop-blur-md transition-colors',
-            showBefore ? 'bg-white text-black' : 'bg-black/40 text-white',
+            'absolute bottom-4 left-1/2 flex -translate-x-1/2 flex-col items-center gap-1 drop-shadow-[0_2px_6px_rgba(0,0,0,.7)] transition-colors',
+            showBefore ? 'text-[#8fb4ff]' : 'text-white',
           )}
         >
-          <Eye className="h-[18px] w-[18px]" />
+          <Eye className="h-[22px] w-[22px]" />
+          <span className="font-display text-[10px] font-medium">Before</span>
         </button>
       </div>
 
@@ -124,44 +126,38 @@ export default function Presets() {
             return (
               <button
                 key={l.id}
-                onClick={() => {
-                  void hapticTap();
-                  setSelected(l.id);
-                }}
-                className={cn(
-                  'relative h-[152px] w-[110px] flex-none overflow-hidden rounded-[22px] transition-all duration-200',
-                  on
-                    ? 'scale-[1.05] shadow-[inset_0_1px_0_rgba(255,255,255,.2),0_18px_42px_-8px_rgba(47,107,255,.9)]'
-                    : 'shadow-[inset_0_1px_0_rgba(255,255,255,.1),0_12px_26px_-14px_rgba(0,0,0,.8)]',
-                )}
+                onClick={() => { void hapticTap(); setSelected(l.id); }}
+                aria-label={l.name}
+                title={l.name}
+                className={cn('flex w-[64px] flex-none flex-col items-center gap-1.5 transition-all duration-200', on ? 'opacity-100' : 'opacity-45')}
               >
-                <span className="absolute inset-0" style={{ background: l.grad }} />
-                <span className="absolute inset-0 grid place-items-center text-[40px] drop-shadow-[0_4px_12px_rgba(0,0,0,.5)]">{l.emoji}</span>
-                {l.premium && (
-                  <span className="absolute left-2.5 top-2.5">
-                    <Lock className="h-[15px] w-[15px] text-white/85" />
-                  </span>
-                )}
-                {on && (
-                  <span className="absolute bottom-2.5 right-2.5 grid h-6 w-6 place-items-center rounded-full bg-[#2f6bff] shadow-[0_4px_12px_-2px_rgba(47,107,255,.9)]">
-                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                  </span>
-                )}
+                <span className="relative grid h-9 w-9 place-items-center text-[28px] leading-none">
+                  {l.emoji}
+                  {l.premium && (
+                    <span className="absolute -right-1.5 -top-1.5">
+                      <Lock className="h-3 w-3 text-white/70" />
+                    </span>
+                  )}
+                </span>
+                <span className={cn('font-display text-[10px] font-medium leading-tight', on ? 'text-[#8fb4ff]' : 'text-white/55')}>
+                  {l.name}
+                </span>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Apply — icon only */}
+      {/* Apply — borderless transparent action with a small label */}
       <button
         onClick={apply}
         aria-label={look.premium ? `${look.name} is Pro` : `Apply ${look.name}`}
         title={look.premium ? `${look.name} is Pro` : `Apply ${look.name}`}
-        className="absolute left-1/2 z-10 grid h-14 w-14 -translate-x-1/2 place-items-center rounded-full bg-gradient-to-b from-white to-[#e9ecf5] text-black shadow-[inset_0_1px_0_rgba(255,255,255,.9),0_20px_48px_-14px_rgba(255,255,255,.45)]"
-        style={{ bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 16px)' }}
+        className="absolute inset-x-0 z-10 mx-auto flex w-max flex-col items-center gap-1.5 text-[#7aa2ff]"
+        style={{ bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 22px)' }}
       >
-        {look.premium ? <Lock className="h-[22px] w-[22px]" /> : <Check className="h-[24px] w-[24px]" strokeWidth={2.5} />}
+        {look.premium ? <Lock className="h-[26px] w-[26px]" /> : <Check className="h-[28px] w-[28px]" strokeWidth={2.2} />}
+        <span className="font-display text-[11px] font-semibold tracking-[0.04em]">{look.premium ? 'Pro look' : 'Apply'}</span>
       </button>
     </div>
   );

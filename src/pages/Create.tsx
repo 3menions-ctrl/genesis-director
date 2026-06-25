@@ -103,8 +103,8 @@ export default function Create() {
           paddingBottom: 'calc(var(--safe-bottom, 0px) + var(--tabbar-h, 0px) + 88px)',
         }}
       >
-        {/* Mode hub — icon-only creation services */}
-        <div className="-mx-6 flex justify-center gap-3 overflow-x-auto px-6 pb-1" style={{ scrollbarWidth: 'none' }} aria-label="Creation mode">
+        {/* Mode hub — borderless transparent icons with small labels */}
+        <div className="-mx-6 flex gap-1 overflow-x-auto px-6 pb-1" style={{ scrollbarWidth: 'none' }} aria-label="Creation mode">
           {MODES.map((m) => {
             const on = m.id === modeId;
             return (
@@ -113,12 +113,10 @@ export default function Create() {
                 onClick={() => { void hapticTap(); setModeId(m.id); }}
                 aria-label={m.label}
                 title={m.label}
-                className={cn(
-                  'grid h-[54px] w-[54px] flex-none place-items-center rounded-[18px] transition-all duration-200',
-                  on ? 'surface-2 scale-105' : 'surface-1 opacity-55',
-                )}
+                className="flex w-[58px] flex-none flex-col items-center gap-1.5 transition-all duration-200"
               >
-                <m.Icon className={cn('h-[22px] w-[22px]', on ? 'text-[#8fb4ff]' : 'text-white/80')} strokeWidth={1.8} />
+                <m.Icon className={cn('h-[24px] w-[24px] transition-colors', on ? 'text-[#8fb4ff]' : 'text-white/55')} strokeWidth={1.8} />
+                <span className={cn('font-display text-[10px] font-medium', on ? 'text-[#8fb4ff]' : 'text-white/45')}>{m.label}</span>
               </button>
             );
           })}
@@ -138,9 +136,9 @@ export default function Create() {
           </div>
         )}
 
-        {/* Style — icon (emoji) only, for visual modes */}
+        {/* Style — borderless transparent emoji with small labels */}
         {mode.usesStyle && (
-          <div className="mt-6 flex flex-wrap gap-2.5">
+          <div className="mt-7 flex flex-wrap gap-x-5 gap-y-4">
             {STYLES.map((s) => {
               const on = s.id === styleId;
               return (
@@ -149,14 +147,10 @@ export default function Create() {
                   onClick={() => { void hapticTap(); setStyleId(on ? null : s.id); }}
                   aria-label={s.label}
                   title={s.label}
-                  className={cn(
-                    'grid h-11 w-11 place-items-center rounded-full text-[19px] transition-all duration-200',
-                    on
-                      ? 'bg-gradient-to-br from-[#3f78ff] to-[#7a3bff] shadow-[inset_0_1px_0_rgba(255,255,255,.28),0_12px_30px_-8px_rgba(80,90,255,.75)] scale-105'
-                      : 'surface-1 opacity-70',
-                  )}
+                  className={cn('flex flex-col items-center gap-1.5 transition-all duration-200', on ? 'opacity-100' : 'opacity-45')}
                 >
-                  {s.emoji}
+                  <span className="text-[24px] leading-none">{s.emoji}</span>
+                  <span className={cn('font-display text-[10px] font-medium', on ? 'text-[#8fb4ff]' : 'text-white/55')}>{s.label}</span>
                 </button>
               );
             })}
@@ -164,17 +158,20 @@ export default function Create() {
         )}
       </div>
 
-      {/* Generate — icon-only CTA */}
+      {/* Generate — borderless transparent action with a small label */}
       <button
         onClick={generate}
         disabled={!canGenerate}
         aria-label={mode.cta}
         title={mode.cta}
-        className="absolute left-5 right-5 z-10 flex h-[54px] items-center justify-center gap-3 rounded-[18px] bg-gradient-to-r from-[#2f6bff] via-[#5a5bff] to-[#7a3bff] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.3),0_22px_44px_-12px_rgba(80,80,255,.7)] transition-opacity disabled:opacity-55"
-        style={{ bottom: 'calc(var(--safe-bottom, 0px) + var(--tabbar-h, 0px) + 16px)' }}
+        className="absolute inset-x-0 z-10 mx-auto flex w-max flex-col items-center gap-1.5 text-[#7aa2ff] transition-opacity disabled:opacity-35"
+        style={{ bottom: 'calc(var(--safe-bottom, 0px) + var(--tabbar-h, 0px) + 22px)' }}
       >
-        <mode.Icon className="h-[22px] w-[22px]" strokeWidth={2} />
-        <ArrowRight className="h-[20px] w-[20px]" strokeWidth={2.4} />
+        <span className="flex items-center gap-1.5">
+          <mode.Icon className="h-[28px] w-[28px]" strokeWidth={1.9} />
+          <ArrowRight className="h-[20px] w-[20px]" strokeWidth={2.2} />
+        </span>
+        <span className="font-display text-[11px] font-semibold tracking-[0.04em]">{mode.cta}</span>
       </button>
     </div>
   );

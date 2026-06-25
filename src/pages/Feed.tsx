@@ -13,7 +13,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, Repeat2, Share2, Volume2, VolumeX, Sparkles, Plus } from 'lucide-react';
+import { Heart, Repeat2, Share2, Volume2, VolumeX, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -59,11 +59,11 @@ export default function Feed() {
       {/* Mute toggle */}
       <button
         onClick={() => setMuted((m) => !m)}
-        className="absolute z-30 grid h-9 w-9 place-items-center rounded-full bg-white/10 backdrop-blur-md"
-        style={{ top: 'calc(var(--safe-top, 0px) + 10px)', right: '14px' }}
+        className="absolute z-30 grid h-9 w-9 place-items-center drop-shadow-[0_2px_6px_rgba(0,0,0,.7)]"
+        style={{ top: 'calc(var(--safe-top, 0px) + 12px)', right: '14px' }}
         aria-label={muted ? 'Unmute' : 'Mute'}
       >
-        {muted ? <VolumeX className="h-[18px] w-[18px]" /> : <Volume2 className="h-[18px] w-[18px]" />}
+        {muted ? <VolumeX className="h-[20px] w-[20px]" /> : <Volume2 className="h-[20px] w-[20px]" />}
       </button>
 
       {/* Snap-scrolling feed */}
@@ -223,15 +223,15 @@ const FeedCard = ({ innerRef, index, item, active, muted }: FeedCardProps & { in
         </button>
 
         <RailButton label={compact(likeCount)} onClick={like} active={liked} aria-label="Like">
-          <Heart className={cn('h-6 w-6', liked && 'fill-[#ff3b6b] stroke-[#ff3b6b]')} />
+          <Heart className={cn('h-7 w-7', liked && 'fill-[#ff3b6b] stroke-[#ff3b6b]')} />
         </RailButton>
 
-        <RailButton highlight onClick={remix} aria-label="Remix">
-          <Repeat2 className="h-6 w-6" />
+        <RailButton label="Remix" highlight onClick={remix} aria-label="Remix">
+          <Repeat2 className="h-7 w-7" />
         </RailButton>
 
-        <RailButton onClick={share} aria-label="Share">
-          <Share2 className="h-6 w-6" />
+        <RailButton label="Share" onClick={share} aria-label="Share">
+          <Share2 className="h-7 w-7" />
         </RailButton>
       </div>
 
@@ -276,18 +276,16 @@ function RailButton({
   'aria-label'?: string;
 }) {
   return (
-    <button onClick={onClick} className="flex flex-col items-center gap-1.5" {...rest}>
-      <span
-        className={cn(
-          'grid h-12 w-12 place-items-center rounded-full backdrop-blur-md transition-transform',
-          highlight
-            ? 'bg-gradient-to-br from-[#2f6bff] to-[#7a3bff] shadow-[0_12px_28px_-6px_rgba(80,90,255,.85)]'
-            : 'bg-white/[0.12] shadow-[0_8px_22px_-10px_rgba(0,0,0,.8)]',
-          active && 'scale-105',
-        )}
-      >
-        {children}
-      </span>
+    <button
+      onClick={onClick}
+      className={cn(
+        'flex flex-col items-center gap-1 drop-shadow-[0_2px_6px_rgba(0,0,0,.6)] transition-transform',
+        highlight ? 'text-[#8fb4ff]' : 'text-white',
+        active && 'scale-105',
+      )}
+      {...rest}
+    >
+      {children}
       {label ? <span className="font-display text-[11px] font-semibold tabular-nums">{label}</span> : null}
     </button>
   );

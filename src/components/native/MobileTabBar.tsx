@@ -65,14 +65,8 @@ export function MobileTabBar() {
         <TabButton key={t.to} {...t} active={isActive(t.to)} onClick={() => go(t.to)} />
       ))}
 
-      {/* Center create */}
-      <button
-        onClick={() => go('/create')}
-        aria-label="Create"
-        className="-mt-1.5 grid h-[40px] w-[52px] place-items-center rounded-[15px] bg-gradient-to-br from-[#3f78ff] to-[#7a3bff] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.45),0_10px_26px_-6px_rgba(64,90,255,.85)]"
-      >
-        <Plus className="h-6 w-6" strokeWidth={2.4} />
-      </button>
+      {/* Create — borderless, transparent, accent-tinted */}
+      <TabButton to="/create" label="Create" icon={Plus} accent active={isActive('/create')} onClick={() => go('/create')} />
 
       {right.map((t) => (
         <TabButton key={t.to} {...t} active={isActive(t.to)} onClick={() => go(t.to)} />
@@ -85,11 +79,14 @@ function TabButton({
   label,
   icon: Icon,
   active,
+  accent,
   onClick,
 }: {
+  to?: string;
   label: string;
   icon: typeof Clapperboard;
   active: boolean;
+  accent?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -97,15 +94,18 @@ function TabButton({
       onClick={onClick}
       aria-label={label}
       title={label}
-      className={cn('flex flex-col items-center gap-1.5 transition-colors', active ? 'text-white' : 'text-white/40')}
+      className={cn(
+        'flex flex-col items-center gap-1 transition-colors',
+        accent ? 'text-[#7aa2ff]' : active ? 'text-white' : 'text-white/40',
+      )}
     >
       <span className="relative grid place-items-center">
-        {active && (
-          <span className="pointer-events-none absolute h-7 w-7 rounded-full bg-[#3f78ff]/35 blur-md" />
+        {(active || accent) && (
+          <span className="pointer-events-none absolute h-7 w-7 rounded-full bg-[#3f78ff]/30 blur-md" />
         )}
-        <Icon className="relative h-[25px] w-[25px]" strokeWidth={1.9} />
+        <Icon className="relative h-[24px] w-[24px]" strokeWidth={accent ? 2.2 : 1.9} />
       </span>
-      <span className={cn('h-1 w-1 rounded-full', active ? 'bg-[#3f78ff] shadow-[0_0_10px_#3f78ff]' : 'bg-transparent')} />
+      <span className="font-display text-[9.5px] font-medium tracking-[0.02em]">{label}</span>
     </button>
   );
 }

@@ -79,9 +79,10 @@ export default function You() {
           onClick={() => navigate('/auth')}
           aria-label="Sign in"
           title="Sign in"
-          className="relative z-10 mt-1 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-r from-[#2f6bff] to-[#7a3bff] shadow-[inset_0_1px_0_rgba(255,255,255,.3),0_16px_40px_-12px_rgba(80,90,255,.7)]"
+          className="relative z-10 mt-1 flex flex-col items-center gap-1.5 text-[#7aa2ff]"
         >
-          <LogIn className="h-[22px] w-[22px]" />
+          <LogIn className="h-[26px] w-[26px]" />
+          <span className="font-display text-[11px] font-semibold tracking-[0.04em]">Sign in</span>
         </button>
       </div>
     );
@@ -148,17 +149,22 @@ export default function You() {
 
         {/* Achievements — floating medallions, no tiles, no label */}
         <div className="mt-9 text-center">
-          <div className="flex justify-center gap-6">
+          <div className="flex justify-center gap-5">
             {badges.map((b) => (
-              <div key={b.id} title={b.label} className="relative grid place-items-center">
-                {b.earned ? (
-                  <>
-                    <span className="pointer-events-none absolute h-9 w-9 rounded-full bg-[#5a6bff]/25 blur-lg" />
-                    <span className="relative text-[26px] drop-shadow-[0_4px_10px_rgba(0,0,0,.5)]">{b.emoji}</span>
-                  </>
-                ) : (
-                  <Lock className="h-[18px] w-[18px] text-white/20" />
-                )}
+              <div key={b.id} title={b.label} className="flex w-[56px] flex-col items-center gap-2">
+                <span className="relative grid h-7 place-items-center">
+                  {b.earned ? (
+                    <>
+                      <span className="pointer-events-none absolute h-9 w-9 rounded-full bg-[#5a6bff]/25 blur-lg" />
+                      <span className="relative text-[26px] drop-shadow-[0_4px_10px_rgba(0,0,0,.5)]">{b.emoji}</span>
+                    </>
+                  ) : (
+                    <Lock className="h-[18px] w-[18px] text-white/20" />
+                  )}
+                </span>
+                <span className={cn('font-display text-[9px] leading-tight tracking-wide text-center', b.earned ? 'text-white/55' : 'text-white/25')}>
+                  {b.label}
+                </span>
               </div>
             ))}
           </div>
@@ -173,14 +179,15 @@ export default function You() {
             ))}
           </div>
         ) : films.length === 0 ? (
-          <div className="flex justify-center py-10">
+          <div className="flex justify-center py-12">
             <button
               onClick={() => { void hapticTap(); navigate('/create'); }}
               aria-label="Create your first film"
               title="Create your first film"
-              className="grid h-14 w-14 place-items-center rounded-full bg-gradient-to-r from-[#2f6bff] to-[#7a3bff] shadow-[inset_0_1px_0_rgba(255,255,255,.3),0_14px_34px_-12px_rgba(80,90,255,.7)]"
+              className="flex flex-col items-center gap-1.5 text-[#7aa2ff]"
             >
-              <Sparkles className="h-[22px] w-[22px]" />
+              <Sparkles className="h-[26px] w-[26px]" />
+              <span className="font-display text-[11px] font-semibold tracking-[0.04em]">Create</span>
             </button>
           </div>
         ) : (

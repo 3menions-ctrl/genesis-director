@@ -1,0 +1,16 @@
+# Build outputs (Vercel rebuilds the web app itself)
+node_modules
+dist
+dist-ssr
+dist-admin
+
+# Electron desktop build artifacts (.dmg/.app — not part of the web deploy)
+dist-desktop
+release
+
+# Large media kept for reference, not consumed by the web build
+preserved
+
+# Local-only working files
+reports
+.git

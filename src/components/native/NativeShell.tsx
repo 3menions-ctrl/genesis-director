@@ -78,14 +78,17 @@ export function NativeShell() {
       });
 
       // If the app was cold-launched from a deep link, handle the initial URL.
+      // Otherwise, send the native app to its mobile-first home: the feed.
       try {
         const launch = await App.getLaunchUrl();
         if (launch?.url) {
           const path = deepLinkToPath(launch.url);
           if (path) navigate(path, { replace: true });
+        } else if (window.location.pathname === '/') {
+          navigate('/feed', { replace: true });
         }
       } catch {
-        /* no launch url */
+        if (window.location.pathname === '/') navigate('/feed', { replace: true });
       }
 
       // Kick off push-notification registration (no-op until permission).

@@ -74,6 +74,8 @@ function QueryPreservingRedirect({ to }: { to: string }) {
 }
 
 const Cinema = lazy(() => import("./pages/Cinema"));
+// Mobile-first vertical "For You" feed — native landing route (also at /feed on web).
+const Feed = lazy(() => import("./pages/Feed"));
 const StudioShowcase = lazy(() => import("./pages/StudioShowcase"));
 const FilmsGallery = lazy(() => import("./pages/FilmsGallery"));
 const Studio = lazy(() => import("./pages/Studio"));
@@ -292,6 +294,14 @@ const App = () => {
                 <Route path="/" element={
                   <RouteContainer fallbackMessage="Loading…">
                     <Cinema />
+                  </RouteContainer>
+                } />
+                {/* Mobile-first vertical feed — the native app's landing screen
+                    (NativeShell redirects "/" → "/feed" on iOS). Reachable on
+                    web at /feed for testing. */}
+                <Route path="/feed" element={
+                  <RouteContainer fallbackMessage="Loading feed…">
+                    <Feed />
                   </RouteContainer>
                 } />
                 {/* Legacy /cinema path redirects to the one home page. */}

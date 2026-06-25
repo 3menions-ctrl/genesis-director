@@ -35,7 +35,7 @@ const PIPELINE_LAYERS = [
     number: '02',
     title: 'Cinematography Engine',
     subtitle: '12 Camera Movements · 14 Angles · 9 Lighting Styles',
-    description: 'A programmatic cinematography layer injects professional camera work, angles, and lighting into every shot — the same visual language used in Hollywood productions.',
+    description: 'A programmatic cinematography layer injects professional camera work, angles, and lighting into every shot — the visual grammar of real film.',
     details: [
       'Dolly push-ins, crane reveals, steadicam tracking',
       'Rembrandt, chiaroscuro, golden hour lighting',

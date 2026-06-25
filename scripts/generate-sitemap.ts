@@ -44,6 +44,21 @@ const curated: SitemapEntry[] = [
   { path: "/forgot-password", changefreq: "yearly", priority: "0.2" },
 ];
 
+// Mirror of public/robots.txt Disallow. A route we ask crawlers NOT to index
+// must never appear in the sitemap — listing both sends mixed signals and
+// wastes crawl budget. Matches an exact path or any sub-path beneath it.
+const DISALLOWED = [
+  "/admin", "/workspace", "/settings", "/profile", "/notifications",
+  "/credits", "/onboarding", "/start", "/welcome", "/production",
+  "/script-review", "/training-video", "/loft", "/editor", "/create",
+  "/director", "/avatars", "/avatars-gallery", "/environments", "/templates",
+  "/projects", "/invite", "/widget", "/w", "/mockup", "/reset-password",
+  "/unsubscribe",
+];
+function isDisallowed(path: string): boolean {
+  return DISALLOWED.some((p) => path === p || path.startsWith(p + "/"));
+}
+
 // ── Route discovery from App.tsx ────────────────────────────────────────
 function discoverPublicRoutes(): string[] {
   const appSource = readFileSync(resolve("src/App.tsx"), "utf8");
@@ -66,6 +81,7 @@ function discoverPublicRoutes(): string[] {
     if (path.startsWith("/admin")) continue;
     if (path.includes(":")) continue;
     if (path.includes("*")) continue;
+    if (isDisallowed(path)) continue; // honor robots.txt Disallow
     if (path.startsWith("/widget")) continue;
     if (path.startsWith("/w/")) continue;
     // Auth callback / password reset / mockup-preview are not SEO surfaces.

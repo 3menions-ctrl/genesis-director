@@ -32,7 +32,7 @@ const DOCS: Record<string, DocEntry> = {
     eyebrow: "Documentation · editor",
     Icon: BookOpen,
     intro:
-      "Every panel, every shortcut, every timeline gesture in the Genesis Director Editor — written for both keyboard-first power users and first-time directors. The editor is built on a non-destructive scene graph: shots, takes, and edits are all reversible.",
+      "Every panel, every shortcut, every timeline gesture in the Small Bridges editor — written for both keyboard-first power users and first-time directors. The editor is built on a non-destructive scene graph: shots, takes, and edits are all reversible.",
     sections: [
       {
         heading: "The four-pane layout",
@@ -119,7 +119,7 @@ const DOCS: Record<string, DocEntry> = {
     eyebrow: "Documentation · api",
     Icon: Code2,
     intro:
-      "The public Genesis Director API. REST + webhooks. Auth is per-user API key (generate in /account?tab=developers). Rate limits are tier-based.",
+      "The public Small Bridges API. REST + webhooks. Auth is per-user API key (generate in /account?tab=developers). Rate limits are tier-based.",
     sections: [
       {
         heading: "Auth",
@@ -151,7 +151,7 @@ export default function HelpDoc() {
 
   usePageMeta({
     title: doc ? `${doc.title} — Small Bridges` : "Documentation — Small Bridges",
-    description: doc?.intro?.slice(0, 160) ?? "Genesis Director documentation.",
+    description: doc?.intro?.slice(0, 160) ?? "Small Bridges documentation.",
   });
 
   if (!doc) {

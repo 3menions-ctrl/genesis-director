@@ -62,6 +62,16 @@ async function grantCredits(order: any) {
   const md = order?.metadata ?? {};
   const userId = String(md.user_id || md.userId || "");
   const credits = parseInt(String(md.credits ?? "0"), 10);
+  // ORG subscriptions fund the ORG POOL (organizations.credits_balance) via
+  // monthly_org_credit_refill on subscription.active/updated — NOT the owner's
+  // personal profile. Crediting the owner here would (a) put credits in the wrong
+  // bucket (org generations consume the pool, not owner credits) and (b)
+  // double-grant against the refill. So skip org orders entirely; the refill path
+  // owns org funding. Personal orders (one-time packs, personal subs) fall through.
+  if (/^[0-9a-f-]{36}$/i.test(String(md.org_id || ""))) {
+    log("order.paid for org subscription — pool funded by refill path, skipping owner grant", { orgId: md.org_id });
+    return;
+  }
   if (!/^[0-9a-f-]{36}$/i.test(userId)) { log("order.paid: no/invalid user_id", { userId }); return; }
   if (!Number.isFinite(credits) || credits <= 0 || credits > 1000000) { log("order.paid: no creditable amount", { credits: md.credits }); return; }
   const packageId = String(md.package_id ?? "pack");
@@ -103,6 +113,14 @@ async function reverseCredits(order: any) {
   const md = order?.metadata ?? {};
   const userId = String(md.user_id || md.userId || "");
   const credits = parseInt(String(md.credits ?? "0"), 10);
+  // Symmetry with grantCredits: org orders never credited the owner's personal
+  // profile (they fund the org pool), so there is nothing to reverse here for an
+  // org order. Reversing would wrongly drive the owner's personal balance down.
+  // Org-pool clawback on refund is a separate, deliberate concern (not done here).
+  if (/^[0-9a-f-]{36}$/i.test(String(md.org_id || ""))) {
+    log("order.refunded for org subscription — owner was not credited, skipping reversal", { orgId: md.org_id });
+    return;
+  }
   if (!/^[0-9a-f-]{36}$/i.test(userId)) { log("order.refunded: no/invalid user_id", { userId }); return; }
   if (!Number.isFinite(credits) || credits <= 0) { log("order.refunded: nothing to reverse", { credits: md.credits }); return; }
   const ref = `polar_${order.id}`;

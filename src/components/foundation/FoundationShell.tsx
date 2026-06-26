@@ -22,6 +22,7 @@ import { Link, useLocation } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { Search, Sparkles, User as UserIcon, Command, Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { IS_MOBILE_SHELL } from "@/lib/native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffectiveCredits } from "@/hooks/useEffectiveCredits";
 import { openCommandCenter } from "@/components/foundation/CommandCenter";
@@ -58,6 +59,12 @@ export function FoundationShell({ children, bare = false, noHeader }: Props) {
   useRenderCompleteNotifier();
 
   const triggerCommand = useCallback(() => openCommandCenter(), []);
+
+  // NATIVE APP: never render web chrome (LeftRail, top bar, command center
+  // trigger, credits/search/inbox cluster). The native app must only ever show
+  // page CONTENT — navigation is the bottom tab bar + native screens. Any web
+  // route reached on iOS (Studio, Editor, Account, …) renders content-only.
+  if (IS_MOBILE_SHELL) return <main className="relative min-h-[100dvh] text-foreground">{children}</main>;
 
   // Tab name for the slate breadcrumb in the header chrome.
   const breadcrumb = (() => {

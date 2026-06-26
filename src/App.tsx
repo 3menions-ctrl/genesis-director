@@ -47,6 +47,7 @@ import { NavigationGuardProvider, NavigationBridge } from "@/lib/navigation";
 import { NativeShell } from "@/components/native/NativeShell";
 import { MobileTabBar } from "@/components/native/MobileTabBar";
 import { MobileOnboardingGate } from "@/components/native/MobileOnboardingGate";
+import { MobileRouteRedirects } from "@/components/native/MobileRouteRedirects";
 import { IS_MOBILE_SHELL } from "@/lib/native";
 import { AppShell } from "@/components/shell/AppShell";
 import { AdaptiveShell } from "@/components/shell/AdaptiveShell";
@@ -1042,6 +1043,8 @@ const App = () => {
                 <MobileTabBar />
                 {/* First-run redirect to /welcome for un-onboarded users (native only). */}
                 <MobileOnboardingGate />
+                {/* Redirect web-only pages → native equivalents (no chrome bleed). */}
+                <MobileRouteRedirects />
               </PageToneProvider>
               </StudioProvider>
               </WorkspaceProvider>

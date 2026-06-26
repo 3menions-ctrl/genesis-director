@@ -62,6 +62,25 @@ export function useReelsList(kind: 'videos' | 'reels') {
   return { reels, loading };
 }
 
+export interface DailyPrompt { id?: string; prompt_text: string; prompt_hint?: string | null; cover_url?: string | null; world_slug?: string | null }
+
+/** Today's creative challenge (current_daily_prompt RPC → Json). */
+export function useDailyPrompt() {
+  const [prompt, setPrompt] = useState<DailyPrompt | null>(null);
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      try {
+        const { data } = await supabase.rpc('current_daily_prompt' as never);
+        const raw = (Array.isArray(data) ? data[0] : data) as unknown as DailyPrompt | null;
+        if (!cancel && raw && raw.prompt_text) setPrompt(raw);
+      } catch { /* no prompt today */ }
+    })();
+    return () => { cancel = true; };
+  }, []);
+  return prompt;
+}
+
 export function useSearchEverything(query: string) {
   const [results, setResults] = useState<{ reels: ReelHit[]; creators: CreatorHit[] }>({ reels: [], creators: [] });
   const [loading, setLoading] = useState(false);

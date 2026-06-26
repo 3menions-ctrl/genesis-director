@@ -11,7 +11,7 @@ import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
 import { MasonryGrid, MediaTile } from '@/components/native/MediaTile';
 import { PeopleSwipe } from '@/components/discover/PeopleSwipe';
 import { useAuth } from '@/contexts/AuthContext';
-import { useReelsList, useSearchEverything, type ReelHit } from '@/hooks/useDiscover';
+import { useReelsList, useSearchEverything, useDailyPrompt, type ReelHit } from '@/hooks/useDiscover';
 import { FILMS } from '@/data/filmsLibrary';
 import { hapticTap } from '@/lib/native/shell';
 import { cn } from '@/lib/utils';
@@ -32,6 +32,7 @@ export default function Discover() {
   const [query, setQuery] = useState('');
   const [cat, setCat] = useState<Cat>('videos');
   const list = useReelsList(cat === 'reels' ? 'reels' : 'videos');
+  const daily = useDailyPrompt();
   const search = useSearchEverything(query);
   const searching = query.trim().length > 0;
 
@@ -66,6 +67,20 @@ export default function Discover() {
               );
             })}
           </div>
+        )}
+
+        {!searching && daily && (
+          <button onClick={() => { void hapticTap(); navigate(`/studio?tab=create&prompt=${encodeURIComponent(daily.prompt_text)}`); }}
+            className="lit-edge relative mt-5 block w-full overflow-hidden rounded-[22px] bg-gradient-to-br from-[#2f6bff]/25 to-[#7a3bff]/15 p-4 text-left active:scale-[0.99]">
+            {daily.cover_url && <img src={daily.cover_url} alt="" className="absolute inset-0 h-full w-full object-cover opacity-25" />}
+            <div className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-[#7a3bff]/30 blur-3xl" />
+            <div className="relative">
+              <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-[#9ab4ff]"><Sparkles className="h-3 w-3" /> Today's prompt</div>
+              <div className="mt-1.5 font-display text-[16px] font-semibold leading-snug">{daily.prompt_text}</div>
+              {daily.prompt_hint && <div className="mt-1 text-[12.5px] text-white/55">{daily.prompt_hint}</div>}
+              <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[12px] font-semibold text-white">Make it →</div>
+            </div>
+          </button>
         )}
 
         {searching ? (

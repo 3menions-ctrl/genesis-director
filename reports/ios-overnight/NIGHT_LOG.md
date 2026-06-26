@@ -54,3 +54,16 @@ LIVE backend (types.ts is drifted). Branch `ios-app`; nothing pushed to main/DB.
   image-to-video → a funded user's generation will work. No fix needed.
 - **Fixed: NativeProduction could spin at 100% forever** if a project completes with
   no video_url/manifestUrl — added a terminal "ready → Library/Publish" state. (`8e404ae9`)
+
+## Cycle 7 — component edge-case audit (CLEAN)
+Audited every native component/sheet for "renders nothing/wrong" + null/edge crashes:
+- PeopleSwipe: end-of-deck → `<AllCaught>` ("That's everyone" / "No new creators" +
+  Refresh). MediaTile: null src AND videoSrc → fallback gradient (no crash).
+- PublishSheet: useWorlds has WORLDS_FALLBACK (6) → never empty.
+- FeedComments: empty → "No comments yet"; loading state present.
+- MessageThread: empty thread + loading states present.
+- Presets: clips = mine + SAMPLES (8 bundled, always non-empty) → clips[0] safe;
+  src defaults to '' (no crash).
+- You.tsx: PinSheet (films.length===0), PeopleSheet (followers/following empty),
+  content tabs (EmptyTab) all have empty states.
+Result: no component-level bugs — the component layer is robust.

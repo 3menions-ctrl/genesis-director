@@ -154,9 +154,18 @@ async function uploadToStorage(
   base64Data: string,
   fileName: string
 ): Promise<string> {
-  // Remove data URL prefix if present
-  const base64Content = base64Data.replace(/^data:image\/\w+;base64,/, "");
-  const bytes = Uint8Array.from(atob(base64Content), (c) => c.charCodeAt(0));
+  // The gateway returns image_url.url, which is normally a base64 data-URI but
+  // can also be a plain http(s) URL (audit S141) — atob() on a URL would throw
+  // and 500 the whole avatar generation. Handle both.
+  let bytes: Uint8Array;
+  if (/^https?:\/\//i.test(base64Data)) {
+    const res = await fetch(base64Data);
+    if (!res.ok) throw new Error(`avatar image fetch failed: ${res.status}`);
+    bytes = new Uint8Array(await res.arrayBuffer());
+  } else {
+    const base64Content = base64Data.replace(/^data:image\/\w+;base64,/, "");
+    bytes = Uint8Array.from(atob(base64Content), (c) => c.charCodeAt(0));
+  }
 
   const { data, error } = await supabase.storage
     .from("avatars")

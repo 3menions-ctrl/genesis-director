@@ -395,9 +395,24 @@ You MUST return valid JSON exactly matching this schema:
     }
 
     const characterData = await characterResponse.json();
-    const characterDNA: CharacterDNA = JSON.parse(
-      characterData.choices[0].message.content
-    );
+    let characterDNA: CharacterDNA;
+    try {
+      characterDNA = JSON.parse(characterData.choices[0].message.content);
+    } catch (_parseErr) {
+      // We charged up front (creditsCharged) but the model returned content we
+      // can't parse (empty choices / truncation / non-JSON). Refund so the user
+      // isn't billed for a result they never got (audit S125).
+      if (creditsCharged > 0 && userId) {
+        await supabase.rpc("refund_credits", {
+          p_user_id: userId,
+          p_amount: creditsCharged,
+          p_description: "Refund: scene identity extraction returned malformed output",
+          p_project_id: projectId || null,
+        }).catch((e: unknown) => console.error("[extract-scene-identity] refund failed", e));
+        creditsCharged = 0;
+      }
+      throw new Error("Identity extraction returned malformed output (character DNA)");
+    }
     console.log(`[extract-scene-identity] ✓ Character DNA extracted: ${characterDNA.identitySummary?.substring(0, 60)}`);
 
     // === DEEP IDENTITY EXTRACTION — PASS 2: ENVIRONMENT + LIGHTING + COLOR + CINEMATIC ===
@@ -531,7 +546,21 @@ Return valid JSON exactly matching this schema:
     }
 
     const environmentData = await environmentResponse.json();
-    const envParsed = JSON.parse(environmentData.choices[0].message.content);
+    let envParsed: { environmentDNA: EnvironmentDNA; lightingProfile: LightingProfile; colorScience: ColorScience; cinematicStyle: CinematicStyle };
+    try {
+      envParsed = JSON.parse(environmentData.choices[0].message.content);
+    } catch (_parseErr) {
+      if (creditsCharged > 0 && userId) {
+        await supabase.rpc("refund_credits", {
+          p_user_id: userId,
+          p_amount: creditsCharged,
+          p_description: "Refund: scene identity extraction returned malformed output",
+          p_project_id: projectId || null,
+        }).catch((e: unknown) => console.error("[extract-scene-identity] refund failed", e));
+        creditsCharged = 0;
+      }
+      throw new Error("Identity extraction returned malformed output (environment DNA)");
+    }
     const environmentDNA: EnvironmentDNA = envParsed.environmentDNA;
     const lightingProfile: LightingProfile = envParsed.lightingProfile;
     const colorScience: ColorScience = envParsed.colorScience;

@@ -31,11 +31,12 @@ export default function Discover() {
   const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [cat, setCat] = useState<Cat>('videos');
-  const list = useReelsList(cat === 'reels' ? 'new' : 'plays');
+  const list = useReelsList(cat === 'reels' ? 'reels' : 'videos');
   const search = useSearchEverything(query);
   const searching = query.trim().length > 0;
 
-  const reels = !list.loading && list.reels.length === 0 ? STATIC : list.reels;
+  // Only Videos falls back to the bundled films when empty; Reels (≤5s) stays accurate.
+  const reels = !list.loading && list.reels.length === 0 && cat === 'videos' ? STATIC : list.reels;
 
   return (
     <div className="fixed inset-0 text-white">

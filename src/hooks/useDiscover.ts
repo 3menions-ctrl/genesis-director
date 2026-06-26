@@ -35,24 +35,30 @@ export function useWorlds() {
   return worlds;
 }
 
-/** Reels list for Discover. 'plays' = popular (Videos), 'new' = freshest (Reels). */
-export function useReelsList(sort: 'plays' | 'new') {
+/**
+ * Reels list for Discover.
+ *  - 'videos': full films (duration_sec > 5 or unset), most-played first.
+ *  - 'reels' : short reels ONLY — clips of 5 seconds or less — newest first.
+ *    A reel is, by definition, a ≤5s clip.
+ */
+export function useReelsList(kind: 'videos' | 'reels') {
   const [reels, setReels] = useState<ReelHit[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     let cancel = false; setLoading(true);
     (async () => {
       try {
-        const { data } = await supabase.from('published_reels' as never)
-          .select('id, title, thumbnail_url, video_url, world_slug, play_count, like_count, creator_id, created_at')
-          .eq('is_taken_down', false)
-          .order(sort === 'plays' ? 'play_count' : 'created_at', { ascending: false })
-          .limit(30);
+        let q = supabase.from('published_reels' as never)
+          .select('id, title, thumbnail_url, video_url, world_slug, play_count, like_count, creator_id, created_at, duration_sec')
+          .eq('is_taken_down', false);
+        if (kind === 'reels') q = q.gt('duration_sec', 0).lte('duration_sec', 5);
+        else q = q.or('duration_sec.gt.5,duration_sec.is.null');
+        const { data } = await q.order(kind === 'reels' ? 'created_at' : 'play_count', { ascending: false }).limit(30);
         if (!cancel) { setReels(((data ?? []) as unknown as ReelHit[]).map((r) => ({ ...r, title: r.title ?? 'Untitled' }))); setLoading(false); }
       } catch { if (!cancel) { setReels([]); setLoading(false); } }
     })();
     return () => { cancel = true; };
-  }, [sort]);
+  }, [kind]);
   return { reels, loading };
 }
 

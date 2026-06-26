@@ -211,6 +211,89 @@ Autoplaying video tiles appear to not tear down their `<video>` elements across 
 
 ---
 
+# Round 2 — Templates, Editor, User pages, Likes, Comments, broad sweep (2026-06-26)
+
+Second pass covering the surfaces requested: templates, the editor, user pages & functions, likes/reactions, comments (threading + reactions), and a sweep of every remaining route. **No pipeline was run and no credits were purchased** — generation/"Use this template" CTAs were deliberately not clicked.
+
+## Round-2 scorecard
+
+| Area | Result |
+|---|---|
+| Templates (`/templates`) — browse, preview modal, render-plan | ✅ Pass |
+| Editor (`/editor`) — tabs (Stage/Timeline/Script/Storyboard/Create) | ✅ Pass (proper empty states) |
+| Editor panels — Comments, Markers, Versions, Export, Director Chat | ✅ Pass (all open, 0 errors) |
+| User pages — `/account`, `/profile`, `/settings` | ✅ Pass |
+| Profile bio **edit + save** | ✅ Pass (PATCH 204, persists across reload) |
+| Likes — reel emoji reactions (add / persist / toggle-off) | ✅ Pass (POST 201 / DELETE 204) |
+| Comment reactions (emoji) | ✅ Pass (POST 201) |
+| Comments — reply / threading / indent | ✅ Pass |
+| Music (`/music`) — composer + presets | ✅ Pass |
+| **Search (`/search`)** | 🔴 **Fail** — `search_everything` 500s; masked as "Nothing found" |
+| Lobby live-presence count | 🟠 **Fail** — queries a table that doesn't exist (404 every load) |
+| Card components (`/avatars`, `/environments`, `/crossover`) | 🟡 Invalid DOM (`<button>` in `<button>`) |
+
+## BUG-8 🔴 Search is broken — `search_everything` 500s (RLS infinite recursion on `crews`), shown to the user as "Nothing found"
+
+**Where:** `/search` (and `/discover`, `/creators`, `/crews`, `/find-friends`, which all route through search)
+**Severity:** High (global search returns nothing for everyone; failure is hidden)
+
+**Steps to reproduce:**
+1. Go to `/search`, type any query (e.g. `bunny`, `cinematic`).
+2. Watch the network tab.
+
+**Expected:** Matching reels/people (there are public "Big Buck Bunny" / "Sintel" reels that match `bunny`).
+
+**Actual:** `POST /rest/v1/rpc/search_everything` returns **HTTP 500**:
+```json
+{"code":"42P17","message":"infinite recursion detected in policy for relation \"crews\""}
+```
+The UI swallows the 500 and renders **"Nothing for "bunny" — yet."** — identical anti-pattern to the inbox bug: a server error presented as a legitimate empty state. Search effectively never returns results.
+
+**Root cause (in source):** mutually-recursive RLS policies introduced in `20260610230000_entertainment_hub.sql`:
+- `crews` SELECT policy: `USING (is_public OR id IN (SELECT crew_id FROM public.crew_members WHERE user_id = auth.uid()))` → reads `crew_members`.
+- `crew_members` "Members visible to members" SELECT policy: `USING (… crew_id IN (SELECT crew_id FROM public.crew_members cm2 WHERE cm2.user_id = auth.uid()))` → reads `crew_members` (itself) and `crews`.
+
+Evaluating either table's policy re-triggers the other's (and `crew_members` references itself), so Postgres aborts with 42P17. Any query that touches `crews`/`crew_members` — including `search_everything` — fails.
+
+**Fix direction:** break the cycle with a `SECURITY DEFINER` helper (e.g. `is_crew_member(crew_id)` / `is_public_crew(crew_id)`) that reads the tables with RLS bypassed, and reference those helpers in the policies instead of sub-selecting the protected tables directly. Also: search should surface an error state rather than "Nothing found" when the RPC fails.
+
+📷 `qa-report-assets/r2-06-search-broken-empty.png`
+
+## BUG-9 🟠 Lobby "now editing" presence queries a non-existent table → 404 on every load
+
+**Where:** `/lobby` (and `/universes`, `/live`, `/market`, `/hobby`, which redirect to it)
+**Severity:** Medium (a feature that silently never works + a 404 on the busiest surface)
+
+`src/pages/Lobby.tsx:105` runs `supabase.from("editor_presence").select(..., {count:'exact', head:true})`, but **`editor_presence` is never created in any migration**, so PostgREST returns **404** on every lobby load. The call is wrapped in `try/catch`, so the "now editing" live count is simply never shown — the feature is dead, and the console logs a 404 each visit. Either create the `editor_presence` table (+ RLS) or remove the dead presence query.
+
+## BUG-10 🟡 Invalid DOM — `<button>` nested inside `<button>` on card components
+
+**Where:** `/environments` (`EnvironmentCard`), `/crossover` (`CrossoverCard`), `/avatars` (avatar cards)
+**Severity:** Low (React warning, a11y/hydration risk)
+
+These cards render the whole card as a `<button onClick={onOpen}>` and place a secondary action `<button>` (e.g. favorite, `Environments.tsx:241`) inside it. React logs `validateDOMNesting: <button> cannot appear as a descendant of <button>`. It works today only because the inner button calls `stopPropagation`. Make the outer element a non-button (`div` with `role="button"`/keyboard handler) or move the inner action outside the outer button.
+
+## BUG-11 🟡 `/me/year` requests a missing asset (`noise.svg`) → 404
+
+Minor: the "year in review" page references `noise.svg` which 404s. Cosmetic/missing-asset.
+
+## Minor notes
+- `/account/notifications` loads with no errors but never sets a page `<title>` (falls back to the generic site title — missing `usePageMeta`).
+- `/user/:userId` is a hardcoded `<Navigate to="/projects">` stub — there is no public user-profile page at that path (any link expecting one dead-ends in a redirect). Public profiles appear to live under `/c/:id` / `/profile` instead.
+- Many redirects are intentional canonicalization and worked correctly: `/discover`→`/search`, `/gallery`→`/library`, `/creators|/crews|/find-friends`→`/search?tab=people`, `/messages`→`/inbox?lane=people`, `/director`→`/studio`. For this **personal** account, `/settings/workspace` and `/business/*` correctly redirect to `/studio` (no business surface — consistent with the account-type separation).
+
+## Round-2 passes (verified working)
+- **Templates** — rich "Blueprints" gallery (Trending + categories + per-engine templates); preview modal shows render plan + storyboard. 📷 `qa-report-assets/r2-01-templates.png`
+- **Editor** — all primary tabs switch with correct empty states; Comments/Markers/Versions/Export/Director-Chat panels all open via keyboard with zero console/network errors. 📷 `qa-report-assets/r2-02-editor-director.png`
+- **Profile editing** — bio inline edit saved (PATCH 204) and persisted across reload; value restored after test. 📷 `qa-report-assets/r2-03-profile-bio-saved.png`
+- **Likes / reactions** — reel emoji reaction added (POST 201), persisted across reload, and toggled off (DELETE 204); comment emoji reactions write (POST 201). 📷 `qa-report-assets/r2-04-reel-reaction.png`
+- **Comments** — add (dedupe fix holding), reply with visual threading/indent, emoji reactions, and delete-with-confirm all work. 📷 `qa-report-assets/r2-05-comment-thread.png`
+- **Music** — composer page loads with score presets + upload. 📷 `qa-report-assets/r2-07-music.png`
+
+> All round-2 test data (comments, reactions) was cleaned up; the account remains at 0 credits, 0 projects, 0 comments.
+
+---
+
 ## Test environment / repro notes
 
 - Dev server started with `bun run dev -- --port 7788` (port 7777 was occupied by another worktree).

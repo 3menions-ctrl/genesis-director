@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { LandingPageRenderer } from '@/components/scenes/LandingPageRenderer';
+import { safeHref } from '@/lib/safeHref';
 import type { WidgetConfig, WidgetScene } from '@/types/widget';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
@@ -75,9 +76,10 @@ export default function WidgetLanding() {
   }, []);
 
   const handleCtaClick = useCallback(() => {
-    if (!config?.cta_url) return;
+    const dest = safeHref(config?.cta_url);
+    if (!dest) return;
     logEvent(config.id, 'cta_click');
-    window.open(config.cta_url, '_blank', 'noopener,noreferrer');
+    window.open(dest, '_blank', 'noopener,noreferrer');
   }, [config, logEvent]);
 
   const handleScenePlay = useCallback((scene: WidgetScene) => {

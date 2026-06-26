@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeHref } from '@/lib/safeHref';
 import { WidgetOverlay } from './WidgetOverlay';
 import { useWidgetBehaviorEngine } from '@/hooks/useWidgetBehaviorEngine';
 import type { WidgetConfig, WidgetScene, BehaviorEvent } from '@/types/widget';
@@ -122,9 +123,10 @@ export function WidgetRenderer({ widgetId, publicKey, slug, mode = 'embed' }: Wi
   });
 
   const handleCtaClick = useCallback(() => {
-    if (!config?.cta_url) return;
+    const dest = safeHref(config?.cta_url);
+    if (!dest) return;
     logEvent('cta_click');
-    window.open(config.cta_url, '_blank', 'noopener,noreferrer');
+    window.open(dest, '_blank', 'noopener,noreferrer');
   }, [config, logEvent]);
 
   const handleSceneEnd = useCallback(() => {

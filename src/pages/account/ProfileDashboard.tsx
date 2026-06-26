@@ -77,6 +77,7 @@ import {
   Save as SaveIcon,
 } from "lucide-react";
 import { BrandInquiryDialog } from "@/components/profile/BrandInquiryDialog";
+import { safeHref } from "@/lib/safeHref";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -5451,7 +5452,7 @@ function SocialLinksRow({ links }: { links: Record<string, string> }) {
         {entries.map((e) => (
           <a
             key={e.key}
-            href={e.url}
+            href={safeHref(e.url)}
             target="_blank"
             rel="noopener noreferrer"
             className="group inline-flex items-baseline gap-2 text-[13px] text-foreground/80 hover:text-accent transition-colors"

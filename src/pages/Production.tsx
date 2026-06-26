@@ -369,12 +369,19 @@ function ProductionContentInner() {
       setProjectStatus(project.status);
       setProjectMode(project.mode || 'text-to-video');
       
-      // Load pipeline state for specialized modes
+      // Load pipeline state for specialized modes. Guard the parse (audit
+      // S201): a malformed pipeline_state string would otherwise throw out of
+      // loadProject (no outer catch here) and strand the page on the loading
+      // spinner. A bad value just means no specialized-mode state.
       if (project.pipeline_state) {
-        const state = typeof project.pipeline_state === 'string' 
-          ? JSON.parse(project.pipeline_state) 
-          : project.pipeline_state;
-        setPipelineState(state);
+        try {
+          const state = typeof project.pipeline_state === 'string'
+            ? JSON.parse(project.pipeline_state)
+            : project.pipeline_state;
+          setPipelineState(state);
+        } catch (e) {
+          console.warn('[Production] ignoring malformed pipeline_state', e);
+        }
       }
       
       // PRIORITY: Use manifest URL from pending_video_tasks if available (permanent storage)

@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { X, Minimize2, Volume2, VolumeX, ChevronUp } from 'lucide-react';
 import type { WidgetConfig, WidgetScene, EngineState, WidgetPosition } from '@/types/widget';
+import { safeHref } from '@/lib/safeHref';
 
 interface WidgetOverlayProps {
   config: WidgetConfig;
@@ -224,7 +225,7 @@ export function WidgetOverlay({
 
           {config.secondary_cta_text && config.secondary_cta_url && (
             <a
-              href={config.secondary_cta_url}
+              href={safeHref(config.secondary_cta_url)}
               target="_blank"
               rel="noopener noreferrer"
               className="block text-center text-xs text-white/50 hover:text-white/70 transition-colors"

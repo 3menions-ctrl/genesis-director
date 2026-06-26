@@ -27,6 +27,16 @@ function isHls(url: string): boolean {
 export function FeedVideo({ src, poster, active, muted }: FeedVideoProps) {
   const ref = useRef<HTMLVideoElement>(null);
   const [ready, setReady] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  // Playback progress for the active card.
+  useEffect(() => {
+    const video = ref.current;
+    if (!video) return;
+    const onTime = () => { if (video.duration > 0) setProgress(video.currentTime / video.duration); };
+    video.addEventListener('timeupdate', onTime);
+    return () => video.removeEventListener('timeupdate', onTime);
+  }, []);
 
   // Attach the source (with hls.js fallback for non-native HLS).
   useEffect(() => {
@@ -115,6 +125,13 @@ export function FeedVideo({ src, poster, active, muted }: FeedVideoProps) {
         className="absolute inset-0 h-full w-full object-contain"
         style={{ opacity: ready ? 1 : 0, transition: 'opacity .35s ease' }}
       />
+
+      {/* Slim playback progress — sits just above the tab bar. */}
+      {active && (
+        <div className="pointer-events-none absolute inset-x-0 z-20 h-[2.5px] bg-white/12" style={{ bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px))' }}>
+          <div className="h-full bg-white/85" style={{ width: `${Math.min(100, progress * 100)}%` }} />
+        </div>
+      )}
     </div>
   );
 }

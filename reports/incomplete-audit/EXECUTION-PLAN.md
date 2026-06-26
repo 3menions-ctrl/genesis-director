@@ -199,5 +199,25 @@ Ship verified PRs continuously; don't batch a phase into one mega-PR. Rough orde
 - **Estimated total: ~50–60 PRs** across 20 workstreams. Phases 1–6 are the substance; 7–8 are high-volume-low-risk and cleanup.
 - Every PR carries the per-PR checklist and closes named bug IDs. When all phases are ✅, run one final full-app QA pass (the regression guards make this fast) and the audit is closed.
 
+## APPENDIX — WS-B unification design (verified live 2026-06-26, ready for staging)
+**Live state (prod, measured — NOT from migration files):**
+- `follows` (follower_id, **followed_id**, created_at) — **0 rows**, **3 redundant notify triggers** (`fanout_notify_follow`, `fn_notify_eh_follow`, `fn_notify_follow` — each INSERTs a follow notification → triple-notify if used).
+- `user_follows` (id, follower_id, **following_id**, created_at) — **11 rows** (the live data), 1 trigger (`fn_notify_user_follow`).
+- `toggle_follow(p_target)` = the **canonical writer**: auth + self + **block check** + **private-account approval gate** (`mutual_only` → `follow_requests`) → INSERT `follows`. This is the correct path and satisfies #24.
+- FE on `user_follows` (raw): `useSocial` (5 sites), `usePublicProfile` (6), `SearchHub` (1). FE on `follows`/`toggle_follow`: `Profile`, `ProfileDashboard` (toggle + read), `DirectorCards` (read).
+- ✅ S249 (client double-notify in usePublicProfile) already removed (#123).
+
+**Migration (run on STAGING, validate invariants, then promote):**
+1. `INSERT INTO follows(follower_id, followed_id, created_at) SELECT follower_id, following_id, created_at FROM user_follows ON CONFLICT DO NOTHING;` (11 rows).
+2. **Dedupe `follows` triggers → exactly 1 notification.** Verify whether `fanout_notify_follow` also does feed-fanout (if so keep it + drop the 2 notify-only); else keep `fn_notify_follow`, drop `trg_fanout_notify_follow` + `trg_notify_eh_follow`.
+3. Repoint `useSocial` + `usePublicProfile` + `SearchHub`: **write via `toggle_follow` RPC** (inherits block+approval gate), **read from `follows`** (rename `following_id`→`followed_id` in queries/counts).
+4. Verify `follows` RLS permits the FE follower/following reads.
+5. Drop `user_follows` (or alias as a VIEW over `follows`) after the FE deploy is confirmed.
+**QA invariant:** follow A→B once → exactly 1 `follows` row + exactly 1 notification + button-state + follower/following counts agree on Profile, ProfileDashboard, Search, public profile; private-account follow → a `follow_request` (no `follows` row); re-tap is idempotent.
+
+**#27 comments:** `reel_comments`(2) vs `project_comments`(2) — pick `reel_comments` canonical (Theater/Lobby), view-migrate `project_comments`, repoint `/r/:id` reader. Same staging QA.
+**#28 inbox taxonomy:** unify on the bare types (`comment`/`like`/`follow`) the triggers emit; remap Inbox lanes (which currently filter `reel_comment`-style).
+**#29:** SUBSUMED by WS-R — deleting premieres/watch-party removes the need for the missing `premiere_scheduled`/`watch_party_invite` enum values (don't add dead values).
+
 ## IMMEDIATE NEXT STEP
 Phase 1 / WS-A (real crashes) — safe, fast, high-visibility. Then WS-B (social-graph) needs a staging migration. WS-C (money) needs the staging project ref + service key confirmed first.

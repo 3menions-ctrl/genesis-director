@@ -182,6 +182,9 @@ export default function AdminApp() {
         <Route path="failed" element={<Navigate to="/admin/production" replace />} />
         <Route path="studio" element={<Navigate to="/admin/create" replace />} />
         <Route path="inventory" element={<Navigate to="/admin" replace />} />
+        {/* Any unknown admin sub-route (e.g. /admin/dashboard) → the dashboard,
+            instead of rendering an empty Outlet (a black screen). */}
+        <Route path="*" element={<Navigate to="/admin" replace />} />
       </Route>
     </Routes>
   );

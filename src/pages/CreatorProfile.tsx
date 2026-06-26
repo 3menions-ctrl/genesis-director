@@ -181,8 +181,8 @@ function SwipeProfile({ profile, reels, coverSrc, similar, onFollow, onMoveOn, o
   const handle = `@${name.replace(/\s+/g, '').toLowerCase()}`;
 
   return (
-    <motion.div style={{ x, rotate, bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px))' }} drag="x" dragConstraints={{ left: 0, right: 0 }} dragElastic={0.55} onDragEnd={onEnd}
-      className="absolute inset-x-0 top-0 cursor-grab touch-pan-y overflow-hidden active:cursor-grabbing">
+    <motion.div style={{ x, rotate }} drag="x" dragConstraints={{ left: 0, right: 0 }} dragElastic={0.55} onDragEnd={onEnd}
+      className="absolute inset-0 cursor-grab touch-pan-y overflow-hidden active:cursor-grabbing">
       <div className="absolute inset-0">
         {/* Full-bleed cover — their uploaded cover photo, else avatar */}
         {coverSrc ? (
@@ -201,7 +201,7 @@ function SwipeProfile({ profile, reels, coverSrc, similar, onFollow, onMoveOn, o
         <motion.div style={{ opacity: moveOp }} className="pointer-events-none absolute right-6 top-24 rotate-12 rounded-xl border-[3px] border-white/70 px-4 py-1.5 font-display text-[28px] font-extrabold tracking-wide text-white/80">LATER</motion.div>
 
         {/* Bottom content */}
-        <div className="absolute inset-x-0 bottom-0 px-6 pb-6">
+        <div className="absolute inset-x-0 bottom-0 px-6" style={{ paddingBottom: 'calc(var(--safe-bottom,0px) + 22px)' }}>
           <h1 className="text-[34px] font-light leading-none" style={{ fontFamily: 'Fraunces, serif' }}>{name}</h1>
           <div className="mt-1 font-mono text-[13px] text-white/55">{handle}</div>
 

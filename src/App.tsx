@@ -197,6 +197,8 @@ const Account = lazy(() => import("./pages/Account"));
 const Templates = lazy(() => import("./pages/Templates"));
 // Native template gallery (mobile shell renders this on /templates).
 const TemplateGallery = lazy(() => import("./pages/TemplateGallery"));
+// Native reel uploader (mobile shell renders this on /upload).
+const NativeUploadReel = lazy(() => import("./pages/NativeUploadReel"));
 const Environments = lazy(() => import("./pages/Environments"));
 const TrainingVideo = lazy(() => import("./pages/TrainingVideo"));
 const Crossover = lazy(() => import("./pages/Crossover"));
@@ -871,6 +873,14 @@ const App = () => {
                       </ProtectedRoute>
                       )}
                     </RedirectBusinessToModule>
+                  </RouteContainer>
+                } />
+                {/* Native reel uploader — upload your own 5s clip + publish. */}
+                <Route path="/upload" element={
+                  <RouteContainer fallbackMessage="Opening uploader…">
+                    {IS_MOBILE_SHELL ? (
+                      <ProtectedRoute><NativeUploadReel /></ProtectedRoute>
+                    ) : <Navigate to="/library" replace />}
                   </RouteContainer>
                 } />
                 <Route path="/environments" element={

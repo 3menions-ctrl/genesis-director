@@ -6,7 +6,7 @@
  */
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Radio, Calendar, Check, Users, Play, CalendarPlus } from 'lucide-react';
+import { Radio, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -73,27 +73,24 @@ export function PremiereStrip() {
           const live = p.status === 'live';
           const isGoing = going.has(p.id);
           return (
-            <div key={p.id} className="lit-edge relative w-[230px] shrink-0 overflow-hidden rounded-[18px] bg-gradient-to-b from-[#241a3d] to-[#0b0b12]">
-              <button onClick={() => { void hapticTap(); if (p.reel_id) navigate(`/r/${p.reel_id}`); }} className="block w-full text-left">
-                {p.host?.avatar && <img src={p.host.avatar} alt="" className="h-28 w-full object-cover opacity-80" />}
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-t from-[#0b0b12] to-transparent" />
-                <span className={cn('absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wide backdrop-blur-md', live ? 'bg-[#ff3b5c] text-white' : 'bg-black/55 text-white/85')}>
-                  {live ? <><span className="h-1.5 w-1.5 rounded-full bg-white" />Live</> : <><Calendar className="h-2.5 w-2.5" />{whenLabel(p.starts_at, p.status)}</>}
-                </span>
-              </button>
-              <div className="px-3 pb-3 pt-1.5">
-                <div className="truncate font-display text-[14px] font-semibold">{p.title}</div>
-                <div className="mb-2.5 flex items-center gap-1.5 text-[11px] text-white/50"><Users className="h-3 w-3" />{p.rsvp_count} going · {p.host?.name ?? 'Creator'}</div>
-                <div className="flex justify-center">
-                  <button onClick={() => { void hapticTap(); if (live) { if (p.reel_id) navigate(`/r/${p.reel_id}`); } else rsvp(p); }} disabled={!live && isGoing}
-                    aria-label={live ? 'Watch live' : isGoing ? 'Going' : 'RSVP'}
-                    className={cn('grid h-11 w-11 place-items-center drop-shadow-[0_2px_8px_rgba(0,0,0,.7)] transition-transform active:scale-90',
-                      live ? 'text-[#ff7a96]' : isGoing ? 'text-white/55' : 'text-[#9fc6ff]')}>
-                    {live ? <Play className="h-[22px] w-[22px] fill-current" /> : isGoing ? <Check className="h-[22px] w-[22px]" strokeWidth={2.6} /> : <CalendarPlus className="h-[22px] w-[22px]" />}
-                  </button>
-                </div>
-              </div>
-            </div>
+            <button key={p.id} onClick={() => { void hapticTap(); if (live) { if (p.reel_id) navigate(`/r/${p.reel_id}`); } else rsvp(p); }}
+              aria-label={live ? `Watch ${p.title}` : isGoing ? `Going to ${p.title}` : `RSVP to ${p.title}`}
+              className="flex w-[86px] shrink-0 flex-col items-center text-center transition-transform active:scale-95">
+              {/* Circular card — story-ring tells you live (red) / RSVP'd (green) / upcoming (blue) */}
+              <span className={cn('relative grid place-items-center rounded-full p-[2.5px]', live ? 'bg-gradient-to-br from-[#ff3b5c] to-[#ff8a3b]' : isGoing ? 'bg-[#5ee08a]/75' : 'bg-[#7aa2ff]/45')}>
+                {p.host?.avatar
+                  ? <img src={p.host.avatar} alt="" className="h-[70px] w-[70px] rounded-full object-cover" />
+                  : <span className="grid h-[70px] w-[70px] place-items-center rounded-full bg-[#241a3d] font-display text-xl font-bold">{(p.host?.name ?? 'P').charAt(0)}</span>}
+                {live ? (
+                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-[#ff3b5c] px-1.5 py-[1px] font-mono text-[8px] font-bold uppercase tracking-wide ring-2 ring-[#0b0b14]">Live</span>
+                ) : (
+                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-black/75 px-1.5 py-[1px] font-mono text-[8px] font-semibold backdrop-blur-md ring-2 ring-[#0b0b14]">{whenLabel(p.starts_at, p.status)}</span>
+                )}
+                {isGoing && !live && <span className="absolute -right-0.5 -top-0.5 grid h-[18px] w-[18px] place-items-center rounded-full bg-[#5ee08a] ring-2 ring-[#0b0b14]"><Check className="h-3 w-3 text-black" strokeWidth={3} /></span>}
+              </span>
+              <span className="mt-2.5 line-clamp-1 w-full text-[11.5px] font-medium">{p.title}</span>
+              <span className="text-[10px] text-white/45">{p.rsvp_count} going</span>
+            </button>
           );
         })}
       </div>

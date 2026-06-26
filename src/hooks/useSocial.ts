@@ -281,9 +281,13 @@ export function useDirectMessages(otherUserId?: string) {
     mutationFn: async ({ recipientId, content }: { recipientId: string; content: string }) => {
       if (!user) throw new Error('Not authenticated');
 
+      // NB: send_direct_message has two overloads — (uuid,text) and the richer
+      // (uuid,text,uuid,uuid,jsonb). Passing only recipient+content is AMBIGUOUS
+      // (PostgREST 300 PGRST203). Include p_reply_to_id to bind the 5-arg overload.
       const { error } = await supabase.rpc('send_direct_message' as never, {
         p_recipient: recipientId,
         p_content: content,
+        p_reply_to_id: null,
       } as never);
 
       if (error) {

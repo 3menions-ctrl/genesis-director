@@ -41,7 +41,7 @@ export function useWorlds() {
  *  - 'reels' : short reels ONLY — clips of 5 seconds or less — newest first.
  *    A reel is, by definition, a ≤5s clip.
  */
-export function useReelsList(kind: 'videos' | 'reels') {
+export function useReelsList(kind: 'videos' | 'reels', world?: string | null) {
   const [reels, setReels] = useState<ReelHit[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -53,12 +53,13 @@ export function useReelsList(kind: 'videos' | 'reels') {
           .eq('is_taken_down', false);
         if (kind === 'reels') q = q.gt('duration_sec', 0).lte('duration_sec', 5);
         else q = q.or('duration_sec.gt.5,duration_sec.is.null');
+        if (world) q = q.eq('world_slug', world);
         const { data } = await q.order(kind === 'reels' ? 'created_at' : 'play_count', { ascending: false }).limit(30);
         if (!cancel) { setReels(((data ?? []) as unknown as ReelHit[]).map((r) => ({ ...r, title: r.title ?? 'Untitled' }))); setLoading(false); }
       } catch { if (!cancel) { setReels([]); setLoading(false); } }
     })();
     return () => { cancel = true; };
-  }, [kind]);
+  }, [kind, world]);
   return { reels, loading };
 }
 

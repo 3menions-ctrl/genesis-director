@@ -11,7 +11,7 @@ import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
 import { MasonryGrid, MediaTile } from '@/components/native/MediaTile';
 import { PeopleSwipe } from '@/components/discover/PeopleSwipe';
 import { useAuth } from '@/contexts/AuthContext';
-import { useReelsList, useSearchEverything, useDailyPrompt, type ReelHit } from '@/hooks/useDiscover';
+import { useReelsList, useSearchEverything, useDailyPrompt, useWorlds, type ReelHit } from '@/hooks/useDiscover';
 import { FILMS } from '@/data/filmsLibrary';
 import { hapticTap } from '@/lib/native/shell';
 import { cn } from '@/lib/utils';
@@ -31,7 +31,9 @@ export default function Discover() {
   const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [cat, setCat] = useState<Cat>('videos');
-  const list = useReelsList(cat === 'reels' ? 'reels' : 'videos');
+  const [world, setWorld] = useState<string | null>(null);
+  const worlds = useWorlds();
+  const list = useReelsList(cat === 'reels' ? 'reels' : 'videos', world);
   const daily = useDailyPrompt();
   const search = useSearchEverything(query);
   const searching = query.trim().length > 0;
@@ -81,6 +83,14 @@ export default function Discover() {
               <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[12px] font-semibold text-white">Make it →</div>
             </div>
           </button>
+        )}
+
+        {/* Worlds filter — borderless chips (Videos/Reels only) */}
+        {!searching && cat !== 'people' && (
+          <div className="mt-4 flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+            <WorldChip label="All worlds" on={world === null} onClick={() => { void hapticTap(); setWorld(null); }} />
+            {worlds.map((w) => <WorldChip key={w.slug} label={w.name} accent={`hsl(${w.accent_hsl})`} glyph={w.glyph} on={world === w.slug} onClick={() => { void hapticTap(); setWorld(w.slug); }} />)}
+          </div>
         )}
 
         {searching ? (
@@ -148,4 +158,12 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Empty({ label }: { label: string }) {
   return <div className="py-14 text-center text-[13px] text-white/40">{label}</div>;
+}
+
+function WorldChip({ label, on, accent, glyph, onClick }: { label: string; on: boolean; accent?: string; glyph?: string | null; onClick: () => void }) {
+  return (
+    <button onClick={onClick} className={cn('inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-4 text-[13px] font-semibold transition-colors', on ? 'msg-glass-accent text-white' : 'msg-glass text-white/55')}>
+      {glyph && <span style={{ color: on ? '#fff' : accent }}>{glyph}</span>}{label}
+    </button>
+  );
 }

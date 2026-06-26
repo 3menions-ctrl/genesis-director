@@ -186,11 +186,13 @@ const EnvironmentCard = memo(function EnvironmentCard({
   const Icon = bp.icon;
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onClick={onOpen}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
       className="group relative block text-left cursor-pointer animate-fade-in w-full"
       style={{ animationDelay: `${Math.min(index * 25, 300)}ms` }}
     >
@@ -206,6 +208,13 @@ const EnvironmentCard = memo(function EnvironmentCard({
           src={bp.image}
           alt={bp.name}
           loading="lazy"
+          onError={(e) => {
+            // External (Unsplash) preset images can 404 / rate-limit. Fall back
+            // to a neutral gradient tile instead of a broken-image box.
+            const el = e.currentTarget;
+            el.style.display = "none";
+            el.parentElement?.classList.add("bg-gradient-to-br", "from-white/[0.06]", "to-white/[0.02]");
+          }}
           className={cn(
             "absolute inset-0 w-full h-full object-cover transition-transform duration-700",
             hover ? "scale-[1.06]" : "scale-100",
@@ -286,7 +295,7 @@ const EnvironmentCard = memo(function EnvironmentCard({
           </div>
         )}
       </div>
-    </button>
+    </div>
   );
 });
 

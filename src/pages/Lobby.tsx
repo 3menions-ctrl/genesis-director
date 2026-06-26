@@ -96,19 +96,6 @@ export default function Lobby() {
   });
   usePageTone(TONE_PRESETS.lobby);
 
-  // ── Live presence — real editor_presence count only (null until known) ──
-  const [nowEditing, setNowEditing] = useState<number | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const { count } = await supabase.from("editor_presence" as never).select("user_id", { count: "exact", head: true });
-        if (!cancelled && typeof count === "number") setNowEditing(count);
-      } catch { /* no presence data — leave hidden */ }
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
   // ── Worlds + reels ──
   const [worlds, setWorlds] = useState<ChannelWorld[]>(WORLDS_FALLBACK);
   const [feed, setFeed] = useState<FeedRow[]>([]);
@@ -375,9 +362,6 @@ export default function Lobby() {
           <aside className="mt-2 lg:mt-0 lg:sticky lg:top-6 lg:self-start">
             <Panel title="The Lobby · live" badge={<span className="text-[hsl(160_60%_50%)]">● now</span>}>
               <Stat label="Films today" value={String(filmsToday)} />
-              {nowEditing !== null && (
-                <Stat label="In the editor" value={`${nowEditing} · live`} valueClass="text-[hsl(160_60%_50%)]" />
-              )}
             </Panel>
 
             <Panel

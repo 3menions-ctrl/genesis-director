@@ -71,9 +71,19 @@ export function useSearchEverything(query: string) {
     setLoading(true);
     const t = setTimeout(async () => {
       try {
-        const { data } = await supabase.rpc('search_everything' as never, { p_query: term, p_limit: 16 } as never);
-        const payload = (data as unknown as { reels?: ReelHit[]; creators?: CreatorHit[] }) ?? {};
-        setResults({ reels: payload.reels ?? [], creators: payload.creators ?? [] });
+        // search_everything (ranked) AND a direct directory name match, so ANY
+        // registered user — including people who signed up on the web — is
+        // findable, not just those who've published content. Same backend.
+        const [rpcRes, dirRes] = await Promise.all([
+          supabase.rpc('search_everything' as never, { p_query: term, p_limit: 16 } as never),
+          supabase.from('find_friends_directory' as never).select('id, display_name, avatar_url, tagline').ilike('display_name', `%${term}%`).limit(16),
+        ]);
+        const payload = (rpcRes.data as unknown as { reels?: ReelHit[]; creators?: CreatorHit[] }) ?? {};
+        const dir = ((dirRes.data ?? []) as unknown as { id: string; display_name: string | null; avatar_url: string | null; tagline: string | null }[])
+          .map((d) => ({ id: d.id, display_name: d.display_name, avatar_url: d.avatar_url, tagline: d.tagline, follower_count: 0, reel_count: 0 } as CreatorHit));
+        const seen = new Set<string>();
+        const creators = [...(payload.creators ?? []), ...dir].filter((c) => (seen.has(c.id) ? false : (seen.add(c.id), true)));
+        setResults({ reels: payload.reels ?? [], creators });
       } catch { setResults({ reels: [], creators: [] }); }
       finally { setLoading(false); }
     }, 200);

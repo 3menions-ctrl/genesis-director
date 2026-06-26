@@ -76,15 +76,6 @@ const FLOWS: Record<string, Flow> = {
     ],
     route: (s, p) => `/me/generate?prompt=${enc(compose(p, [s.look && `${s.look} style`]))}${fmt(s.aspect)}${img(s.image)}`,
   },
-  image: {
-    Icon: ImageIcon, label: 'Image', writeQ: 'Describe the image', action: 'Generate',
-    placeholder: 'A portrait of a desert wanderer at golden hour, 85mm…',
-    steps: [
-      { id: 'look', q: 'Pick a style', skip: true, opts: [{ v: 'cinematic', label: 'Cinematic', icon: Film }, { v: 'anime', label: 'Anime', icon: Sparkles }, { v: '3d', label: '3D', icon: Box }, { v: 'photo', label: 'Photo', icon: Camera }] },
-      { id: 'aspect', q: 'Format', opts: ASPECT_OPTS },
-    ],
-    route: (s, p) => `/studio?tab=image&prompt=${enc(compose(p, [s.look && `${s.look} style`, ASPECT_HINT[s.aspect]]))}${fmt(s.aspect)}`,
-  },
   avatar: {
     Icon: UserRound, label: 'Avatar', writeQ: 'What do they say?', action: 'Generate',
     placeholder: 'Hey everyone — welcome back to the channel…',
@@ -94,24 +85,6 @@ const FLOWS: Record<string, Flow> = {
       { id: 'aspect', q: 'Format', opts: ASPECT_OPTS },
     ],
     route: (_s, p) => `/avatars${p.trim() ? `?script=${enc(p.trim())}` : ''}`,
-  },
-  music: {
-    Icon: Music, label: 'Music', writeQ: 'Describe the track', action: 'Compose',
-    placeholder: 'A tense orchestral build with low strings and a distant choir…',
-    steps: [
-      { id: 'genre', q: 'Genre', opts: [{ v: 'cinematic', label: 'Cinematic', icon: Film }, { v: 'electronic', label: 'Electronic', icon: AudioLines }, { v: 'orchestral', label: 'Orchestral', icon: Music }, { v: 'lofi', label: 'Lo-fi', icon: Radio }, { v: 'ambient', label: 'Ambient', icon: Waves }] },
-      { id: 'mood', q: 'Mood', opts: [{ v: 'epic', label: 'Epic', icon: Zap }, { v: 'calm', label: 'Calm', icon: Leaf }, { v: 'tense', label: 'Tense', icon: Wind }, { v: 'uplifting', label: 'Uplifting', icon: Sun }, { v: 'dreamy', label: 'Dreamy', icon: Moon }] },
-    ],
-    route: (s, p) => { const q = compose(p, [s.genre, s.mood && `${s.mood} mood`]); return q ? `/music?prompt=${enc(q)}` : '/music'; },
-  },
-  photo: {
-    Icon: Scissors, label: 'Edit photo', writeQ: 'Describe the edit', action: 'Apply',
-    placeholder: 'Relight to golden hour, remove the background, add film grain…',
-    steps: [
-      { id: 'source', q: 'Add a photo', opts: [{ v: 'upload', label: 'Upload', icon: Upload }, { v: 'library', label: 'Library', icon: Images }, { v: 'camera', label: 'Camera', icon: Camera }] },
-      { id: 'op', q: 'What to do', opts: [{ v: 'relight', label: 'Relight', icon: Lightbulb }, { v: 'restyle', label: 'Restyle', icon: Palette }, { v: 'remove', label: 'Remove', icon: Eraser }, { v: 'upscale', label: 'Upscale', icon: Maximize2 }] },
-    ],
-    route: (s, p) => `/studio?tab=photo&prompt=${enc(compose(p, [s.op]))}${img(s.image)}`,
   },
 };
 

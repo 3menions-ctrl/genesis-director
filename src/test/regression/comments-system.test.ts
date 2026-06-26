@@ -142,8 +142,21 @@ describe('VideoCommentsSection — UI Component', () => {
     expect(component).toContain("user?.id === comment.user_id");
   });
 
-  it('should delete via supabase with correct id filter', () => {
-    expect(component).toMatch(/\.delete\(\)[\s\S]*?\.eq\('id',\s*comment\.id\)/);
+  it('should delete via supabase with correct id filter (in the hook, so the cache is invalidated)', () => {
+    // Deletion lives in useProjectComments.deleteComment so it invalidates the
+    // query cache (realtime DELETE events are not reliably delivered); the
+    // component delegates to it via onDelete rather than deleting inline.
+    const socialHook = readFile('src/hooks/useSocial.ts');
+    expect(socialHook).toMatch(/deleteComment[\s\S]*?\.delete\(\)[\s\S]*?\.eq\('id',\s*commentId\)/);
+    expect(component).toContain('onDelete(comment.id)');
+  });
+
+  it('should confirm before deleting a comment (no silent destructive action)', () => {
+    expect(component).toContain('confirmAsync');
+  });
+
+  it('should guard against duplicate submits with a synchronous lock', () => {
+    expect(component).toContain('sendingRef');
   });
 
   // ─── Threading ─────────────────────────────────────────────────────────────

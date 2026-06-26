@@ -1,4 +1,7 @@
-// Studio Image — Lovable AI (Nano Banana / Nano Banana Pro) text-to-image and image edit.
+// Studio Image — Replicate FLUX text-to-image and image remix.
+//   • Default (fast/cheap): black-forest-labs/flux-schnell
+//   • HQ or remix (reference image): black-forest-labs/flux-1.1-pro (image_prompt)
+// Auth-guarded so the shared Replicate key isn't abused anonymously.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { validateAuth, unauthorizedResponse } from "../_shared/auth-guard.ts";
 
@@ -36,28 +39,48 @@ const SIZE_HINTS: Record<string, string> = {
   "21:9": "ultra-wide 21:9 cinematic anamorphic composition",
 };
 
+// FLUX accepts these aspect_ratio values; map UI aspects, fall back to 1:1.
+const FLUX_ASPECTS = new Set(["1:1", "16:9", "9:16", "3:4", "4:3", "21:9", "2:3", "3:2", "4:5", "5:4", "9:21"]);
+
 interface Body {
   prompt: string;
   style?: string;
   aspect?: string;
-  referenceUrl?: string; // when provided we run an edit
+  referenceUrl?: string; // when provided we run a remix (image_prompt)
   count?: number; // 1..4
-  hq?: boolean; // use Nano Banana Pro
+  hq?: boolean; // use flux-1.1-pro
+}
+
+async function pollPrediction(getUrl: string, token: string, maxSeconds: number): Promise<Record<string, unknown>> {
+  const deadline = maxSeconds * 1000;
+  let waited = 0;
+  while (waited < deadline) {
+    await new Promise((r) => setTimeout(r, 1500));
+    waited += 1500;
+    const resp = await fetch(getUrl, { headers: { Authorization: `Bearer ${token}` } });
+    if (!resp.ok) continue;
+    const result = await resp.json();
+    if (result.status === "succeeded" || result.status === "failed" || result.status === "canceled") {
+      return result;
+    }
+  }
+  throw new Error("Replicate prediction timed out");
 }
 
 serve(async (req) => {
   if (req.method === "OPTIONS")
     return new Response("ok", { headers: corsHeaders });
 
-  // ═══ AUTH GUARD: prevent anonymous abuse of paid Lovable AI Gateway ═══
+  // ═══ AUTH GUARD: prevent anonymous abuse of the shared Replicate key ═══
   const auth = await validateAuth(req);
   if (!auth.authenticated) return unauthorizedResponse(corsHeaders, auth.error);
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
+    const REPLICATE_TOKEN =
+      Deno.env.get("REPLICATE_API_TOKEN") || Deno.env.get("REPLICATE_API_KEY");
+    if (!REPLICATE_TOKEN) {
       return new Response(
-        JSON.stringify({ error: "AI gateway not configured" }),
+        JSON.stringify({ error: "Image generation is not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -71,50 +94,75 @@ serve(async (req) => {
       });
     }
 
-    const styleSuffix = body.style && STYLE_PROMPTS[body.style] ? `\n\nStyle: ${STYLE_PROMPTS[body.style]}.` : "";
-    const aspectSuffix = body.aspect && SIZE_HINTS[body.aspect] ? `\n\nFraming: ${SIZE_HINTS[body.aspect]}.` : "";
+    const styleSuffix = body.style && STYLE_PROMPTS[body.style] ? `. ${STYLE_PROMPTS[body.style]}` : "";
+    const aspectSuffix = body.aspect && SIZE_HINTS[body.aspect] ? `. ${SIZE_HINTS[body.aspect]}` : "";
     const fullPrompt = `${prompt}${styleSuffix}${aspectSuffix}`;
 
     const count = Math.max(1, Math.min(4, body.count ?? 1));
-    const model = body.hq
-      ? "google/gemini-3-pro-image-preview"
-      : "google/gemini-2.5-flash-image";
-
-    // Build user content: text + optional reference image for edits
-    const userContent: unknown =
-      body.referenceUrl
-        ? [
-            { type: "text", text: fullPrompt },
-            { type: "image_url", image_url: { url: body.referenceUrl } },
-          ]
-        : fullPrompt;
+    const aspect = body.aspect && FLUX_ASPECTS.has(body.aspect) ? body.aspect : "1:1";
+    // Remix (reference image) and HQ both use flux-1.1-pro (supports image_prompt
+    // and higher fidelity). The fast default is flux-schnell.
+    const useHq = !!body.hq || !!body.referenceUrl;
+    const modelSlug = useHq ? "black-forest-labs/flux-1.1-pro" : "black-forest-labs/flux-schnell";
+    const model = useHq ? "flux-1.1-pro" : "flux-schnell";
 
     const callOnce = async (): Promise<string | null> => {
-      const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
+      const input: Record<string, unknown> = useHq
+        ? {
+            prompt: fullPrompt,
+            aspect_ratio: aspect,
+            output_format: "webp",
+            output_quality: 90,
+            safety_tolerance: 2,
+            ...(body.referenceUrl ? { image_prompt: body.referenceUrl } : {}),
+          }
+        : {
+            prompt: fullPrompt,
+            aspect_ratio: aspect,
+            num_outputs: 1,
+            output_format: "webp",
+            output_quality: 90,
+            go_fast: true,
+          };
+
+      const r = await fetch(
+        `https://api.replicate.com/v1/models/${modelSlug}/predictions`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${REPLICATE_TOKEN}`,
+            "Content-Type": "application/json",
+            // Wait up to 60s for the result inline so we don't have to poll
+            // for fast models; pollPrediction is the fallback for slower ones.
+            Prefer: "wait=60",
+          },
+          body: JSON.stringify({ input }),
         },
-        body: JSON.stringify({
-          model,
-          messages: [{ role: "user", content: userContent }],
-          modalities: ["image", "text"],
-        }),
-      });
+      );
       if (!r.ok) {
         const txt = await r.text();
-        console.error("AI gateway error", r.status, txt);
-        const err = new Error(`AI gateway ${r.status}`);
+        console.error("Replicate error", r.status, txt.slice(0, 300));
+        const err = new Error(`Replicate ${r.status}`);
         (err as Error & { status?: number }).status = r.status;
         throw err;
       }
-      const j = await r.json();
-      const url = j?.choices?.[0]?.message?.images?.[0]?.image_url?.url ?? null;
-      return url;
+      let pred = (await r.json()) as Record<string, unknown>;
+      const status = pred.status as string;
+      if (status !== "succeeded" && status !== "failed" && status !== "canceled") {
+        const getUrl = (pred.urls as { get?: string } | undefined)?.get;
+        if (getUrl) pred = await pollPrediction(getUrl, REPLICATE_TOKEN, 90);
+      }
+      if (pred.status !== "succeeded") {
+        const err = new Error(`Replicate prediction ${pred.status}: ${String(pred.error ?? "")}`.slice(0, 200));
+        throw err;
+      }
+      const out = pred.output;
+      if (Array.isArray(out)) return (out[0] as string) ?? null;
+      if (typeof out === "string") return out;
+      return null;
     };
 
-    // Run N requests in parallel; partial failures allowed
+    // Run N predictions in parallel; partial failures allowed.
     const settled = await Promise.allSettled(
       Array.from({ length: count }, () => callOnce()),
     );
@@ -132,7 +180,7 @@ serve(async (req) => {
     if (images.length === 0) {
       if (blockingStatus === 402) {
         return new Response(
-          JSON.stringify({ error: "Out of AI credits. Add credits to your workspace." }),
+          JSON.stringify({ error: "Image provider is out of credits. Please try again later." }),
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }

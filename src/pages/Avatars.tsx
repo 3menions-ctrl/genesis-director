@@ -797,8 +797,11 @@ function GlassFrame({
   const showCaption = captionVisible || hovered;
 
   return (
-    <motion.button
+    <motion.div
+      role="button"
+      tabIndex={0}
       onClick={onOpen}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onFocus={() => setHovered(true)}
@@ -1011,7 +1014,7 @@ function GlassFrame({
           )}
         </AnimatePresence>
       </div>
-    </motion.button>
+    </motion.div>
   );
 }
 

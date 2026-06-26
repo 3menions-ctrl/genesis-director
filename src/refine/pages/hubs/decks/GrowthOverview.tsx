@@ -60,7 +60,10 @@ export default function GrowthOverview() {
           gallery, templates, avatars, safety, comments] = await Promise.all([
           supabase.rpc("analytics_visitors_daily" as never, { _since: since } as never),
           supabase.rpc("analytics_top_pages" as never, { _since: since, _limit: 6 } as never),
-          supabase.from("feature_flags").select("enabled, is_enabled, active"),
+          // `enabled` is the real column; is_enabled/active don't exist and
+          // selecting them 400s the whole query. The bool() helper below still
+          // tolerates the other names if the schema ever changes.
+          supabase.from("feature_flags").select("enabled"),
           supabase.rpc("admin_dashboard_pulse" as never),
           supabase.from("experiments").select("status"),
           supabase.from("announcements").select("title, body, created_at").order("created_at", { ascending: false }).limit(1),

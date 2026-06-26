@@ -1882,6 +1882,17 @@ html {
   touch-action: manipulation;
 }
 
+/* Mobile: decorative aura/glow backdrops (fixed/absolute, pointer-events-none)
+   can extend past the narrow viewport and cause horizontal scrolling on
+   /library, /reel, /templates, etc. Clip horizontal overflow at the root.
+   `clip` (not `hidden`) preserves position: sticky / fixed behavior. */
+@media (max-width: 768px) {
+  html,
+  body {
+    overflow-x: clip;
+  }
+}
+
 /* Prevent callout on long-press (iOS) */
 img, a, button {
   -webkit-touch-callout: none;

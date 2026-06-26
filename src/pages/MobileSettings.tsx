@@ -42,12 +42,12 @@ export default function MobileSettings() {
 
         <Group label="Account">
           <Row icon={CreditCard} label="Credits & billing" hint={`◇ ${available}`} onClick={() => go('/account?tab=credits')} />
-          <Row icon={UserRound} label="Account & data" onClick={() => go('/account')} />
+          <Row icon={UserRound} label="Account & data" onClick={() => go('/me/settings/account')} />
         </Group>
 
         <Group label="App">
-          <Row icon={Bell} label="Notifications" onClick={() => go('/settings')} />
-          <Row icon={ShieldCheck} label="Privacy & messaging" onClick={() => go('/settings')} />
+          <Row icon={Bell} label="Notifications" onClick={() => go('/me/settings/notifications')} />
+          <Row icon={ShieldCheck} label="Privacy & messaging" onClick={() => go('/me/settings/privacy')} />
           <Row icon={HelpCircle} label="Help & about" onClick={() => go('/settings')} />
         </Group>
 

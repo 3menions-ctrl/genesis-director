@@ -84,8 +84,11 @@ const Discover = lazy(() => import("./pages/Discover"));
 const CreatorProfile = lazy(() => import("./pages/CreatorProfile"));
 // Mobile DM inbox.
 const Messages = lazy(() => import("./pages/Messages"));
-// Mobile full-page settings.
+// Mobile full-page settings + sub-pages.
 const MobileSettings = lazy(() => import("./pages/MobileSettings"));
+const NotificationsSettings = lazy(() => import("./pages/settings/NotificationsSettings"));
+const PrivacySettings = lazy(() => import("./pages/settings/PrivacySettings"));
+const MobileAccountSettings = lazy(() => import("./pages/settings/AccountSettings"));
 // First-run onboarding (native).
 const Welcome = lazy(() => import("./pages/Welcome"));
 // Mobile notifications / activity feed.
@@ -341,12 +344,15 @@ const App = () => {
                     <Messages />
                   </RouteContainer>
                 } />
-                {/* Mobile full-page settings. */}
+                {/* Mobile full-page settings + sub-pages. */}
                 <Route path="/me/settings" element={
                   <RouteContainer fallbackMessage="Loading settings…">
                     <MobileSettings />
                   </RouteContainer>
                 } />
+                <Route path="/me/settings/notifications" element={<RouteContainer fallbackMessage="Loading…"><NotificationsSettings /></RouteContainer>} />
+                <Route path="/me/settings/privacy" element={<RouteContainer fallbackMessage="Loading…"><PrivacySettings /></RouteContainer>} />
+                <Route path="/me/settings/account" element={<RouteContainer fallbackMessage="Loading…"><MobileAccountSettings /></RouteContainer>} />
                 {/* First-run onboarding (native). */}
                 <Route path="/welcome" element={
                   <RouteContainer fallbackMessage="Loading…">

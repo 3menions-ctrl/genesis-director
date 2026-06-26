@@ -58,9 +58,9 @@ export function useSocial() {
       if (!user) return 0;
       
       const { count, error } = await supabase
-        .from('user_follows')
+        .from('follows')
         .select('*', { count: 'exact', head: true })
-        .eq('following_id', user.id);
+        .eq('followed_id', user.id);
       
       if (error) {
         console.debug('[useSocial] Followers count error:', error.message);
@@ -78,7 +78,7 @@ export function useSocial() {
       if (!user) return 0;
       
       const { count, error } = await supabase
-        .from('user_follows')
+        .from('follows')
         .select('*', { count: 'exact', head: true })
         .eq('follower_id', user.id);
       
@@ -97,10 +97,10 @@ export function useSocial() {
     
     try {
       const { data, error } = await supabase
-        .from('user_follows')
-        .select('id')
+        .from('follows')
+        .select('follower_id')
         .eq('follower_id', user.id)
-        .eq('following_id', userId)
+        .eq('followed_id', userId)
         .maybeSingle();
       
       if (!isMountedRef.current) return false;
@@ -119,18 +119,12 @@ export function useSocial() {
     mutationFn: async (userId: string) => {
       if (!user) throw new Error('Not authenticated');
       
-      const { error } = await supabase
-        .from('user_follows')
-        .insert({
-          follower_id: user.id,
-          following_id: userId,
-        });
-      
+      // Route through the gated canonical RPC: toggle_follow runs the block +
+      // private-account approval checks and writes the single source of truth
+      // `follows` (WS-B / #24,#26). Button is state-gated by isFollowing, so this
+      // only adds a follow. Notification fired by trg_notify_eh_follow on follows.
+      const { error } = await supabase.rpc('toggle_follow', { p_target: userId });
       if (error) throw error;
-      // The followed-user notification is created server-side by the
-      // trg_notify_user_follow trigger (see 20260625000000_notifications.sql).
-      // A client insert here would be rejected by RLS (notifications can't
-      // be written for another user) and double up once the trigger runs.
     },
     onSuccess: () => {
       // Scope by user id so we don't invalidate other users' cached
@@ -148,12 +142,9 @@ export function useSocial() {
     mutationFn: async (userId: string) => {
       if (!user) throw new Error('Not authenticated');
       
-      const { error } = await supabase
-        .from('user_follows')
-        .delete()
-        .eq('follower_id', user.id)
-        .eq('following_id', userId);
-      
+      // toggle_follow removes the existing follow (WS-B); button only calls this
+      // when already following.
+      const { error } = await supabase.rpc('toggle_follow', { p_target: userId });
       if (error) throw error;
     },
     onSuccess: () => {

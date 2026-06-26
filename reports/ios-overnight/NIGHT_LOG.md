@@ -67,3 +67,22 @@ Audited every native component/sheet for "renders nothing/wrong" + null/edge cra
 - You.tsx: PinSheet (films.length===0), PeopleSheet (followers/following empty),
   content tabs (EmptyTab) all have empty states.
 Result: no component-level bugs — the component layer is robust.
+
+## Cycle 8 — full regression sweep (+ a real crash caught by the CORRECT tsc)
+- Crash sweep: 0 pageerrors / 22 routes. Interaction sweep: 0 / 8. Key fixes
+  re-verified live: anon feed query 200, DM send+read-back+cleanup, leaderboard
+  renders, all green.
+- **Fixed: tapping a People-deck card crashed** — PeopleSwipe onTap read
+  `info.offset.x`, but framer-motion's TapInfo has no `offset` →
+  "Cannot read properties of undefined (reading 'x')" on every card tap, so
+  opening a profile from the deck threw and never navigated. `onTap={() => onOpen()}`.
+  Now navigates to /u/:id, zero errors. (`96c2e107`)
+  CAUGHT BY: running `tsc -p tsconfig.app.json` (the correct project) over ALL 62
+  session files — my earlier `-p tsconfig.json` had hidden these. Same root cause
+  that hid the isSelf crash. Lesson reinforced.
+- Also cleaned type errors in session files (no runtime change): AvatarLibrary
+  filter typing, useDiscover daily-prompt null-narrowing, You.tsx cover_url cast.
+- Remaining 2 erroring session files are PRE-EXISTING web pages from the original
+  ios-app commit, not native work: Profile.tsx (redirected to /you on native —
+  unreachable) and CreationHub.tsx (non-crash aspect-setState type looseness in the
+  web Studio). All 60 native files are tsc-clean.

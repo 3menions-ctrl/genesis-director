@@ -184,6 +184,8 @@ const VideoEditorPage = lazy(() => import("./pages/VideoEditor"));
 // Canonical surfaces on Foundation design. Other routes redirect into these.
 const Library = lazy(() => import("./pages/Library"));
 const Reel = lazy(() => import("./pages/Reel"));
+// Native immersive single-reel player (mobile shell renders this on /r/:id).
+const ReelViewer = lazy(() => import("./pages/ReelViewer"));
 const Account = lazy(() => import("./pages/Account"));
 
 // Standalone creation-adjacent surfaces — restored after the earlier merge
@@ -605,7 +607,7 @@ const App = () => {
                 } />
                 <Route path="/r/:id" element={
                   <RouteContainer fallbackMessage="Loading the reel…">
-                    <Reel />
+                    {IS_MOBILE_SHELL ? <ReelViewer /> : <Reel />}
                   </RouteContainer>
                 } />
                 <Route path="/account" element={

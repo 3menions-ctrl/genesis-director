@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { GitBranch, RefreshCw, Search } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { FloatSection, FloatTable, DeckButton, StatusPill } from "@/admin/ui/primitives";
+import { FloatSection, FloatTable, DeckButton, StatusPill, CYAN, AMBER } from "@/admin/ui/primitives";
+import { CategoryBars, Donut, sumBy, topN } from "@/admin/ui/charts";
 import { Input } from "@/components/ui/input";
 import { ListPagination, usePagination } from "@/components/ui/list-pagination";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,6 +50,16 @@ export default function AdminReferralsPage() {
   const totalPending = useMemo(() => rows.reduce((s, r) => s + Number(r.pending_redemptions || 0), 0), [rows]);
   const pg = usePagination(filtered, 25);
 
+  // Top codes by redemptions + credited-vs-pending split — from the same rows.
+  const topCodes = useMemo(
+    () => topN(sumBy(rows, r => r.code, r => Number(r.total_redemptions || 0)), 10),
+    [rows],
+  );
+  const creditSplit = useMemo(() => [
+    { key: "Credited", value: totalCredited, color: CYAN },
+    { key: "Pending", value: totalPending, color: AMBER },
+  ], [totalCredited, totalPending]);
+
   return (
     <AdminPageShell
       eyebrow="03 // MONEY"
@@ -68,6 +79,17 @@ export default function AdminReferralsPage() {
         </DeckButton>
       }
     >
+      {!loading && rows.length > 0 && (
+        <div className="mb-14 grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-[1.6fr_1fr]">
+          <FloatSection title="Top codes" meta="by total redemptions">
+            <CategoryBars data={topCodes} valueSuffix="redemptions" />
+          </FloatSection>
+          <FloatSection title="Credit status" meta="across all codes">
+            <Donut data={creditSplit} centerLabel="redemptions" />
+          </FloatSection>
+        </div>
+      )}
+
       <FloatSection
         title="Referral codes"
         meta={`${filtered.length} of ${rows.length}`}

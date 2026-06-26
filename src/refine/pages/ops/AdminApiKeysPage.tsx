@@ -2,6 +2,8 @@
 import { Ban, Trash2 } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { AdminConsoleV2, type AdminRow } from "../../components/AdminConsoleV2";
+import { FloatSection, CYAN, ROSE } from "@/admin/ui/primitives";
+import { Donut, TrendArea, bucketByDay } from "@/admin/ui/charts";
 import { supabase } from "@/integrations/supabase/client";
 
 interface KeyRow extends AdminRow {
@@ -34,6 +36,20 @@ export default function AdminApiKeysPage() {
         }}
         searchKey="name"
         searchPlaceholder="Search by key name…"
+        charts={(rows) => {
+          const active = rows.filter((x) => !(x as KeyRow).revoked_at).length;
+          const revoked = rows.length - active;
+          return (
+            <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
+              <FloatSection title="Status" meta={`${rows.length} keys`}>
+                <Donut data={[{ key: "Active", value: active, color: CYAN }, { key: "Revoked", value: revoked, color: ROSE }]} centerLabel="keys" />
+              </FloatSection>
+              <FloatSection title="Created" meta="last 30 days">
+                <TrendArea data={bucketByDay(rows, (r) => (r as KeyRow).created_at, { days: 30 })} valueLabel="keys" />
+              </FloatSection>
+            </div>
+          );
+        }}
         signals={[
           { label: "Total", value: (r) => r.length, tone: "blue" },
           { label: "Active", value: (r) => r.filter((x) => !(x as KeyRow).revoked_at).length, tone: "emerald" },

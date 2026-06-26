@@ -4,6 +4,8 @@ import { ShieldAlert, Plus, Power, Trash2 } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { AdminConsoleV2, type AdminRow } from "../../components/AdminConsoleV2";
 import { AdminDialog, AdminField, inputClass } from "../../components/AdminFormPrimitives";
+import { FloatSection } from "@/admin/ui/primitives";
+import { Donut, CategoryBars, countBy, ROSE, AMBER } from "@/admin/ui/charts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -43,6 +45,23 @@ export default function AdminContentSafetyPage() {
           { label: "Warnings", value: (r) => r.filter((x) => (x as RuleRow).severity === "warn").length, tone: "amber" },
           { label: "Total rules", value: (r) => r.length.toLocaleString(), tone: "neutral" },
         ]}
+        charts={(rows) => {
+          const data = rows as RuleRow[];
+          const bySeverity = countBy(data, (r) => r.severity).map((d) => ({
+            ...d, color: d.key === "block" ? ROSE : AMBER,
+          }));
+          const byMatchType = countBy(data, (r) => r.match_type);
+          return (
+            <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
+              <FloatSection title="By severity" meta="warn vs block">
+                <Donut data={bySeverity} centerLabel="rules" />
+              </FloatSection>
+              <FloatSection title="By match type" meta={`${data.length} rules`}>
+                <CategoryBars data={byMatchType} valueSuffix="rules" />
+              </FloatSection>
+            </div>
+          );
+        }}
         columns={[
           { key: "pattern", label: "Pattern",
             render: (v) => <code className="font-mono text-[12px] text-white/85">{String(v)}</code> },

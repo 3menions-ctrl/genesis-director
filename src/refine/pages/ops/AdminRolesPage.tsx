@@ -2,6 +2,8 @@
 import { ShieldCheck, UserMinus } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { AdminConsoleV2, type AdminRow } from "../../components/AdminConsoleV2";
+import { FloatSection } from "@/admin/ui/primitives";
+import { Donut, TrendArea, countBy, bucketByDay } from "@/admin/ui/charts";
 import { supabase } from "@/integrations/supabase/client";
 
 interface RoleRow extends AdminRow {
@@ -32,6 +34,16 @@ export default function AdminRolesPage() {
           select: "id, user_id, role, granted_at, profiles(email, display_name)",
           orderBy: { column: "granted_at", ascending: false },
         }}
+        charts={(rows) => (
+          <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
+            <FloatSection title="By role" meta={`${rows.length} assignments`}>
+              <Donut data={countBy(rows, (r) => (r as RoleRow).role)} centerLabel="roles" />
+            </FloatSection>
+            <FloatSection title="Grants" meta="last 30 days">
+              <TrendArea data={bucketByDay(rows, (r) => (r as RoleRow).granted_at, { days: 30 })} valueLabel="grants" />
+            </FloatSection>
+          </div>
+        )}
         signals={[
           { label: "Total assignments", value: (r) => r.length, tone: "blue" },
           { label: "Admins", value: (r) => r.filter((x) => (x as RoleRow).role === "admin").length, tone: "rose" },

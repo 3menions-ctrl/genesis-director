@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { FloatSection, FloatTable, DeckButton } from "@/admin/ui/primitives";
+import { CategoryBars } from "@/admin/ui/charts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -60,6 +61,12 @@ export default function AdminProvidersPage() {
 
   const totalCost = groups.reduce((s,g)=>s+g.cost_cents,0) / 100;
 
+  const costByProvider = useMemo(() => groups.map(g => ({ key: g.service, value: g.cost_cents / 100 })), [groups]);
+  const latencyByProvider = useMemo(
+    () => groups.filter(g => g.avg_duration > 0).map(g => ({ key: g.service, value: g.avg_duration })).sort((a, b) => b.value - a.value),
+    [groups],
+  );
+
   return (
     <AdminPageShell
       eyebrow="06 // OPS"
@@ -75,6 +82,17 @@ export default function AdminProvidersPage() {
       ]}
       actions={<DeckButton onClick={() => setReload(k=>k+1)} disabled={loading}><RefreshCw className={`w-3.5 h-3.5 mr-2 ${loading?"animate-spin":""}`} /> Refresh</DeckButton>}
     >
+      {!loading && groups.length > 0 && (
+        <div className="mb-14 grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
+          <FloatSection title="Spend by provider" meta="last 7d">
+            <CategoryBars data={costByProvider} formatValue={(v) => `$${v.toFixed(2)}`} />
+          </FloatSection>
+          <FloatSection title="Avg latency by provider" meta="seconds">
+            <CategoryBars data={latencyByProvider} valueSuffix="s" emptyLabel="No latency recorded." />
+          </FloatSection>
+        </div>
+      )}
+
       <FloatSection title="Providers" meta="7-day spend & reliability">
         {loading ? (
           <div className="py-12 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/30">Loading…</div>

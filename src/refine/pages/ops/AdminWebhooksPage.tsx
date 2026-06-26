@@ -2,6 +2,8 @@
 import { Webhook, Power, Trash2 } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { AdminConsoleV2, type AdminRow } from "../../components/AdminConsoleV2";
+import { FloatSection, CYAN, AMBER } from "@/admin/ui/primitives";
+import { Donut, MiniHistogram } from "@/admin/ui/charts";
 import { supabase } from "@/integrations/supabase/client";
 
 interface WebhookRow extends AdminRow {
@@ -38,6 +40,35 @@ export default function AdminWebhooksPage() {
           { key: "active", label: "Active", type: "select", options: [
             { value: "true", label: "Active" }, { value: "false", label: "Paused" }] },
         ]}
+        charts={(rows) => {
+          const active = rows.filter((x) => (x as WebhookRow).active).length;
+          const paused = rows.length - active;
+          // Failure-count distribution bucketed into discrete bands.
+          const bands = [
+            { label: "0", lo: 0, hi: 0 },
+            { label: "1–2", lo: 1, hi: 2 },
+            { label: "3–5", lo: 3, hi: 5 },
+            { label: "6–10", lo: 6, hi: 10 },
+            { label: "10+", lo: 11, hi: Infinity },
+          ];
+          const failureHist = bands.map((b) => ({
+            label: b.label,
+            value: rows.filter((x) => {
+              const f = (x as WebhookRow).failure_count ?? 0;
+              return f >= b.lo && f <= b.hi;
+            }).length,
+          }));
+          return (
+            <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
+              <FloatSection title="Status" meta={`${rows.length} endpoints`}>
+                <Donut data={[{ key: "Active", value: active, color: CYAN }, { key: "Paused", value: paused, color: AMBER }]} centerLabel="endpoints" />
+              </FloatSection>
+              <FloatSection title="Failure count" meta="endpoints per band">
+                <MiniHistogram data={failureHist} valueLabel="endpoints" />
+              </FloatSection>
+            </div>
+          );
+        }}
         signals={[
           { label: "Total", value: (r) => r.length, tone: "blue" },
           { label: "Active", value: (r) => r.filter((x) => (x as WebhookRow).active).length, tone: "emerald" },

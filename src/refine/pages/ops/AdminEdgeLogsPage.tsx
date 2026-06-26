@@ -2,12 +2,27 @@
 import { useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { FloatSection, FloatTable, DeckButton, StatusPill } from "@/admin/ui/primitives";
+import { FloatSection, FloatTable, DeckButton, StatusPill, CYAN, ROSE } from "@/admin/ui/primitives";
 import { ListPagination, usePagination } from "@/components/ui/list-pagination";
+import { TrendArea, CategoryBars, Donut, sumBy } from "@/admin/ui/charts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 type Row = { id: string; created_at: string; service: string; operation: string; status: string; credits_charged: number; real_cost_cents: number; duration_seconds: number | null; user_id: string | null };
+
+/** Bucket rows into the last `hours` hourly buckets ending now → {label,value}[]. */
+function bucketByHour<T>(rows: T[], getDate: (r: T) => string, hours = 24): { label: string; value: number }[] {
+  const now = Date.now();
+  const start = now - hours * 3600_000;
+  const arr = new Array(hours).fill(0);
+  for (const r of rows) {
+    const t = new Date(getDate(r)).getTime();
+    if (isNaN(t) || t < start || t > now) continue;
+    const idx = Math.floor((t - start) / 3600_000);
+    if (idx >= 0 && idx < hours) arr[idx]++;
+  }
+  return arr.map((value, i) => ({ label: `${String(new Date(start + i * 3600_000).getHours()).padStart(2, "0")}h`, value }));
+}
 
 export default function AdminEdgeLogsPage() {
   const [rows, setRows] = useState<Row[]>([]);
@@ -41,6 +56,17 @@ export default function AdminEdgeLogsPage() {
   }, [rows]);
   const pg = usePagination(rows, 25);
 
+  const hourly = useMemo(() => bucketByHour(rows, r => r.created_at, 24), [rows]);
+  const costByService = useMemo(() => sumBy(rows, r => r.service, r => (r.real_cost_cents || 0) / 100), [rows]);
+  const statusSplit = useMemo(() => {
+    let ok = 0, fail = 0;
+    for (const r of rows) {
+      if (r.status === "success" || r.status === "completed") ok++;
+      else fail++;
+    }
+    return [{ key: "success", value: ok, color: CYAN }, { key: "failure", value: fail, color: ROSE }];
+  }, [rows]);
+
   return (
     <AdminPageShell
       eyebrow="06 // OPS"
@@ -56,6 +82,20 @@ export default function AdminEdgeLogsPage() {
       ]}
       actions={<DeckButton onClick={() => setReload(k => k+1)} disabled={loading}><RefreshCw className={`w-3.5 h-3.5 mr-2 ${loading?"animate-spin":""}`} /> Refresh</DeckButton>}
     >
+      {!loading && rows.length > 0 && (
+        <div className="mb-14 grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
+          <FloatSection title="Invocation volume" meta="hourly · last 24h" className="lg:col-span-2">
+            <TrendArea data={hourly} valueLabel="invocations" height={220} />
+          </FloatSection>
+          <FloatSection title="Spend by service" meta="last 24h">
+            <CategoryBars data={costByService} formatValue={(v) => `$${v.toFixed(2)}`} />
+          </FloatSection>
+          <FloatSection title="Success vs failure" meta={`${rows.length} invocations`}>
+            <Donut data={statusSplit} centerLabel="calls" />
+          </FloatSection>
+        </div>
+      )}
+
       <FloatSection title="Invocations" meta="last 24h">
         {loading ? (
           <div className="py-12 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/30">Loading…</div>

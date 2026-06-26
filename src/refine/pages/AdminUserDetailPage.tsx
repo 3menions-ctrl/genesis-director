@@ -12,7 +12,7 @@
  *   • Recent admin audit log involving this user
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
   AlertCircle, ArrowLeft, BadgeCheck, Coins, Key, Link2, Lock,
@@ -24,6 +24,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSafeNavigation } from "@/lib/navigation";
 import { AdminPageShell } from "../components/AdminPageShell";
 import { FloatSection, FloatTable, FloatStat, StatusPill, DeckButton } from "@/admin/ui/primitives";
+import { TrendArea, CategoryBars, countBy, bucketByDay, topN } from "@/admin/ui/charts";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/Spinner";
 
@@ -203,6 +204,10 @@ export default function AdminUserDetailPage() {
   const isSelf = user?.id === userId;
   const isTargetAdmin = detail?.roles?.includes("admin") ?? false;
   const isSuspended = !!detail?.profile.suspended_at;
+
+  // Charts derive from the same admin_recent_user_actions rows already loaded.
+  const actionsPerDay = useMemo(() => bucketByDay(audit, (a) => a.created_at, { days: 30 }), [audit]);
+  const actionsByType = useMemo(() => topN(countBy(audit, (a) => a.action.replace(/_/g, " ")), 8), [audit]);
 
   // ── Action handlers ────────────────────────────────────────────────
   const callEdgeAction = async (
@@ -438,6 +443,17 @@ export default function AdminUserDetailPage() {
                   }))}
                 />
               </FloatSection>
+            )}
+
+            {audit.length > 0 && (
+              <div className="grid grid-cols-1 gap-x-14 gap-y-12 md:grid-cols-2">
+                <FloatSection title="Action volume" meta="last 30 days">
+                  <TrendArea data={actionsPerDay} valueLabel="actions" height={180} />
+                </FloatSection>
+                <FloatSection title="By action" meta={`${audit.length} entries`}>
+                  <CategoryBars data={actionsByType} valueSuffix="x" />
+                </FloatSection>
+              </div>
             )}
 
             <FloatSection title="Recent admin actions" meta={`${audit.length} entries`}>

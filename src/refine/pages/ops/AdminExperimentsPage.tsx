@@ -4,6 +4,8 @@ import { Plus, Play, Pause, BadgeCheck, Trash2 } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { AdminConsoleV2, type AdminRow } from "../../components/AdminConsoleV2";
 import { AdminDialog, AdminField, inputClass } from "../../components/AdminFormPrimitives";
+import { FloatSection } from "@/admin/ui/primitives";
+import { Donut, CategoryBars, countBy, CYAN, AMBER, VIOLET } from "@/admin/ui/charts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -47,6 +49,25 @@ export default function AdminExperimentsPage() {
           { label: "Paused", value: (r) => r.filter((x) => (x as ExperimentRow).status === "paused").length, tone: "amber" },
           { label: "Concluded", value: (r) => r.filter((x) => (x as ExperimentRow).status === "concluded").length, tone: "blue" },
         ]}
+        charts={(rows) => {
+          const data = rows as ExperimentRow[];
+          const statusColor: Record<string, string> = { live: CYAN, paused: AMBER, concluded: VIOLET, draft: "rgba(255,255,255,0.22)" };
+          const byStatus = countBy(data, (r) => r.status).map((d) => ({ ...d, color: statusColor[d.key] }));
+          // Experiments launched per calendar month, derived from real started_at
+          // timestamps (drafts that never launched have no started_at → excluded).
+          const launched = data.filter((r) => r.started_at);
+          const byMonth = countBy(launched, (r) => (r.started_at ?? "").slice(0, 7)).sort((a, b) => a.key.localeCompare(b.key));
+          return (
+            <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
+              <FloatSection title="By status" meta={`${data.length} experiments`}>
+                <Donut data={byStatus} centerLabel="experiments" />
+              </FloatSection>
+              <FloatSection title="Launched per month" meta={`${launched.length} launched`}>
+                <CategoryBars data={byMonth} valueSuffix="launched" emptyLabel="None launched yet." />
+              </FloatSection>
+            </div>
+          );
+        }}
         columns={[
           { key: "key", label: "Key", width: "200px",
             render: (v) => <code className="font-mono text-[12px] text-primary/80">{String(v)}</code> },

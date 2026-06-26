@@ -4,6 +4,8 @@ import { Tag, Plus, Power, Trash2 } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { AdminConsoleV2, type AdminRow } from "../../components/AdminConsoleV2";
 import { AdminDialog, AdminField, inputClass } from "../../components/AdminFormPrimitives";
+import { FloatSection } from "@/admin/ui/primitives";
+import { CategoryBars, Donut, sumBy, topN, countBy } from "@/admin/ui/charts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -36,6 +38,19 @@ export default function AdminCouponsPage() {
       <AdminConsoleV2<CouponRow>
         intro="Issue promo codes and track redemption per code here. Note: codes are stored locally only — they are not yet auto-synced to Polar, so they must also be created in the Polar dashboard to apply at checkout."
         query={{ table: "discount_coupons", orderBy: { column: "created_at", ascending: false } }}
+        charts={(rows) => {
+          const coupons = rows as CouponRow[];
+          return (
+            <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-[1.6fr_1fr]">
+              <FloatSection title="Most redeemed" meta="top coupon codes">
+                <CategoryBars data={topN(sumBy(coupons, (c) => c.code, (c) => c.times_redeemed || 0), 10)} valueSuffix="used" />
+              </FloatSection>
+              <FloatSection title="Active vs inactive" meta={`${coupons.length} coupons`}>
+                <Donut data={countBy(coupons, (c) => (c.active ? "Active" : "Inactive"))} centerLabel="coupons" />
+              </FloatSection>
+            </div>
+          );
+        }}
         searchKey="code"
         signals={[
           { label: "Active", value: (r) => r.filter((x) => (x as CouponRow).active).length, tone: "emerald" },

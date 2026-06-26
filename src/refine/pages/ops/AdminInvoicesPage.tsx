@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Download, RefreshCw, Search } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { FloatSection, FloatTable, DeckButton, StatusPill } from "@/admin/ui/primitives";
+import { FloatSection, FloatTable, DeckButton, StatusPill, CYAN } from "@/admin/ui/primitives";
+import { TrendArea, CategoryBars, bucketByDay, countBy } from "@/admin/ui/charts";
 import { Input } from "@/components/ui/input";
 import { ListPagination, usePagination } from "@/components/ui/list-pagination";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,6 +59,14 @@ export default function AdminInvoicesPage() {
   const refundsCents = useMemo(() => ytd.filter(r => r.amount < 0).reduce((s, r) => s + Math.abs(r.amount) * CENTS_PER_CREDIT, 0), [ytd]);
   const pg = usePagination(filtered, 25);
 
+  // Daily purchase volume (credits bought) + split by transaction type — derived
+  // from the same ledger rows already fetched.
+  const dailyVolume = useMemo(
+    () => bucketByDay(rows.filter(r => r.amount > 0), r => r.created_at, { days: 30, value: r => r.amount }),
+    [rows],
+  );
+  const byType = useMemo(() => countBy(rows, r => r.transaction_type), [rows]);
+
   function exportCsv() {
     const header = "created_at,user_id,type,amount_credits,amount_usd,stripe_payment_id,description\n";
     const body = filtered.map(r => [
@@ -96,6 +105,17 @@ export default function AdminInvoicesPage() {
         </>
       }
     >
+      {!loading && rows.length > 0 && (
+        <div className="mb-14 grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-[1.6fr_1fr]">
+          <FloatSection title="Purchase volume" meta="last 30 days · credits bought">
+            <TrendArea data={dailyVolume} valueLabel="credits" color={CYAN} height={240} />
+          </FloatSection>
+          <FloatSection title="By type" meta={`${rows.length} transactions`}>
+            <CategoryBars data={byType} valueSuffix="txns" />
+          </FloatSection>
+        </div>
+      )}
+
       <FloatSection
         title="Ledger"
         meta="Polar-backed transactions"

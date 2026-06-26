@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { Donut, CategoryBars } from '@/admin/ui/charts';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -285,6 +286,20 @@ export function AdminPipelineMonitor() {
     return <Icon className="w-4 h-4 text-white/60" />;
   };
 
+  // Today's success/failure split + failures-by-service — both from the
+  // already-fetched api_cost_logs aggregates (metrics + services). No new query.
+  const outcomeMix = useMemo(
+    () => [
+      { key: 'completed', value: metrics.completedToday, color: CYAN },
+      { key: 'failed', value: metrics.failedToday, color: ROSE },
+    ].filter(d => d.value > 0),
+    [metrics.completedToday, metrics.failedToday],
+  );
+  const failuresByService = useMemo(
+    () => services.map(s => ({ key: s.name, value: s.failuresToday })).filter(d => d.value > 0).sort((a, b) => b.value - a.value),
+    [services],
+  );
+
   const statusTone = (status: 'healthy' | 'degraded' | 'down') =>
     status === 'healthy' ? 'positive' : status === 'degraded' ? 'warn' : 'danger';
 
@@ -335,6 +350,18 @@ export function AdminPipelineMonitor() {
         <FloatStat label="Failed Today" value={metrics.failedToday} icon={XCircle} index={3} />
         <FloatStat label="Avg Process Time" value={`${metrics.averageProcessingTime}s`} icon={TrendingUp} index={4} />
       </div>
+
+      {/* Outcome split + failures by service — today's api_cost_logs */}
+      {(metrics.completedToday > 0 || metrics.failedToday > 0) && (
+        <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
+          <FloatSection title="Outcomes today" meta="completed vs failed">
+            <Donut data={outcomeMix} centerLabel="calls" />
+          </FloatSection>
+          <FloatSection title="Failures by service" meta="today">
+            <CategoryBars data={failuresByService} valueSuffix="fails" emptyLabel="No failures today." />
+          </FloatSection>
+        </div>
+      )}
 
       {/* Service Health Grid */}
       <FloatSection title="Service Health" meta="real-time pipeline services">

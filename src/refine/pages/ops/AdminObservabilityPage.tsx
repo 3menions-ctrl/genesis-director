@@ -6,7 +6,22 @@ import { useEffect, useMemo, useState } from "react";
 import { RefreshCw, Clock } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { FloatSection, FloatRow, DeckButton } from "@/admin/ui/primitives";
+import { Donut, TrendArea, SERIES_COLORS } from "@/admin/ui/charts";
 import { supabase } from "@/integrations/supabase/client";
+
+/** Bucket rows into the last `hours` hourly buckets ending now → {label,value}[]. */
+function bucketByHour<T>(rows: T[], getDate: (r: T) => string, hours = 24): { label: string; value: number }[] {
+  const now = Date.now();
+  const start = now - hours * 3600_000;
+  const arr = new Array(hours).fill(0);
+  for (const r of rows) {
+    const t = new Date(getDate(r)).getTime();
+    if (isNaN(t) || t < start || t > now) continue;
+    const idx = Math.floor((t - start) / 3600_000);
+    if (idx >= 0 && idx < hours) arr[idx]++;
+  }
+  return arr.map((value, i) => ({ label: `${String(new Date(start + i * 3600_000).getHours()).padStart(2, "0")}h`, value }));
+}
 
 type FailureRow = {
   id: string;
@@ -59,10 +74,11 @@ export default function AdminObservabilityPage() {
     return () => { on = false; };
   }, [reload]);
 
-  const maxBucket = useMemo(
-    () => histogram.reduce((m, h) => Math.max(m, h.n), 0),
+  const classBreakdown = useMemo(
+    () => histogram.map((h, i) => ({ key: h.classification, value: h.n, color: SERIES_COLORS[i % SERIES_COLORS.length] })),
     [histogram],
   );
+  const failuresByHour = useMemo(() => bucketByHour(recent, r => r.created_at, WINDOW_HOURS), [recent]);
   const successRate = snapshot?.success_rate_pct ?? null;
   const tone = successRate == null
     ? "neutral"
@@ -91,30 +107,16 @@ export default function AdminObservabilityPage() {
       }
     >
       <div className="space-y-14">
-        {/* Histogram — bar per classification bucket, normalized to the
-            widest one so the relative ordering reads at a glance. */}
-        <FloatSection title="Failures by classification" meta={`last ${WINDOW_HOURS}h`}>
-          {histogram.length === 0 ? (
-            <div className="text-white/40 text-sm">No failures recorded in this window.</div>
-          ) : (
-            <div className="space-y-2">
-              {histogram.map((h) => (
-                <div key={h.classification} className="flex items-center gap-3">
-                  <div className="w-44 text-white/70 text-[12px] font-mono uppercase tracking-[0.18em]">
-                    {h.classification}
-                  </div>
-                  <div className="flex-1 h-6 bg-white/[0.04] border border-white/10 rounded relative overflow-hidden">
-                    <div
-                      className="absolute inset-y-0 left-0 bg-rose-500/30 border-r border-rose-400/60"
-                      style={{ width: maxBucket > 0 ? `${(h.n / maxBucket) * 100}%` : "0%" }}
-                    />
-                  </div>
-                  <div className="w-12 text-right text-white/80 font-mono text-[12px]">{h.n}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </FloatSection>
+        {/* Classification mix (donut over the RPC histogram) + the hourly
+            cadence of the most-recent failures, side by side. */}
+        <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
+          <FloatSection title="Failures by classification" meta={`last ${WINDOW_HOURS}h`}>
+            <Donut data={classBreakdown} centerLabel="failures" emptyLabel="No failures recorded in this window." />
+          </FloatSection>
+          <FloatSection title="Failure cadence" meta={`recent ${RECENT_LIMIT} · hourly`}>
+            <TrendArea data={failuresByHour} valueLabel="failures" height={224} emptyLabel="No recent failures to plot." />
+          </FloatSection>
+        </div>
 
         {/* Recent failures — a triage list. Each row carries enough
             context (classification + message head + project + version)

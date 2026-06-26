@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { LogOut, Power, RefreshCw, Search } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { FloatSection, DeckButton, StatusPill } from "@/admin/ui/primitives";
+import { FloatSection, DeckButton, StatusPill, CYAN, AMBER } from "@/admin/ui/primitives";
+import { TrendArea, Donut, CategoryBars, countBy, bucketByDay, topN } from "@/admin/ui/charts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ListPagination, usePagination } from "@/components/ui/list-pagination";
@@ -49,6 +50,15 @@ export default function AdminSessionsPage() {
 
   const active = useMemo(() => rows.filter(r => r.is_active_24h).length, [rows]);
   const idle = useMemo(() => rows.filter(r => r.is_idle_24h).length, [rows]);
+
+  // Charts derive from the same 500 session rows already fetched via RPC.
+  const signInsPerDay = useMemo(() => bucketByDay(rows, r => r.last_sign_in_at, { days: 14 }), [rows]);
+  const activityDist = useMemo(() => [
+    { key: "Active 24h", value: active, color: CYAN },
+    { key: "Idle > 24h", value: idle, color: AMBER },
+  ], [active, idle]);
+  const tierDist = useMemo(() => topN(countBy(rows, r => r.account_tier), 8), [rows]);
+
   const pg = usePagination(filtered, 25);
 
   async function killAll() {
@@ -91,6 +101,22 @@ export default function AdminSessionsPage() {
         </>
       }
     >
+      {rows.length > 0 && (
+        <div className="mb-14 grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
+          <FloatSection title="Sign-ins" meta="last 14 days">
+            <TrendArea data={signInsPerDay} valueLabel="sign-ins" />
+          </FloatSection>
+          <FloatSection title="Activity (24h)" meta={`${rows.length} tracked`}>
+            <Donut data={activityDist} centerLabel="users" />
+          </FloatSection>
+          {tierDist.length > 0 && (
+            <FloatSection title="By account tier" meta="top 8">
+              <CategoryBars data={tierDist} valueSuffix="users" />
+            </FloatSection>
+          )}
+        </div>
+      )}
+
       <FloatSection
         title="Sessions"
         meta={`${filtered.length} shown`}

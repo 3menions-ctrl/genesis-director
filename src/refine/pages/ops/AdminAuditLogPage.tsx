@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Download, FileText, Filter, RefreshCw, Search } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { FloatSection, DeckButton } from "@/admin/ui/primitives";
+import { TrendArea, CategoryBars, Donut, countBy, bucketByDay, topN } from "@/admin/ui/charts";
 import { Input } from "@/components/ui/input";
 import { ListPagination, usePagination } from "@/components/ui/list-pagination";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,6 +51,11 @@ export default function AdminAuditLogPage() {
   }, [rows]);
   const operators = useMemo(() => new Set(rows.map(r => r.admin_id)).size, [rows]);
 
+  // Charts derive from the same 1000 audit rows already fetched via RPC.
+  const perDay = useMemo(() => bucketByDay(rows, r => r.created_at, { days: 14 }), [rows]);
+  const byAction = useMemo(() => topN(countBy(rows, r => r.action), 10), [rows]);
+  const byTarget = useMemo(() => countBy(rows, r => r.target_type), [rows]);
+
   const pg = usePagination(filtered, 25);
 
   function exportCsv() {
@@ -85,6 +91,22 @@ export default function AdminAuditLogPage() {
         </>
       }
     >
+      {rows.length > 0 && (
+        <div className="mb-14 grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
+          <FloatSection title="Activity" meta="last 14 days">
+            <TrendArea data={perDay} valueLabel="events" />
+          </FloatSection>
+          <FloatSection title="By action" meta="top 10">
+            <CategoryBars data={byAction} valueSuffix="events" />
+          </FloatSection>
+          {byTarget.length > 0 && (
+            <FloatSection title="By target type" meta={`${rows.length} events`}>
+              <Donut data={byTarget} centerLabel="events" />
+            </FloatSection>
+          )}
+        </div>
+      )}
+
       <FloatSection
         title="Events"
         meta={`${filtered.length} shown`}

@@ -3,10 +3,11 @@
  * active queries, and per-table rows / size / dead-tuples / scan stats.
  * From admin_db_diagnostics() (reads pg_stat_user_tables, pg_stat_activity).
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { FloatSection, FloatTable, ACCENT_HSL } from "@/admin/ui/primitives";
+import { CategoryBars, topN } from "@/admin/ui/charts";
 
 interface Tbl { table: string; rows: number; dead_rows: number; bytes: number; seq_scans: number; idx_scans: number }
 interface Diag { db_size_bytes: number; connections: number; active_queries: number; tables: Tbl[] }
@@ -16,6 +17,10 @@ export default function AdminDbDiagnosticsPage() {
   const [d, setD] = useState<Diag | null>(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => { (async () => { const { data } = await supabase.rpc("admin_db_diagnostics" as never, {} as never); setD((data as Diag) ?? null); setLoading(false); })(); }, []);
+
+  const tables = d?.tables ?? [];
+  const sizeByTable = useMemo(() => topN([...tables].map(t => ({ key: t.table, value: Number(t.bytes || 0) })).sort((a, b) => b.value - a.value), 12), [tables]);
+  const rowsByTable = useMemo(() => topN([...tables].map(t => ({ key: t.table, value: Number(t.rows || 0) })).sort((a, b) => b.value - a.value), 12), [tables]);
 
   return (
     <AdminPageShell
@@ -31,6 +36,20 @@ export default function AdminDbDiagnosticsPage() {
         { label: "Tables", value: d?.tables?.length ?? 0, tone: "emerald" },
       ]}
     >
+      {!loading && tables.length > 0 && (
+        <div className="mb-14">
+          <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
+            <FloatSection title="Top tables by size" meta="on-disk bytes">
+              <CategoryBars data={sizeByTable} formatValue={fmtBytes} />
+            </FloatSection>
+            <FloatSection title="Top tables by rows" meta="live tuples">
+              <CategoryBars data={rowsByTable} valueSuffix="rows" />
+            </FloatSection>
+          </div>
+          <p className="mt-3 text-[11px] text-white/35 italic">point-in-time snapshot — current Postgres internals, not a historical trend.</p>
+        </div>
+      )}
+
       <FloatSection title="Tables" meta="by size">
         {loading ? <div className="py-12 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/40">Loading…</div>
           : <FloatTable

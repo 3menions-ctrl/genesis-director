@@ -2,8 +2,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Clock, Lock, RefreshCw } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { FloatSection, FloatTable, DeckButton, StatusPill } from "@/admin/ui/primitives";
+import { FloatSection, FloatTable, DeckButton, StatusPill, AMBER, CYAN } from "@/admin/ui/primitives";
 import { ListPagination, usePagination } from "@/components/ui/list-pagination";
+import { Donut, MiniHistogram, CategoryBars, countBy } from "@/admin/ui/charts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -52,6 +53,20 @@ export default function AdminQueuePage() {
   const generating = useMemo(() => rows.filter(r => r.status === "generating").length, [rows]);
   const pg = usePagination(rows, 25);
 
+  const statusSplit = useMemo(
+    () => [{ key: "pending", value: pending, color: AMBER }, { key: "generating", value: generating, color: CYAN }],
+    [pending, generating],
+  );
+  const retryDist = useMemo(() => {
+    const buckets = [0, 0, 0, 0, 0]; // 0,1,2,3,4+
+    for (const r of rows) {
+      const n = r.retry_count ?? 0;
+      buckets[Math.min(n, 4)]++;
+    }
+    return buckets.map((value, i) => ({ label: i === 4 ? "4+" : String(i), value }));
+  }, [rows]);
+  const byEngine = useMemo(() => countBy(rows, r => r.engine), [rows]);
+
   return (
     <AdminPageShell
       eyebrow="06 // OPS"
@@ -71,6 +86,20 @@ export default function AdminQueuePage() {
         </DeckButton>
       }
     >
+      {!loading && rows.length > 0 && (
+        <div className="mb-14 grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
+          <FloatSection title="Queue by status" meta={`${rows.length} active`}>
+            <Donut data={statusSplit} centerLabel="clips" />
+          </FloatSection>
+          <FloatSection title="Retry distribution" meta="attempts per clip">
+            <MiniHistogram data={retryDist} valueLabel="clips" />
+          </FloatSection>
+          <FloatSection title="By engine" meta="active clips" className="lg:col-span-2">
+            <CategoryBars data={byEngine} valueSuffix="clips" />
+          </FloatSection>
+        </div>
+      )}
+
       <FloatSection title="Active clips" meta="pending + generating">
         {loading ? (
           <div className="py-12 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/30">Loading…</div>

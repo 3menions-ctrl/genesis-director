@@ -12,6 +12,7 @@ import { Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { FloatSection, FloatTable, StatusPill } from "@/admin/ui/primitives";
+import { Donut, TrendArea, CategoryBars, countBy, bucketByDay, topN } from "@/admin/ui/charts";
 
 interface Org {
   id: string;
@@ -51,6 +52,11 @@ export default function AdminOrgsPage() {
   const totalCredits = useMemo(() => rows.reduce((a, o) => a + (o.credits_balance ?? 0), 0), [rows]);
   const enterprise = useMemo(() => rows.filter((o) => (o.plan ?? "").toLowerCase().includes("enter")).length, [rows]);
 
+  // Charts derive from the same 500 org rows already fetched — no extra queries.
+  const planDist = useMemo(() => countBy(rows, (o) => o.plan, "free"), [rows]);
+  const createdPerDay = useMemo(() => bucketByDay(rows, (o) => o.created_at, { days: 30 }), [rows]);
+  const industryDist = useMemo(() => topN(countBy(rows, (o) => o.industry), 8), [rows]);
+
   const tableRows = useMemo(() => filtered.map((o) => {
     const p = (o.plan || "free").toString();
     const tone = p.includes("enter") ? "accent" : p === "free" ? "neutral" : "positive";
@@ -84,6 +90,22 @@ export default function AdminOrgsPage() {
         { label: "Credits across orgs", value: totalCredits, tone: "amber" },
       ]}
     >
+      {rows.length > 0 && (
+        <div className="mb-14 grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
+          <FloatSection title="By plan" meta={`${rows.length} orgs`}>
+            <Donut data={planDist} centerLabel="orgs" />
+          </FloatSection>
+          <FloatSection title="Created" meta="last 30 days">
+            <TrendArea data={createdPerDay} valueLabel="orgs" />
+          </FloatSection>
+          {industryDist.length > 0 && (
+            <FloatSection title="By industry" meta="top 8">
+              <CategoryBars data={industryDist} valueSuffix="orgs" />
+            </FloatSection>
+          )}
+        </div>
+      )}
+
       <FloatSection title="All organizations" meta={`${filtered.length} of ${rows.length}`}>
         <div className="relative mb-6 max-w-sm">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />

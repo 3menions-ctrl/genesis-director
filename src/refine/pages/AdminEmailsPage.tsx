@@ -7,6 +7,7 @@ import {
   StatOrb, FloatSection, FloatTable, StatusPill, DeckButton,
   ACCENT_HSL, CYAN, AMBER, ROSE,
 } from "@/admin/ui/primitives";
+import { Donut, TrendArea, CategoryBars, countBy, bucketByDay, topN } from "@/admin/ui/charts";
 
 interface EmailLogRow {
   id: string;
@@ -80,6 +81,11 @@ export default function AdminEmailsPage() {
     return out;
   }, [rows]);
 
+  // Charts derive from the same 200 email-log rows already fetched via RPC.
+  const statusDist = useMemo(() => countBy(rows, r => r.status), [rows]);
+  const perDay = useMemo(() => bucketByDay(rows, r => r.created_at, { days: 14 }), [rows]);
+  const templateDist = useMemo(() => topN(countBy(rows, r => r.template_name), 8), [rows]);
+
   const filteredRows = useMemo(() => {
     const base = statusFilter === "all"
       ? rows
@@ -122,6 +128,23 @@ export default function AdminEmailsPage() {
         <StatOrb index={3} aura={ROSE}       label="Failed"     value={stats.failed} />
         <StatOrb index={4} aura={AMBER}      label="Suppressed" value={stats.suppressed} />
       </div>
+
+      {/* Charts — derived from the loaded email-log rows (no extra fetch) */}
+      {rows.length > 0 && (
+        <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
+          <FloatSection title="By status" meta={`${rows.length} emails`}>
+            <Donut data={statusDist} centerLabel="emails" />
+          </FloatSection>
+          <FloatSection title="Delivery volume" meta="last 14 days">
+            <TrendArea data={perDay} valueLabel="emails" />
+          </FloatSection>
+          {templateDist.length > 0 && (
+            <FloatSection title="By template" meta="top 8">
+              <CategoryBars data={templateDist} valueSuffix="emails" />
+            </FloatSection>
+          )}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex items-end gap-3 flex-wrap">

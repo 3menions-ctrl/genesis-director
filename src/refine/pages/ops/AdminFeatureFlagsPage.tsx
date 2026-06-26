@@ -6,6 +6,8 @@ import { useState } from "react";
 import { ToggleRight, Plus, Trash2 } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { AdminConsoleV2, type AdminRow } from "../../components/AdminConsoleV2";
+import { FloatSection } from "@/admin/ui/primitives";
+import { Donut, MiniHistogram, countBy, CYAN } from "@/admin/ui/charts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -76,6 +78,40 @@ export default function AdminFeatureFlagsPage() {
             tone: "rose",
           },
         ]}
+        charts={(rows) => {
+          const data = rows as FlagRow[];
+          const byAudience = countBy(data, (r) => r.audience);
+          const status = [
+            { key: "Enabled", value: data.filter((r) => r.enabled).length, color: CYAN },
+            { key: "Disabled", value: data.filter((r) => !r.enabled).length, color: "rgba(255,255,255,0.22)" },
+          ];
+          // Rollout-percentage distribution across the real stored values.
+          const buckets: { label: string; test: (p: number) => boolean }[] = [
+            { label: "0%", test: (p) => p <= 0 },
+            { label: "1–25", test: (p) => p > 0 && p <= 25 },
+            { label: "26–50", test: (p) => p > 25 && p <= 50 },
+            { label: "51–75", test: (p) => p > 50 && p <= 75 },
+            { label: "76–99", test: (p) => p > 75 && p < 100 },
+            { label: "100%", test: (p) => p >= 100 },
+          ];
+          const rollout = buckets.map((b) => ({
+            label: b.label,
+            value: data.filter((r) => b.test(r.rollout_percentage ?? 0)).length,
+          }));
+          return (
+            <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
+              <FloatSection title="By audience" meta={`${data.length} flags`}>
+                <Donut data={byAudience} centerLabel="flags" />
+              </FloatSection>
+              <FloatSection title="Enabled vs disabled" meta="live state">
+                <Donut data={status} centerLabel="flags" />
+              </FloatSection>
+              <FloatSection title="Rollout distribution" meta="percentage buckets" className="lg:col-span-2">
+                <MiniHistogram data={rollout} valueLabel="flags" />
+              </FloatSection>
+            </div>
+          );
+        }}
         columns={[
           { key: "key", label: "Flag", width: "220px" },
           { key: "description", label: "Description" },

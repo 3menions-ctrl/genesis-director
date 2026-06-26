@@ -1,13 +1,14 @@
 /**
  * Admin Credits/Transactions Page — credit_transactions list.
  */
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { DeckButton, StatusPill } from "@/admin/ui/primitives";
+import { DeckButton, StatusPill, FloatSection } from "@/admin/ui/primitives";
 import { Coins, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AdminPageShell, AdminEmptyState } from "../components/AdminPageShell";
+import { MultiTrend, CategoryBars, countBy, bucketByDay, CYAN, ROSE } from "@/admin/ui/charts";
 
 interface Transaction {
   id: string; user_id: string; amount: number; transaction_type: string;
@@ -35,6 +36,15 @@ export default function AdminCreditsPage() {
   const purchases = txns.filter(t => t.transaction_type === "purchase").length;
   const refunds   = txns.filter(t => t.transaction_type === "refund").length;
 
+  // Daily credit flow (inflow vs outflow magnitude) over the loaded window, and
+  // a breakdown by transaction_type — both derived from the same 200 rows.
+  const flowSeries = useMemo(() => {
+    const inSeries  = bucketByDay(txns.filter(t => t.amount > 0), t => t.created_at, { value: t => t.amount });
+    const outSeries = bucketByDay(txns.filter(t => t.amount < 0), t => t.created_at, { value: t => Math.abs(t.amount) });
+    return inSeries.map((p, i) => ({ label: p.label, inflow: p.value, outflow: outSeries[i]?.value ?? 0 }));
+  }, [txns]);
+  const typeBreakdown = useMemo(() => countBy(txns, t => t.transaction_type), [txns]);
+
   return (
     <AdminPageShell
       eyebrow="03 // MONEY"
@@ -54,6 +64,21 @@ export default function AdminCreditsPage() {
         { label: "Purchases / Refunds", value: `${purchases} / ${refunds}`, tone: "amber", sub: "txn split" },
       ]}
     >
+      {txns.length > 0 && (
+        <div className="mb-14 grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-[1.6fr_1fr]">
+          <FloatSection title="Credit flow" meta={`last ${flowSeries.length} days · in vs out`}>
+            <MultiTrend
+              data={flowSeries}
+              series={[{ key: "inflow", label: "Inflow", color: CYAN }, { key: "outflow", label: "Outflow", color: ROSE }]}
+              height={240}
+            />
+          </FloatSection>
+          <FloatSection title="By type" meta={`${txns.length} movements`}>
+            <CategoryBars data={typeBreakdown} valueSuffix="txns" />
+          </FloatSection>
+        </div>
+      )}
+
       <div className="rounded-2xl border border-white/[0.06] overflow-hidden bg-glass backdrop-blur-md">
         <div className="overflow-x-auto">
           <table className="w-full">

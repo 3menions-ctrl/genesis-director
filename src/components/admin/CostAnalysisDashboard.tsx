@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -28,6 +28,7 @@ import {
   StatOrb, FloatSection, FloatRow, StatusPill, DeckButton,
   ACCENT_HSL, CYAN, AMBER, ROSE, VIOLET,
 } from '@/admin/ui/primitives';
+import { TrendArea, CategoryBars, Donut, bucketByDay, sumBy, countBy } from '@/admin/ui/charts';
 
 type DateRangePreset = 'today' | '7days' | '30days' | 'all' | 'custom';
 
@@ -111,6 +112,9 @@ export function CostAnalysisDashboard() {
   const [retryData, setRetryData] = useState<RetryData>({ total_retries: 0, clips_with_retries: 0, retry_cost_cents: 0 });
   const [refundData, setRefundData] = useState<RefundData>({ total_refunds: 0, refund_credits: 0 });
   const [actualRevenueCents, setActualRevenueCents] = useState(0);
+  // Raw rows kept for charts — same fetch the aggregates use, no extra queries.
+  const [rawApiLogs, setRawApiLogs] = useState<{ service: string; real_cost_cents: number | null; created_at: string }[]>([]);
+  const [rawClips, setRawClips] = useState<{ status: string | null }[]>([]);
   const [devHours, setDevHours] = useState(0);
   const [projectStartDate] = useState(new Date('2026-01-07')); // Update to your start date
 
@@ -201,6 +205,7 @@ export function CostAnalysisDashboard() {
       });
 
       setApiCosts(Object.values(apiAggregated).sort((a, b) => b.calculated_cost_cents - a.calculated_cost_cents));
+      setRawApiLogs((apiData || []) as { service: string; real_cost_cents: number | null; created_at: string }[]);
 
       // Fetch video clips data for retry analysis (with date filter)
       let clipsQuery = supabase
@@ -217,6 +222,7 @@ export function CostAnalysisDashboard() {
       const { data: clipsData } = await clipsQuery;
 
       const clips = clipsData || [];
+      setRawClips(clips.map((c) => ({ status: c.status })));
       const totalRetries = clips.reduce((sum, c) => sum + (c.retry_count || 0), 0);
       const clipsWithRetries = clips.filter(c => (c.retry_count || 0) > 0).length;
       const retryCostCents = totalRetries * (FALLBACK_COST_MAP['replicate-kling'] || 5);
@@ -411,6 +417,18 @@ export function CostAnalysisDashboard() {
   const apiOnlyCosts = totalApiCostCents + totalRetryCostCents;
   const wastePercentage = apiOnlyCosts > 0 ? (totalWastedCostCents / apiOnlyCosts) * 100 : 0;
 
+  // Charts derived from the same raw rows the aggregates use (no extra fetch).
+  const chartDays = dateRangePreset === 'today' ? 1 : dateRangePreset === '7days' ? 7 : dateRangePreset === '30days' ? 30 : 30;
+  const dailyCostSeries = useMemo(
+    () => bucketByDay(rawApiLogs, (r) => r.created_at, { days: chartDays, value: (r) => (r.real_cost_cents || 0) / 100 }),
+    [rawApiLogs, chartDays],
+  );
+  const costByService = useMemo(
+    () => sumBy(rawApiLogs, (r) => r.service.replace(/[_-]/g, ' '), (r) => (r.real_cost_cents || 0) / 100),
+    [rawApiLogs],
+  );
+  const clipStatusBreakdown = useMemo(() => countBy(rawClips, (r) => r.status), [rawClips]);
+
   const getServiceIcon = (service: string) => {
     switch (service) {
       case 'replicate-kling': return <Video className="w-4 h-4" />;
@@ -520,6 +538,23 @@ export function CostAnalysisDashboard() {
         <StatOrb index={3} icon={netProfitCents >= 0 ? TrendingUp : TrendingDown} aura={netProfitCents >= 0 ? CYAN : ROSE} label="Net Profit" value={formatCurrency(netProfitCents)} sub={`${profitMargin.toFixed(1)}% margin`} />
         <StatOrb index={4} icon={Clock} aura={AMBER} label="Dev Investment" value={formatCurrency(devCostCents)} sub={`${devHours} days since launch`} />
       </div>
+
+      {/* Analytics — real figures from the api_cost_logs / video_clips rows already fetched */}
+      {(rawApiLogs.length > 0 || rawClips.length > 0) && (
+        <div className="space-y-10">
+          <FloatSection title="Daily API cost" meta={`${getDateRangeLabel()} · USD`}>
+            <TrendArea data={dailyCostSeries} valueLabel="cost ($)" height={240} emptyLabel="No API cost in this window." />
+          </FloatSection>
+          <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
+            <FloatSection title="Cost by service" meta="real API spend">
+              <CategoryBars data={costByService} formatValue={(v) => formatCurrency(v * 100)} />
+            </FloatSection>
+            <FloatSection title="Clip outcomes" meta={`${rawClips.length} clips`}>
+              <Donut data={clipStatusBreakdown} centerLabel="clips" />
+            </FloatSection>
+          </div>
+        </div>
+      )}
 
       {/* Tabs for detailed breakdown */}
       <Tabs defaultValue="wasted" className="space-y-6">

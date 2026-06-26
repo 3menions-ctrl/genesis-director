@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { StatOrb, FloatSection, FloatTable, DeckButton, ORB_AURAS, ACCENT_HSL } from "@/admin/ui/primitives";
+import { CategoryBars, topN } from "@/admin/ui/charts";
 
 interface Row { user_id: string; name: string; gb: number; objects: number; billable_gb: number; est_charge_credits: number }
 interface Overview { free_gb: number; price_credits_per_gb: number; cost_per_gb_usd: number; snapshot_day: string | null; total_gb: number; attributed_users: number; monthly_cogs_usd: number; users: Row[] }
@@ -31,6 +32,12 @@ export default function AdminStorageBillingPage() {
 
   const projRevenue = useMemo(() => (d?.users ?? []).reduce((a, r) => a + r.est_charge_credits, 0) * 0.10, [d]);
   const margin = useMemo(() => { const cogs = d?.monthly_cogs_usd ?? 0; return projRevenue > 0 ? Math.round(((projRevenue - cogs) / projRevenue) * 100) : 0; }, [projRevenue, d]);
+
+  // Top storage consumers by GB — a snapshot breakdown of the real per-user rows.
+  const topUsers = useMemo(
+    () => topN([...(d?.users ?? [])].map((u) => ({ key: u.name || u.user_id.slice(0, 8), value: Number(u.gb) })).sort((a, b) => b.value - a.value), 12),
+    [d],
+  );
 
   return (
     <AdminPageShell
@@ -64,6 +71,13 @@ export default function AdminStorageBillingPage() {
             <span>Free tier: {d?.free_gb ?? 0} GB</span>
           </div>
         </FloatSection>
+
+        {!loading && (d?.users?.length ?? 0) > 0 && (
+          <FloatSection title="Top storage consumers" meta="by GB stored">
+            <CategoryBars data={topUsers} formatValue={(v) => `${v.toFixed(1)} GB`} />
+            <p className="mt-3 text-[11px] text-white/35 italic">Point-in-time snapshot from the latest metering run — current usage, not a trend.</p>
+          </FloatSection>
+        )}
 
         <FloatSection title="Per-user storage">
           {loading ? <div className="py-12 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/40">Loading…</div>

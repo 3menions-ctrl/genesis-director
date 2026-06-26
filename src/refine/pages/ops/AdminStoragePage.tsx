@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Folder, Lock, RefreshCw, Unlock } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { FloatSection, FloatTable, DeckButton, StatusPill } from "@/admin/ui/primitives";
+import { Donut, CategoryBars, topN } from "@/admin/ui/charts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -42,6 +43,9 @@ export default function AdminStoragePage() {
   // Approx Supabase storage cost: ~$0.021 / GB / month
   const estCost = totalBytes / 1024 / 1024 / 1024 * 0.021;
 
+  const sizeByBucket = useMemo(() => topN(rows.map(r => ({ key: r.bucket_id, value: Number(r.total_bytes || 0) })).sort((a, b) => b.value - a.value), 8), [rows]);
+  const objectsByBucket = useMemo(() => topN(rows.map(r => ({ key: r.bucket_id, value: Number(r.object_count || 0) })).sort((a, b) => b.value - a.value), 8), [rows]);
+
   return (
     <AdminPageShell
       eyebrow="04 // CONTENT"
@@ -61,6 +65,20 @@ export default function AdminStoragePage() {
         </DeckButton>
       }
     >
+      {!loading && rows.length > 0 && (
+        <div className="mb-14">
+          <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
+            <FloatSection title="Storage by bucket" meta="share of total bytes">
+              <Donut data={sizeByBucket} centerLabel="total" formatValue={bytes} />
+            </FloatSection>
+            <FloatSection title="Objects by bucket" meta="object count">
+              <CategoryBars data={objectsByBucket} valueSuffix="objs" />
+            </FloatSection>
+          </div>
+          <p className="mt-3 text-[11px] text-white/35 italic">point-in-time snapshot — current bucket inventory, not a historical trend.</p>
+        </div>
+      )}
+
       <FloatSection title="Buckets" meta="object inventory">
         {loading ? (
           <div className="py-12 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/30">Loading buckets…</div>

@@ -11,7 +11,7 @@
  * Fallback: when admin_get_org_detail isn't deployed, directly queries
  * organizations + organization_members + organization_invites.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   AlertCircle, ArrowLeft, Building2, Crown, Globe, Mail,
@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSafeNavigation } from "@/lib/navigation";
 import { AdminPageShell } from "../components/AdminPageShell";
 import { FloatSection, FloatStat, StatusPill, DeckButton } from "@/admin/ui/primitives";
+import { Donut, TrendArea, countBy, bucketByDay } from "@/admin/ui/charts";
 import { Spinner } from "@/components/ui/Spinner";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -163,6 +164,11 @@ export default function AdminOrgDetailPage() {
 
   useEffect(() => { void load(); }, [load]);
 
+  // Charts derive from the members + recent_projects already loaded — no fetch.
+  const roleDist = useMemo(() => countBy(detail?.members ?? [], (m) => m.role), [detail]);
+  const projectStatusDist = useMemo(() => countBy(detail?.recent_projects ?? [], (p) => p.status), [detail]);
+  const joinedPerDay = useMemo(() => bucketByDay(detail?.members ?? [], (m) => m.joined_at, { days: 30 }), [detail]);
+
   return (
     <AdminPageShell
       eyebrow="02 // PEOPLE"
@@ -230,6 +236,27 @@ export default function AdminOrgDetailPage() {
               </div>
             </div>
           </div>
+
+          {/* Analytics — derived from the loaded members + recent projects */}
+          {(detail.members.length > 0 || detail.recent_projects.length > 0) && (
+            <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
+              {detail.members.length > 0 && (
+                <FloatSection title="Members by role" meta={`${detail.members.length} members`}>
+                  <Donut data={roleDist} centerLabel="members" />
+                </FloatSection>
+              )}
+              {detail.recent_projects.length > 0 && (
+                <FloatSection title="Projects by status" meta={`${detail.recent_projects.length} recent`}>
+                  <Donut data={projectStatusDist} centerLabel="projects" />
+                </FloatSection>
+              )}
+              {detail.members.length > 0 && (
+                <FloatSection title="Members joined" meta="last 30 days" className="lg:col-span-2">
+                  <TrendArea data={joinedPerDay} valueLabel="joined" height={180} />
+                </FloatSection>
+              )}
+            </div>
+          )}
 
           {/* Tabs */}
           <div>

@@ -9,6 +9,7 @@ import { ShieldCheck, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { FloatSection, StatusPill, ACCENT_HSL, ROSE } from "@/admin/ui/primitives";
+import { CategoryBars } from "@/admin/ui/charts";
 import { toast } from "sonner";
 
 const usd = (n: number) => `$${(n ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -56,6 +57,17 @@ export default function AdminPnlPage() {
   }, []);
 
   const reconciled = useMemo(() => drift.length === 0, [drift]);
+
+  // Point-in-time breakdowns of the real ledger figures (no time dimension).
+  const revenueMix = useMemo(() => [
+    { key: "Credit usage", value: pnl?.revenue.credit_usage ?? 0 },
+    { key: "Storage", value: pnl?.revenue.storage ?? 0 },
+    { key: "Subscriptions", value: pnl?.revenue.subscription ?? 0 },
+  ].filter((d) => d.value !== 0), [pnl]);
+  const cogsMix = useMemo(() => [
+    { key: "API generation", value: pnl?.cogs.api ?? 0 },
+    { key: "Storage", value: pnl?.cogs.storage ?? 0 },
+  ].filter((d) => d.value !== 0), [pnl]);
 
   return (
     <AdminPageShell
@@ -125,6 +137,20 @@ export default function AdminPnlPage() {
               <Line label="Total equity" value={bs?.equity.total ?? 0} strong accent />
             </FloatSection>
           </div>
+
+          {pnl && (revenueMix.length > 0 || cogsMix.length > 0) && (
+            <div>
+              <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
+                <FloatSection title="Revenue mix" meta="recognized revenue">
+                  <CategoryBars data={revenueMix} formatValue={usd} />
+                </FloatSection>
+                <FloatSection title="COGS mix" meta="cost of goods sold">
+                  <CategoryBars data={cogsMix} formatValue={usd} />
+                </FloatSection>
+              </div>
+              <p className="mt-3 text-[11px] text-white/35 italic">Point-in-time snapshot from the ledger — composition of the current position, not a trend.</p>
+            </div>
+          )}
 
           {drift.length > 0 && (
             <FloatSection title="Balance drift" meta="cached vs ledger">

@@ -1,8 +1,9 @@
 /** Database health — live row counts across key tables. */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Database, RefreshCw } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { FloatSection, FloatRow, DeckButton } from "@/admin/ui/primitives";
+import { CategoryBars, topN } from "@/admin/ui/charts";
 import { supabase } from "@/integrations/supabase/client";
 
 const TABLES = [
@@ -41,6 +42,14 @@ export default function AdminDbHealthPage() {
 
   const total = Object.values(counts).reduce<number>((s, v) => s + (v ?? 0), 0);
 
+  const countBars = useMemo(
+    () => topN(
+      TABLES.map(t => ({ key: t, value: counts[t] ?? 0 })).filter(d => d.value > 0).sort((a, b) => b.value - a.value),
+      12,
+    ),
+    [counts],
+  );
+
   return (
     <AdminPageShell
       eyebrow="06 // SYSTEM"
@@ -55,6 +64,15 @@ export default function AdminDbHealthPage() {
       ]}
       actions={<DeckButton onClick={() => setReload(k=>k+1)} disabled={loading}><RefreshCw className={`w-3.5 h-3.5 mr-2 ${loading?"animate-spin":""}`} /> Refresh</DeckButton>}
     >
+      {!loading && countBars.length > 0 && (
+        <div className="mb-14">
+          <FloatSection title="Row volume by table" meta="live counts">
+            <CategoryBars data={countBars} valueSuffix="rows" />
+          </FloatSection>
+          <p className="mt-3 text-[11px] text-white/35 italic">point-in-time snapshot — live row counts, not a historical growth trend.</p>
+        </div>
+      )}
+
       <FloatSection title="Tables" meta="live row counts">
         {TABLES.map((t, i) => (
           <FloatRow

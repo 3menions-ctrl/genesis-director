@@ -18,6 +18,7 @@ import { Loader2, AlertTriangle, Activity, Route as RouteIcon, Plus, X, Play, Ar
 import { supabase } from "@/integrations/supabase/client";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { FloatSection, FloatTable, ACCENT_HSL, CYAN, accent } from "@/admin/ui/primitives";
+import { CategoryBars, topN } from "@/admin/ui/charts";
 
 interface Step { step: string; step_order: number; users: number; pct: number }
 interface Path { from_path: string; to_path: string; transitions: number }
@@ -136,6 +137,11 @@ export default function AdminInsightsPage() {
   const finalPct = lifecycle.length ? lifecycle[lifecycle.length - 1]?.pct ?? 0 : 0;
   const journeys = paths.length;
   const noInstrumentation = useMemo(() => available.length < 2, [available]);
+  // Top page→page transitions, shaped for the chart kit from the real paths RPC.
+  const topTransitions = useMemo(
+    () => topN(paths.map((p) => ({ key: `${p.from_path || "/"} → ${p.to_path || "/"}`, value: p.transitions })), 12),
+    [paths],
+  );
 
   return (
     <AdminPageShell
@@ -163,6 +169,12 @@ export default function AdminInsightsPage() {
           <FloatSection title="Lifecycle funnel" meta="signup → paid · backfilled from source tables">
             <FunnelBars rows={lifecycle} />
           </FloatSection>
+
+          {paths.length > 0 && (
+            <FloatSection title="Top transitions" meta="page → page · most travelled">
+              <CategoryBars data={topTransitions} valueSuffix="transitions" />
+            </FloatSection>
+          )}
 
           <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
             {/* Custom funnel builder — restricted to instrumented events only. */}

@@ -2,7 +2,7 @@
  * Admin Financials Page — Revenue, API costs, profit margins.
  * Extracted from Admin.tsx financials tab.
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -12,6 +12,7 @@ import {
   StatOrb, FloatSection, FloatTable, StatusPill, DeckButton,
   CYAN, ROSE, ACCENT_HSL, AMBER,
 } from "@/admin/ui/primitives";
+import { MultiTrend, CategoryBars, sumBy } from "@/admin/ui/charts";
 
 interface ProfitData {
   date: string; service: string; total_operations: number;
@@ -136,6 +137,29 @@ export default function AdminFinancialsPage() {
   const profit = revenue - apiCost;
   const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
 
+  // Revenue vs cost over time, and cost-by-service breakdown — both derived from
+  // the same get_admin_profit_dashboard rows already fetched into profitData.
+  const revVsCost = useMemo(() => {
+    const m = new Map<string, { revenue: number; cost: number }>();
+    for (const r of profitData) {
+      const e = m.get(r.date) ?? { revenue: 0, cost: 0 };
+      e.revenue += (r.estimated_revenue_cents || 0) / 100;
+      e.cost += (r.total_real_cost_cents || 0) / 100;
+      m.set(r.date, e);
+    }
+    return [...m.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([date, v]) => ({
+        label: new Date(date).toLocaleDateString(undefined, { month: "2-digit", day: "2-digit" }),
+        revenue: Math.round(v.revenue * 100) / 100,
+        cost: Math.round(v.cost * 100) / 100,
+      }));
+  }, [profitData]);
+  const costByService = useMemo(
+    () => sumBy(profitData, (r) => r.service, (r) => r.total_real_cost_cents || 0),
+    [profitData],
+  );
+
   return (
     <div className="space-y-12 animate-fade-in">
       {/* KPI rail — floating figures */}
@@ -145,6 +169,22 @@ export default function AdminFinancialsPage() {
         <StatOrb index={2} icon={TrendingUp} aura={ACCENT_HSL} label="Net Profit" value={fmt(profit)} />
         <StatOrb index={3} icon={BarChart3} aura={margin >= 70 ? CYAN : margin >= 50 ? AMBER : ROSE} label="Margin" value={fmtPct(margin)} sub="Target: 70-80%" />
       </div>
+
+      {/* Revenue vs cost trend + cost-by-service — real figures from the profit dashboard. */}
+      {profitData.length > 0 && (
+        <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-[1.6fr_1fr]">
+          <FloatSection title="Revenue vs cost" meta={`${revVsCost.length} day${revVsCost.length === 1 ? "" : "s"} · USD`}>
+            <MultiTrend
+              data={revVsCost}
+              series={[{ key: "revenue", label: "Revenue", color: CYAN }, { key: "cost", label: "Cost", color: ROSE }]}
+              height={240}
+            />
+          </FloatSection>
+          <FloatSection title="Cost by service" meta="real API spend">
+            <CategoryBars data={costByService} formatValue={fmt} />
+          </FloatSection>
+        </div>
+      )}
 
       {/* Recent Polar purchases — Polar.sh is the billing provider; the legacy
           stripe_payment_id column holds the Polar payment id. (admin-review relabel) */}

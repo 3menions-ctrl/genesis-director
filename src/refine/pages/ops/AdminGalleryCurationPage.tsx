@@ -4,6 +4,8 @@ import { Image as ImageIcon, Plus, Power, Trash2, ArrowUp, ArrowDown } from "luc
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { AdminConsoleV2, type AdminRow } from "../../components/AdminConsoleV2";
 import { AdminDialog, AdminField, inputClass } from "../../components/AdminFormPrimitives";
+import { FloatSection } from "@/admin/ui/primitives";
+import { Donut, countBy, CYAN } from "@/admin/ui/charts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -73,6 +75,24 @@ export default function AdminGalleryCurationPage() {
           { label: "Hidden", value: (r) => r.filter((x) => !(x as ShowcaseRow).is_active).length, tone: "neutral" },
           { label: "Avatars", value: (r) => r.filter((x) => (x as ShowcaseRow).category === "avatar").length, tone: "amber" },
         ]}
+        charts={(rows) => {
+          const data = rows as ShowcaseRow[];
+          const byCategory = countBy(data, (r) => r.category);
+          const status = [
+            { key: "Active", value: data.filter((r) => r.is_active).length, color: CYAN },
+            { key: "Hidden", value: data.filter((r) => !r.is_active).length, color: "rgba(255,255,255,0.22)" },
+          ];
+          return (
+            <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
+              <FloatSection title="By category" meta={`${data.length} entries`}>
+                <Donut data={byCategory} centerLabel="entries" />
+              </FloatSection>
+              <FloatSection title="Visibility" meta="active vs hidden">
+                <Donut data={status} centerLabel="entries" />
+              </FloatSection>
+            </div>
+          );
+        }}
         columns={[
           { key: "thumbnail_url", label: "", width: "64px",
             render: (v) => v

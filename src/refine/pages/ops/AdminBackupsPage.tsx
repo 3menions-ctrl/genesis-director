@@ -1,6 +1,8 @@
 /** Backups log — read-only history of automated db backups. */
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { AdminConsoleV2, type AdminRow } from "../../components/AdminConsoleV2";
+import { FloatSection } from "@/admin/ui/primitives";
+import { TrendArea, Donut, bucketByDay, countBy } from "@/admin/ui/charts";
 
 interface BackupRow extends AdminRow {
   id: string;
@@ -39,6 +41,20 @@ export default function AdminBackupsPage() {
       <AdminConsoleV2<BackupRow>
         intro="Every backup attempt with its outcome. Reconcile against your recovery RPO/RTO targets."
         query={{ table: "db_backups_log", orderBy: { column: "started_at", ascending: false }, limit: 50 }}
+        charts={(rows) => {
+          const sizeSeries = bucketByDay(rows, (r) => (r as BackupRow).started_at, { days: 14, value: (r) => ((r as BackupRow).size_bytes ?? 0) / 1e9 });
+          const byStatus = countBy(rows, (r) => (r as BackupRow).status);
+          return (
+            <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
+              <FloatSection title="Backup size" meta="last 14d · GB">
+                <TrendArea data={sizeSeries} valueLabel="GB" height={220} emptyLabel="No backups in this window." />
+              </FloatSection>
+              <FloatSection title="By outcome" meta={`${rows.length} backups`}>
+                <Donut data={byStatus} centerLabel="backups" />
+              </FloatSection>
+            </div>
+          );
+        }}
         filters={[
           { key: "status", label: "Status", type: "select", options: [
             { value: "success", label: "Success" }, { value: "failed", label: "Failed" },

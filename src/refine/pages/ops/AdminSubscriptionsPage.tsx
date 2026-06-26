@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { RefreshCw, Search } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { FloatSection, FloatTable, DeckButton, StatusPill } from "@/admin/ui/primitives";
+import { Donut, TrendArea, countBy, bucketByDay } from "@/admin/ui/charts";
 import { Input } from "@/components/ui/input";
 import { ListPagination, usePagination } from "@/components/ui/list-pagination";
 import { supabase } from "@/integrations/supabase/client";
@@ -63,6 +64,10 @@ export default function AdminSubscriptionsPage() {
   const seats = useMemo(() => rows.filter(r => ACTIVE_STATUSES.has(r.status)).reduce((s, r) => s + (r.seats || 1), 0), [rows]);
   const pg = usePagination(filtered, 25);
 
+  // Status mix + new-subscription trend — derived from the same fetched rows.
+  const statusBreakdown = useMemo(() => countBy(rows, r => r.status), [rows]);
+  const newSubsSeries = useMemo(() => bucketByDay(rows, r => r.created_at, { days: 30 }), [rows]);
+
   return (
     <AdminPageShell
       eyebrow="03 // MONEY"
@@ -82,6 +87,17 @@ export default function AdminSubscriptionsPage() {
         </DeckButton>
       }
     >
+      {!loading && rows.length > 0 && (
+        <div className="mb-14 grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-[1fr_1.6fr]">
+          <FloatSection title="By status" meta={`${rows.length} subscriptions`}>
+            <Donut data={statusBreakdown} centerLabel="subs" />
+          </FloatSection>
+          <FloatSection title="New subscriptions" meta="last 30 days">
+            <TrendArea data={newSubsSeries} valueLabel="new subs" height={240} />
+          </FloatSection>
+        </div>
+      )}
+
       <FloatSection
         title="Subscriptions"
         meta="Live Polar mirror"

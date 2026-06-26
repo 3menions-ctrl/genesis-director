@@ -96,6 +96,10 @@ export interface AdminConsoleV2Props<T extends AdminRow = AdminRow> {
   intro: string;
   /** Optional metric cards at top. */
   signals?: AdminSignal[];
+  /** Optional analytics block rendered between the signals and the table.
+   *  Receives the already-loaded rows so charts reuse the same fetch — no extra
+   *  queries, no fabricated data. */
+  charts?: (rows: AdminRow[]) => ReactNode;
   /** Data source. */
   query: AdminQueryConfig;
   /** Table columns. */
@@ -131,6 +135,7 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
   const {
     intro,
     signals,
+    charts,
     query,
     columns,
     actions,
@@ -357,6 +362,12 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
           </div>
         )}
       </div>
+
+      {/* Analytics — charts over the already-loaded rows (no extra fetch). Only
+          shown once data has resolved so charts never flash fabricated zeros. */}
+      {charts && !error && !loading && rows.length > 0 && (
+        <div>{charts(rows as AdminRow[])}</div>
+      )}
 
       {/* Search + filter row */}
       {(searchKey || (filters && filters.length > 0)) && (

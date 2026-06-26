@@ -2,6 +2,8 @@
 import { Receipt, Check, X, CreditCard } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { AdminConsoleV2, type AdminRow } from "../../components/AdminConsoleV2";
+import { FloatSection } from "@/admin/ui/primitives";
+import { Donut, TrendArea, countBy, bucketByDay } from "@/admin/ui/charts";
 import { supabase } from "@/integrations/supabase/client";
 
 interface RefundRow extends AdminRow {
@@ -35,6 +37,19 @@ export default function AdminRefundsPage() {
       <AdminConsoleV2<RefundRow>
         intro="Refund queue. Approving here marks intent only — actually issuing the refund is a separate step in the Polar dashboard. Recording it here does not move money."
         query={{ table: "refund_requests", orderBy: { column: "created_at", ascending: false } }}
+        charts={(rows) => {
+          const refs = rows as RefundRow[];
+          return (
+            <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-[1fr_1.6fr]">
+              <FloatSection title="By status" meta={`${refs.length} requests`}>
+                <Donut data={countBy(refs, (r) => r.status)} centerLabel="requests" />
+              </FloatSection>
+              <FloatSection title="Requests over time" meta="last 30 days">
+                <TrendArea data={bucketByDay(refs, (r) => r.created_at, { days: 30 })} valueLabel="requests" height={240} />
+              </FloatSection>
+            </div>
+          );
+        }}
         searchKey="charge_id"
         searchPlaceholder="Search by charge id…"
         filters={[

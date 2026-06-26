@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { CategoryBars, MiniHistogram } from '@/admin/ui/charts';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -272,6 +273,18 @@ export function AdminFailedClipsQueue() {
     }
   };
 
+  // Charts over already-loaded data: error-category mix (reuses errorPatterns)
+  // and retry-count distribution across the loaded failed clips.
+  const categoryBars = useMemo(
+    () => errorPatterns.map(p => ({ key: p.category, value: p.count })),
+    [errorPatterns],
+  );
+  const retryDist = useMemo(() => {
+    const buckets = [0, 0, 0, 0, 0]; // 0,1,2,3,4+
+    for (const c of clips) buckets[Math.min(c.retry_count ?? 0, 4)]++;
+    return buckets.map((value, i) => ({ label: i === 4 ? '4+' : String(i), value }));
+  }, [clips]);
+
   const getErrorCategoryColor = (category: string): string => {
     switch (category) {
       case 'Timeout': return 'text-amber-500 bg-amber-500/10 border-amber-500/30';
@@ -338,6 +351,18 @@ export function AdminFailedClipsQueue() {
           </FloatSection>
         </div>
       </div>
+
+      {/* Charts — over the already-loaded failed clips (no extra query) */}
+      {clips.length > 0 && (
+        <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
+          <FloatSection title="Failures by category" meta="loaded clips">
+            <CategoryBars data={categoryBars} valueSuffix="clips" emptyLabel="No patterns detected." />
+          </FloatSection>
+          <FloatSection title="Retry distribution" meta="attempts per clip">
+            <MiniHistogram data={retryDist} valueLabel="clips" />
+          </FloatSection>
+        </div>
+      )}
 
       {/* Filters & Actions */}
       <div className="py-2">

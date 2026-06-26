@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Activity, CheckCircle2, RefreshCw, XCircle } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { FloatSection, FloatRow, DeckButton } from "@/admin/ui/primitives";
+import { FloatSection, FloatRow, DeckButton, CYAN, AMBER, ROSE } from "@/admin/ui/primitives";
+import { Donut } from "@/admin/ui/charts";
 import { supabase } from "@/integrations/supabase/client";
 
 type Component = { name: string; status: "operational" | "degraded" | "outage"; detail: string };
@@ -64,6 +65,15 @@ export default function AdminStatusPage() {
     return "operational";
   }, [components]);
 
+  const healthMix = useMemo(() => {
+    const count = (s: Component["status"]) => components.filter(c => c.status === s).length;
+    return [
+      { key: "operational", value: count("operational"), color: CYAN },
+      { key: "degraded", value: count("degraded"), color: AMBER },
+      { key: "outage", value: count("outage"), color: ROSE },
+    ].filter(d => d.value > 0);
+  }, [components]);
+
   return (
     <AdminPageShell
       eyebrow="06 // OPS"
@@ -79,6 +89,15 @@ export default function AdminStatusPage() {
       ]}
       actions={<DeckButton onClick={() => setReload(k=>k+1)} disabled={loading}><RefreshCw className={`w-3.5 h-3.5 mr-2 ${loading?"animate-spin":""}`} /> Refresh</DeckButton>}
     >
+      {!loading && components.length > 0 && (
+        <div className="mb-14 max-w-md">
+          <FloatSection title="Component health" meta={`${components.length} components`}>
+            <Donut data={healthMix} centerLabel="components" />
+          </FloatSection>
+          <p className="mt-3 text-[11px] text-white/35 italic">point-in-time snapshot — composite health over the last 15 minutes, not a historical trend.</p>
+        </div>
+      )}
+
       <FloatSection title="Components" meta="live health">
         {loading ? (
           <div className="py-12 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/30">Probing components…</div>

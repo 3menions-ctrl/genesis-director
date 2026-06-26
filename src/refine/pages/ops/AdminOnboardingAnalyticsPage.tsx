@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { RefreshCw, Loader2, AlertTriangle, Inbox } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
-import { FloatSection, FloatTable, DeckButton } from "@/admin/ui/primitives";
+import { FloatSection, DeckButton } from "@/admin/ui/primitives";
+import { TrendArea, Donut, CategoryBars, bucketByDay, countBy, topN } from "@/admin/ui/charts";
 import { supabase } from "@/integrations/supabase/client";
 
 type Intent = {
@@ -79,23 +80,12 @@ export default function AdminOnboardingAnalyticsPage() {
   const startToPlan = started > 0 ? (planSelected / started * 100) : 0;
   const planToConsume = planSelected > 0 ? (consumed / planSelected * 100) : 0;
 
-  const byUseCase = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const r of filtered) {
-      const k = r.primary_use_case || "—";
-      m.set(k, (m.get(k) || 0) + 1);
-    }
-    return Array.from(m.entries()).sort((a,b) => b[1] - a[1]).slice(0, 8);
-  }, [filtered]);
-
-  const byAccountType = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const r of filtered) {
-      const k = r.account_type || "—";
-      m.set(k, (m.get(k) || 0) + 1);
-    }
-    return Array.from(m.entries()).sort((a,b) => b[1] - a[1]);
-  }, [filtered]);
+  // Chart series derived from the already-fetched intents (scoped by the active
+  // account-type filter). Intents/day over the last 30 days, plus the account
+  // and use-case breakdowns shaped for the chart kit.
+  const intentsPerDay = useMemo(() => bucketByDay(filtered, (r) => r.created_at, { days: 30 }), [filtered]);
+  const byUseCase = useMemo(() => topN(countBy(filtered, (r) => r.primary_use_case), 8), [filtered]);
+  const byAccountType = useMemo(() => countBy(filtered, (r) => r.account_type), [filtered]);
 
   const funnelStages = [
     { label: "Created intent", n: started, base: started },
@@ -167,34 +157,16 @@ export default function AdminOnboardingAnalyticsPage() {
             </div>
           </FloatSection>
 
-          <div className="grid grid-cols-1 gap-x-14 gap-y-14 md:grid-cols-2">
-            <FloatSection title="By Account Type">
-              <FloatTable
-                columns={[
-                  { key: "k", label: "Account type" },
-                  { key: "v", label: "Intents", align: "right" },
-                ]}
-                rows={byAccountType.map(([k, v]) => ({
-                  _key: k,
-                  k: <span className="font-mono text-[12px] text-white/80">{k}</span>,
-                  v: <span className="font-mono text-[12px] text-primary/80">{v}</span>,
-                }))}
-                empty="No data."
-              />
+          <FloatSection title="Intents over time" meta="last 30 days">
+            <TrendArea data={intentsPerDay} valueLabel="intents" height={240} />
+          </FloatSection>
+
+          <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
+            <FloatSection title="By account type" meta={`${started} intents`}>
+              <Donut data={byAccountType} centerLabel="intents" />
             </FloatSection>
-            <FloatSection title="Top Use Cases">
-              <FloatTable
-                columns={[
-                  { key: "k", label: "Use case" },
-                  { key: "v", label: "Intents", align: "right" },
-                ]}
-                rows={byUseCase.map(([k, v]) => ({
-                  _key: k,
-                  k: <span className="font-mono text-[12px] text-white/80">{k}</span>,
-                  v: <span className="font-mono text-[12px] text-primary/80">{v}</span>,
-                }))}
-                empty="No data."
-              />
+            <FloatSection title="Top use cases" meta="top 8">
+              <CategoryBars data={byUseCase} valueSuffix="intents" />
             </FloatSection>
           </div>
         </div>

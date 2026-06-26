@@ -2,6 +2,8 @@
 import { LayoutTemplate, Power, Trash2 } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { AdminConsoleV2, type AdminRow } from "../../components/AdminConsoleV2";
+import { FloatSection } from "@/admin/ui/primitives";
+import { Donut, CategoryBars, countBy, sumBy, topN } from "@/admin/ui/charts";
 import { supabase } from "@/integrations/supabase/client";
 
 interface TemplateRow extends AdminRow {
@@ -48,6 +50,21 @@ export default function AdminTemplatesAdminPage() {
             tone: "amber" },
           { label: "Unused", value: (r) => r.filter((x) => (x as TemplateRow).use_count === 0).length, tone: "neutral" },
         ]}
+        charts={(rows) => {
+          const data = rows as TemplateRow[];
+          const byUse = topN(sumBy(data, (r) => r.name, (r) => r.use_count ?? 0), 10);
+          const byCategory = countBy(data, (r) => r.category);
+          return (
+            <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
+              <FloatSection title="Most used templates" meta="by use count">
+                <CategoryBars data={byUse} valueSuffix="uses" />
+              </FloatSection>
+              <FloatSection title="By category" meta={`${data.length} templates`}>
+                <Donut data={byCategory} centerLabel="templates" />
+              </FloatSection>
+            </div>
+          );
+        }}
         columns={[
           { key: "thumbnail_url", label: "", width: "64px",
             render: (v) => v

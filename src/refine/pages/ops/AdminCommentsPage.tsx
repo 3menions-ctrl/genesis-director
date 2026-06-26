@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { FloatSection, FloatTable, Avatar, ROSE } from "@/admin/ui/primitives";
+import { TrendArea, CategoryBars, MiniHistogram, bucketByDay, countBy, topN } from "@/admin/ui/charts";
 
 interface Comment {
   id: string;
@@ -79,6 +80,26 @@ export default function AdminCommentsPage() {
   }, [rows]);
   const totalLikes = useMemo(() => rows.reduce((a, c) => a + (c.likes_count ?? 0), 0), [rows]);
 
+  // Series derived from the same 300 loaded comments — no extra fetch.
+  const commentsPerDay = useMemo(() => bucketByDay(rows, (c) => c.created_at, { days: 30 }), [rows]);
+  const topCommenters = useMemo(
+    () => topN(
+      countBy(rows, (c) => c.user_id).map((d) => ({ ...d, key: names[d.key] ?? `${d.key.slice(0, 8)}…` })),
+      8,
+    ),
+    [rows, names],
+  );
+  const likeBuckets = useMemo(() => {
+    const defs: { label: string; test: (n: number) => boolean }[] = [
+      { label: "0", test: (n) => n <= 0 },
+      { label: "1–2", test: (n) => n >= 1 && n <= 2 },
+      { label: "3–5", test: (n) => n >= 3 && n <= 5 },
+      { label: "6–10", test: (n) => n >= 6 && n <= 10 },
+      { label: "11+", test: (n) => n >= 11 },
+    ];
+    return defs.map((d) => ({ label: d.label, value: rows.filter((c) => d.test(c.likes_count ?? 0)).length }));
+  }, [rows]);
+
   return (
     <AdminPageShell
       eyebrow="07 // TRUST & SAFETY"
@@ -99,7 +120,19 @@ export default function AdminCommentsPage() {
       ) : rows.length === 0 ? (
         <State kind="empty" title="No comments yet" hint="User comments across projects appear here for moderation." />
       ) : (
-        <FloatSection title="Recent comments" meta={`${rows.length} shown`}>
+        <div className="space-y-14">
+          <FloatSection title="Comments over time" meta="last 30 days">
+            <TrendArea data={commentsPerDay} valueLabel="comments" height={220} />
+          </FloatSection>
+          <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
+            <FloatSection title="Top commenters" meta="top 8 by volume">
+              <CategoryBars data={topCommenters} valueSuffix="comments" />
+            </FloatSection>
+            <FloatSection title="Likes distribution" meta="across loaded comments">
+              <MiniHistogram data={likeBuckets} valueLabel="comments" />
+            </FloatSection>
+          </div>
+          <FloatSection title="Recent comments" meta={`${rows.length} shown`}>
           <FloatTable
             columns={[
               { key: "author", label: "Author" },
@@ -132,7 +165,8 @@ export default function AdminCommentsPage() {
             }))}
             empty="No comments yet."
           />
-        </FloatSection>
+          </FloatSection>
+        </div>
       )}
     </AdminPageShell>
   );

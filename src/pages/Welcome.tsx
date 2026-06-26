@@ -8,7 +8,7 @@
  */
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import {
   Sparkles, ArrowRight, ChevronLeft, Check, Play,
   Rocket, Moon, Wand2, Music, Laugh, Zap, Heart, Leaf, Ghost, Film,
@@ -44,6 +44,7 @@ const POSTERS = [
 
 export default function Welcome() {
   const navigate = useNavigate();
+  const reduce = useReducedMotion();
   const { user, profile, patchProfile } = useAuth();
   const [step, setStep] = useState(0);
   const [interests, setInterests] = useState<Set<string>>(new Set());
@@ -94,8 +95,8 @@ export default function Welcome() {
               {POSTERS.map((p, i) => (
                 <motion.div key={i}
                   initial={{ opacity: 0, y: 26, rotate: p.r * 0.5 }}
-                  animate={{ opacity: 1, y: [0, -10, 0], rotate: p.r }}
-                  transition={{ opacity: { duration: 0.5, delay: 0.1 + i * 0.08 }, rotate: { duration: 0.5, delay: 0.1 + i * 0.08 }, y: { duration: 5 + i, repeat: Infinity, ease: 'easeInOut', delay: p.d } }}
+                  animate={{ opacity: 1, y: reduce ? 0 : [0, -10, 0], rotate: p.r }}
+                  transition={{ opacity: { duration: 0.5, delay: 0.1 + i * 0.08 }, rotate: { duration: 0.5, delay: 0.1 + i * 0.08 }, y: reduce ? { duration: 0 } : { duration: 5 + i, repeat: Infinity, ease: 'easeInOut', delay: p.d } }}
                   className="lit-edge absolute left-1/2 top-1/2 h-[166px] w-[114px] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[20px]"
                   style={{ background: p.g, marginLeft: p.x, zIndex: i === 2 ? 10 : i, boxShadow: 'inset 0 1px 0 rgba(255,255,255,.18), 0 30px 60px -24px rgba(0,0,0,.8)' }}>
                   <div className="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent" />

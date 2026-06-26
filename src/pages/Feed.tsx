@@ -87,6 +87,7 @@ export default function Feed() {
               index={i}
               item={item}
               active={i === active}
+              near={Math.abs(i - active) <= 1}
               muted={muted}
               onComments={setComments}
             />
@@ -109,13 +110,14 @@ export default function Feed() {
 
 interface FeedCardProps {
   index: number;
+  near: boolean;
   item: FeedItem;
   active: boolean;
   muted: boolean;
   onComments: (v: { item: FeedItem; bump: () => void }) => void;
 }
 
-const FeedCard = ({ innerRef, index, item, active, muted, onComments }: FeedCardProps & { innerRef: (el: HTMLDivElement | null) => void }) => {
+const FeedCard = ({ innerRef, index, item, active, near, muted, onComments }: FeedCardProps & { innerRef: (el: HTMLDivElement | null) => void }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [liked, setLiked] = useState(false);
@@ -216,7 +218,15 @@ const FeedCard = ({ innerRef, index, item, active, muted, onComments }: FeedCard
       data-idx={index}
       className="relative h-full w-full snap-start snap-always overflow-hidden"
     >
-      <FeedVideo src={item.video_url} poster={item.thumbnail_url ?? undefined} active={active} muted={muted} />
+      {/* Windowing: only the active card + immediate neighbours mount a <video>;
+          far cards show a lightweight poster so long feeds stay smooth. */}
+      {near ? (
+        <FeedVideo src={item.video_url} poster={item.thumbnail_url ?? undefined} active={active} muted={muted} />
+      ) : (
+        <div className="absolute inset-0 bg-[#0a0a0a]">
+          {item.thumbnail_url ? <img src={item.thumbnail_url} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-2xl" /> : <div className="absolute inset-0" style={{ background: 'radial-gradient(120% 80% at 50% 30%, rgba(47,107,255,.18), transparent 60%)' }} />}
+        </div>
+      )}
 
       {/* cinematic grain + legibility scrims */}
       <GrainOverlay opacity={0.05} />

@@ -205,24 +205,69 @@ you have it — the current icon is upscaled from the 512px web favicon.
 
 ## 8. App Store submission checklist — **`▶ YOU`**
 
+### a. Project / signing
 1. **App Store Connect** → create the app record with bundle ID
-   `co.smallbridges.app`.
-2. In Xcode: set **Version** (`MARKETING_VERSION`) and **Build**
-   (`CURRENT_PROJECT_VERSION`), then **Product → Archive → Distribute App →
-   App Store Connect**.
-3. **Export compliance:** `ITSAppUsesNonExemptEncryption` is already set to
-   `false` in `Info.plist` (standard HTTPS only), so you won't be asked each
-   upload.
-4. **App Privacy** questionnaire: declare what you collect (auth email, usage
-   analytics via PostHog, crash data, any media). Be accurate.
-5. **Review notes:** explain the **spend-only** model — "Credits are purchased on
-   the website; the app only spends them, so there is no in-app purchase." Give
-   the reviewer a **demo account** with credits so they can exercise creation.
-6. **Minimum functionality (Guideline 4.2):** because this wraps a web app,
-   make sure the native build feels like an app (it does: native splash, status
-   bar, deep links, push, offline shell). The planned redesign below strengthens
-   this considerably.
-7. Provide screenshots for the required device sizes (6.7" and 6.5" at minimum).
+   `co.smallbridges.app`, name **Small Bridges**, primary category
+   *Photo & Video* (secondary *Entertainment*).
+2. In Xcode → *Signing & Capabilities*: select your **Team**, enable
+   *Automatically manage signing*. Capabilities to confirm: **Push Notifications**,
+   **Associated Domains** (`applinks:smallbridges.co` for Universal Links),
+   **Keychain Sharing** (token storage).
+3. Set **Version** (`MARKETING_VERSION`, e.g. `1.0.0`) and **Build**
+   (`CURRENT_PROJECT_VERSION`, bump every upload), then
+   **Product → Archive → Distribute App → App Store Connect**.
+4. **Export compliance:** `ITSAppUsesNonExemptEncryption` is already `false` in
+   `Info.plist` (standard HTTPS only) — no per-upload prompt.
+
+### b. App Privacy (nutrition labels) — declare accurately
+- **Contact Info → Email** (account): linked to identity, used for App
+  Functionality.
+- **User Content** (the prompts, photos uploaded for avatar/cover/edit, films):
+  App Functionality.
+- **Identifiers → User ID** (Supabase `user_id`): App Functionality.
+- **Usage Data / Diagnostics** (PostHog product analytics, crash logs): Analytics.
+- **Tracking:** PostHog is first-party analytics only — no cross-app/SDK
+  advertising tracking — so **App Tracking Transparency (ATT) is not required**.
+  Do **not** add the ATT prompt unless you add an ad/attribution SDK.
+
+### c. Payments — **no IAP** (spend-only)
+- Credits are **purchased on the website**; the app only **spends** them.
+  `src/lib/native/purchases.ts` hard-blocks any checkout on native and the buy UI
+  is hidden, so there is no digital-purchase surface inside the app.
+- **Review notes** (paste this): *"Credits are bought on our website, not in the
+  app. The iOS app only spends an existing balance to generate videos — there is
+  no in-app purchase, subscription, or external-purchase link. Patron/billing
+  screens are view-only on iOS."* This is the StoreKit/3.1.1 rationale; keep it
+  consistent.
+- Provide a **demo account** with a credit balance (email + password) in the
+  review notes so the reviewer can run a generation end-to-end (Create → Feed).
+
+### d. Minimum functionality (Guideline 4.2)
+The build is a full native app, not a thin wrapper: native splash/status bar,
+haptics, deep links + Universal Links, push, secure Keychain storage, an offline
+shell, and a fully reimagined mobile UI (feed, swipe-to-follow, glass messaging,
+onboarding) — see *What's built* below.
+
+### e. Assets to prepare
+- **App icon** 1024×1024 (no alpha) — regenerate the set with
+  `npx capacitor-assets generate --ios` from `resources/`.
+- **Screenshots** (PNG/JPG, no status-bar overlays):
+  - **6.7"** (iPhone 15/16 Pro Max) — **required**, 1290×2796.
+  - **6.5"** (iPhone 11 Pro Max / XS Max) — required, 1242×2688.
+  - 6.1" / 5.5" optional; **iPad** only if you ship iPad (currently iPhone-first).
+  - Suggested set: Feed, Discover (People swipe), Create, Editor presets,
+    Profile, Messages. (The `?shell=mobile` web preview + Playwright at
+    `iPhone 15 Pro Max` produces clean frames — see the verify pattern.)
+- **App preview video** (optional, ≤30s): a swipe through Feed → Create → Editor.
+- Marketing: subtitle, promotional text, keywords, description, support URL,
+  privacy-policy URL.
+
+### f. Pre-submit smoke test on device
+Sign in / sign up + magic link · onboarding · feed playback + like/comment/
+react/remix · Discover search + People swipe-to-follow · Create → generation
+starts · Editor preset apply + save · Profile edit + avatar/cover upload ·
+Messages (send + read receipts) · Activity · Settings (notifications/privacy/
+account) · deep link (`smallbridges://`) cold-start · push permission.
 
 ---
 
@@ -239,20 +284,32 @@ xcrun simctl openurl booted "smallbridges://studio"   # test a deep link
 
 ---
 
-## The redesign ("fun > TikTok")
+## What's built (mobile redesign — shipped on `ios-app`)
 
-The mockups propose a mobile-first reimagining that is **not yet built**:
+A full mobile-first reimagining, borderless/floating/icon-led ("Aurora"),
+glassmorphic, media shown at its own aspect ratio. Five tabs + supporting
+screens, all wired to real Supabase data:
 
-- **Feed** — a full-screen, swipeable wall of AI films; every clip is one-tap
-  **Remixable** into your own (the thing TikTok structurally can't do).
-- **Create** — one prompt + a style chip + a length; generate. No timeline.
-- **Presets** — the entire "editor" is a swipeable deck of one-tap looks with a
-  live before/after.
-- **You** — a gamified profile (levels, XP, streaks, badges).
-- Many current web-only pages (admin, marketing, settings depth, full editor)
-  are **dropped** from the mobile app.
+- **Auth** — the web sign-in design (email/password, magic link, OAuth, OTP).
+- **Onboarding** (`/welcome`) — cinematic first-run: interests → what you make →
+  feed; new users auto-routed here.
+- **Feed** — full-screen swipeable wall of AI films; **Like / Comment / React
+  (emoji) / Remix / Share**, playback progress, creator tap-through.
+- **Discover** — search (films + creators) and categories **Videos · Reels ·
+  People**; People is a **swipe-to-follow** deck (tap a card to open the profile).
+- **Create** — guided step flow; selections (look/aspect/genre/mood/op) carry
+  into the generation; hands off to the real Studio / Avatars / Music engines.
+- **Editor** (Presets) — full-screen player + live one-tap look gallery, save.
+- **Profile** — gamified (level/XP/streak/leaderboard/achievements/heatmap),
+  followers/following with follow-back, content tabs, edit + **avatar/cover
+  upload**, Activity bell + Messages with unread badges.
+- **Creator profile** (`/u/:id`) — immersive full-bleed swipe card (right =
+  follow, left = move on), media, similar-creators rail, **Message**.
+- **Messaging** — full-page glass threads with **read receipts**, an **Inbox**.
+- **Activity** — notifications feed (follows/likes/comments/renders…).
+- **Settings** — full pages: Notifications, Privacy & messaging, Account, and a
+  **Library** to manage films + drafts.
 
-This is a real product build (new screens, new navigation, native gestures,
-haptics, video-feed performance), best done as its own milestone on top of the
-working native shell delivered here. The shell, plugins, secure storage,
-deep-linking and spend-only gating it needs are already in place.
+Web-only surfaces (admin, marketing, full timeline editor) are not reachable
+from the mobile tab bar. The shell, plugins, secure storage, deep-linking, and
+spend-only gating underpin all of it.

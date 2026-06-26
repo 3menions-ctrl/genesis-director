@@ -97,6 +97,32 @@ serve(async (req) => {
     const body: VariantsRequest = await req.json();
     const base = body.baseConcept ?? {};
 
+    // ═══ ORG MEMBERSHIP GATE ═══
+    // If an organizationId is supplied (used below for brand-kit injection), the
+    // caller MUST be a member of that workspace. Without this, a request could pass
+    // an arbitrary organizationId and pull a workspace it does not belong to — the
+    // anon/RLS path alone fails open (org=null → generation proceeds regardless).
+    // End-user JWTs are verified against organization_members; internal
+    // service-role calls (auth.userId === null) are trusted.
+    const orgId = typeof body.organizationId === "string" && body.organizationId
+      ? body.organizationId
+      : null;
+    if (orgId && !auth.isServiceRole) {
+      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.4");
+      const admin = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      );
+      const { data: membership, error: membershipErr } = await admin
+        .from("organization_members")
+        .select("user_id")
+        .eq("organization_id", orgId)
+        .eq("user_id", auth.userId)
+        .maybeSingle();
+      if (membershipErr) return errorResponse("Couldn't verify workspace membership. Please retry.", 500);
+      if (!membership) return errorResponse("You are not a member of this workspace.", 403);
+    }
+
     // ═══ CONTENT SAFETY ═══
     const safety = checkMultipleContent([
       body.productName,
@@ -149,8 +175,7 @@ serve(async (req) => {
     // ═══ BRAND KIT INJECTION ═══
     let brandKitGuidance = "";
     try {
-      const orgId = body.organizationId;
-      if (orgId && typeof orgId === "string") {
+      if (orgId) {
         const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.4");
         const sb = createClient(
           Deno.env.get("SUPABASE_URL") ?? "",

@@ -85,6 +85,10 @@ export function ApprovalsContent() {
 
   const decide = async (row: ApprovalRow, status: "approved" | "rejected") => {
     if (!user || !canReview) return;
+    if (row.submitted_by === user.id) {
+      toast.error("You can't review your own submission.");
+      return;
+    }
     setBusyId(row.id);
     const { error } = await supabase
       .from("approval_requests")
@@ -220,7 +224,7 @@ export function ApprovalsContent() {
               <div className="flex md:flex-col gap-2 shrink-0 items-stretch md:w-36">
                 <button
                   type="button"
-                  disabled={!canReview || busyId === row.id}
+                  disabled={!canReview || busyId === row.id || row.submitted_by === user?.id}
                   onClick={() => void decide(row, "approved")}
                   className="inline-flex items-center justify-center gap-2 flex-1 md:flex-none h-10 px-4 rounded-xl bg-[hsl(215,90%,55%)] text-white text-[13px] font-medium hover:bg-[hsl(215,90%,60%)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
@@ -228,7 +232,7 @@ export function ApprovalsContent() {
                 </button>
                 <button
                   type="button"
-                  disabled={!canReview || busyId === row.id}
+                  disabled={!canReview || busyId === row.id || row.submitted_by === user?.id}
                   onClick={() => void decide(row, "rejected")}
                   className="inline-flex items-center justify-center gap-2 flex-1 md:flex-none h-10 px-4 rounded-xl ring-1 ring-rose-400/30 bg-rose-400/10 text-rose-200/90 text-[13px] font-medium hover:bg-rose-400/15 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >

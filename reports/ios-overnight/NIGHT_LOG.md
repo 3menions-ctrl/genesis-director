@@ -226,3 +226,11 @@ reachable in-app purchase or external-checkout path — verified at every layer:
   (degrades rather than logging the user out); no token left in plaintext in normal
   operation. ✓ No fix needed.
 - Boot check after the shared-resolver refactor: 0 errors / 5 routes.
+
+## Cycle 19 — comprehensive regression (ALL GREEN)
+After ~18 commits: full crash sweep 0/24 routes; all fixes re-verified live (anon
+feed 200, DM send+read-back+cleanup, discovery profiles_public=13, leaderboard=1
+row, /pricing→/me/plans, /credits→/you, People-tap→/u/:id no crash, deep-link
+logic holds); tsc.app — only the 2 KNOWN pre-existing web files (CreationHub.tsx,
+Profile.tsx) error, every native file clean; dev 5180 + tunnel + demo login healthy.
+Nothing regressed. Winding cadence down to ~30-min heartbeats until morning.

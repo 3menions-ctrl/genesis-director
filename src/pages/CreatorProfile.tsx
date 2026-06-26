@@ -128,17 +128,17 @@ export default function CreatorProfile() {
 
       {/* Exit */}
       {!isLoading && profile && (
-        <button onClick={exit} aria-label="Exit" className="fixed z-30 grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur-md"
+        <button onClick={exit} aria-label="Exit" className="fixed z-30 grid h-10 w-10 place-items-center rounded-full text-white drop-shadow-[0_2px_10px_rgba(0,0,0,.9)] transition-transform active:scale-90"
           style={{ top: 'calc(var(--safe-top,0px) + 12px)', left: '14px' }}><X className="h-5 w-5" /></button>
       )}
       {/* Share + more (block) */}
       {!isLoading && profile && id && (
         <div className="fixed z-30 flex items-center gap-2" style={{ top: 'calc(var(--safe-top,0px) + 12px)', right: '14px' }}>
           <button onClick={async () => { const r = await shareLink({ title: `${profile.display_name ?? 'A creator'} on Small Bridges`, text: `Watch ${profile.display_name ?? 'their'} films`, url: `https://smallbridges.co/c/${id}` }); if (r === 'copied') toast.success('Link copied'); }}
-            aria-label="Share profile" className="grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur-md"><Share2 className="h-[18px] w-[18px]" /></button>
+            aria-label="Share profile" className="grid h-10 w-10 place-items-center rounded-full text-white drop-shadow-[0_2px_10px_rgba(0,0,0,.9)] transition-transform active:scale-90"><Share2 className="h-[18px] w-[18px]" /></button>
           {!isSelf && (
             <div className="relative">
-              <button onClick={() => { void hapticTap(); setMenuOpen((o) => !o); }} aria-label="More" className="grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur-md"><MoreVertical className="h-[18px] w-[18px]" /></button>
+              <button onClick={() => { void hapticTap(); setMenuOpen((o) => !o); }} aria-label="More" className="grid h-10 w-10 place-items-center rounded-full text-white drop-shadow-[0_2px_10px_rgba(0,0,0,.9)] transition-transform active:scale-90"><MoreVertical className="h-[18px] w-[18px]" /></button>
               {menuOpen && (
                 <>
                   <div className="fixed inset-0" onClick={() => setMenuOpen(false)} />

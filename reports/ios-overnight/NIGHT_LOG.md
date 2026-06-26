@@ -45,3 +45,12 @@ LIVE backend (types.ts is drifted). Branch `ios-app`; nothing pushed to main/DB.
 - `update_profile_text` (edit-profile save) verified working ({"success":true}).
 - Minor (not bugs): profile "following" count can exceed the list when a followee
   has no public display_name; mobile edit sheet omits p_location (not editable).
+
+## Cycle 6 — generate-flow correctness + production edge cases
+- **Verified (read, no spend): NativeGenerate's mode-router request matches the web's
+  proven handleStartCreation** on all required fields (mode/userId/prompt/aspectRatio/
+  clipCount/clipDuration/clipDurations/enableNarration/enableMusic/videoEngine/
+  qualityOptions). The web's extra fields are optional/undefined for plain text/
+  image-to-video → a funded user's generation will work. No fix needed.
+- **Fixed: NativeProduction could spin at 100% forever** if a project completes with
+  no video_url/manifestUrl — added a terminal "ready → Library/Publish" state. (`8e404ae9`)

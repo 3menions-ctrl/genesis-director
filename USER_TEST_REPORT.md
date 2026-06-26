@@ -456,6 +456,42 @@ Ad Studio's "Generate concepts" calls `generate-ad-studio` → **500 `"OPENAI_AP
 
 ---
 
+# Round 6 — Business account, deep pass (2026-06-26)
+
+Went much deeper on the business account (you were right to push): captured **every** network response (incl. 200s with error bodies), seeded a second member + a pending approval + an org project, and drove the real management flows end-to-end with DB verification.
+
+## Found + fixed: the Editor role couldn't be assigned (and Owner could be, by accident)
+
+**BUG-19 (Medium).** `org_role` has six roles (owner/admin/producer/**editor**/reviewer/viewer) and `editor` is first-class everywhere — `ROLE_META`, the permissions matrix, the role filter — **except the role dropdowns**:
+- The **invite** dropdown offered only `admin/producer/reviewer/viewer` → **you could never invite or assign an Editor.**
+- The **member role-change** dropdown used *all* roles incl. **owner** → an admin could set a member to **Owner** via a casual dropdown, bypassing the deliberate transfer-ownership flow (multi-owner risk).
+
+Fix (committed): a single canonical `ASSIGNABLE_ROLES = [admin, editor, producer, reviewer, viewer]` used by both dropdowns; the owner row now shows a static badge (its role isn't reassignable). **Verified:** both dropdowns now include Editor; neither offers Owner.
+
+## Deep-tested and working (DB-verified)
+
+| Flow | Verified |
+|---|---|
+| Every business route | 200 API calls captured, **0 errors / 0 4xx / 0 error-bodies** |
+| Org settings save | PATCH 204, persists, audit-logged |
+| Member **invite** | POST 201 `organization_invites` + link copied |
+| Member **role change** | radix combobox → PATCH 204, DB role flips (producer→reviewer) |
+| Member **removal** | confirm dialog → DELETE 204, DB row gone |
+| **Approval approve** | PATCH 204 `approval_requests`, DB `status=approved` + reviewer + timestamp |
+| Notification prefs | 12 checkboxes toggle, Save → POST 200 |
+| Permissions matrix | renders all six roles × capabilities |
+| Danger → delete workspace | type-the-name confirm guard (not `window.confirm`) |
+| **Account-type isolation** | every personal route (`/studio`, `/account`, `/lobby`, `/library`, `/inbox`, `/credits`, `/create`) correctly redirects to its `/business` equivalent — no personal-surface leak |
+
+So the business management layer is genuinely solid — the dead-button/no-effect results from my first coarse scan were false positives (deferred-save buttons correctly disabled, custom checkboxes/comboboxes the scan couldn't read).
+
+## Still open (business)
+- **`OPENAI_API_KEY` not configured** → Ad Studio "Generate concepts" 500s (and 11 other AI functions). The org credit gate, generation submit, and the embedded `/business/create` workbench can't be fully exercised until OpenAI (LLM) is set — same blocker class as image-gen. **Needs you to set the key.**
+- The business **generation/credit-spend** happy path therefore remains unverified end-to-end (org credit pool gating).
+- Test account remains a **business** account (org "QA Test Studio", owner-only, 500 credits) for your review; flip back with `profiles.account_type = null`.
+
+---
+
 ## Test environment / repro notes
 
 - Dev server started with `bun run dev -- --port 7788` (port 7777 was occupied by another worktree).

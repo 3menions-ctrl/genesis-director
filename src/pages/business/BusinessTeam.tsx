@@ -40,6 +40,13 @@ const ROLE_META: Record<OrgRole, { label: string; icon: typeof Crown; descriptio
   viewer: { label: "Viewer", icon: Eye, description: "View only" },
 };
 
+// Roles a member can be invited as or reassigned to. Excludes "owner" — there
+// is exactly one owner and it changes only through the deliberate
+// transfer-ownership flow, never a casual role dropdown. Includes "editor",
+// which is a first-class role everywhere else (ROLE_META, the permissions
+// matrix, the filter) but was previously missing from the invite dropdown.
+const ASSIGNABLE_ROLES: OrgRole[] = ["admin", "editor", "producer", "reviewer", "viewer"];
+
 // Safe lookup — never returns undefined even for an unexpected role value.
 const roleMeta = (r: OrgRole) => ROLE_META[r] ?? ROLE_META.viewer;
 
@@ -207,7 +214,7 @@ export function TeamContent() {
             <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as OrgRole)}>
               <SelectTrigger className="h-11 rounded-xl bg-white/[0.04] ring-1 ring-white/[0.08] border-0 text-[13px] text-white"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {(["admin", "producer", "reviewer", "viewer"] as OrgRole[]).map((r) => (
+                {ASSIGNABLE_ROLES.map((r) => (
                   <SelectItem key={r} value={r}>{ROLE_META[r].label}</SelectItem>
                 ))}
               </SelectContent>
@@ -279,10 +286,13 @@ export function TeamContent() {
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                {canEdit ? (
+                {/* The owner role isn't reassignable here (ownership changes only
+                    through the transfer flow), so the owner row shows a static
+                    badge rather than a dropdown whose value has no option. */}
+                {canEdit && m.role !== "owner" ? (
                   <Select value={m.role} onValueChange={(v) => updateRole(m.id, v as OrgRole)}>
                     <SelectTrigger className="w-[130px] h-9 rounded-lg bg-white/[0.04] ring-1 ring-white/[0.08] border-0 text-[12px] text-white/85"><SelectValue /></SelectTrigger>
-                    <SelectContent>{(Object.keys(ROLE_META) as OrgRole[]).map((r) => <SelectItem key={r} value={r}>{ROLE_META[r].label}</SelectItem>)}</SelectContent>
+                    <SelectContent>{ASSIGNABLE_ROLES.map((r) => <SelectItem key={r} value={r}>{ROLE_META[r].label}</SelectItem>)}</SelectContent>
                   </Select>
                 ) : (
                   <span className={cn("inline-flex items-center gap-1.5 px-2.5 h-7 rounded-full text-[11px] ring-1", m.role === "owner" ? "text-amber-200/90 ring-amber-400/30 bg-amber-400/10" : "text-white/70 ring-white/10 bg-white/[0.03]")}>

@@ -154,22 +154,12 @@ export function usePublicProfile(userId?: string) {
 
       if (error) throw error;
 
-      // Create notification — best-effort. A failure here (e.g. RLS) must NOT
-      // reject the whole mutation, or onSuccess wouldn't fire and the UI would
-      // show "not following" while the follow row actually exists in the DB.
-      try {
-        await supabase
-          .from('notifications')
-          .insert({
-            user_id: userId,
-            type: 'follow',
-            title: 'New Follower!',
-            body: 'Someone started following you',
-            data: { follower_id: user.id },
-          });
-      } catch (notifyErr) {
-        console.warn('[usePublicProfile] follow notification failed:', notifyErr);
-      }
+      // The followed-user notification is created server-side by the
+      // trg_notify_user_follow trigger (20260625000000_notifications.sql).
+      // The old client insert here (notifications for another user_id) is
+      // rejected by RLS and swallowed on every follow, and would double the
+      // notification if RLS ever allowed it (audit S249). Removed — match
+      // useSocial's correct pattern.
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['public-profile', userId] });

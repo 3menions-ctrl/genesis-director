@@ -23,6 +23,9 @@ const MAP: Array<[RegExp, (m: RegExpMatchArray) => string]> = [
   [/^\/c\/([^/]+)\/patron$/, (m) => `/u/${m[1]}`],
   [/^\/lobby$/, () => '/feed'],
   [/^\/(?:search|explore)$/, () => '/discover'],
+  [/^\/(?:pricing|billing)$/, () => '/me/plans'],  // spend-only: never the web checkout pages
+  // NB: /credits is left to its App.tsx <Navigate to="/account?tab=credits"> →
+  // (this map) /account → /you chain; redirecting it here too would race.
   [/^\/films$/, () => '/discover'],
   [/^\/cast$/, () => '/avatars'],
   [/^\/inbox$/, () => '/messages'],

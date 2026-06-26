@@ -26,7 +26,7 @@ const TABS = [
 // Routes where the tab bar should not appear — auth/onboarding flows and the
 // fully-immersive surfaces (single-reel player /r/:id, creator profile /u/:id)
 // which must take the whole screen.
-const HIDDEN_PREFIXES = ['/auth', '/onboarding', '/business-start', '/welcome', '/r/', '/u/'];
+const HIDDEN_PREFIXES = ['/auth', '/onboarding', '/business-start', '/welcome', '/r/', '/u/', '/live/'];
 
 export function MobileTabBar() {
   const navigate = useNavigate();

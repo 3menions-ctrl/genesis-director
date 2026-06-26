@@ -2881,3 +2881,9 @@ img, a, button {
     animation: none !important;
   }
 }
+/* Live-room floating reactions: drift up + fade (TikTok-Live style). */
+@keyframes floatUp {
+  0%   { opacity: 0; transform: translateY(0) scale(0.7); }
+  15%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-46vh) scale(1.1); }
+}

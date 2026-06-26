@@ -199,6 +199,8 @@ const Templates = lazy(() => import("./pages/Templates"));
 const TemplateGallery = lazy(() => import("./pages/TemplateGallery"));
 // Native reel uploader (mobile shell renders this on /upload).
 const NativeUploadReel = lazy(() => import("./pages/NativeUploadReel"));
+// Native live (mobile shell renders this on /live + /live/:id).
+const NativeLive = lazy(() => import("./pages/NativeLive"));
 const Environments = lazy(() => import("./pages/Environments"));
 const TrainingVideo = lazy(() => import("./pages/TrainingVideo"));
 const Crossover = lazy(() => import("./pages/Crossover"));
@@ -915,8 +917,15 @@ const App = () => {
                 {/* Live-streaming module removed — /live, /live/room/:roomId
                     and /live/premieres are retired. Legacy links redirect to
                     the lobby so nothing 404s. */}
-                <Route path="/live" element={<Navigate to="/lobby" replace />} />
-                <Route path="/live/*" element={<Navigate to="/lobby" replace />} />
+                {/* Native Live (mobile shell): lobby + rooms. Web keeps the
+                    legacy redirect since the web live module was retired. */}
+                <Route path="/live" element={IS_MOBILE_SHELL ? (
+                  <RouteContainer fallbackMessage="Loading Live…"><ProtectedRoute><NativeLive /></ProtectedRoute></RouteContainer>
+                ) : <Navigate to="/lobby" replace />} />
+                <Route path="/live/:id" element={IS_MOBILE_SHELL ? (
+                  <RouteContainer fallbackMessage="Joining live…"><ProtectedRoute><NativeLive /></ProtectedRoute></RouteContainer>
+                ) : <Navigate to="/lobby" replace />} />
+                <Route path="/live/*" element={<Navigate to={IS_MOBILE_SHELL ? '/live' : '/lobby'} replace />} />
                 {/* /c/:id renders the same comprehensive Profile component as
                     /profile, in "viewing-another-user" mode. Owner-only
                     affordances (edit, danger zone, credits tab) are hidden

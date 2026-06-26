@@ -62,6 +62,7 @@ const TYPES: Opt[] = [
   { v: 'music', label: 'Music', icon: Music },
   { v: 'photo', label: 'Edit photo', icon: Scissors },
   { v: 'upload', label: 'Upload reel', icon: Upload },
+  { v: 'live', label: 'Go Live', icon: Radio },
 ];
 
 const FLOWS: Record<string, Flow> = {
@@ -137,6 +138,8 @@ export default function Create() {
     if (type === 'avatar') { navigate('/avatars'); return; }
     // Upload → the native reel uploader (pick a 5s clip + publish).
     if (type === 'upload') { navigate('/upload'); return; }
+    // Live → the Live lobby (browse live rooms + go live).
+    if (type === 'live') { navigate('/live'); return; }
     setFlow(type); setStep(0); setSel({}); setPrompt('');
   };
 

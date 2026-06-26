@@ -143,3 +143,18 @@ Captured console warnings+errors across all routes:
   present; spend-only enforced (PURCHASING_ENABLED=!IS_NATIVE; no StoreKit; no
   @capacitor/camera or other permission-linking plugins beyond push/keychain).
 - Updated IOS_SETUP §8 with the usage-strings note.
+
+## Cycle 13 — spend-only / Apple 3.1.1 completeness (PASS)
+Swept ALL purchase/checkout surfaces in src/. On a real native build there is NO
+reachable in-app purchase or external-checkout path — verified at every layer:
+- `startCreditCheckout` hard-throws when IS_SPEND_ONLY (source-level guarantee).
+- Pricing.tsx: `if (IS_NATIVE) navigate('/studio'); return null;` — no buy UI.
+- /credits route → <Navigate to="/account?tab=credits"> → (MobileRouteRedirects)
+  /account → /you. Studio's navigate('/credits') resolves the same way.
+- Plans (native /me/plans): external "Manage on web" link already removed (cycle 12);
+  packs are view-only info + a neutral notice.
+- Buy UI hidden via PURCHASING_ENABLED=!IS_NATIVE; BuyCreditsModal/upgrade CTAs gated.
+- Profile.tsx (has /credits + /pricing links) is redirected to /you on native.
+- ADDED: /pricing,/billing → /me/plans in MobileRouteRedirects (defense-in-depth +
+  consistency; lands credit intents on the compliant page in preview AND device).
+- Runtime: /pricing→/me/plans, /credits→/you, no external page opened. (`d59eba7b`)

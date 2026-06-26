@@ -31,6 +31,7 @@ export default function Discover() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [query, setQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
   const [cat, setCat] = useState<Cat>('videos');
   const [world, setWorld] = useState<string | null>(null);
   const worlds = useWorlds();
@@ -46,30 +47,35 @@ export default function Discover() {
     <div className="fixed inset-0 text-white">
       <AuroraBackdrop />
       <div className="relative z-10 h-full overflow-y-auto px-4" style={{ paddingTop: 'calc(var(--safe-top,0px) + 14px)', paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 28px)' }}>
-        {/* Categories — borderless, floating icons (no titles) */}
-        {!searching && (
-          <div className="mt-5 flex items-center justify-around">
+        {/* Category icons (no titles) + a search toggle in the top-right */}
+        {!searching && !searchOpen && (
+          <div className="relative mt-5 flex items-center justify-center gap-10">
             {CATS.map((c) => {
               const on = cat === c.id;
               return (
                 <button key={c.id} onClick={() => { void hapticTap(); setCat(c.id); }} aria-label={c.label}
-                  className={cn('relative grid place-items-center px-6 py-1 transition-colors active:scale-95', on ? 'text-[#8fb4ff]' : 'text-white/45')}>
+                  className={cn('relative grid place-items-center px-2 py-1 transition-colors active:scale-95', on ? 'text-[#8fb4ff]' : 'text-white/45')}>
                   {on && <span className="pointer-events-none absolute h-9 w-9 rounded-full bg-[#3f78ff]/30 blur-md" />}
                   <c.icon className="relative h-[26px] w-[26px]" strokeWidth={on ? 2.1 : 1.8} />
                 </button>
               );
             })}
+            <button onClick={() => { void hapticTap(); setSearchOpen(true); }} aria-label="Search" className="absolute right-0 text-white/55 drop-shadow-[0_2px_8px_rgba(0,0,0,.6)] transition-transform active:scale-90">
+              <Search className="h-[24px] w-[24px]" strokeWidth={1.9} />
+            </button>
           </div>
         )}
 
-        {/* Search — below the Videos / Reels / People tabs */}
-        <div className="surface-1 mt-4 flex h-12 items-center gap-2.5 rounded-full px-4">
-          <Search className="h-[18px] w-[18px] text-white/50" strokeWidth={1.8} />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search films & creators" className="flex-1 bg-transparent text-[15px] text-white outline-none placeholder:text-white/35" />
-          {query && <button onClick={() => setQuery('')} aria-label="Clear" className="text-white/40"><X className="h-[18px] w-[18px]" /></button>}
-        </div>
+        {/* Search input — revealed by the top-right search icon */}
+        {searchOpen && (
+          <div className="surface-1 mt-5 flex h-12 items-center gap-2.5 rounded-full px-4">
+            <Search className="h-[18px] w-[18px] text-white/50" strokeWidth={1.8} />
+            <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search films & creators" className="flex-1 bg-transparent text-[15px] text-white outline-none placeholder:text-white/35" />
+            <button onClick={() => { void hapticTap(); setQuery(''); setSearchOpen(false); }} aria-label="Close search" className="text-white/45"><X className="h-[18px] w-[18px]" /></button>
+          </div>
+        )}
 
-        {!searching && daily && (
+        {!searching && !searchOpen && daily && (
           <button onClick={() => { void hapticTap(); navigate(`/me/generate?prompt=${encodeURIComponent(daily.prompt_text)}`); }}
             className="lit-edge relative mt-5 block w-full overflow-hidden rounded-[22px] bg-gradient-to-br from-[#2f6bff]/25 to-[#7a3bff]/15 p-4 text-left active:scale-[0.99]">
             {daily.cover_url && <img src={daily.cover_url} alt="" className="absolute inset-0 h-full w-full object-cover opacity-25" />}
@@ -84,10 +90,10 @@ export default function Discover() {
         )}
 
         {/* Upcoming + live premieres */}
-        {!searching && <PremiereStrip />}
+        {!searching && !searchOpen && <PremiereStrip />}
 
         {/* Worlds filter — borderless chips (Videos/Reels only) */}
-        {!searching && cat !== 'people' && (
+        {!searching && !searchOpen && cat !== 'people' && (
           <div className="mt-4 flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
             <WorldChip label="All worlds" on={world === null} onClick={() => { void hapticTap(); setWorld(null); }} />
             {worlds.map((w) => <WorldChip key={w.slug} label={w.name} accent={`hsl(${w.accent_hsl})`} glyph={w.glyph} on={world === w.slug} onClick={() => { void hapticTap(); setWorld(w.slug); }} />)}
@@ -119,6 +125,8 @@ export default function Discover() {
               )}
             </div>
           )
+        ) : searchOpen ? (
+          <Empty label="Search films & creators" />
         ) : cat === 'people' ? (
           user ? <PeopleSwipe userId={user.id} /> : <Empty label="Sign in to discover creators." />
         ) : (

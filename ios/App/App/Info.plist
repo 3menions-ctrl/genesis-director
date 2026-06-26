@@ -15,7 +15,9 @@
 	     Review rejects. The app only READS photos (never saves to the library), so
 	     NSPhotoLibraryAddUsageDescription is intentionally not declared. -->
 	<key>NSCameraUsageDescription</key>
-	<string>Small Bridges uses the camera so you can take a photo for your avatar, cover image, or a film.</string>
+	<string>Small Bridges uses the camera so you can take a photo for your avatar, cover image, or a film, and to broadcast when you go live.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Small Bridges uses the microphone so your audience can hear you when you go live.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Small Bridges accesses your photos so you can choose a picture for your avatar, cover image, or a film.</string>
 	<key>CFBundleExecutable</key>

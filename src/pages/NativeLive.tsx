@@ -19,6 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
 import { GiftSheet } from '@/components/native/GiftSheet';
+import { LiveRTC } from '@/lib/native/liveBroadcast';
 import { hapticTap } from '@/lib/native/shell';
 import { cn } from '@/lib/utils';
 
@@ -127,8 +128,11 @@ function LiveRoom({ roomId }: { roomId: string }) {
   const [draft, setDraft] = useState('');
   const [giftOpen, setGiftOpen] = useState(false);
   const [ending, setEnding] = useState(false);
+  const [live, setLive] = useState(false); // viewer: host stream connected
   const chanRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const rtcRef = useRef<LiveRTC | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);       // host: own camera
+  const remoteRef = useRef<HTMLVideoElement>(null);      // viewer: host's stream
   const streamRef = useRef<MediaStream | null>(null);
   const floatId = useRef(0);
   const isHost = !!user && !!room && room.host_id === user.id;
@@ -155,10 +159,22 @@ function LiveRoom({ roomId }: { roomId: string }) {
     return () => { cancel = true; };
   }, [roomId]);
 
-  // Realtime: presence (viewers) + broadcast chat/reactions/gifts.
+  // Realtime: presence (viewers) + broadcast chat/reactions/gifts + WebRTC
+  // signalling. Gated on `room` so the host/viewer role is known up front.
   useEffect(() => {
-    if (!user) return;
+    if (!user || !room) return;
+    const host = room.host_id === user.id;
     const ch = supabase.channel(`live-${roomId}`, { config: { presence: { key: user.id }, broadcast: { self: true } } });
+    const send = (event: string, payload: Record<string, unknown>) => { void ch.send({ type: 'broadcast', event, payload }); };
+
+    // Live-video transport: host streams its camera to each viewer over WebRTC.
+    const rtc = new LiveRTC({
+      isHost: host, selfId: user.id, send,
+      getLocalStream: () => streamRef.current,
+      onRemoteStream: (stream) => { if (remoteRef.current) { remoteRef.current.srcObject = stream; void remoteRef.current.play().catch(() => {}); } setLive(true); },
+    });
+    rtcRef.current = rtc;
+
     ch.on('presence', { event: 'sync' }, () => setViewers(Math.max(1, Object.keys(ch.presenceState()).length)));
     ch.on('broadcast', { event: 'chat' }, ({ payload }) => setChat((c) => [...c.slice(-50), payload as ChatMsg]));
     ch.on('broadcast', { event: 'reaction' }, ({ payload }) => pushFloat((payload as { emoji: string }).emoji));
@@ -167,24 +183,33 @@ function LiveRoom({ roomId }: { roomId: string }) {
       setChat((c) => [...c.slice(-50), { id: `${Date.now()}`, name: g.name, text: '', gift: { emoji: g.emoji, cr: g.cr } }]);
       for (let i = 0; i < 8; i++) window.setTimeout(() => pushFloat(g.emoji), i * 90);
     });
-    ch.subscribe(async (s) => { if (s === 'SUBSCRIBED') await ch.track({ name: myName, at: Date.now() }); });
-    chanRef.current = ch;
-    return () => { void supabase.removeChannel(ch); chanRef.current = null; };
-  }, [roomId, user, myName]);
+    // WebRTC signalling (targeted by `to`).
+    ch.on('broadcast', { event: 'rtc-join' }, ({ payload }) => { void rtc.onJoin((payload as { viewerId: string }).viewerId); });
+    ch.on('broadcast', { event: 'rtc-offer' }, ({ payload }) => { const p = payload as { to: string; from: string; sdp: RTCSessionDescriptionInit }; if (p.to === user.id) void rtc.onOffer(p.from, p.sdp); });
+    ch.on('broadcast', { event: 'rtc-answer' }, ({ payload }) => { const p = payload as { to: string; from: string; sdp: RTCSessionDescriptionInit }; if (p.to === user.id) void rtc.onAnswer(p.from, p.sdp); });
+    ch.on('broadcast', { event: 'rtc-ice' }, ({ payload }) => { const p = payload as { to: string; from: string; candidate: RTCIceCandidateInit }; if (p.to === user.id) void rtc.onIce(p.from, p.candidate); });
 
-  // Host camera.
+    ch.subscribe(async (s) => { if (s === 'SUBSCRIBED') { await ch.track({ name: myName, at: Date.now() }); rtc.announce(); } });
+    chanRef.current = ch;
+    return () => { rtc.destroy(); rtcRef.current = null; void supabase.removeChannel(ch); chanRef.current = null; };
+  }, [roomId, user, room, myName]);
+
+  // Host camera + mic. Try A/V; fall back to video-only if the mic is denied.
   useEffect(() => {
     if (!isHost) return;
     let cancel = false;
     (async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
-        if (cancel) { stream.getTracks().forEach((t) => t.stop()); return; }
-        streamRef.current = stream;
-        if (videoRef.current) { videoRef.current.srcObject = stream; void videoRef.current.play().catch(() => {}); }
-      } catch { /* no camera / denied — the poster stage stands in */ }
+      let stream: MediaStream | null = null;
+      try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true }); }
+      catch { try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false }); } catch { /* no camera */ } }
+      if (!stream) return;
+      if (cancel) { stream.getTracks().forEach((t) => t.stop()); return; }
+      streamRef.current = stream;
+      if (videoRef.current) { videoRef.current.srcObject = stream; void videoRef.current.play().catch(() => {}); }
+      // Offer to any viewers that joined while we were acquiring the camera.
+      void rtcRef.current?.flushPending();
     })();
-    return () => { cancel = true; streamRef.current?.getTracks().forEach((t) => t.stop()); };
+    return () => { cancel = true; streamRef.current?.getTracks().forEach((t) => t.stop()); streamRef.current = null; };
   }, [isHost]);
 
   const pushFloat = (emoji: string) => {
@@ -226,9 +251,13 @@ function LiveRoom({ roomId }: { roomId: string }) {
       {/* Stage */}
       {isHost ? (
         <video ref={videoRef} muted playsInline autoPlay className="absolute inset-0 h-full w-full -scale-x-100 object-cover" />
-      ) : host?.avatar ? (
-        <img src={host.avatar} alt="" className="absolute inset-0 h-full w-full scale-110 object-cover blur-sm" />
-      ) : <div className="absolute inset-0 bg-gradient-to-br from-[#241a3d] to-[#0a0a0a]" />}
+      ) : (
+        <>
+          {host?.avatar ? <img src={host.avatar} alt="" className="absolute inset-0 h-full w-full scale-110 object-cover blur-sm" /> : <div className="absolute inset-0 bg-gradient-to-br from-[#241a3d] to-[#0a0a0a]" />}
+          <video ref={remoteRef} playsInline autoPlay className={cn('absolute inset-0 h-full w-full object-contain transition-opacity duration-500', live ? 'opacity-100' : 'opacity-0')} />
+          {!live && <div className="absolute inset-0 grid place-items-center"><span className="inline-flex items-center gap-2 rounded-full bg-black/45 px-3.5 py-2 text-[12.5px] backdrop-blur-md"><Loader2 className="h-3.5 w-3.5 animate-spin" />Connecting to live…</span></div>}
+        </>
+      )}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/45" />
 
       {/* Top bar */}

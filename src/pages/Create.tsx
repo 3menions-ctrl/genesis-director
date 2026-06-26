@@ -44,7 +44,11 @@ const LOOK_OPTS: Opt[] = [
   { v: 'vhs', label: 'VHS', icon: Tv },
   { v: 'vapor', label: 'Vapor', icon: Sunset },
 ];
-const withLook = (p: string, look?: string) => (look ? `${p.trim()}, ${look} style` : p.trim());
+const ASPECT_HINT: Record<string, string> = { '16:9': 'widescreen 16:9', '9:16': 'vertical 9:16', '1:1': 'square 1:1' };
+/** Compose the final generation prompt from the base text + chosen settings. */
+const compose = (base: string, parts: (string | undefined | false)[]) => [base.trim(), ...parts.filter(Boolean)].join(', ');
+/** Append the format to the route so Studio can pick it up when supported. */
+const fmt = (aspect?: string) => (aspect ? `&aspect=${enc(aspect)}` : '');
 
 const TYPES: Opt[] = [
   { v: 'video', label: 'Video', icon: Clapperboard },
@@ -63,7 +67,7 @@ const FLOWS: Record<string, Flow> = {
       { id: 'look', q: 'Pick a look', skip: true, opts: LOOK_OPTS },
       { id: 'aspect', q: 'Format', opts: ASPECT_OPTS },
     ],
-    route: (s, p) => `/studio?tab=create&prompt=${enc(withLook(p, s.look))}`,
+    route: (s, p) => `/studio?tab=create&prompt=${enc(compose(p, [s.look && `${s.look} style`, ASPECT_HINT[s.aspect]]))}${fmt(s.aspect)}`,
   },
   image: {
     Icon: ImageIcon, label: 'Image', writeQ: 'Describe the image', action: 'Generate',
@@ -72,7 +76,7 @@ const FLOWS: Record<string, Flow> = {
       { id: 'look', q: 'Pick a style', skip: true, opts: [{ v: 'cinematic', label: 'Cinematic', icon: Film }, { v: 'anime', label: 'Anime', icon: Sparkles }, { v: '3d', label: '3D', icon: Box }, { v: 'photo', label: 'Photo', icon: Camera }] },
       { id: 'aspect', q: 'Format', opts: ASPECT_OPTS },
     ],
-    route: (s, p) => `/studio?tab=image&prompt=${enc(withLook(p, s.look))}`,
+    route: (s, p) => `/studio?tab=image&prompt=${enc(compose(p, [s.look && `${s.look} style`, ASPECT_HINT[s.aspect]]))}${fmt(s.aspect)}`,
   },
   avatar: {
     Icon: UserRound, label: 'Avatar', writeQ: 'What do they say?', action: 'Generate',
@@ -82,7 +86,7 @@ const FLOWS: Record<string, Flow> = {
       { id: 'voice', q: 'Pick a voice', opts: [{ v: 'warm', label: 'Warm', icon: Mic }, { v: 'bright', label: 'Bright', icon: AudioLines }, { v: 'deep', label: 'Deep', icon: Volume2 }, { v: 'calm', label: 'Calm', icon: Waves }] },
       { id: 'aspect', q: 'Format', opts: ASPECT_OPTS },
     ],
-    route: () => `/avatars`,
+    route: (_s, p) => `/avatars${p.trim() ? `?script=${enc(p.trim())}` : ''}`,
   },
   music: {
     Icon: Music, label: 'Music', writeQ: 'Describe the track', action: 'Compose',
@@ -91,7 +95,7 @@ const FLOWS: Record<string, Flow> = {
       { id: 'genre', q: 'Genre', opts: [{ v: 'cinematic', label: 'Cinematic', icon: Film }, { v: 'electronic', label: 'Electronic', icon: AudioLines }, { v: 'orchestral', label: 'Orchestral', icon: Music }, { v: 'lofi', label: 'Lo-fi', icon: Radio }, { v: 'ambient', label: 'Ambient', icon: Waves }] },
       { id: 'mood', q: 'Mood', opts: [{ v: 'epic', label: 'Epic', icon: Zap }, { v: 'calm', label: 'Calm', icon: Leaf }, { v: 'tense', label: 'Tense', icon: Wind }, { v: 'uplifting', label: 'Uplifting', icon: Sun }, { v: 'dreamy', label: 'Dreamy', icon: Moon }] },
     ],
-    route: (_s, p) => (p.trim() ? `/music?prompt=${enc(p.trim())}` : '/music'),
+    route: (s, p) => { const q = compose(p, [s.genre, s.mood && `${s.mood} mood`]); return q ? `/music?prompt=${enc(q)}` : '/music'; },
   },
   photo: {
     Icon: Scissors, label: 'Edit photo', writeQ: 'Describe the edit', action: 'Apply',
@@ -100,7 +104,7 @@ const FLOWS: Record<string, Flow> = {
       { id: 'source', q: 'Add a photo', opts: [{ v: 'upload', label: 'Upload', icon: Upload }, { v: 'library', label: 'Library', icon: Images }, { v: 'camera', label: 'Camera', icon: Camera }] },
       { id: 'op', q: 'What to do', opts: [{ v: 'relight', label: 'Relight', icon: Lightbulb }, { v: 'restyle', label: 'Restyle', icon: Palette }, { v: 'remove', label: 'Remove', icon: Eraser }, { v: 'upscale', label: 'Upscale', icon: Maximize2 }] },
     ],
-    route: (_s, p) => `/studio?tab=photo&prompt=${enc(p.trim())}`,
+    route: (s, p) => `/studio?tab=photo&prompt=${enc(compose(p, [s.op]))}`,
   },
 };
 

@@ -6,7 +6,7 @@
  */
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { X, Loader2, AlertTriangle, RefreshCw, Share2, Send } from 'lucide-react';
+import { X, Loader2, AlertTriangle, RefreshCw, Share2, Send, CheckCircle2, Library } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
 import { PublishSheet } from '@/components/native/PublishSheet';
@@ -95,6 +95,25 @@ export default function NativeProduction() {
           <div className="flex gap-2.5">
             <button onClick={() => { void hapticTap(); setPublish(true); }} className="flex h-[52px] flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#2f6bff] to-[#7a3bff] text-[15px] font-bold shadow-[inset_0_1px_0_rgba(255,255,255,.3)]"><Send className="h-[18px] w-[18px]" /> Publish</button>
             <button onClick={() => { void hapticTap(); void shareLink({ title: proj?.title ?? 'My film', url: `${window.location.origin}/r/${id}` }); }} aria-label="Share" className="grid h-[52px] w-[52px] place-items-center rounded-2xl msg-glass"><Share2 className="h-[19px] w-[19px]" /></button>
+          </div>
+        </div>
+        {publish && id && <PublishSheet projectId={id} defaultTitle={proj?.title ?? undefined} onClose={() => setPublish(false)} onPublished={(rid) => navigate(`/r/${rid}`)} />}
+      </div>
+    );
+  }
+
+  // ── Completed but no playable URL resolvable here (manifest/video_url not
+  //    populated): NEVER spin forever — surface it as done and route to Library. ──
+  if (done && !url) {
+    return (
+      <div className="fixed inset-0 grid place-items-center bg-black px-8 text-center text-white">
+        <div>
+          <CheckCircle2 className="mx-auto h-10 w-10 text-[#5ee08a]" />
+          <p className="mt-4 text-[16px] font-semibold">{proj?.title || 'Your film is ready'}</p>
+          <p className="mt-1 text-[13px] text-white/45">Find it in your Library.</p>
+          <div className="mt-6 flex justify-center gap-2.5">
+            <button onClick={() => { void hapticTap(); navigate('/me/library'); }} className="flex items-center gap-2 rounded-full bg-white/10 px-5 py-2.5 text-[14px] font-semibold"><Library className="h-4 w-4" /> Library</button>
+            {id && <button onClick={() => { void hapticTap(); setPublish(true); }} className="flex items-center gap-2 rounded-full bg-gradient-to-r from-[#2f6bff] to-[#7a3bff] px-5 py-2.5 text-[14px] font-semibold"><Send className="h-4 w-4" /> Publish</button>}
           </div>
         </div>
         {publish && id && <PublishSheet projectId={id} defaultTitle={proj?.title ?? undefined} onClose={() => setPublish(false)} onPublished={(rid) => navigate(`/r/${rid}`)} />}

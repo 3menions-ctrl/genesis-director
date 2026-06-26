@@ -4,19 +4,25 @@
  *
  * Toolkit:
  *   • Clip      — pick which clip to edit (your films + sample films).
- *   • Looks     — a library of one-tap colour-grade presets (live preview).
+ *   • Looks     — one-tap colour-grade presets (live preview).
+ *   • Adjust    — brightness / contrast / saturation / warmth sliders.
+ *   • Speed     — 0.25×–2× playback rate (live).
  *   • Music     — pick a soundtrack + set its mix level.
+ *   • Text      — a caption overlay (top / middle / bottom).
  *   • Templates — preset bundles (a look + a track) applied in one tap.
  *   • Compare   — hold to see the original. Reset returns to it.
- *   • Save      — writes the chosen look/track/clip (the re-render runs server
- *     side in production).
+ *   • Save      — persists the edit to the project (editor_state + per-clip
+ *     properties) so it survives + is applied on playback. Reopening a film
+ *     restores its saved edit.
  *
- * The preview clip is shown at its native aspect ratio over a blurred fill.
+ * Saving only applies to YOUR films (sample clips have no backing project).
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LayoutGrid, Eye, RotateCcw, Save, Lock, ChevronLeft, X, Check, Clapperboard, Music2, Wand2, Play } from 'lucide-react';
+import { LayoutGrid, Eye, RotateCcw, Save, Lock, ChevronLeft, X, Check, Clapperboard, Music2, Wand2, Play, SlidersHorizontal, Gauge, Type, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { FILMS } from '@/data/filmsLibrary';
 import { useMyFilms } from '@/hooks/useMyFilms';
 import { hapticTap } from '@/lib/native/shell';
@@ -63,10 +69,28 @@ const TEMPLATES: Template[] = [
 interface Clip { id: string; title: string; src: string; thumb?: string | null }
 const SAMPLES: Clip[] = FILMS.filter((f) => f.clips?.[0]).slice(0, 8).map((f) => ({ id: `sample-${f.id}`, title: f.title, src: f.clips[0] }));
 
-type Sheet = null | 'clips' | 'looks' | 'music' | 'templates';
+interface Adjust { b: number; c: number; s: number; w: number }
+const ADJUST0: Adjust = { b: 100, c: 100, s: 100, w: 0 };
+interface TextOverlay { content: string; pos: 'top' | 'mid' | 'bottom' }
+const TEXT0: TextOverlay = { content: '', pos: 'bottom' };
+const SPEEDS = [0.25, 0.5, 1, 1.5, 2];
+
+/** Compose the brightness/contrast/saturation/warmth sliders into a CSS filter. */
+function adjustToFilter(a: Adjust): string {
+  return [
+    a.b !== 100 && `brightness(${(a.b / 100).toFixed(2)})`,
+    a.c !== 100 && `contrast(${(a.c / 100).toFixed(2)})`,
+    a.s !== 100 && `saturate(${(a.s / 100).toFixed(2)})`,
+    a.w > 0 && `sepia(${(a.w / 100 * 0.7).toFixed(2)})`,
+    a.w < 0 && `hue-rotate(${Math.round(a.w * 0.6)}deg)`,
+  ].filter(Boolean).join(' ');
+}
+
+type Sheet = null | 'clips' | 'looks' | 'adjust' | 'speed' | 'music' | 'text' | 'templates';
 
 export default function Presets() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { films } = useMyFilms();
   const clips: Clip[] = useMemo(() => {
     const mine = films.filter((f) => f.video_url).map((f) => ({ id: f.id, title: f.title, src: f.video_url as string, thumb: f.thumbnail_url }));
@@ -75,24 +99,79 @@ export default function Presets() {
 
   const [clipId, setClipId] = useState<string | null>(null);
   const [selected, setSelected] = useState('film35');
+  const [adjust, setAdjust] = useState<Adjust>(ADJUST0);
+  const [speed, setSpeed] = useState(1);
   const [trackId, setTrackId] = useState('none');
   const [vol, setVol] = useState(60);
+  const [text, setText] = useState<TextOverlay>(TEXT0);
   const [showBefore, setShowBefore] = useState(false);
   const [sheet, setSheet] = useState<Sheet>(null);
+  const [saving, setSaving] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const clip = clips.find((c) => c.id === clipId) ?? clips[0];
   const src = clip?.src ?? '';
+  const isOwn = !!clip && !clip.id.startsWith('sample-');
   const look = useMemo(() => LOOKS.find((l) => l.id === selected) ?? LOOKS[0], [selected]);
   const track = TRACKS.find((t) => t.id === trackId) ?? TRACKS[0];
-  const activeFilter = showBefore ? 'none' : look.filter;
+  const composed = useMemo(() => {
+    const base = look.filter === 'none' ? '' : look.filter;
+    return `${base} ${adjustToFilter(adjust)}`.trim() || 'none';
+  }, [look, adjust]);
+  const activeFilter = showBefore ? 'none' : composed;
+  const adjustOn = adjust.b !== 100 || adjust.c !== 100 || adjust.s !== 100 || adjust.w !== 0;
+
+  // Live playback rate.
+  useEffect(() => { if (videoRef.current) videoRef.current.playbackRate = showBefore ? 1 : speed; }, [speed, src, showBefore]);
+
+  // Restore a saved edit when an own film is opened (proves the save round-trips).
+  useEffect(() => {
+    if (!clip || clip.id.startsWith('sample-')) return;
+    let cancel = false;
+    (async () => {
+      const { data } = await supabase.from('movie_projects' as never).select('editor_state').eq('id', clip.id).maybeSingle();
+      const m = (data as unknown as { editor_state?: { mobile?: { look?: string; adjust?: Adjust; speed?: number; music?: { trackId?: string; vol?: number }; text?: TextOverlay } } } | null)?.editor_state?.mobile;
+      if (cancel || !m) return;
+      if (m.look) setSelected(m.look);
+      if (m.adjust) setAdjust(m.adjust);
+      if (typeof m.speed === 'number') setSpeed(m.speed);
+      if (m.music) { setTrackId(m.music.trackId ?? 'none'); setVol(m.music.vol ?? 60); }
+      if (m.text) setText(m.text);
+    })();
+    return () => { cancel = true; };
+  }, [clip?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const applyTemplate = (t: Template) => { void hapticTap(); setSelected(t.look); setTrackId(t.music); setSheet(null); toast.success(`Applied · ${t.name}`); };
-  const save = () => {
+  const resetAll = () => { void hapticTap(); setSelected('original'); setAdjust(ADJUST0); setSpeed(1); setTrackId('none'); setText(TEXT0); };
+
+  const save = async () => {
     void hapticTap();
     if (look.premium || track.premium) { toast('That includes a Pro look or track — manage your plan on the web.'); return; }
-    toast.success(`Saved · ${look.name}${trackId !== 'none' ? ` + ${track.name}` : ''}`);
+    if (!user) { toast.error('Sign in to save'); navigate('/auth'); return; }
+    if (!isOwn || !clip) { toast('Saving works on your own films — pick one under Clip.'); return; }
+    setSaving(true);
+    try {
+      const mobile = { look: selected, filter: composed, adjust, speed, music: { trackId, vol }, text };
+      const { error } = await supabase.from('movie_projects' as never)
+        .update({ editor_state: { mobile } } as never).eq('id', clip.id);
+      if (error) throw error;
+      // Apply the grade + speed to the project's clips so playback reflects it
+      // (same per-clip properties the web editor + stitcher read). Best-effort.
+      try {
+        const { data: vcs } = await supabase.from('video_clips' as never).select('id, properties').eq('project_id', clip.id);
+        for (const vc of ((vcs ?? []) as unknown as { id: string; properties: Record<string, unknown> | null }[])) {
+          const props = { ...(vc.properties ?? {}), filter: composed === 'none' ? '' : composed, speed };
+          await supabase.from('video_clips' as never).update({ properties: props } as never).eq('id', vc.id);
+        }
+      } catch { /* per-clip apply is best-effort */ }
+      toast.success('Edit saved');
+    } catch { toast.error("Couldn't save — try again."); }
+    finally { setSaving(false); }
   };
+
   const goBack = () => { void hapticTap(); if (window.history.length > 1) navigate(-1); else navigate('/feed'); };
+
+  const textPosClass = text.pos === 'top' ? 'top-[14%]' : text.pos === 'mid' ? 'top-1/2 -translate-y-1/2' : 'bottom-[20%]';
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-[#0a0a0a] text-white">
@@ -100,17 +179,25 @@ export default function Presets() {
       {src ? (
         <>
           <video key={`bg-${src}`} src={src} muted loop autoPlay playsInline className="absolute inset-0 h-full w-full scale-110 object-cover opacity-30 blur-2xl" />
-          <video key={`fg-${src}`} src={src} muted loop autoPlay playsInline className="absolute inset-0 h-full w-full object-contain transition-[filter] duration-300" style={{ filter: activeFilter }} />
+          <video ref={videoRef} key={`fg-${src}`} src={src} muted loop autoPlay playsInline className="absolute inset-0 h-full w-full object-contain transition-[filter] duration-300" style={{ filter: activeFilter }} />
         </>
       ) : <div className="absolute inset-0 bg-gradient-to-br from-[#1a1430] to-[#0a0a0a]" />}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-l from-black/55 via-transparent to-transparent" />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/55 to-transparent" />
 
+      {/* Text overlay */}
+      {text.content && !showBefore && (
+        <div className={cn('pointer-events-none absolute inset-x-0 z-10 px-8 text-center', textPosClass)}>
+          <span className="font-display text-[26px] font-bold leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,.9)]">{text.content}</span>
+        </div>
+      )}
+
       {showBefore && <span className="absolute left-1/2 top-[18%] -translate-x-1/2 rounded-full bg-black/45 px-3 py-1 font-display text-[11px] font-semibold tracking-wide backdrop-blur-md">BEFORE</span>}
 
       {/* now-editing + music chips (bottom-left) */}
       <div className="absolute left-4 z-20 flex flex-col gap-1.5" style={{ bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 16px)' }}>
-        {clip && <span className="inline-flex w-fit max-w-[60vw] items-center gap-1.5 truncate rounded-full bg-black/45 px-3 py-1 font-display text-[12px] font-semibold backdrop-blur-md"><Clapperboard className="h-3 w-3" /> {clip.title}</span>}
+        {clip && <span className="inline-flex w-fit max-w-[58vw] items-center gap-1.5 truncate rounded-full bg-black/45 px-3 py-1 font-display text-[12px] font-semibold backdrop-blur-md"><Clapperboard className="h-3 w-3" /> {clip.title}</span>}
+        {speed !== 1 && <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-black/45 px-3 py-1 text-[11.5px] font-medium backdrop-blur-md"><Gauge className="h-3 w-3" /> {speed}×</span>}
         {trackId !== 'none' && <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[#8fb4ff]/20 px-3 py-1 text-[11.5px] font-medium text-[#cdddff] backdrop-blur-md"><Music2 className="h-3 w-3" /> {track.name} · {vol}%</span>}
       </div>
 
@@ -118,20 +205,23 @@ export default function Presets() {
       <button onClick={goBack} aria-label="Back" className="absolute left-3 z-20 grid h-10 w-10 place-items-center text-white drop-shadow-[0_2px_6px_rgba(0,0,0,.7)]" style={{ top: 'calc(var(--safe-top,0px) + 10px)' }}><ChevronLeft className="h-7 w-7" strokeWidth={2} /></button>
 
       {/* ── Right tool rail ── */}
-      <div className="absolute right-3 z-20 flex flex-col items-center gap-[18px]" style={{ bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 16px)' }}>
+      <div className="absolute right-3 z-20 flex flex-col items-center gap-[15px]" style={{ bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 14px)' }}>
         <Tool icon={Clapperboard} label="Clip" onClick={() => { void hapticTap(); setSheet('clips'); }} />
         <Tool icon={LayoutGrid} label="Looks" active={selected !== 'original'} onClick={() => { void hapticTap(); setSheet('looks'); }} />
+        <Tool icon={SlidersHorizontal} label="Adjust" active={adjustOn} onClick={() => { void hapticTap(); setSheet('adjust'); }} />
+        <Tool icon={Gauge} label="Speed" active={speed !== 1} onClick={() => { void hapticTap(); setSheet('speed'); }} />
         <Tool icon={Music2} label="Music" active={trackId !== 'none'} onClick={() => { void hapticTap(); setSheet('music'); }} />
-        <Tool icon={Wand2} label="Templates" onClick={() => { void hapticTap(); setSheet('templates'); }} />
+        <Tool icon={Type} label="Text" active={!!text.content} onClick={() => { void hapticTap(); setSheet('text'); }} />
+        <Tool icon={Wand2} label="Looks+" onClick={() => { void hapticTap(); setSheet('templates'); }} />
         <button onMouseDown={() => setShowBefore(true)} onMouseUp={() => setShowBefore(false)} onMouseLeave={() => setShowBefore(false)} onTouchStart={() => setShowBefore(true)} onTouchEnd={() => setShowBefore(false)}
           aria-label="Hold to compare" className={cn('flex flex-col items-center gap-1 drop-shadow-[0_2px_6px_rgba(0,0,0,.7)] transition-colors', showBefore ? 'text-[#8fb4ff]' : 'text-white')}>
-          <Eye className="h-[24px] w-[24px]" strokeWidth={1.8} /><span className="font-display text-[10px] font-medium">Compare</span>
+          <Eye className="h-[23px] w-[23px]" strokeWidth={1.8} /><span className="font-display text-[10px] font-medium">Compare</span>
         </button>
-        <Tool icon={RotateCcw} label="Reset" onClick={() => { void hapticTap(); setSelected('original'); setTrackId('none'); }} />
-        {/* Save — accent icon in a translucent container */}
-        <button onClick={save} aria-label="Save" className="flex flex-col items-center gap-1 text-[#8fb4ff] transition-transform active:scale-95">
-          <span className="surface-1 grid h-12 w-12 place-items-center rounded-2xl">{look.premium || track.premium ? <Lock className="h-[22px] w-[22px]" /> : <Save className="h-[22px] w-[22px]" strokeWidth={1.9} />}</span>
-          <span className="font-display text-[10px] font-semibold drop-shadow">{look.premium || track.premium ? 'Pro' : 'Save'}</span>
+        <Tool icon={RotateCcw} label="Reset" onClick={resetAll} />
+        {/* Save — accent icon button */}
+        <button onClick={save} disabled={saving} aria-label="Save" className="flex flex-col items-center gap-1 text-[#8fb4ff] transition-transform active:scale-95 disabled:opacity-60">
+          <span className="surface-1 grid h-12 w-12 place-items-center rounded-2xl">{saving ? <Loader2 className="h-[22px] w-[22px] animate-spin" /> : (look.premium || track.premium) ? <Lock className="h-[22px] w-[22px]" /> : <Save className="h-[22px] w-[22px]" strokeWidth={1.9} />}</span>
+          <span className="font-display text-[10px] font-semibold drop-shadow">{saving ? 'Saving' : (look.premium || track.premium) ? 'Pro' : 'Save'}</span>
         </button>
       </div>
 
@@ -144,6 +234,7 @@ export default function Presets() {
                 {c.thumb ? <img src={c.thumb} alt="" className="block w-full" /> : <video src={`${c.src}#t=0.5`} muted playsInline preload="metadata" className="block w-full" />}
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
                 <span className="absolute inset-x-0 bottom-0 truncate px-2.5 py-1.5 text-left font-display text-[12px] font-semibold drop-shadow">{c.title}</span>
+                {!c.id.startsWith('sample-') && <span className="absolute left-2 top-2 rounded-full bg-[#3f78ff]/85 px-2 py-0.5 font-mono text-[8.5px] font-bold uppercase tracking-wide backdrop-blur-md">Yours</span>}
                 {c.id === clip?.id && <span className="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-[#3f78ff]"><Check className="h-3 w-3" strokeWidth={3} /></span>}
               </button>
             ))}
@@ -163,6 +254,29 @@ export default function Presets() {
               </button>
             ))}
           </div>
+        </SheetShell>
+      )}
+
+      {sheet === 'adjust' && (
+        <SheetShell title="Adjust" onClose={() => setSheet(null)}>
+          <div className="space-y-5 pb-1">
+            <Slider label="Brightness" min={50} max={150} value={adjust.b} onChange={(v) => setAdjust((a) => ({ ...a, b: v }))} fmt={(v) => `${v}%`} />
+            <Slider label="Contrast" min={50} max={150} value={adjust.c} onChange={(v) => setAdjust((a) => ({ ...a, c: v }))} fmt={(v) => `${v}%`} />
+            <Slider label="Saturation" min={0} max={200} value={adjust.s} onChange={(v) => setAdjust((a) => ({ ...a, s: v }))} fmt={(v) => `${v}%`} />
+            <Slider label="Warmth" min={-50} max={50} value={adjust.w} onChange={(v) => setAdjust((a) => ({ ...a, w: v }))} fmt={(v) => (v > 0 ? `+${v}` : `${v}`)} />
+            <button onClick={() => { void hapticTap(); setAdjust(ADJUST0); }} className="mx-auto flex items-center gap-1.5 text-[12px] font-medium text-white/55"><RotateCcw className="h-3.5 w-3.5" />Reset adjustments</button>
+          </div>
+        </SheetShell>
+      )}
+
+      {sheet === 'speed' && (
+        <SheetShell title="Speed" onClose={() => setSheet(null)}>
+          <div className="flex gap-2.5">
+            {SPEEDS.map((s) => (
+              <button key={s} onClick={() => { void hapticTap(); setSpeed(s); }} className={cn('flex-1 rounded-[16px] py-3.5 text-center font-display text-[15px] font-bold transition-colors', s === speed ? 'msg-glass-accent' : 'msg-glass text-white/60')}>{s}×</button>
+            ))}
+          </div>
+          <p className="mt-3 text-center text-[11px] text-white/35">Plays back at this rate; the saved render matches.</p>
         </SheetShell>
       )}
 
@@ -187,12 +301,24 @@ export default function Presets() {
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-center text-[11px] text-white/30">Your soundtrack is mixed into the final render.</p>
+        </SheetShell>
+      )}
+
+      {sheet === 'text' && (
+        <SheetShell title="Text" onClose={() => setSheet(null)}>
+          <input value={text.content} onChange={(e) => setText((t) => ({ ...t, content: e.target.value.slice(0, 80) }))} placeholder="Add a caption…" className="surface-1 w-full rounded-[16px] bg-transparent px-4 py-3.5 text-[16px] text-white outline-none placeholder:text-white/30" />
+          <div className="mb-1 mt-4 font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">Position</div>
+          <div className="flex gap-2.5">
+            {(['top', 'mid', 'bottom'] as const).map((p) => (
+              <button key={p} onClick={() => { void hapticTap(); setText((t) => ({ ...t, pos: p })); }} className={cn('flex-1 rounded-[16px] py-3 text-center text-[13px] font-semibold capitalize transition-colors', p === text.pos ? 'msg-glass-accent' : 'msg-glass text-white/60')}>{p === 'mid' ? 'Middle' : p}</button>
+            ))}
+          </div>
+          {text.content && <button onClick={() => { void hapticTap(); setText(TEXT0); }} className="mx-auto mt-4 flex items-center gap-1.5 text-[12px] font-medium text-white/55"><X className="h-3.5 w-3.5" />Remove text</button>}
         </SheetShell>
       )}
 
       {sheet === 'templates' && (
-        <SheetShell title="Templates" onClose={() => setSheet(null)}>
+        <SheetShell title="Looks+ — one-tap bundles" onClose={() => setSheet(null)}>
           <div className="grid grid-cols-2 gap-3">
             {TEMPLATES.map((t) => {
               const tl = LOOKS.find((l) => l.id === t.look);
@@ -214,8 +340,17 @@ export default function Presets() {
 function Tool({ icon: Icon, label, active, onClick }: { icon: typeof LayoutGrid; label: string; active?: boolean; onClick: () => void }) {
   return (
     <button onClick={onClick} aria-label={label} className={cn('flex flex-col items-center gap-1 drop-shadow-[0_2px_6px_rgba(0,0,0,.7)] transition-colors', active ? 'text-[#8fb4ff]' : 'text-white')}>
-      <Icon className="h-[24px] w-[24px]" strokeWidth={1.8} /><span className="font-display text-[10px] font-medium">{label}</span>
+      <Icon className="h-[23px] w-[23px]" strokeWidth={1.8} /><span className="font-display text-[10px] font-medium">{label}</span>
     </button>
+  );
+}
+
+function Slider({ label, min, max, value, onChange, fmt }: { label: string; min: number; max: number; value: number; onChange: (v: number) => void; fmt: (v: number) => string }) {
+  return (
+    <div>
+      <div className="mb-1.5 flex items-center justify-between"><span className="text-[13.5px] font-medium text-white/85">{label}</span><span className="font-mono text-[12px] text-white/55">{fmt(value)}</span></div>
+      <input type="range" min={min} max={max} value={value} onChange={(e) => onChange(Number(e.target.value))} className="w-full accent-[#8fb4ff]" aria-label={label} />
+    </div>
   );
 }
 

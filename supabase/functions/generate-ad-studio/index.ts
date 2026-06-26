@@ -9,6 +9,7 @@ import {
   checkMultipleContent,
   parseJsonWithRecovery,
 } from "../_shared/script-utils.ts";
+import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
 
 /**
  * generate-ad-studio — the Generative Ad Studio backend.
@@ -222,6 +223,28 @@ Return JSON with this exact shape:
 }
 Generate ${conceptCount} concept${conceptCount > 1 ? "s" : ""} now.`;
 
+    // ═══ CREDIT + RATE-LIMIT GATE ═══
+    // Org-scoped when organizationId is present (charges the org pool); otherwise
+    // personal. Service-role/internal callers are exempt (handled by the helper).
+    const orgId = (body.organizationId && typeof body.organizationId === "string") ? body.organizationId : undefined;
+    const { createClient: createGateClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.4");
+    const gateClient = createGateClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    );
+    const gateCtx = {
+      supabase: gateClient,
+      fnName: "generate-ad-studio",
+      userId: auth.userId,
+      isServiceRole: auth.isServiceRole,
+      orgId,
+      cost: 3,
+      dailyCap: 60,
+      corsHeaders,
+    };
+    const gateBlocked = await preflightAiGate(gateCtx);
+    if (gateBlocked) return gateBlocked;
+
     const response = await fetchWithRetry(
       "https://api.openai.com/v1/chat/completions",
       {
@@ -289,6 +312,9 @@ Generate ${conceptCount} concept${conceptCount > 1 ? "s" : ""} now.`;
 
     const generationTimeMs = Date.now() - startTime;
     console.log(`[generate-ad-studio] Success in ${generationTimeMs}ms — ${concepts.length} concept(s), platform=${platform}, objective=${objective}`);
+
+    // ═══ CHARGE ON SUCCESS — exactly once, after a usable result ═══
+    await chargeAiGate(gateCtx);
 
     return successResponse({
       concepts,

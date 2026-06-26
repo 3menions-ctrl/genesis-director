@@ -9,6 +9,7 @@ import {
   checkMultipleContent,
   parseJsonWithRecovery,
 } from "../_shared/script-utils.ts";
+import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
 
 /**
  * generate-ad-variants — variant generation at scale + multi-format reframe.
@@ -233,6 +234,27 @@ Return JSON with this exact shape:
 }
 Produce all ${totalVariants} variants (every hook × every format) now.`;
 
+    // ═══ AI CREDIT GATE (pre-flight) ═══
+    // Org-scoped: charge the org pool when organizationId is present, else personal.
+    const gateOrgId = body.organizationId && typeof body.organizationId === "string" ? body.organizationId : undefined;
+    const { createClient: createGateClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.4");
+    const gateSupabase = createGateClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    );
+    const gateCtx = {
+      supabase: gateSupabase,
+      fnName: "generate-ad-variants",
+      userId: auth.userId,
+      isServiceRole: auth.isServiceRole,
+      orgId: gateOrgId,
+      cost: 2,
+      dailyCap: 100,
+      corsHeaders,
+    };
+    const gateBlocked = await preflightAiGate(gateCtx);
+    if (gateBlocked) return gateBlocked;
+
     const response = await fetchWithRetry(
       "https://api.openai.com/v1/chat/completions",
       {
@@ -295,6 +317,9 @@ Produce all ${totalVariants} variants (every hook × every format) now.`;
 
     const generationTimeMs = Date.now() - startTime;
     console.log(`[generate-ad-variants] Success in ${generationTimeMs}ms — ${variants.length} variant(s), formats=${trimmedFormats.join("/")}, hooks=${hookVariants}`);
+
+    // ═══ AI CREDIT GATE (charge once, on success) ═══
+    await chargeAiGate(gateCtx);
 
     return successResponse({
       variants,

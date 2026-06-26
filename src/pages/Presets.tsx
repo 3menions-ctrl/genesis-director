@@ -234,7 +234,7 @@ export default function Presets() {
         <Tool icon={RotateCcw} label="Reset" onClick={resetAll} />
         {/* Save — accent icon button */}
         <button onClick={save} disabled={saving} aria-label="Save" className="flex flex-col items-center gap-1 text-[#8fb4ff] transition-transform active:scale-95 disabled:opacity-60">
-          <span className="surface-1 grid h-12 w-12 place-items-center rounded-2xl">{saving ? <Loader2 className="h-[22px] w-[22px] animate-spin" /> : look.premium ? <Lock className="h-[22px] w-[22px]" /> : <Save className="h-[22px] w-[22px]" strokeWidth={1.9} />}</span>
+          <span className="grid h-12 w-12 place-items-center rounded-full bg-[#3f78ff]/18 ring-1 ring-[#7aa2ff]/40 backdrop-blur-md">{saving ? <Loader2 className="h-[22px] w-[22px] animate-spin" /> : look.premium ? <Lock className="h-[22px] w-[22px]" /> : <Save className="h-[22px] w-[22px]" strokeWidth={1.9} />}</span>
           <span className="font-display text-[10px] font-semibold drop-shadow">{saving ? 'Saving' : look.premium ? 'Pro' : 'Save'}</span>
         </button>
       </div>

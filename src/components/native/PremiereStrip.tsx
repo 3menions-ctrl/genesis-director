@@ -84,12 +84,14 @@ export function PremiereStrip() {
               <div className="px-3 pb-3 pt-1.5">
                 <div className="truncate font-display text-[14px] font-semibold">{p.title}</div>
                 <div className="mb-2.5 flex items-center gap-1.5 text-[11px] text-white/50"><Users className="h-3 w-3" />{p.rsvp_count} going · {p.host?.name ?? 'Creator'}</div>
-                <button onClick={() => { void hapticTap(); if (live) { if (p.reel_id) navigate(`/r/${p.reel_id}`); } else rsvp(p); }} disabled={!live && isGoing}
-                  aria-label={live ? 'Watch live' : isGoing ? 'Going' : 'RSVP'}
-                  className={cn('flex h-9 w-full items-center justify-center rounded-full ring-1 backdrop-blur-md transition-colors',
-                    live ? 'bg-[#ff3b5c]/18 text-white ring-[#ff8aa0]/40' : isGoing ? 'bg-white/[0.06] text-white/70 ring-white/15' : 'bg-[#3f78ff]/18 text-white ring-[#7aa2ff]/40')}>
-                  {live ? <Play className="h-[17px] w-[17px] fill-white" /> : isGoing ? <Check className="h-[18px] w-[18px]" strokeWidth={2.6} /> : <CalendarPlus className="h-[18px] w-[18px]" />}
-                </button>
+                <div className="flex justify-center">
+                  <button onClick={() => { void hapticTap(); if (live) { if (p.reel_id) navigate(`/r/${p.reel_id}`); } else rsvp(p); }} disabled={!live && isGoing}
+                    aria-label={live ? 'Watch live' : isGoing ? 'Going' : 'RSVP'}
+                    className={cn('grid h-12 w-12 place-items-center rounded-full ring-1 backdrop-blur-md transition-transform active:scale-90',
+                      live ? 'bg-[#ff3b5c]/18 text-white ring-[#ff8aa0]/45' : isGoing ? 'bg-white/[0.06] text-white/70 ring-white/15' : 'bg-[#3f78ff]/18 text-white ring-[#7aa2ff]/45')}>
+                    {live ? <Play className="h-[19px] w-[19px] fill-white" /> : isGoing ? <Check className="h-[19px] w-[19px]" strokeWidth={2.6} /> : <CalendarPlus className="h-[19px] w-[19px]" />}
+                  </button>
+                </div>
               </div>
             </div>
           );

@@ -222,9 +222,9 @@ describe('AppLoader — Navigation Transitions', () => {
 // ─── No Rogue Loading Patterns ───────────────────────────────────────────────
 
 describe('No Rogue Loading Patterns', () => {
-  // Pages that should NOT have raw spinners outside CinemaLoader
+  // Pages that should NOT have raw spinners outside CinemaLoader.
+  // (Landing.tsx was removed in the studio overhaul.)
   const criticalPages = [
-    'src/pages/Landing.tsx',
     'src/pages/Studio.tsx',
     'src/pages/Production.tsx',
   ];

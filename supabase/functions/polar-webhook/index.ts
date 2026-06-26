@@ -150,8 +150,28 @@ async function upsertSubscription(sub: any, statusOverride?: string) {
     environment: ENV_TAG,
     metadata: md,
   }, { onConflict: "stripe_subscription_id,environment" });
-  if (error) log("sub upsert error", { error: error.message, subId: sub?.id });
-  else log("sub upserted", { subId: sub?.id, status: statusOverride || sub?.status });
+  if (error) { log("sub upsert error", { error: error.message, subId: sub?.id }); return; }
+  log("sub upserted", { subId: sub?.id, status: statusOverride || sub?.status });
+
+  // Fund the org credit pool on activation (audit #2). The webhook previously
+  // upserted the org subscription but never funded organizations.credits_balance,
+  // so business generation failed insufficient_credits until (and unless) the
+  // monthly cron ran. monthly_org_credit_refill() is idempotent per period
+  // (NOT EXISTS guard), so calling it here funds the just-activated org's
+  // current period without double-funding a re-delivered webhook or the monthly
+  // cron. STRICTLY non-fatal — a refill hiccup must never fail the payment
+  // webhook (Polar would retry the whole event); the monthly cron is the
+  // backstop.
+  const status = statusOverride || String(sub?.status || "active");
+  if (md.org_id && (status === "active" || status === "trialing")) {
+    try {
+      const { error: refillErr } = await sb().rpc("monthly_org_credit_refill");
+      if (refillErr) log("org pool refill non-fatal error", { error: refillErr.message, orgId: md.org_id });
+      else log("org pool funded on activation", { orgId: md.org_id });
+    } catch (e) {
+      log("org pool refill threw (non-fatal)", { error: String(e), orgId: md.org_id });
+    }
+  }
 }
 
 Deno.serve(async (req) => {

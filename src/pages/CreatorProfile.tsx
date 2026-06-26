@@ -50,8 +50,21 @@ export default function CreatorProfile() {
   const [messaging, setMessaging] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [cover, setCover] = useState<string | null>(null);
+  const [similar, setSimilar] = useState<{ id: string; display_name: string | null; avatar_url: string | null }[]>([]);
 
   useEffect(() => { if (id && user?.id === id) navigate('/you', { replace: true }); }, [id, user?.id, navigate]);
+
+  // Similar creators (shared-audience overlap) for the discovery rail.
+  useEffect(() => {
+    if (!id) return; let c = false;
+    (async () => {
+      try {
+        const { data } = await supabase.rpc('profile_similar_creators' as never, { p_target: id, p_limit: 8 } as never);
+        if (!c) setSimilar(((data ?? []) as { id: string; display_name: string | null; avatar_url: string | null }[]).map((r) => ({ id: r.id, display_name: r.display_name, avatar_url: r.avatar_url })));
+      } catch { /* ignore */ }
+    })();
+    return () => { c = true; };
+  }, [id]);
 
   // Best-effort cover photo (their uploaded cover) for the full-bleed background.
   useEffect(() => {
@@ -82,11 +95,12 @@ export default function CreatorProfile() {
           <button onClick={exit} className="rounded-full bg-white/[0.07] px-5 py-2 text-[13px] font-medium">Go back</button>
         </div>
       ) : (
-        <SwipeProfile profile={profile} reels={reels} coverSrc={cover ?? profile.avatar_url}
+        <SwipeProfile profile={profile} reels={reels} coverSrc={cover ?? profile.avatar_url} similar={similar}
           onFollow={() => { doFollow(); exit(); }} onMoveOn={exit}
           onMessage={() => { void hapticTap(); user ? setMessaging(true) : navigate('/auth'); }}
           onTapFollow={doFollow}
-          onOpenReel={(rid) => navigate(`/r/${rid}`)} />
+          onOpenReel={(rid) => navigate(`/r/${rid}`)}
+          onOpenCreator={(cid) => navigate(`/u/${cid}`)} />
       )}
 
       {/* Exit */}
@@ -100,11 +114,12 @@ export default function CreatorProfile() {
   );
 }
 
-function SwipeProfile({ profile, reels, coverSrc, onFollow, onMoveOn, onMessage, onTapFollow, onOpenReel }: {
+function SwipeProfile({ profile, reels, coverSrc, similar, onFollow, onMoveOn, onMessage, onTapFollow, onOpenReel, onOpenCreator }: {
   profile: { display_name: string | null; avatar_url: string | null; followers_count: number; following_count: number; videos_count: number; is_following: boolean };
   reels: Reel[];
   coverSrc: string | null;
-  onFollow: () => void; onMoveOn: () => void; onMessage: () => void; onTapFollow: () => void; onOpenReel: (id: string) => void;
+  similar: { id: string; display_name: string | null; avatar_url: string | null }[];
+  onFollow: () => void; onMoveOn: () => void; onMessage: () => void; onTapFollow: () => void; onOpenReel: (id: string) => void; onOpenCreator: (id: string) => void;
 }) {
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-300, 300], [-9, 9]);
@@ -160,6 +175,21 @@ function SwipeProfile({ profile, reels, coverSrc, onFollow, onMoveOn, onMessage,
                   {r.thumbnail_url ? <img src={r.thumbnail_url} alt={r.title ?? ''} className="block h-24 w-auto" /> : <div className="h-24 w-16 bg-gradient-to-br from-[#241a3a] to-[#0a0a0a]" />}
                 </button>
               ))}
+            </div>
+          )}
+
+          {/* Similar creators — discovery rail */}
+          {similar.length > 0 && (
+            <div className="mt-3.5" onPointerDownCapture={(e) => e.stopPropagation()}>
+              <div className="mb-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-white/45">Similar creators</div>
+              <div className="flex gap-3 overflow-x-auto pb-0.5" style={{ scrollbarWidth: 'none' }}>
+                {similar.map((s) => (
+                  <button key={s.id} onClick={() => onOpenCreator(s.id)} className="flex w-12 flex-none flex-col items-center gap-1 active:opacity-70">
+                    {s.avatar_url ? <img src={s.avatar_url} alt="" className="h-11 w-11 rounded-full object-cover" /> : <span className="grid h-11 w-11 place-items-center rounded-full bg-gradient-to-br from-[#9c8bff] to-[#6b3bff] text-[13px] font-bold">{(s.display_name?.[0] ?? '?').toUpperCase()}</span>}
+                    <span className="w-full truncate text-center text-[9px] text-white/55">{s.display_name ?? '—'}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 

@@ -41,7 +41,9 @@ import { TYPE_META } from '@/lib/design-system';
 // ─────────────────────────────────────────────────────────────────────
 // Type → icon + accent color
 // ─────────────────────────────────────────────────────────────────────
-const notificationIcons: Record<NotificationType, typeof Bell> = {
+// String-keyed (not Record<NotificationType>) so newer enum values the drifted
+// types.ts doesn't know about still get a meaningful icon (audit D31/M24).
+const notificationIcons: Record<string, typeof Bell> = {
   like: Heart,
   comment: MessageCircle,
   follow: UserPlus,
@@ -60,6 +62,23 @@ const notificationIcons: Record<NotificationType, typeof Bell> = {
   subscription_renewed: Coins,
   mention: MessageCircle,
   system: Sparkles,
+  // Newer generated types:
+  tip_received: Coins,
+  patron_received: Coins,
+  atom_sale: Coins,
+  follow_request: UserPlus,
+  follow_accepted: UserPlus,
+  reel_like: Heart,
+  reel_comment: MessageCircle,
+  reel_mention: MessageCircle,
+  dm_reaction: Heart,
+  crew_message: MessageCircle,
+  ai_assistant: Sparkles,
+  brand_inquiry: Gift,
+  render_progress: Video,
+  org_member_joined: UserPlus,
+  org_role_changed: UserPlus,
+  org_credits_low: Coins,
 };
 
 const notificationColors: Record<NotificationType, string> = {
@@ -117,9 +136,35 @@ function deepLinkFor(n: Notification): string | null {
     case 'like':
     case 'comment':
     case 'mention':
+    case 'reel_like':
+    case 'reel_comment':
+    case 'reel_mention':
       // Land on the reel where it happened (Reel.tsx resolves both
       // published-reel and project ids), not the editing tool.
       return reelId ? `/r/${reelId}` : projectId ? `/r/${projectId}` : '/account';
+    case 'follow_request':
+    case 'follow_accepted': {
+      const actorId = (d.actor_id ?? d.follower_id) as string | undefined;
+      return actorId ? `/c/${actorId}` : '/account';
+    }
+    case 'tip_received':
+    case 'patron_received':
+    case 'atom_sale':
+      return '/account?tab=earnings';
+    case 'credits_purchased':
+    case 'org_credits_low':
+      return '/account?tab=credits';
+    case 'render_progress':
+      return projectId ? `/production/${projectId}` : '/library';
+    case 'message':
+    case 'dm_reaction':
+    case 'crew_message':
+    case 'ai_assistant':
+    case 'brand_inquiry':
+      return '/inbox';
+    case 'org_member_joined':
+    case 'org_role_changed':
+      return '/business/team';
     default:
       return null;
   }

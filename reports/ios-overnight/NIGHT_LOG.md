@@ -181,3 +181,16 @@ reachable in-app purchase or external-checkout path — verified at every layer:
   mounted (real reels have thumbnails → MediaTile uses img, the metadata-video fallback
   only fires for thumbnail-less tiles, none here). No excessive simultaneous videos.
 - No performance fixes needed.
+
+## Cycle 16 — completeness scan + holistic smoke test (PASS)
+- **No incomplete-feature markers** in native code (precise word-boundary grep for
+  TODO/FIXME/HACK/XXX/stub/coming-soon/not-implemented): the only hit is ReelViewer's
+  legitimate "reel isn't available" error state. The single known stub is the Presets
+  editor Save-toast (preview tool — no project to persist to; already documented).
+- **Holistic smoke test** (one continuous Playwright session, client-side nav only):
+  feed → discover → people → tap creator card (opens /u/:id — People-tap fix works) →
+  scroll masonry → open a film (immersive /r/:id) → back. **0 pageerrors across the
+  whole journey.** (Tab-bar nav from a creator profile is intentionally absent — that
+  screen is immersive; exit via X.)
+- **Final stability gate**: all-routes crash sweep = 0 / 24 routes with errors.
+- No fixes needed this cycle.

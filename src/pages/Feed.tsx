@@ -21,6 +21,7 @@ import { useReelsFeed, type FeedItem } from '@/hooks/useReelsFeed';
 import { useVideoReactions, EMOJI_OPTIONS } from '@/hooks/useVideoReactions';
 import { FeedVideo } from '@/components/feed/FeedVideo';
 import { FeedComments } from '@/components/feed/FeedComments';
+import { useHeartBurst, HeartLayer, CommentFlow } from '@/components/feed/LiveFlow';
 import { GrainOverlay } from '@/components/native/AuroraBackdrop';
 import { hapticTap } from '@/lib/native/shell';
 import { cn } from '@/lib/utils';
@@ -172,6 +173,7 @@ const FeedOverlay = ({ item, onComments }: { item: FeedItem; onComments: (v: { i
   const [commentCount, setCommentCount] = useState(item.comment_count);
   const [busy, setBusy] = useState(false);
   const [reactOpen, setReactOpen] = useState(false);
+  const { hearts, burst } = useHeartBurst();
   // This overlay only ever shows the active reel, so fetch its reactions.
   const reactions = useVideoReactions(!item.isStatic ? (item.project_id ?? undefined) : undefined);
   const myReaction = reactions.reactionCounts.find((r) => r.hasReacted)?.emoji;
@@ -191,6 +193,7 @@ const FeedOverlay = ({ item, onComments }: { item: FeedItem; onComments: (v: { i
     const was = liked;
     setLiked(!was);
     setLikeCount((c) => Math.max(0, c + (was ? -1 : 1)));
+    if (!was) burst(4); // float hearts up on a new like
     try {
       const { error } = await supabase.rpc('toggle_like_reel' as never, { p_reel_id: item.id } as never);
       if (error) throw error;
@@ -266,6 +269,10 @@ const FeedOverlay = ({ item, onComments }: { item: FeedItem; onComments: (v: { i
       {/* legibility scrims */}
       <div className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-black/60 via-black/15 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 h-80 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+
+      {/* TikTok-style live flow over the video — containerless */}
+      <CommentFlow reelId={item.id} isStatic={item.isStatic ?? false} bottom="calc(var(--safe-bottom, 0px) + var(--tabbar-h, 0px) + 108px)" />
+      <HeartLayer hearts={hearts} bottom="calc(var(--safe-bottom, 0px) + var(--tabbar-h, 0px) + 160px)" />
 
       {/* right action rail */}
       <div

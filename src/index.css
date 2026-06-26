@@ -2893,3 +2893,14 @@ img, a, button {
   15%  { opacity: 1; }
   100% { opacity: 0; transform: translateY(-46vh) scale(1.1); }
 }
+/* Tap-to-like hearts: pop, drift up, fade (TikTok-style). */
+@keyframes heartFloat {
+  0%   { opacity: 0; transform: translateY(0) scale(0.6) rotate(-8deg); }
+  18%  { opacity: 1; transform: translateY(-12px) scale(1.18) rotate(5deg); }
+  100% { opacity: 0; transform: translateY(-150px) scale(0.9) rotate(-6deg); }
+}
+/* Flowing comments: each line rises in as the stream advances. */
+@keyframes commentRise {
+  0%   { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}

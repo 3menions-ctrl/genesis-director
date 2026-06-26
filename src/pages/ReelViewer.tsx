@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { FILMS } from '@/data/filmsLibrary';
 import { FeedVideo } from '@/components/feed/FeedVideo';
 import { FeedComments } from '@/components/feed/FeedComments';
+import { useHeartBurst, HeartLayer, CommentFlow } from '@/components/feed/LiveFlow';
 import { GiftSheet } from '@/components/native/GiftSheet';
 import { GrainOverlay } from '@/components/native/AuroraBackdrop';
 import { hapticTap, shareLink } from '@/lib/native/shell';
@@ -46,6 +47,7 @@ export default function ReelViewer() {
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [giftOpen, setGiftOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const { hearts, burst } = useHeartBurst();
 
   useEffect(() => {
     if (!id) return;
@@ -88,6 +90,7 @@ export default function ReelViewer() {
     if (!user) { toast.error('Sign in to like'); navigate('/auth'); return; }
     if (!reel) return;
     const was = liked; setLiked(!was); setLikeCount((c) => Math.max(0, c + (was ? -1 : 1)));
+    if (!was) burst(4);
     try { const { error } = await supabase.rpc('toggle_like_reel' as never, { p_reel_id: reel.id } as never); if (error) throw error; }
     catch { setLiked(was); setLikeCount((c) => Math.max(0, c + (was ? 1 : -1))); toast.error("Couldn't update like"); }
   }, [liked, reel, user, navigate]);
@@ -125,6 +128,10 @@ export default function ReelViewer() {
       <GrainOverlay opacity={0.05} />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/60 via-black/10 to-transparent" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-80 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
+
+      {/* TikTok-style live flow over the video — containerless */}
+      <CommentFlow reelId={reel.isStatic ? null : reel.id} isStatic={reel.isStatic ?? false} bottom="calc(var(--safe-bottom, 0px) + 96px)" />
+      <HeartLayer hearts={hearts} bottom="calc(var(--safe-bottom, 0px) + 150px)" />
 
       {/* Close + mute */}
       <button onClick={close} aria-label="Close" className="absolute left-3 z-30 grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur-md active:scale-95" style={{ top: 'calc(var(--safe-top,0px) + 10px)' }}><X className="h-[18px] w-[18px]" /></button>

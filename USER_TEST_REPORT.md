@@ -530,7 +530,22 @@ Went past the load sweep into interactivity and the real admin mutation flows (t
 
 **New finding (minor) — BUG-22:** the admin user actions **Grant Credits** and **Suspend** use native `window.prompt` (×4 in `AdminUserDetailPage.tsx`) for the amount/reason inputs — functional, but inconsistent with the app's premium dialog standard (`confirmAsync`/ConfirmView). Left as-is (an internal tool; a proper fix needs an input-modal component, not just a confirm).
 
-**Deliberately not executed on prod:** Suspend/Delete-account/Revoke-sessions, refunds, config writes, moderation actions.
+## Round 7c — reversible destructive admin actions (verified, against the QA account)
+
+With approval, exercised the recoverable destructive actions on my own test account and confirmed each in the DB, then restored:
+
+| Action | Result |
+|---|---|
+| **Force verify email** | button fires (account already verified) |
+| **Send password reset** | edge action → link copied, "Action complete" |
+| **Send magic link** | edge action → link copied, "Action complete" |
+| **Suspend account** | `profiles.suspended_at` set, audit-logged, toast "Account suspended" |
+| **Unsuspend / restore** | `suspended_at` cleared, toast "Account restored" |
+| **Revoke all sessions** | `security_version` bumped, toast "Sessions revoked" |
+
+All worked correctly; the QA account was verified back to a healthy state (not suspended, email verified, 0 credits). The `admin_audit_log` correctly recorded each action.
+
+**Still not executed (genuinely irreversible / money-moving):** **Delete account** and **Refunds** — left untouched on production by design.
 
 ---
 

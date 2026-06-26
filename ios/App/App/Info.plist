@@ -8,6 +8,16 @@
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
         <string>Small Bridges</string>
+	<!-- Photo upload uses the WKWebView file picker (avatar, cover, and film
+	     photos). Its "Take Photo" / "Photo Library" options access the camera and
+	     photo library in-process, so iOS REQUIRES these purpose strings — without
+	     them the app hard-crashes the moment a user picks that option, and App
+	     Review rejects. The app only READS photos (never saves to the library), so
+	     NSPhotoLibraryAddUsageDescription is intentionally not declared. -->
+	<key>NSCameraUsageDescription</key>
+	<string>Small Bridges uses the camera so you can take a photo for your avatar, cover image, or a film.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Small Bridges accesses your photos so you can choose a picture for your avatar, cover image, or a film.</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

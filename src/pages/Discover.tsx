@@ -92,14 +92,6 @@ export default function Discover() {
         {/* Upcoming + live premieres */}
         {!searching && !searchOpen && <PremiereStrip />}
 
-        {/* Worlds filter — borderless chips (Videos/Reels only) */}
-        {!searching && !searchOpen && cat !== 'people' && (
-          <div className="mt-4 flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-            <WorldChip label="All worlds" on={world === null} onClick={() => { void hapticTap(); setWorld(null); }} />
-            {worlds.map((w) => <WorldChip key={w.slug} label={w.name} accent={`hsl(${w.accent_hsl})`} glyph={w.glyph} on={world === w.slug} onClick={() => { void hapticTap(); setWorld(w.slug); }} />)}
-          </div>
-        )}
-
         {searching ? (
           search.loading ? (
             <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-white/40" /></div>

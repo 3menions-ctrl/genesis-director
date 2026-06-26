@@ -5,7 +5,7 @@
  */
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, LogOut, ChevronRight, Loader2, Check } from 'lucide-react';
+import { Mail, Lock, LogOut, Loader2, Check, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,6 +17,9 @@ export default function AccountSettings() {
   const { user, signOut } = useAuth();
   const [pw, setPw] = useState('');
   const [saving, setSaving] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(false);
+  const [delPw, setDelPw] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   const changePassword = async () => {
     if (pw.length < 6) { toast.error('Password must be at least 6 characters'); return; }
@@ -29,6 +32,25 @@ export default function AccountSettings() {
       setPw('');
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Could not update password'); }
     finally { setSaving(false); }
+  };
+
+  // Permanent, in-app account deletion (Apple requirement). Re-auths with the
+  // user's password server-side, then deletes the account + content.
+  const deleteAccount = async () => {
+    if (!delPw) { toast.error('Enter your password to confirm'); return; }
+    void hapticTap();
+    setDeleting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-user-account', { body: { password: delPw } });
+      const res = data as { error?: string } | null;
+      if (error || res?.error) throw new Error(res?.error || error?.message || 'Could not delete account');
+      toast.success('Your account has been deleted');
+      await signOut();
+      navigate('/auth', { replace: true });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not delete account');
+      setDeleting(false);
+    }
   };
 
   return (
@@ -53,14 +75,33 @@ export default function AccountSettings() {
       </Group>
 
       <Group label="Account">
-        <button onClick={() => navigate('/settings')} className="msg-glass flex w-full items-center gap-3 rounded-[18px] px-4 py-3.5 text-left text-white/90 active:scale-[0.99]">
-          <span className="flex-1 text-[14.5px]">Manage data &amp; deactivation</span>
-          <ChevronRight className="h-4 w-4 text-white/30" />
-        </button>
         <button onClick={async () => { void hapticTap(); await signOut(); navigate('/feed'); }} className="msg-glass flex w-full items-center gap-3 rounded-[18px] px-4 py-3.5 text-left text-[#ff6b6b] active:scale-[0.99]">
           <LogOut className="h-[18px] w-[18px]" />
           <span className="flex-1 text-[14.5px] font-semibold">Sign out</span>
         </button>
+      </Group>
+
+      <Group label="Delete account">
+        {!confirmDel ? (
+          <button onClick={() => { void hapticTap(); setConfirmDel(true); }} className="msg-glass flex w-full items-center gap-3 rounded-[18px] px-4 py-3.5 text-left text-[#ff6b6b] active:scale-[0.99]">
+            <Trash2 className="h-[18px] w-[18px]" />
+            <span className="flex-1 text-[14.5px] font-semibold">Delete my account</span>
+          </button>
+        ) : (
+          <div className="msg-glass space-y-3 rounded-[18px] p-4">
+            <p className="text-[13px] leading-relaxed text-white/65">This permanently deletes your account, films, and data. It can't be undone. Enter your password to confirm.</p>
+            <div className="flex h-[52px] items-center gap-3 rounded-[14px] bg-white/[0.05] px-4">
+              <Lock className="h-[18px] w-[18px] text-white/45" />
+              <input value={delPw} onChange={(e) => setDelPw(e.target.value)} type="password" placeholder="Your password" className="flex-1 bg-transparent text-[15px] text-white outline-none placeholder:text-white/35" />
+            </div>
+            <div className="flex gap-2.5">
+              <button onClick={() => { void hapticTap(); setConfirmDel(false); setDelPw(''); }} disabled={deleting} className="h-11 flex-1 rounded-[14px] bg-white/[0.06] text-[14px] font-semibold text-white/80 disabled:opacity-50">Cancel</button>
+              <button onClick={deleteAccount} disabled={!delPw || deleting} className="h-11 flex-1 rounded-[14px] bg-[#ff3b3b]/22 text-[14px] font-bold text-[#ff8a8a] ring-1 ring-[#ff6b6b]/40 disabled:opacity-50">
+                {deleting ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : 'Permanently delete'}
+              </button>
+            </div>
+          </div>
+        )}
       </Group>
     </SettingsScaffold>
   );

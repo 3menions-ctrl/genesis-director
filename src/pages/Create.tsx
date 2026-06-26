@@ -7,10 +7,10 @@
  *
  * Spend-only. The final action routes to the real Studio engine.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ChevronLeft, Sparkles, ArrowRight,
+  ChevronLeft, Sparkles, ArrowRight, Loader2,
   RectangleHorizontal, RectangleVertical, Square,
   Clapperboard, Image as ImageIcon, UserRound, Music, Scissors,
   PenLine, LayoutGrid, Film, Moon, Tv, Sunset, Box, Camera, UserPlus,
@@ -18,6 +18,9 @@ import {
   Upload, Images, Lightbulb, Palette, Eraser, Maximize2,
   type LucideIcon,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
 import { hapticTap } from '@/lib/native/shell';
 import { cn } from '@/lib/utils';
@@ -49,6 +52,8 @@ const ASPECT_HINT: Record<string, string> = { '16:9': 'widescreen 16:9', '9:16':
 const compose = (base: string, parts: (string | undefined | false)[]) => [base.trim(), ...parts.filter(Boolean)].join(', ');
 /** Append the format to the route so Studio can pick it up when supported. */
 const fmt = (aspect?: string) => (aspect ? `&aspect=${enc(aspect)}` : '');
+/** Append an uploaded reference image (Studio reads ?image= when supported). */
+const img = (url?: string) => (url ? `&image=${enc(url)}` : '');
 
 const TYPES: Opt[] = [
   { v: 'video', label: 'Video', icon: Clapperboard },
@@ -67,7 +72,7 @@ const FLOWS: Record<string, Flow> = {
       { id: 'look', q: 'Pick a look', skip: true, opts: LOOK_OPTS },
       { id: 'aspect', q: 'Format', opts: ASPECT_OPTS },
     ],
-    route: (s, p) => `/studio?tab=create&prompt=${enc(compose(p, [s.look && `${s.look} style`, ASPECT_HINT[s.aspect]]))}${fmt(s.aspect)}`,
+    route: (s, p) => `/studio?tab=create&prompt=${enc(compose(p, [s.look && `${s.look} style`, ASPECT_HINT[s.aspect]]))}${fmt(s.aspect)}${img(s.image)}`,
   },
   image: {
     Icon: ImageIcon, label: 'Image', writeQ: 'Describe the image', action: 'Generate',
@@ -104,16 +109,20 @@ const FLOWS: Record<string, Flow> = {
       { id: 'source', q: 'Add a photo', opts: [{ v: 'upload', label: 'Upload', icon: Upload }, { v: 'library', label: 'Library', icon: Images }, { v: 'camera', label: 'Camera', icon: Camera }] },
       { id: 'op', q: 'What to do', opts: [{ v: 'relight', label: 'Relight', icon: Lightbulb }, { v: 'restyle', label: 'Restyle', icon: Palette }, { v: 'remove', label: 'Remove', icon: Eraser }, { v: 'upscale', label: 'Upscale', icon: Maximize2 }] },
     ],
-    route: (s, p) => `/studio?tab=photo&prompt=${enc(compose(p, [s.op]))}`,
+    route: (s, p) => `/studio?tab=photo&prompt=${enc(compose(p, [s.op]))}${img(s.image)}`,
   },
 };
 
 export default function Create() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [flow, setFlow] = useState<string | null>(null);
   const [step, setStep] = useState(0);
   const [sel, setSel] = useState<Record<string, string>>({});
   const [prompt, setPrompt] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const pendingPick = useRef<{ id: string; v: string } | null>(null);
 
   const def = flow ? FLOWS[flow] : null;
   const steps = def?.steps ?? [];
@@ -121,7 +130,39 @@ export default function Create() {
   const total = steps.length + 1;
 
   const start = (type: string) => { void hapticTap(); setFlow(type); setStep(0); setSel({}); setPrompt(''); };
-  const pick = (id: string, v: string) => { void hapticTap(); setSel((s) => ({ ...s, [id]: v })); setStep((n) => n + 1); };
+
+  // A photo source opens the native picker, uploads, then advances with the URL.
+  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; e.target.value = '';
+    const pend = pendingPick.current; pendingPick.current = null;
+    if (!file || !user || !pend) return;
+    if (!file.type.startsWith('image/')) { toast.error('Please choose an image'); return; }
+    if (file.size > 12 * 1024 * 1024) { toast.error('Image must be under 12MB'); return; }
+    setUploading(true);
+    try {
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const path = `${user.id}/create-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
+      if (error) throw error;
+      const url = supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+      setSel((s) => ({ ...s, [pend.id]: pend.v, image: url }));
+      setStep((n) => n + 1);
+      toast.success('Photo added');
+    } catch (err) { toast.error(err instanceof Error ? err.message : 'Upload failed'); }
+    finally { setUploading(false); }
+  };
+
+  const pick = (id: string, v: string) => {
+    void hapticTap();
+    const needsPhoto = (flow === 'photo' && id === 'source') || (flow === 'video' && id === 'source' && v === 'photo');
+    if (needsPhoto) {
+      if (!user) { navigate('/auth'); return; }
+      pendingPick.current = { id, v };
+      fileRef.current?.click();
+      return;
+    }
+    setSel((s) => ({ ...s, [id]: v })); setStep((n) => n + 1);
+  };
   const back = () => { void hapticTap(); if (!flow) return; if (step === 0) setFlow(null); else setStep((n) => n - 1); };
   const submit = () => { if (!def) return; void hapticTap(); navigate(def.route(sel, prompt)); };
   const canSubmit = flow === 'avatar' || prompt.trim().length > 0;
@@ -129,6 +170,12 @@ export default function Create() {
   return (
     <div className="fixed inset-0 text-white">
       <AuroraBackdrop />
+      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+      {uploading && (
+        <div className="absolute inset-0 z-40 grid place-items-center bg-black/55">
+          <div className="msg-glass flex items-center gap-3 rounded-2xl px-5 py-3.5"><Loader2 className="h-5 w-5 animate-spin text-[#8fb4ff]" /><span className="text-[14px] font-medium">Uploading photo…</span></div>
+        </div>
+      )}
 
       {/* faint context above the sheet */}
       {def && (

@@ -292,3 +292,13 @@ S121 (`scribe_v2` exists?) · S122/S123 (`gemini-3-flash-preview` on gateway?) �
 
 ## Line drifts to correct in the sources
 #6→SettingsDashboard:1894 · #7→orchestrator:292/298 · #22→pages/account/ProfileDashboard:5003 · #32→NotificationSettings:89 · #42→useProject:141 · #60→CreationHub:255 · D7→hollywood:6381 · D35→SettingsDashboard:2155 · S115→~154 · S256→127 · S267→lib/navigation/routeConfig:21 · S278→AuthCallback:114.
+
+---
+# EXECUTION LOG — Phase 1 + Phase 4 (session 2026-06-26)
+Working the plan impact-first. Closed this session (all verified, on main):
+- **WS-A crashes ✅ (#121):** S206, S213, S214, S221, S222.
+- **WS-B social ✅:** S249 (#123); **follow unification #24 + #26 (#125)** — DB migrated 11 rows → `follows`, 3 notify triggers deduped → 1 (zero notif spam), 12 FE sites repointed to `follows`/`toggle_follow` (gated). `user_follows` kept as backstop; design recorded (#124).
+- **WS-H security ✅ (#126):** S230–S234 (safeHref on 6 sites), S235/S236 (csvSafe formula-injection neutralizer on all 4 exporters).
+- **Deferred w/ recorded design:** #27 (comment unify — `project_comments` is overloaded with editor-review notes; naive merge would leak them publicly → needs careful design), #28 (inbox taxonomy), #29 (subsumed by WS-R premiere/watch-party deletion).
+
+**Remaining workstreams (impact-first):** WS-C money (staging→prod-synthetic, highest-stakes), WS-D billing, WS-E/F editor, WS-G AI-robustness, WS-I moderation, WS-J business, WS-K auth, WS-L notif/email, WS-M routing, WS-N/O/P/Q FE sweeps, WS-R feature delete/build, WS-S dead-code, WS-T i18n. Est. ~40 PRs remaining.

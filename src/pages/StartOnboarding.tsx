@@ -777,6 +777,7 @@ export default function StartOnboarding() {
                       onChange={setOtpCode}
                       onComplete={(full) => { void submitVerify(full); }}
                       disabled={submitting}
+                      length={8}
                     />
                     {errors.otp && <p className="text-[11px] text-rose-400 text-center">{errors.otp}</p>}
                     <div className="text-center space-y-3">

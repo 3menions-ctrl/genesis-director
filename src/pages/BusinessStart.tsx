@@ -714,7 +714,7 @@ export default function BusinessStart() {
                     <p className="text-[13px] text-white/60">
                       Code sent to <span className="text-white font-medium">{form.work_email}</span>
                     </p>
-                    <AuthOtpInput value={otp} onChange={setOtp} onComplete={() => { if (!submitting) void advance(); }} />
+                    <AuthOtpInput value={otp} onChange={setOtp} onComplete={() => { if (!submitting) void advance(); }} length={8} />
                     {errors.otp && <p className="text-[12px] text-rose-400">{errors.otp}</p>}
                     <button onClick={resend} className="text-[12.5px] text-white/55 hover:text-white underline underline-offset-4">
                       Resend code

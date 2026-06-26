@@ -9,7 +9,7 @@
  * Flows handled:
  *   - Sign in (email + password)
  *   - Create account (email + password + agree-to-terms + strength meter)
- *   - OTP verification after signup (six-cell code, paste-friendly)
+ *   - OTP verification after signup (eight-cell email code, paste-friendly)
  *   - Resend code + "use a different email" escape hatches
  *
  * Notable upgrades vs. the prior 1,046-line version:
@@ -301,7 +301,7 @@ export default function Auth() {
                       onChange={setOtp}
                       onComplete={() => { void submitOtp(); }}
                       disabled={verifying}
-                      length={6}
+                      length={8}
                     />
                   </div>
 

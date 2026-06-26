@@ -18,8 +18,11 @@ export default function Leaderboard() {
   const { user } = useAuth();
   const { leaderboard, leaderboardLoading } = useGamification();
   const rows = (leaderboard ?? []).filter((r) => r.user_id);
-  const top3 = rows.slice(0, 3);
-  const rest = rows.slice(3);
+  // Podium only when there are 3+ ranks; otherwise show everyone as a plain list
+  // (a 1-2 row board must NOT render blank).
+  const hasPodium = rows.length >= 3;
+  const top3 = hasPodium ? rows.slice(0, 3) : [];
+  const rest = hasPodium ? rows.slice(3) : rows;
   const me = rows.find((r) => r.user_id === user?.id);
 
   return (

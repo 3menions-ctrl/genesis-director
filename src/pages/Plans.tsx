@@ -3,23 +3,15 @@
  * but never charges in-app (Apple 3.1.1 / spend-only): "Manage on the web" opens
  * smallbridges.co in the system browser. No StoreKit, no in-app purchase.
  */
-import { ChevronLeft, Check, ExternalLink, Sparkles, Zap } from 'lucide-react';
+import { ChevronLeft, Check, Sparkles, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCredits } from '@/contexts/CreditsContext';
 import { CREDIT_PACKAGES, approxClips } from '@/lib/payments/creditPackages';
 import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
-import { hapticTap } from '@/lib/native/shell';
 import { cn } from '@/lib/utils';
 
 const PACKS = CREDIT_PACKAGES.filter((p) => p.tier === 'personal');
 const PERKS = ['Text, image & avatar generation', 'One-tap remix of any film', 'Preset looks & editor', 'Credits never expire'];
-
-async function openWeb() {
-  void hapticTap();
-  const url = 'https://smallbridges.co/credits';
-  try { const { Browser } = await import('@capacitor/browser'); await Browser.open({ url }); }
-  catch { try { window.open(url, '_blank'); } catch { /* ignore */ } }
-}
 
 export default function Plans() {
   const navigate = useNavigate();
@@ -73,11 +65,11 @@ export default function Plans() {
           </div>
         </div>
 
-        {/* Manage on web (no in-app purchase) */}
-        <button onClick={openWeb} className="msg-glass-accent mt-6 flex h-[54px] w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-bold text-white transition-transform active:scale-[0.99]">
-          <ExternalLink className="h-[18px] w-[18px]" /> Manage plan on the web
-        </button>
-        <p className="mt-3 px-2 text-center text-[11.5px] leading-relaxed text-white/35">Credits are purchased and managed on smallbridges.co. The app uses your balance to create — there's nothing to buy in-app.</p>
+        {/* Apple 3.1.1 / IOS_SETUP.md §5: spend-only — a NEUTRAL notice only, with
+            NO link out to the web checkout. (Was a tappable "Manage plan on the
+            web" Browser.open button → that steered to external purchase, the exact
+            pattern 3.1.1 rejects; removed to match the documented policy.) */}
+        <p className="mt-6 px-2 text-center text-[12.5px] leading-relaxed text-white/40">Credits are purchased and managed on smallbridges.co. The app uses your balance to create — there's nothing to buy in-app.</p>
       </div>
     </div>
   );

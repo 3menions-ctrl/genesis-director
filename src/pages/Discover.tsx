@@ -46,19 +46,16 @@ export default function Discover() {
     <div className="fixed inset-0 text-white">
       <AuroraBackdrop />
       <div className="relative z-10 h-full overflow-y-auto px-4" style={{ paddingTop: 'calc(var(--safe-top,0px) + 14px)', paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 28px)' }}>
-        {/* Categories — borderless, floating icons with labels */}
+        {/* Categories — borderless, floating icons (no titles) */}
         {!searching && (
           <div className="mt-5 flex items-center justify-around">
             {CATS.map((c) => {
               const on = cat === c.id;
               return (
-                <button key={c.id} onClick={() => { void hapticTap(); setCat(c.id); }}
-                  className={cn('flex flex-col items-center gap-1.5 transition-colors active:scale-95', on ? 'text-[#8fb4ff]' : 'text-white/45')}>
-                  <span className="relative grid place-items-center">
-                    {on && <span className="pointer-events-none absolute h-8 w-8 rounded-full bg-[#3f78ff]/30 blur-md" />}
-                    <c.icon className="relative h-[22px] w-[22px]" strokeWidth={on ? 2.1 : 1.8} />
-                  </span>
-                  <span className="text-[11px] font-semibold">{c.label}</span>
+                <button key={c.id} onClick={() => { void hapticTap(); setCat(c.id); }} aria-label={c.label}
+                  className={cn('relative grid place-items-center px-6 py-1 transition-colors active:scale-95', on ? 'text-[#8fb4ff]' : 'text-white/45')}>
+                  {on && <span className="pointer-events-none absolute h-9 w-9 rounded-full bg-[#3f78ff]/30 blur-md" />}
+                  <c.icon className="relative h-[26px] w-[26px]" strokeWidth={on ? 2.1 : 1.8} />
                 </button>
               );
             })}

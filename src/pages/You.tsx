@@ -399,6 +399,7 @@ function EditSheet({ initial, onClose, onSaved }: { initial: { display_name: str
   const [name, setName] = useState(initial.display_name);
   const [tagline, setTagline] = useState(initial.tagline);
   const [bio, setBio] = useState(initial.bio);
+  const [location, setLocation] = useState(((profile as { location?: string | null } | null)?.location) ?? '');
   const [avatar, setAvatar] = useState<string | null>(profile?.avatar_url ?? null);
   const [cover, setCover] = useState<string | null>((profile as { cover_url?: string | null } | null)?.cover_url ?? null);
   const [busy, setBusy] = useState<'avatar' | 'cover' | null>(null);
@@ -429,7 +430,7 @@ function EditSheet({ initial, onClose, onSaved }: { initial: { display_name: str
   const save = async () => {
     setSaving(true);
     try {
-      const { error } = await supabase.rpc('update_profile_text' as never, { p_display_name: name.trim(), p_bio: bio.trim(), p_tagline: tagline.trim() } as never);
+      const { error } = await supabase.rpc('update_profile_text' as never, { p_display_name: name.trim(), p_bio: bio.trim(), p_tagline: tagline.trim(), p_location: location.trim() } as never);
       if (error) throw error;
       toast.success('Profile updated');
       onSaved();
@@ -460,6 +461,7 @@ function EditSheet({ initial, onClose, onSaved }: { initial: { display_name: str
         <Field label="Name"><input value={name} onChange={(e) => setName(e.target.value)} className="surface-1 h-11 w-full rounded-full bg-transparent px-4 text-[15px] text-white outline-none" /></Field>
         <Field label="Tagline"><input value={tagline} onChange={(e) => setTagline(e.target.value)} placeholder="One line about you" className="surface-1 h-11 w-full rounded-full bg-transparent px-4 text-[15px] text-white outline-none placeholder:text-white/30" /></Field>
         <Field label="Bio"><textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} placeholder="A little more about you…" className="surface-1 w-full resize-none rounded-[18px] bg-transparent px-4 py-3 text-[15px] text-white outline-none placeholder:text-white/30" /></Field>
+        <Field label="Location"><input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Where you're based" className="surface-1 h-11 w-full rounded-full bg-transparent px-4 text-[15px] text-white outline-none placeholder:text-white/30" /></Field>
         <div className="flex justify-center pt-1">
           <button onClick={save} disabled={saving} aria-label="Save" title="Save"
             className="surface-1 grid h-14 w-14 place-items-center rounded-2xl text-[#8fb4ff] transition-transform active:scale-95 disabled:opacity-50">

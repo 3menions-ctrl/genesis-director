@@ -152,10 +152,13 @@ function AvatarDetail({ avatar, onClose, onUse, forTemplate }: { avatar: AvatarT
               <textarea value={script} onChange={(e) => setScript(e.target.value)} rows={3} placeholder={`Write a line for ${avatar.name}…`} className="surface-1 w-full resize-none rounded-[18px] bg-transparent px-4 py-3 text-[15px] text-white outline-none placeholder:text-white/30" />
             </div>
           )}
-          <button onClick={() => { if (!forTemplate && !script.trim()) return; void hapticTap(); onUse(script.trim()); }} disabled={!forTemplate && !script.trim()}
-            className="mt-5 flex h-[54px] w-full items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-[#2f6bff] via-[#5a5bff] to-[#7a3bff] text-[15px] font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,.3),0_20px_44px_-14px_rgba(80,80,255,.7)] transition-opacity disabled:opacity-40">
-            <Sparkles className="h-[18px] w-[18px]" /> {forTemplate ? `Cast ${avatar.name}` : `Use ${avatar.name}`} <ArrowRight className="h-[17px] w-[17px]" />
+          <div className="mt-5 flex flex-col items-center">
+          <button onClick={() => { if (!forTemplate && !script.trim()) return; void hapticTap(); onUse(script.trim()); }} disabled={!forTemplate && !script.trim()} aria-label={forTemplate ? `Cast ${avatar.name}` : `Use ${avatar.name}`}
+            className="grid h-[64px] w-[64px] place-items-center rounded-full bg-gradient-to-br from-[#2f6bff] via-[#5a5bff] to-[#7a3bff] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.3),0_20px_44px_-14px_rgba(80,80,255,.7)] transition-transform active:scale-90 disabled:opacity-40">
+            <ArrowRight className="h-7 w-7" strokeWidth={2.4} />
           </button>
+            <span className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">{forTemplate ? `Cast ${avatar.name}` : `Use ${avatar.name}`}</span>
+          </div>
         </div>
       </div>
     </div>

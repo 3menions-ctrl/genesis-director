@@ -217,13 +217,13 @@ export default function NativeGenerate() {
         </div>
       </div>
 
-      {/* Generate bar */}
-      <div className="fixed inset-x-0 z-20 px-4" style={{ bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 14px)' }}>
-        <button onClick={generate} disabled={busy || (!needsAvatar && (!canAfford || (!tpl && !prompt.trim())))}
-          className="flex h-[58px] w-full items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-[#2f6bff] via-[#5a5bff] to-[#7a3bff] text-[16px] font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,.3),0_20px_44px_-14px_rgba(80,80,255,.7)] transition-opacity disabled:opacity-40">
-          {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : needsAvatar ? <UserPlus className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
-          {busy ? 'Starting…' : needsAvatar ? 'Pick your star' : canAfford ? `Generate · ${cost === 0 ? 'Free' : `${cost} cr`}` : `Need ${cost} credits`}
+      {/* Generate — icon button (cost carried in the caption) */}
+      <div className="fixed inset-x-0 z-20 flex flex-col items-center" style={{ bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 16px)' }}>
+        <button onClick={generate} disabled={busy || (!needsAvatar && (!canAfford || (!tpl && !prompt.trim())))} aria-label={needsAvatar ? 'Pick your star' : 'Generate'}
+          className="grid h-[68px] w-[68px] place-items-center rounded-full bg-gradient-to-br from-[#2f6bff] via-[#5a5bff] to-[#7a3bff] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.3),0_20px_44px_-14px_rgba(80,80,255,.7)] transition-transform active:scale-90 disabled:opacity-40">
+          {busy ? <Loader2 className="h-7 w-7 animate-spin" /> : needsAvatar ? <UserPlus className="h-7 w-7" /> : <Sparkles className="h-7 w-7" />}
         </button>
+        <span className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">{busy ? 'Starting…' : needsAvatar ? 'Pick your star' : canAfford ? `Generate · ${cost === 0 ? 'Free' : `${cost} cr`}` : `Need ${cost} cr`}</span>
       </div>
     </div>
   );

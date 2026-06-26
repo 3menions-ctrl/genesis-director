@@ -183,7 +183,7 @@ const FeedOverlay = ({ item, onComments }: { item: FeedItem; onComments: (v: { i
     // Static fallback films have no backend reel → start a fresh create
     // prefilled with the film's title as the seed idea.
     if (item.isStatic) {
-      navigate(`/studio?prompt=${encodeURIComponent(item.title ?? '')}`);
+      navigate(`/me/generate?prompt=${encodeURIComponent(item.title ?? '')}`);
       return;
     }
     if (!user) {
@@ -199,9 +199,9 @@ const FeedOverlay = ({ item, onComments }: { item: FeedItem; onComments: (v: { i
       const out = data as { new_project_id?: string };
       if (out?.new_project_id) {
         toast.success('Remix started');
-        navigate(`/editor/${out.new_project_id}`);
+        navigate(`/production/${out.new_project_id}`);
       } else {
-        navigate(`/studio?prompt=${encodeURIComponent(item.title ?? '')}`);
+        navigate(`/me/generate?prompt=${encodeURIComponent(item.title ?? '')}`);
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Remix failed');

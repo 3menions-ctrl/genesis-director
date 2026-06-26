@@ -55,12 +55,12 @@ const fmt = (aspect?: string) => (aspect ? `&aspect=${enc(aspect)}` : '');
 /** Append an uploaded reference image (Studio reads ?image= when supported). */
 const img = (url?: string) => (url ? `&image=${enc(url)}` : '');
 
+// Only native-complete modes are offered here. Image / Edit-photo / Music are
+// web-only Studio flows (no native UI yet) — surfacing them would bleed the web
+// app into the native shell, so they're omitted until they have native screens.
 const TYPES: Opt[] = [
   { v: 'video', label: 'Video', icon: Clapperboard },
-  { v: 'image', label: 'Image', icon: ImageIcon },
   { v: 'avatar', label: 'Avatar', icon: UserRound },
-  { v: 'music', label: 'Music', icon: Music },
-  { v: 'photo', label: 'Edit photo', icon: Scissors },
   { v: 'upload', label: 'Upload reel', icon: Upload },
   { v: 'live', label: 'Go Live', icon: Radio },
 ];

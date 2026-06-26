@@ -206,7 +206,7 @@ export default function You() {
               {cur.items.map((it) => (
                 <MediaTile key={it.id} src={it.thumbnail_url} videoSrc={it.video_url} title={it.title} play={tab === 'drafts' ? null : it.play_count}
                   badge={tab === 'drafts' ? it.status : null}
-                  onClick={() => navigate(tab === 'drafts' ? `/editor/${it.id}` : `/r/${it.id}`)} />
+                  onClick={() => navigate(tab === 'drafts' ? `/production/${it.id}` : `/r/${it.id}`)} />
               ))}
             </MasonryGrid>
           )}

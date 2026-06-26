@@ -94,15 +94,15 @@ export default function ReelViewer() {
 
   const remix = useCallback(async () => {
     void hapticTap();
-    if (reel?.isStatic) { navigate(`/studio?prompt=${encodeURIComponent(reel.title ?? '')}`); return; }
+    if (reel?.isStatic) { navigate(`/me/generate?prompt=${encodeURIComponent(reel.title ?? '')}`); return; }
     if (!user) { toast.error('Sign in to remix'); navigate('/auth'); return; }
     if (!reel || busy) return; setBusy(true);
     try {
       const { data, error } = await supabase.rpc('remix_reel' as never, { p_reel_id: reel.id } as never);
       if (error) throw error;
       const out = data as { new_project_id?: string };
-      if (out?.new_project_id) { toast.success('Remix started'); navigate(`/editor/${out.new_project_id}`); }
-      else navigate(`/studio?prompt=${encodeURIComponent(reel.title ?? '')}`);
+      if (out?.new_project_id) { toast.success('Remix started'); navigate(`/production/${out.new_project_id}`); }
+      else navigate(`/me/generate?prompt=${encodeURIComponent(reel.title ?? '')}`);
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Remix failed'); } finally { setBusy(false); }
   }, [reel, user, busy, navigate]);
 

@@ -80,7 +80,7 @@ export default function MobileLibrary() {
               <MasonryGrid cols={2}>
                 {draftItems.map((d) => (
                   <div key={d.id} className="lit-edge relative mb-3 w-full break-inside-avoid overflow-hidden rounded-[16px] bg-black/30 align-top">
-                    <button onClick={() => navigate(`/editor/${d.id}`)} className="block w-full text-left">
+                    <button onClick={() => navigate(`/production/${d.id}`)} className="block w-full text-left">
                       {d.thumbnail_url ? <img src={d.thumbnail_url} alt={d.title} className="block w-full" /> : <div className="aspect-video w-full bg-gradient-to-br from-[#241a3a] to-[#0a0a0a]" />}
                       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/72 via-transparent to-transparent" />
                       <span className="absolute inset-x-0 bottom-0 truncate px-2.5 py-2 font-display text-[12.5px] font-semibold drop-shadow">{d.title}</span>

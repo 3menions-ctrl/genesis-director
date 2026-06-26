@@ -24,6 +24,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { FILMS } from '@/data/filmsLibrary';
+import { MUSIC_LIBRARY } from '@/lib/editor/music-library';
 import { useMyFilms } from '@/hooks/useMyFilms';
 import { hapticTap } from '@/lib/native/shell';
 import { cn } from '@/lib/utils';
@@ -46,24 +47,21 @@ const LOOKS: Look[] = [
   { id: 'clay', name: 'Claymation', filter: 'saturate(1.3) contrast(1.22) brightness(1.04)', premium: true },
 ];
 
-interface Track { id: string; name: string; mood: string; premium?: boolean }
+// Real, license-clear tracks from the shared music library — the SAME ids the
+// server-side stitcher reads, so a saved soundtrack also lands in the render.
+interface Track { id: string; name: string; mood: string; url?: string }
 const TRACKS: Track[] = [
   { id: 'none', name: 'No music', mood: '' },
-  { id: 'cinematic', name: 'Cinematic Swell', mood: 'Epic' },
-  { id: 'lofi', name: 'Lo-fi Haze', mood: 'Chill' },
-  { id: 'synth', name: 'Synthwave Drive', mood: 'Retro' },
-  { id: 'ambient', name: 'Weightless', mood: 'Dreamy' },
-  { id: 'trap', name: 'Night Rider', mood: 'Hype' },
-  { id: 'orchestral', name: 'Grand Overture', mood: 'Grand', premium: true },
+  ...MUSIC_LIBRARY.map((t) => ({ id: t.id, name: t.title, mood: t.mood, url: t.url })),
 ];
 
 interface Template { id: string; name: string; look: string; music: string; blurb: string }
 const TEMPLATES: Template[] = [
-  { id: 'trailer', name: 'Cinematic Trailer', look: 'film35', music: 'cinematic', blurb: 'Filmic grade + epic swell' },
-  { id: 'dreamy', name: 'Dreamy Reel', look: 'dreamy', music: 'ambient', blurb: 'Soft glow + airy pads' },
-  { id: 'noirstory', name: 'Noir Story', look: 'noir', music: 'orchestral', blurb: 'Mono + grand strings' },
-  { id: 'hype', name: 'Hype Edit', look: 'tealorange', music: 'trap', blurb: 'Punchy teal/orange + 808s' },
-  { id: 'retro', name: 'Retro Vibes', look: 'vapor', music: 'synth', blurb: 'Vaporwave + synthwave' },
+  { id: 'trailer', name: 'Cinematic Trailer', look: 'film35', music: 'app-strings', blurb: 'Filmic grade + dramatic strings' },
+  { id: 'dreamy', name: 'Dreamy Reel', look: 'dreamy', music: 'app-swell', blurb: 'Soft glow + ambient swell' },
+  { id: 'noirstory', name: 'Noir Story', look: 'noir', music: 'app-mountain', blurb: 'Mono + cinematic score' },
+  { id: 'hype', name: 'Hype Edit', look: 'tealorange', music: 'app-mountainking', blurb: 'Punchy grade + playful build' },
+  { id: 'retro', name: 'Retro Vibes', look: 'vapor', music: 'app-swell', blurb: 'Vaporwave + ambient' },
 ];
 
 interface Clip { id: string; title: string; src: string; thumb?: string | null }
@@ -108,6 +106,7 @@ export default function Presets() {
   const [sheet, setSheet] = useState<Sheet>(null);
   const [saving, setSaving] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   const clip = clips.find((c) => c.id === clipId) ?? clips[0];
   const src = clip?.src ?? '';
@@ -123,6 +122,19 @@ export default function Presets() {
 
   // Live playback rate.
   useEffect(() => { if (videoRef.current) videoRef.current.playbackRate = showBefore ? 1 : speed; }, [speed, src, showBefore]);
+
+  // Live soundtrack — actually play the chosen track over the preview (looping,
+  // at the chosen mix level). "Compare" mutes it like the rest of the edit.
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    if (trackId === 'none' || showBefore || !track.url) { a.pause(); return; }
+    if (a.src !== track.url) a.src = track.url;
+    a.loop = true;
+    a.volume = Math.max(0, Math.min(1, vol / 100));
+    void a.play().catch(() => { /* autoplay may need a tap; resumes on next change */ });
+  }, [trackId, vol, showBefore, track.url]);
+  useEffect(() => () => { audioRef.current?.pause(); }, []);
 
   // Restore a saved edit when an own film is opened (proves the save round-trips).
   useEffect(() => {
@@ -146,7 +158,7 @@ export default function Presets() {
 
   const save = async () => {
     void hapticTap();
-    if (look.premium || track.premium) { toast('That includes a Pro look or track — manage your plan on the web.'); return; }
+    if (look.premium) { toast('That look is Pro — manage your plan on the web.'); return; }
     if (!user) { toast.error('Sign in to save'); navigate('/auth'); return; }
     if (!isOwn || !clip) { toast('Saving works on your own films — pick one under Clip.'); return; }
     setSaving(true);
@@ -180,6 +192,8 @@ export default function Presets() {
         <>
           <video key={`bg-${src}`} src={src} muted loop autoPlay playsInline className="absolute inset-0 h-full w-full scale-110 object-cover opacity-30 blur-2xl" />
           <video ref={videoRef} key={`fg-${src}`} src={src} muted loop autoPlay playsInline className="absolute inset-0 h-full w-full object-contain transition-[filter] duration-300" style={{ filter: activeFilter }} />
+          <audio ref={audioRef} />
+
         </>
       ) : <div className="absolute inset-0 bg-gradient-to-br from-[#1a1430] to-[#0a0a0a]" />}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-l from-black/55 via-transparent to-transparent" />
@@ -220,8 +234,8 @@ export default function Presets() {
         <Tool icon={RotateCcw} label="Reset" onClick={resetAll} />
         {/* Save — accent icon button */}
         <button onClick={save} disabled={saving} aria-label="Save" className="flex flex-col items-center gap-1 text-[#8fb4ff] transition-transform active:scale-95 disabled:opacity-60">
-          <span className="surface-1 grid h-12 w-12 place-items-center rounded-2xl">{saving ? <Loader2 className="h-[22px] w-[22px] animate-spin" /> : (look.premium || track.premium) ? <Lock className="h-[22px] w-[22px]" /> : <Save className="h-[22px] w-[22px]" strokeWidth={1.9} />}</span>
-          <span className="font-display text-[10px] font-semibold drop-shadow">{saving ? 'Saving' : (look.premium || track.premium) ? 'Pro' : 'Save'}</span>
+          <span className="surface-1 grid h-12 w-12 place-items-center rounded-2xl">{saving ? <Loader2 className="h-[22px] w-[22px] animate-spin" /> : look.premium ? <Lock className="h-[22px] w-[22px]" /> : <Save className="h-[22px] w-[22px]" strokeWidth={1.9} />}</span>
+          <span className="font-display text-[10px] font-semibold drop-shadow">{saving ? 'Saving' : look.premium ? 'Pro' : 'Save'}</span>
         </button>
       </div>
 
@@ -295,7 +309,6 @@ export default function Presets() {
                 <button onClick={() => { void hapticTap(); setTrackId(t.id); }} className={cn('flex w-full items-center gap-3 rounded-[16px] px-4 py-3 text-left transition-colors', t.id === trackId ? 'msg-glass-accent' : 'msg-glass')}>
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/[0.08]">{t.id === 'none' ? <X className="h-4 w-4 text-white/60" /> : <Play className="h-4 w-4 fill-white text-white" />}</span>
                   <span className="min-w-0 flex-1"><span className="block truncate text-[14px] font-medium">{t.name}</span>{t.mood && <span className="text-[11.5px] text-white/45">{t.mood}</span>}</span>
-                  {t.premium && <Lock className="h-3.5 w-3.5 text-white/40" />}
                   {t.id === trackId && <Check className="h-[17px] w-[17px] text-[#8fb4ff]" strokeWidth={2.6} />}
                 </button>
               </li>

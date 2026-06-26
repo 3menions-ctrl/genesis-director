@@ -72,7 +72,7 @@ export default function Discover() {
         )}
 
         {!searching && daily && (
-          <button onClick={() => { void hapticTap(); navigate(`/studio?tab=create&prompt=${encodeURIComponent(daily.prompt_text)}`); }}
+          <button onClick={() => { void hapticTap(); navigate(`/me/generate?prompt=${encodeURIComponent(daily.prompt_text)}`); }}
             className="lit-edge relative mt-5 block w-full overflow-hidden rounded-[22px] bg-gradient-to-br from-[#2f6bff]/25 to-[#7a3bff]/15 p-4 text-left active:scale-[0.99]">
             {daily.cover_url && <img src={daily.cover_url} alt="" className="absolute inset-0 h-full w-full object-cover opacity-25" />}
             <div className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-[#7a3bff]/30 blur-3xl" />

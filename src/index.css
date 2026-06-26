@@ -2783,6 +2783,12 @@ img, a, button {
 .capacitor-native,
 .mobile-shell-preview {
   --tabbar-h: 64px;
+  /* Notch / Dynamic Island guard. The native app gets the true inset from
+     env(); but in the mobile-Safari preview (and any context that under-reports
+     the inset, e.g. URL-bar collapsed) we floor it so top content never tucks
+     under the camera cutout. Scoped to the mobile shells only — desktop web is
+     untouched. */
+  --safe-top: max(env(safe-area-inset-top, 0px), 44px);
 }
 
 .capacitor-native {

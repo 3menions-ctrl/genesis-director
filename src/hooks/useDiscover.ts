@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface World { id: string; slug: string; name: string; accent_hsl: string; glyph: string | null }
-export interface ReelHit { id: string; title: string; thumbnail_url: string | null; world_slug: string | null; play_count: number; creator_id: string; creator_name?: string | null; creator_avatar?: string | null }
+export interface ReelHit { id: string; title: string; thumbnail_url: string | null; video_url?: string | null; world_slug: string | null; play_count: number; creator_id: string; creator_name?: string | null; creator_avatar?: string | null }
 export interface CreatorHit { id: string; display_name: string | null; avatar_url: string | null; tagline?: string | null; follower_count: number; reel_count: number }
 
 const WORLDS_FALLBACK: World[] = [
@@ -44,7 +44,7 @@ export function useReelsList(sort: 'plays' | 'new') {
     (async () => {
       try {
         const { data } = await supabase.from('published_reels' as never)
-          .select('id, title, thumbnail_url, world_slug, play_count, like_count, creator_id, created_at')
+          .select('id, title, thumbnail_url, video_url, world_slug, play_count, like_count, creator_id, created_at')
           .eq('is_taken_down', false)
           .order(sort === 'plays' ? 'play_count' : 'created_at', { ascending: false })
           .limit(30);

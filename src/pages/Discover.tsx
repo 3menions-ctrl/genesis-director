@@ -17,7 +17,7 @@ import { hapticTap } from '@/lib/native/shell';
 import { cn } from '@/lib/utils';
 
 const compact = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1).replace(/\.0$/, '')}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1).replace(/\.0$/, '')}k` : String(n));
-const STATIC: ReelHit[] = FILMS.filter((f) => f.clips?.[0]).slice(0, 18).map((f) => ({ id: f.id, title: f.title, thumbnail_url: null, world_slug: null, play_count: 0, creator_id: '' }));
+const STATIC: ReelHit[] = FILMS.filter((f) => f.clips?.[0]).slice(0, 18).map((f) => ({ id: f.id, title: f.title, thumbnail_url: null, video_url: f.clips[0], world_slug: null, play_count: 0, creator_id: '' }));
 
 type Cat = 'videos' | 'reels' | 'people';
 const CATS = [
@@ -115,7 +115,7 @@ function ReelGrid({ reels, onOpen }: { reels: ReelHit[]; onOpen: (id: string) =>
   return (
     <MasonryGrid cols={2}>
       {reels.map((r) => (
-        <MediaTile key={r.id} src={r.thumbnail_url} title={r.title} play={r.play_count} onClick={() => onOpen(r.id)} />
+        <MediaTile key={r.id} src={r.thumbnail_url} videoSrc={r.video_url} title={r.title} play={r.play_count} onClick={() => onOpen(r.id)} />
       ))}
     </MasonryGrid>
   );

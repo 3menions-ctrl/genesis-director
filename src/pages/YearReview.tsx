@@ -57,7 +57,7 @@ export default function YearReview() {
           <div className="mt-9">
             <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.22em] text-white/45">Your top films</div>
             <div className="grid grid-cols-2 gap-3">
-              {top.map((f) => <MediaTile key={f.id} src={f.thumbnail_url} title={f.title} play={f.play_count} onClick={() => navigate(`/r/${f.id}`)} />)}
+              {top.map((f) => <MediaTile key={f.id} src={f.thumbnail_url} videoSrc={f.video_url} title={f.title} play={f.play_count} onClick={() => navigate(`/r/${f.id}`)} />)}
             </div>
           </div>
         )}

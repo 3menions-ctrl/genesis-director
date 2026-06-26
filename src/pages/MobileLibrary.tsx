@@ -70,7 +70,7 @@ export default function MobileLibrary() {
           {tab === 'films' ? (
             filmsLoading ? <Spin /> : films.length === 0 ? <Empty label="No published films yet." /> : (
               <MasonryGrid cols={2}>
-                {films.map((f) => <MediaTile key={f.id} src={f.thumbnail_url} title={f.title} play={f.play_count} onClick={() => navigate(`/r/${f.id}`)} />)}
+                {films.map((f) => <MediaTile key={f.id} src={f.thumbnail_url} videoSrc={f.video_url} title={f.title} play={f.play_count} onClick={() => navigate(`/r/${f.id}`)} />)}
               </MasonryGrid>
             )
           ) : (

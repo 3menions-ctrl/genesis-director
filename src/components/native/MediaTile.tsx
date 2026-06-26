@@ -16,16 +16,19 @@ export function MasonryGrid({ cols = 2, children }: { cols?: 2 | 3; children: Re
 }
 
 export function MediaTile({
-  src, title, play, badge, onClick, width, fallbackRatio = '16 / 9',
+  src, videoSrc, title, play, badge, onClick, width, fallbackRatio = '16 / 9',
 }: {
   src?: string | null;
+  /** Video URL — used to size the tile to the clip's real aspect ratio when
+   *  there's no thumbnail to measure (loads metadata only). */
+  videoSrc?: string | null;
   title?: string | null;
   play?: number | null;
   badge?: string | null;
   onClick?: () => void;
   /** Fixed width (e.g. for a horizontal rail). Omit for masonry (full column width). */
   width?: number;
-  /** CSS aspect-ratio used only when there's no thumbnail to measure. */
+  /** CSS aspect-ratio used only when there's neither a thumbnail nor a video. */
   fallbackRatio?: string;
 }) {
   return (
@@ -37,6 +40,10 @@ export function MediaTile({
       {src ? (
         // Natural aspect ratio: the tile is sized BY the image (never cropped).
         <img src={src} alt={title ?? ''} loading="lazy" className="block w-full" />
+      ) : videoSrc ? (
+        // No thumbnail → size the tile to the clip's own dimensions (metadata
+        // + a poster frame), so every video keeps its true aspect ratio.
+        <video src={`${videoSrc}#t=0.5`} muted playsInline preload="metadata" className="block w-full" />
       ) : (
         <div className="w-full bg-gradient-to-br from-[#241a3a] to-[#0a0a0a]" style={{ aspectRatio: fallbackRatio }} />
       )}

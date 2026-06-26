@@ -243,11 +243,16 @@ Deno.serve(async (req) => {
     }
 
     const refund = async (reason: string) => {
-      await admin.rpc('refund_credits', {
+      // refund_credits' parameter is p_description, not p_reason (audit D15) —
+      // the wrong name made every API-user refund a no-op (function-not-found,
+      // error swallowed), so callers were charged for failed generations and
+      // never refunded.
+      const { error } = await admin.rpc('refund_credits', {
         p_user_id: userId,
         p_amount: cost,
-        p_reason: `api-v1 ${subPath} failed: ${reason}`,
+        p_description: `api-v1 ${subPath} failed: ${reason}`,
       });
+      if (error) console.error('[api-v1] refund failed', error);
     };
 
     // dispatch

@@ -154,13 +154,14 @@ async function handleSubscriptionUpsert(sub: any, env: StripeEnv) {
   const periodStart = item?.current_period_start ?? sub.current_period_start;
   const periodEnd = item?.current_period_end ?? sub.current_period_end;
 
-  const orgId = md.organization_id || md.org_id || null;
+  const rawOrgId = md.organization_id || md.org_id || null;
+  const orgId = rawOrgId && UUID_RE.test(rawOrgId) ? rawOrgId : null;
 
   const sb = getSupabase();
-  const { error } = await sb.from("subscriptions").upsert(
+  const { data: upserted, error } = await sb.from("subscriptions").upsert(
     {
       user_id: userId,
-      organization_id: orgId && UUID_RE.test(orgId) ? orgId : null,
+      organization_id: orgId,
       stripe_subscription_id: sub.id,
       stripe_customer_id: sub.customer,
       product_id: productId,
@@ -176,7 +177,7 @@ async function handleSubscriptionUpsert(sub: any, env: StripeEnv) {
       updated_at: new Date().toISOString(),
     },
     { onConflict: "stripe_subscription_id,environment" },
-  );
+  ).select("id").maybeSingle();
   if (error) {
     log("subscription upsert error", { error: error.message, subId: sub.id });
     throw new Error(error.message);
@@ -185,6 +186,94 @@ async function handleSubscriptionUpsert(sub: any, env: StripeEnv) {
     subId: sub.id, userId, seats, status: sub.status, env,
     ...(cinemaTier && { cinema_tier: cinemaTier, cinema_period_end: periodEnd }),
   });
+
+  // Org subscriptions must fund the ORG POOL (organizations.credits_balance) on
+  // activation. Org-project generations debit that pool (reserve_credits /
+  // consume_credit_hold / deduct_credits — 20260704000700), but the pool
+  // defaults to 0 and previously only the monthly cron funded it — leaving new
+  // orgs unable to generate until the next refill ran. We grant the first
+  // period's allowance immediately here.
+  if (orgId && upserted?.id && (sub.status === "active" || sub.status === "trialing")) {
+    await fundOrgPoolOnActivation({ orgId, subRowId: upserted.id });
+  }
+}
+
+// Fund the org credit pool with the plan's monthly allowance, mirroring
+// monthly_org_credit_refill (20260704001000): derive the amount from the org's
+// current plan via org_plan_features, then call the service-role
+// topup_org_credits. The org_credit_refills ledger (UNIQUE organization_id,
+// refill_period) is the idempotency lock — claimed BEFORE the top-up — so
+// neither webhook replays (subscription.created/updated fire repeatedly) NOR
+// the monthly cron double-fund the same period.
+async function fundOrgPoolOnActivation(opts: { orgId: string; subRowId: string }) {
+  const sb = getSupabase();
+
+  const { data: org, error: orgErr } = await sb.from("organizations")
+    .select("plan")
+    .eq("id", opts.orgId)
+    .maybeSingle();
+  if (orgErr) {
+    log("org pool funding: org lookup failed (continuing)", { orgId: opts.orgId, error: orgErr.message });
+    return;
+  }
+  if (!org?.plan) {
+    log("org pool funding: org has no plan yet (skip)", { orgId: opts.orgId });
+    return;
+  }
+
+  const { data: features, error: featErr } = await sb.from("org_plan_features")
+    .select("included_credits_monthly")
+    .eq("plan", org.plan)
+    .maybeSingle();
+  if (featErr) {
+    log("org pool funding: plan features lookup failed (continuing)", { orgId: opts.orgId, plan: org.plan, error: featErr.message });
+    return;
+  }
+  const credits = features?.included_credits_monthly ?? 0;
+  if (!credits || credits <= 0) {
+    log("org pool funding: plan has no monthly credits (skip)", { orgId: opts.orgId, plan: org.plan });
+    return;
+  }
+
+  // Period key matches the cron: first day of the current (UTC) month.
+  const now = new Date();
+  const refillPeriod = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-01`;
+
+  // Claim the period first — the UNIQUE(organization_id, refill_period)
+  // constraint makes this insert the lock. A unique violation means the period
+  // is already funded (webhook replay or the monthly cron) → idempotent no-op.
+  const { error: claimErr } = await sb.from("org_credit_refills").insert({
+    organization_id: opts.orgId,
+    subscription_id: opts.subRowId,
+    refill_period: refillPeriod,
+    credits_added: credits,
+  });
+  if (claimErr) {
+    if ((claimErr as { code?: string }).code === "23505") {
+      log("org pool already funded this period (skip)", { orgId: opts.orgId, refillPeriod });
+    } else {
+      log("org pool funding: refill claim failed (continuing)", { orgId: opts.orgId, error: claimErr.message });
+    }
+    return;
+  }
+
+  const { data: topRes, error: topErr } = await sb.rpc("topup_org_credits", {
+    p_org_id: opts.orgId,
+    p_amount: credits,
+    p_source: "initial_subscription_grant",
+  });
+  if (topErr || (topRes && (topRes as { success?: boolean }).success === false)) {
+    // Roll back the ledger claim so a Stripe retry (or the monthly cron) can
+    // still fund this period instead of being permanently blocked by the lock.
+    await sb.from("org_credit_refills")
+      .delete()
+      .eq("organization_id", opts.orgId)
+      .eq("refill_period", refillPeriod);
+    const reason = topErr?.message || (topRes as { error?: string })?.error || "topup_failed";
+    log("org pool funding: topup failed (claim rolled back)", { orgId: opts.orgId, reason });
+    throw new Error(reason);
+  }
+  log("org pool funded on activation", { orgId: opts.orgId, plan: org.plan, credits, refillPeriod });
 }
 
 async function handleSubscriptionDeleted(sub: any, env: StripeEnv) {

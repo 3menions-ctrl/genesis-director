@@ -517,6 +517,21 @@ Tested with the owner-provided admin account (its password was temporarily reset
 - Admin access is well-hardened: `has_role` hardcodes a single admin UID **and** a trigger permanently locks admin-role inserts — I could not (and did not) self-grant admin; I used the owner-provided account.
 - ⚠️ **The admin account password was temporarily reset** for testing (provided creds didn't authenticate). It's now `AdminQA!Temp2026` — please log in and change it (or use "forgot password"). I can't restore the original since I never had it.
 
+## Round 7b — deeper admin pass (interactive/write flows)
+
+Went past the load sweep into interactivity and the real admin mutation flows (targeting **my own QA test account** as the subject, then reverting — so no real user was touched).
+
+**Verified working:**
+- **Hub sub-tabs** — every sub-view across People / Production / Money (Treasury, P&L, Ledger, Subscriptions, Refunds, Coupons, Invoices, Reconcile) / Growth (Analytics, Experiments, Content, Comms) / System (Config, Diagnostics, Audit, API Keys, Webhooks, Secrets, Emails, Moderation) loads clean — **0 errors / 0 4xx**.
+- **Grant Credits** (user detail) → `admin_grant_credits` 200, balance 0→25, toast "Granted 25 credits" (reverted after).
+- **Generate Impersonation Link** → edge action 200, link copied, **audit-logged** (showed up in `admin_recent_user_actions`).
+- **Users search/filter** filters real users.
+- **Credit-integrity system works**: my manual revert tripped a real security guard — *"credits_balance increased without a matching transaction — possible exploit attempt"* logged automatically. Good defensive behavior (self-inflicted, cleaned up).
+
+**New finding (minor) — BUG-22:** the admin user actions **Grant Credits** and **Suspend** use native `window.prompt` (×4 in `AdminUserDetailPage.tsx`) for the amount/reason inputs — functional, but inconsistent with the app's premium dialog standard (`confirmAsync`/ConfirmView). Left as-is (an internal tool; a proper fix needs an input-modal component, not just a confirm).
+
+**Deliberately not executed on prod:** Suspend/Delete-account/Revoke-sessions, refunds, config writes, moderation actions.
+
 ---
 
 ## Test environment / repro notes

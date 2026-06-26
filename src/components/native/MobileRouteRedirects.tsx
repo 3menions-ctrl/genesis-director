@@ -13,6 +13,7 @@ import { IS_MOBILE_SHELL } from '@/lib/native';
 
 // [pattern, → native path]. First match wins.
 const MAP: Array<[RegExp, (m: RegExpMatchArray) => string]> = [
+  [/^\/$/, () => '/feed'],            // never show the web cinema landing
   [/^\/account(?:\/.*)?$/, () => '/you'],
   [/^\/profile(?:\/.*)?$/, () => '/you'],
   [/^\/settings(?:\/.*)?$/, () => '/me/settings'],

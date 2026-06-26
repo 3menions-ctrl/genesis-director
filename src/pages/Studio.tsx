@@ -24,6 +24,7 @@
 import { memo, useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { toast } from "sonner";
+import { IS_MOBILE_SHELL } from "@/lib/native";
 import {
   Film,
   Image as ImageIcon,
@@ -535,7 +536,10 @@ function StudioContentInner() {
           <PageShell width="gallery" pad>
             {/* Slim, editor-style top bar — a back arrow to the lobby on the
                 left (replaces the foundation left-rail), credits + the other
-                doors on the right. No cover band, no profile puck. */}
+                doors on the right. No cover band, no profile puck.
+                Hidden in the native app: navigation is the bottom tab bar and
+                this web-style nav must not bleed in. */}
+            {!IS_MOBILE_SHELL && (
             <div className="flex items-center justify-between gap-3 pt-6 pb-5">
               <Link
                 to={moduleLink("/lobby")}
@@ -569,6 +573,7 @@ function StudioContentInner() {
                 ))}
               </div>
             </div>
+            )}
 
             {/* The Runway/Canva-style creation studio — left rail of modules,
                 a live canvas, and a persistent composition bar. Replaces the

@@ -248,3 +248,47 @@
 3. **Staging-gated cluster:** the pipeline-money items (D4/D7/D8/D9/D10/D11/D12, M6/M11) need an end-to-end pipeline run — latent pre-launch (zero hold-flow charges exist).
 4. **Feature builds, not fixes:** #15–21, #36–41, M10/M25/M26/M27 — product decisions required.
 5. Source detail: `BACKLOG.md` (#/D items) + `BUG-SWEEP.md` (S items, with per-batch verification log at the tail).
+
+---
+
+# VERIFICATION PASS (2026-06-26) — every item opened at its file:line by 12 parallel verifiers
+Read-only. Each item classified CONFIRMED (real) / FALSE-POSITIVE (not real) / PARTIAL (real but overstated) / NEEDS-RUNTIME (can't tell from code).
+
+## ⚠️ FALSE-POSITIVES — 44 total, do NOT chase
+**Already known (11):** D13, D18, D29, D38, auto-follow-admin, S16, S61, S117, S118, S127, S337.
+**Found this pass (33):**
+- **D44** — i18n is NOT dead: `src/i18n/index.ts` runs an active on-demand AI DOM translator for non-English locales. Only the manual switcher is missing.
+- **S10** — password recovery routes through `/reset-password` (ResetPassword exchanges the PKCE code); the AuthCallback branch is unreachable.
+- **S20** — migration `20260704002600` (applied) added the co-member profile SELECT policy; owner names resolve.
+- **S40** — `ai_video_url` IS in the DB + the query uses `select("*")`; only the local TS interface omits it (type gap, renders fine).
+- **S102** — `validateUploadFile()` enforces the 500 MB cap before upload.
+- **S105** — realtime channel uses no server filter; the `.or()` is the fetch query and email is a trusted auth value (not exploitable).
+- **S202,S203,S204,S205,S207,S208,S209,S210,S211,S212** — every `Array.find(...)!` here is keyed by a typed-union state / static iterator over a static in-component list → cannot throw.
+- **S219** — `support_messages.name` is NOT NULL; `charAt(0)` is safe.
+- **S162** — clip dots already carry `aria-label`.
+- **S163,S164,S165,S166** — decorative `alt=""` with adjacent text name is the WCAG-correct pattern (NOT a defect).
+- **S187** — the Avatars dialog DOES handle Escape (lines 1066–1069).
+- **S239** — Blog JSON-LD escapes `<` and is built from static content (no user data).
+- **S278** — synchronous `setStatus('error')`→`setStatus('success')` is React-batched; the error card never renders.
+- **S319** — lazy imgs already sit in `aspect-video` boxes → no CLS.
+- **S339,S342,S343,S345** — `as`-casts over typed unions / to-one FK embeds; hide no runtime drift.
+- **S247,S251,S258** — no div-by-zero (denominator `50·(2L-1)`); `CreditsContext` value IS memoized; `usePredictivePipeline` deps are primitive fields.
+
+## 🟡 PARTIAL / overstated (real defect, but trim the claim)
+#19 (business webhook CRUD exists; only personal page is prose) · #49 (link-OAuth buttons are config-dependent, not dead code) · #58 (only `AtomicFrameSwitch` orphaned; `renderQueue`/`demoProject` are used) · D9 (clip-0 hold-consume sub-claim is dead code) · D21 (template-field sub-claim fixed by D19) · D22 (6 crons not 4; refill+patron now scheduled) · D37 (2 of 4 sampled races false) · D45 (Radix dialogs already a11y; PricingSection cite stale) · S5,S12,S19,S22,S23,S26,S29,S31,S34,S60 · S81,S97,S100,S106,S108 · S146 · S215,S216,S217,S218,S220 (date helpers — inputs are DB-guaranteed non-null) · S232,S233,S234 (real but low-exploit system URLs) · S242,S243,S245,S253 · S272,S273,S274,S277 (resolve via one redirect hop) · S290,S296,S297,S298,S299,S300 · S305,S315,S318,S320,S335 · S321,S326 (table-wide subs but **RLS scopes realtime delivery → no actual cross-tenant data leak**; perf/herd only) · S340,S344.
+
+## ⏳ NEEDS-RUNTIME (verify outside the code)
+S121 (`scribe_v2` exists?) · S122/S123 (`gemini-3-flash-preview` on gateway?) · S124/S145 (model/endpoint shape) · S285/S286 (prod bucket `public` flag — committed migrations say public, confirm dashboard) · #9/D22 (pg_cron applied state).
+
+## ✅ CONFIRMED-REAL highlights (most worth fixing, all code-verified)
+- **Money/pipeline:** D4 (avatar+seedance 2× charge), D7/D8 (hold-blind refund mints credits), D10/D11/D12 (reconciler gaps, un-imported helpers, watchdog money bugs), D14 (photo idempotency inert → 4× charge), D17 (PaymentsProvider defaults to dormant Stripe).
+- **Crashes:** S206 (Inbox `?lane=` URL param → unguarded `.find()!` throws), S214 (`-Infinity%` margin), S222 (error HTML saved as `.mp4`), S130/S131 (silent wrong AI output), S136 (transient 429 → permanent FAILED clip), S150 (concurrent clip-status clobber).
+- **Workflows:** #7 (render runner dead → cascades), #26/#27/#28 (follow/comment/inbox split-brain), #29 (premiere/watch-party enum values unregistered → silent notif fail), #37 (invite email no recipients).
+- **AI:** S119/S120 (Replicate `version:` slug not hash → always 422), S128/S129 (paid-but-500 no fallback).
+- **Security:** S230/S231 (unvalidated href XSS — no `safeHref` landed beyond the 8 in #112), S235/S236 (CSV formula injection, no `=+-@` neutralize), D25 (notify-org-event SSRF).
+- **Hooks/realtime:** S240 (initial spinner never shows), S248/S249 (double-insert / double-notify), S332 (equal-timestamp clobbers a flushed edit), S329 (comment edits/deletes never refresh).
+- **Routing:** S264 (Back → consumed token), S268 (`/workspace/editor/:id` hard 404), S269 (onboarding drops destination), S279 (`/admin` 404 in prod build).
+- **Storage:** S280 (ingest hangs, no seek timeout), S285 (`director-commentary` public+anon-read), S294/S295 (timeline player buffers leak + wrong-buffer black frame after seek).
+
+## Line drifts to correct in the sources
+#6→SettingsDashboard:1894 · #7→orchestrator:292/298 · #22→pages/account/ProfileDashboard:5003 · #32→NotificationSettings:89 · #42→useProject:141 · #60→CreationHub:255 · D7→hollywood:6381 · D35→SettingsDashboard:2155 · S115→~154 · S256→127 · S267→lib/navigation/routeConfig:21 · S278→AuthCallback:114.

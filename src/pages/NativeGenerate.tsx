@@ -7,14 +7,15 @@
  *
  * Spend-only safe: generation SPENDS credits (allowed); it never BUYS them.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, Sparkles, Loader2, Film, Mic, Music2, Check, Crown } from 'lucide-react';
+import { ChevronLeft, Sparkles, Loader2, Film, Mic, Music2, Check, Crown, Flame, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveCredits } from '@/hooks/useEffectiveCredits';
 import { calculateCreditsForDurations, type VideoEngine } from '@/lib/creditSystem';
+import { getTemplateBlueprint } from '@/lib/templates/registry';
 import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
 import { hapticTap } from '@/lib/native/shell';
 import { cn } from '@/lib/utils';
@@ -32,6 +33,27 @@ const ENGINE_OPTS: EngineOpt[] = [
 ];
 const ASPECTS = ['9:16', '16:9', '1:1'];
 
+// engines.ts EngineId → the mode-router videoEngine token.
+const ENGINE_ID_TO_TOKEN: Record<string, VideoEngine> = {
+  'wan-25': 'wan', 'kling-v3': 'kling', 'seedance-2': 'seedance', 'veo-3': 'veo', 'sora-2': 'sora', 'runway-gen4': 'kling',
+};
+
+interface TemplateConfig { id: string; name: string; thumbnailUrl: string; prompt: string; engine: VideoEngine; aspect: string; scenes: number; isBreakout: boolean }
+
+/** Build a native generate config from a template blueprint (the SAME registry the
+ *  gallery shows). Breakouts force Seedance; their subject is a chosen avatar. */
+function templateConfig(id: string): TemplateConfig | null {
+  const bp = getTemplateBlueprint(id);
+  if (!bp) return null;
+  const isBreakout = !!bp.isBreakout;
+  const engine: VideoEngine = isBreakout ? 'seedance' : (ENGINE_ID_TO_TOKEN[bp.engine] ?? 'wan');
+  const aspect = ASPECTS.includes(bp.aspectRatio) ? bp.aspectRatio : '9:16';
+  const scenes = Math.max(1, Math.min(4, bp.clips?.length || 1));
+  return { id, name: bp.name, thumbnailUrl: bp.thumbnailUrl, prompt: bp.description, engine, aspect, scenes, isBreakout };
+}
+
+interface PickedAvatar { id: string; name: string; image: string; voiceId: string | null }
+
 export default function NativeGenerate() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -39,13 +61,30 @@ export default function NativeGenerate() {
   const effective = useEffectiveCredits();
 
   const imageUrl = params.get('image') || undefined;
-  const [prompt, setPrompt] = useState(params.get('prompt') ?? '');
-  const [engine, setEngine] = useState<VideoEngine>('wan');
-  const [scenes, setScenes] = useState(1);
-  const [aspect, setAspect] = useState(ASPECTS.includes(params.get('aspect') ?? '') ? (params.get('aspect') as string) : '9:16');
+  const tpl = useMemo(() => { const t = params.get('template'); return t ? templateConfig(t) : null; }, [params]);
+  const avatarId = params.get('avatar') || undefined;
+  const [prompt, setPrompt] = useState(tpl?.prompt ?? params.get('prompt') ?? '');
+  const [engine, setEngine] = useState<VideoEngine>(tpl?.engine ?? 'wan');
+  const [scenes, setScenes] = useState(tpl?.scenes ?? 1);
+  const [aspect, setAspect] = useState(tpl?.aspect ?? (ASPECTS.includes(params.get('aspect') ?? '') ? (params.get('aspect') as string) : '9:16'));
   const [narration, setNarration] = useState(false);
   const [music, setMusic] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [avatar, setAvatar] = useState<PickedAvatar | null>(null);
+
+  // Breakout templates need a chosen avatar (the subject who bursts out). Fetch it.
+  useEffect(() => {
+    if (!avatarId) { setAvatar(null); return; }
+    let cancel = false;
+    (async () => {
+      const { data } = await supabase.from('avatar_templates' as never).select('id, name, face_image_url, front_image_url, voice_id').eq('id', avatarId).maybeSingle();
+      const a = data as unknown as { id: string; name: string; face_image_url: string; front_image_url: string | null; voice_id: string | null } | null;
+      if (!cancel && a) setAvatar({ id: a.id, name: a.name, image: a.face_image_url || a.front_image_url || '', voiceId: a.voice_id });
+    })();
+    return () => { cancel = true; };
+  }, [avatarId]);
+
+  const needsAvatar = !!tpl?.isBreakout && !avatar;
 
   const eng = ENGINE_OPTS.find((e) => e.token === engine) ?? ENGINE_OPTS[0];
   const clipDuration = eng.def;
@@ -57,27 +96,33 @@ export default function NativeGenerate() {
   const generate = async () => {
     void hapticTap();
     if (!user) { toast.error('Sign in to generate'); navigate('/auth'); return; }
+    if (needsAvatar) { navigate(`/avatars?template=${encodeURIComponent(tpl!.id)}`); return; }
     if (!prompt.trim()) { toast.error('Describe your film first'); return; }
     if (!canAfford) { toast.error(`Need ${cost} credits — you have ${available}.`); return; }
     setBusy(true);
     try {
-      const { data, error } = await supabase.functions.invoke('mode-router', {
-        body: {
-          mode: imageUrl ? 'image-to-video' : 'text-to-video',
-          userId: user.id,
-          requireApproval: false, // one-tap native generate — no script gate
-          prompt: prompt.trim(),
-          imageUrl,
-          aspectRatio: aspect,
-          clipCount: scenes,
-          clipDuration,
-          clipDurations: durations,
-          enableNarration: narration,
-          enableMusic: music,
-          videoEngine: engine,
-          qualityOptions: {},
-        },
-      });
+      // Breakout template: mode:avatar + isBreakout + Seedance, the avatar bursts
+      // out (breakoutPlatform = the template id, the format the pipeline expects).
+      const breakout = tpl?.isBreakout && avatar;
+      const body: Record<string, unknown> = breakout
+        ? {
+            mode: 'avatar', userId: user.id, requireApproval: false,
+            prompt: prompt.trim(), aspectRatio: aspect,
+            clipCount: scenes, clipDuration, clipDurations: durations,
+            enableNarration: narration, enableMusic: music, videoEngine: 'seedance',
+            isBreakout: true, breakoutPlatform: tpl!.id, breakoutStartImageUrl: avatar!.image,
+            avatarImageUrl: avatar!.image, avatarName: avatar!.name, avatarTemplateId: avatar!.id, avatarVoiceId: avatar!.voiceId,
+            templateName: tpl!.name, qualityOptions: {},
+          }
+        : {
+            mode: imageUrl ? 'image-to-video' : 'text-to-video', userId: user.id, requireApproval: false,
+            prompt: prompt.trim(), imageUrl, aspectRatio: aspect,
+            clipCount: scenes, clipDuration, clipDurations: durations,
+            enableNarration: narration, enableMusic: music, videoEngine: engine,
+            ...(tpl ? { templateName: tpl.name } : {}),
+            qualityOptions: {},
+          };
+      const { data, error } = await supabase.functions.invoke('mode-router', { body });
       if (error || (data && data.error)) throw new Error((data && data.error) || error?.message || 'Generation failed');
       if (!data?.projectId) throw new Error('No project returned');
       toast.success('Generation started');
@@ -93,16 +138,48 @@ export default function NativeGenerate() {
       <AuroraBackdrop />
       <div className="relative z-10 flex items-center gap-3 px-4 pb-1" style={{ paddingTop: 'calc(var(--safe-top,0px) + 12px)' }}>
         <button onClick={() => navigate(-1)} aria-label="Back" className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.06] backdrop-blur-md"><ChevronLeft className="h-5 w-5" /></button>
-        <h1 className="font-display text-[20px] font-semibold">New film</h1>
+        <h1 className="font-display text-[20px] font-semibold">{tpl ? 'Use template' : 'New film'}</h1>
         <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[#8fb4ff]/15 px-3 py-1 font-mono text-[11px] font-semibold text-[#8fb4ff]"><Sparkles className="h-3 w-3" />{available.toLocaleString()}</span>
       </div>
 
       <div className="relative z-10 px-4" style={{ paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 120px)' }}>
+        {/* Template banner */}
+        {tpl && (
+          <div className="lit-edge mt-3 flex items-center gap-3 overflow-hidden rounded-[18px] bg-white/[0.04] p-2.5">
+            <img src={tpl.thumbnailUrl} alt={tpl.name} className="h-14 w-14 shrink-0 rounded-[12px] object-cover" />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">{tpl.isBreakout && <Flame className="h-3.5 w-3.5 text-[#ff8a3b]" />}<span className="truncate font-display text-[14.5px] font-semibold">{tpl.name}</span></div>
+              <div className="mt-0.5 font-mono text-[10px] uppercase tracking-wide text-white/45">{tpl.isBreakout ? `Breakout · Seedance` : `Template · ${eng.name}`}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Breakout: pick the star who bursts out */}
+        {tpl?.isBreakout && (
+          <>
+            <Label>Your star</Label>
+            {avatar ? (
+              <div className="flex items-center gap-3 rounded-[16px] msg-glass px-3 py-2.5">
+                {avatar.image ? <img src={avatar.image} alt={avatar.name} className="h-11 w-11 rounded-full object-cover" /> : <span className="grid h-11 w-11 place-items-center rounded-full bg-white/10 font-display font-bold">{avatar.name.charAt(0)}</span>}
+                <span className="flex-1 truncate text-[14px] font-semibold">{avatar.name}</span>
+                <button onClick={() => { void hapticTap(); navigate(`/avatars?template=${encodeURIComponent(tpl.id)}`); }} className="rounded-full bg-white/10 px-3 py-1.5 text-[12px] font-semibold text-white/80">Change</button>
+              </div>
+            ) : (
+              <button onClick={() => { void hapticTap(); navigate(`/avatars?template=${encodeURIComponent(tpl.id)}`); }} className="flex w-full items-center gap-3 rounded-[16px] msg-glass-accent px-4 py-3.5 text-left">
+                <UserPlus className="h-[20px] w-[20px]" />
+                <span className="flex-1"><span className="block text-[14.5px] font-semibold">Pick your star</span><span className="text-[12px] text-white/60">A breakout needs an avatar to burst out</span></span>
+              </button>
+            )}
+          </>
+        )}
+
         {/* Prompt */}
-        <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4} placeholder="Describe your film…" className="surface-1 mt-3 w-full resize-none rounded-[18px] bg-transparent px-4 py-3.5 text-[16px] leading-relaxed text-white outline-none placeholder:text-white/30" />
+        <Label>{tpl?.isBreakout ? 'What they say (optional)' : 'Describe'}</Label>
+        <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4} placeholder="Describe your film…" className="surface-1 w-full resize-none rounded-[18px] bg-transparent px-4 py-3.5 text-[16px] leading-relaxed text-white outline-none placeholder:text-white/30" />
         {imageUrl && <div className="mt-2 flex items-center gap-2 text-[12px] text-white/45"><Film className="h-3.5 w-3.5" /> Animating your photo</div>}
 
-        {/* Engine */}
+        {/* Engine — hidden for breakouts (Seedance-locked) */}
+        {!tpl?.isBreakout && (<>
         <Label>Engine</Label>
         <div className="grid grid-cols-2 gap-2.5">
           {ENGINE_OPTS.map((e) => {
@@ -118,6 +195,7 @@ export default function NativeGenerate() {
             );
           })}
         </div>
+        </>)}
 
         {/* Length */}
         <Label>Scenes · {scenes} × {clipDuration}s = {scenes * clipDuration}s</Label>
@@ -141,10 +219,10 @@ export default function NativeGenerate() {
 
       {/* Generate bar */}
       <div className="fixed inset-x-0 z-20 px-4" style={{ bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 14px)' }}>
-        <button onClick={generate} disabled={busy || !prompt.trim() || !canAfford}
+        <button onClick={generate} disabled={busy || (!needsAvatar && (!canAfford || (!tpl && !prompt.trim())))}
           className="flex h-[58px] w-full items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-[#2f6bff] via-[#5a5bff] to-[#7a3bff] text-[16px] font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,.3),0_20px_44px_-14px_rgba(80,80,255,.7)] transition-opacity disabled:opacity-40">
-          {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
-          {busy ? 'Starting…' : canAfford ? `Generate · ${cost === 0 ? 'Free' : `${cost} cr`}` : `Need ${cost} credits`}
+          {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : needsAvatar ? <UserPlus className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
+          {busy ? 'Starting…' : needsAvatar ? 'Pick your star' : canAfford ? `Generate · ${cost === 0 ? 'Free' : `${cost} cr`}` : `Need ${cost} credits`}
         </button>
       </div>
     </div>

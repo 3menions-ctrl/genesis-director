@@ -70,7 +70,7 @@ export default function TemplateGallery() {
         {items.length === 0 && <div className="py-16 text-center text-[13px] text-white/40">No templates match.</div>}
       </div>
 
-      {open && <TemplateDetail bp={open} breakout={BREAKOUT_IDS.has(open.id)} onClose={() => setOpen(null)} onUse={() => navigate(`/studio?tab=create&template=${encodeURIComponent(open.id)}`)} />}
+      {open && <TemplateDetail bp={open} breakout={BREAKOUT_IDS.has(open.id)} onClose={() => setOpen(null)} onUse={() => navigate(`/me/generate?template=${encodeURIComponent(open.id)}`)} />}
     </div>
   );
 }

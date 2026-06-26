@@ -6,7 +6,7 @@
  * side). Premium/floating glass over the Aurora backdrop.
  */
 import { useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, X, ChevronLeft, Play, Pause, Sparkles, Crown, ArrowRight, Loader2, Mic } from 'lucide-react';
 import { useAvatarTemplatesQuery } from '@/hooks/useAvatarTemplatesQuery';
 import type { AvatarTemplate, AvatarTemplateFilter } from '@/types/avatar-templates';
@@ -20,6 +20,8 @@ const GENDERS = [{ v: 'all', label: 'All' }, { v: 'female', label: 'Women' }, { 
 
 export default function AvatarLibrary() {
   const navigate = useNavigate();
+  const [sp] = useSearchParams();
+  const forTemplate = sp.get('template'); // when picking the star for a breakout template
   const [search, setSearch] = useState('');
   const [type, setType] = useState<string>('all');
   const [gender, setGender] = useState<string>('all');
@@ -74,7 +76,10 @@ export default function AvatarLibrary() {
         </div>
       </div>
 
-      {open && <AvatarDetail avatar={open} onClose={() => setOpen(null)} onUse={(script) => navigate(`/studio?tab=create&prompt=${enc(script)}&avatar=${enc(open.id)}`)} />}
+      {open && <AvatarDetail avatar={open} forTemplate={!!forTemplate} onClose={() => setOpen(null)}
+        onUse={(script) => navigate(forTemplate
+          ? `/me/generate?template=${enc(forTemplate)}&avatar=${enc(open.id)}`
+          : `/studio?tab=create&prompt=${enc(script)}&avatar=${enc(open.id)}`)} />}
     </div>
   );
 }
@@ -85,7 +90,7 @@ function Chip({ label, on, onClick }: { label: string; on: boolean; onClick: () 
   );
 }
 
-function AvatarDetail({ avatar, onClose, onUse }: { avatar: AvatarTemplate; onClose: () => void; onUse: (script: string) => void }) {
+function AvatarDetail({ avatar, onClose, onUse, forTemplate }: { avatar: AvatarTemplate; onClose: () => void; onUse: (script: string) => void; forTemplate?: boolean }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
   const [script, setScript] = useState('');
@@ -139,14 +144,17 @@ function AvatarDetail({ avatar, onClose, onUse }: { avatar: AvatarTemplate; onCl
             <div className="mt-3 flex flex-wrap gap-1.5">{avatar.tags.slice(0, 8).map((t) => <span key={t} className="rounded-full bg-white/[0.06] px-2.5 py-1 text-[11px] text-white/55">{t}</span>)}</div>
           )}
 
-          {/* Script + use */}
-          <div className="mt-5">
-            <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#8fb4ff]">What do they say?</div>
-            <textarea value={script} onChange={(e) => setScript(e.target.value)} rows={3} placeholder={`Write a line for ${avatar.name}…`} className="surface-1 w-full resize-none rounded-[18px] bg-transparent px-4 py-3 text-[15px] text-white outline-none placeholder:text-white/30" />
-          </div>
-          <button onClick={() => { if (!script.trim()) return; void hapticTap(); onUse(script.trim()); }} disabled={!script.trim()}
-            className="mt-4 flex h-[54px] w-full items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-[#2f6bff] via-[#5a5bff] to-[#7a3bff] text-[15px] font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,.3),0_20px_44px_-14px_rgba(80,80,255,.7)] transition-opacity disabled:opacity-40">
-            <Sparkles className="h-[18px] w-[18px]" /> Use {avatar.name} <ArrowRight className="h-[17px] w-[17px]" />
+          {/* Script — only for the standalone avatar flow; a breakout uses the
+              template's own concept, so the script isn't required there. */}
+          {!forTemplate && (
+            <div className="mt-5">
+              <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#8fb4ff]">What do they say?</div>
+              <textarea value={script} onChange={(e) => setScript(e.target.value)} rows={3} placeholder={`Write a line for ${avatar.name}…`} className="surface-1 w-full resize-none rounded-[18px] bg-transparent px-4 py-3 text-[15px] text-white outline-none placeholder:text-white/30" />
+            </div>
+          )}
+          <button onClick={() => { if (!forTemplate && !script.trim()) return; void hapticTap(); onUse(script.trim()); }} disabled={!forTemplate && !script.trim()}
+            className="mt-5 flex h-[54px] w-full items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-[#2f6bff] via-[#5a5bff] to-[#7a3bff] text-[15px] font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,.3),0_20px_44px_-14px_rgba(80,80,255,.7)] transition-opacity disabled:opacity-40">
+            <Sparkles className="h-[18px] w-[18px]" /> {forTemplate ? `Cast ${avatar.name}` : `Use ${avatar.name}`} <ArrowRight className="h-[17px] w-[17px]" />
           </button>
         </div>
       </div>

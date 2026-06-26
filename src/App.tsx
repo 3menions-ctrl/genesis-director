@@ -188,6 +188,8 @@ const Account = lazy(() => import("./pages/Account"));
 // Standalone creation-adjacent surfaces — restored after the earlier merge
 // proved too aggressive. Each is a deep workflow / browse, not a tab.
 const Templates = lazy(() => import("./pages/Templates"));
+// Native template gallery (mobile shell renders this on /templates).
+const TemplateGallery = lazy(() => import("./pages/TemplateGallery"));
 const Environments = lazy(() => import("./pages/Environments"));
 const TrainingVideo = lazy(() => import("./pages/TrainingVideo"));
 const Crossover = lazy(() => import("./pages/Crossover"));
@@ -843,9 +845,11 @@ const App = () => {
                 <Route path="/templates" element={
                   <RouteContainer fallbackMessage="Pulling templates…">
                     <RedirectBusinessToModule base="/templates" target="/business/templates">
+                      {IS_MOBILE_SHELL ? <TemplateGallery /> : (
                       <ProtectedRoute>
                         <Templates />
                       </ProtectedRoute>
+                      )}
                     </RedirectBusinessToModule>
                   </RouteContainer>
                 } />

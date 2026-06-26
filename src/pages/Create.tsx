@@ -154,6 +154,8 @@ export default function Create() {
 
   const pick = (id: string, v: string) => {
     void hapticTap();
+    // "Template" source → the template gallery (breakouts + built-ins).
+    if (flow === 'video' && id === 'source' && v === 'template') { navigate('/templates'); return; }
     const needsPhoto = (flow === 'photo' && id === 'source') || (flow === 'video' && id === 'source' && v === 'photo');
     if (needsPhoto) {
       if (!user) { navigate('/auth'); return; }

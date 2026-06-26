@@ -12,6 +12,7 @@
 import { motion } from "framer-motion";
 import { Sparkles, RefreshCw, Pencil, ArrowRight, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { createPortal } from "react-dom";
 
 export interface ScriptScene {
   id: string;
@@ -58,7 +59,9 @@ export function ScriptApproval({
   const totalSec = scenes.reduce((a, s) => a + (s.durationSec || 0), 0);
   const affordable = balanceCredits >= costCredits;
 
-  return (
+  // Portal to <body> so this full-screen takeover escapes FoundationShell's
+  // stacking context (otherwise the always-on LeftRail renders over its edge).
+  return createPortal(
     <div className="fixed inset-0 z-[120] overflow-hidden bg-[#05060d] font-sans text-white">
       {/* aurora */}
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -176,7 +179,8 @@ export function ScriptApproval({
           )}
         </motion.div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

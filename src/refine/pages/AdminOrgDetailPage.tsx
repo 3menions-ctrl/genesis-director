@@ -371,7 +371,7 @@ function MetadataTab({ org }: { org: OrgDetail["org"] }) {
     ["ID", <span className="font-mono text-white/75">{org.id}</span>],
     ["Slug", <span className="font-mono text-white/75">/{org.slug}</span>],
     ["Industry", org.industry ?? "—"],
-    ["Website", org.website ? <a href={org.website} target="_blank" rel="noreferrer" className="text-primary/80 hover:underline">{org.website}</a> : "—"],
+    ["Website", org.website ? <a href={safeHref(org.website)} target="_blank" rel="noreferrer" className="text-primary/80 hover:underline">{org.website}</a> : "—"],
     ["Created by", <span className="font-mono text-white/75">{org.created_by.slice(0, 8)}…</span>],
     ["Created", new Date(org.created_at).toLocaleString()],
     ["Updated", new Date(org.updated_at).toLocaleString()],

@@ -6,13 +6,14 @@
  */
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { X, Heart, MessageCircle, Repeat2, Share2, Volume2, VolumeX, Loader2 } from 'lucide-react';
+import { X, Heart, MessageCircle, Repeat2, Share2, Volume2, VolumeX, Loader2, Gift } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { FILMS } from '@/data/filmsLibrary';
 import { FeedVideo } from '@/components/feed/FeedVideo';
 import { FeedComments } from '@/components/feed/FeedComments';
+import { GiftSheet } from '@/components/native/GiftSheet';
 import { GrainOverlay } from '@/components/native/AuroraBackdrop';
 import { hapticTap, shareLink } from '@/lib/native/shell';
 import { cn } from '@/lib/utils';
@@ -43,6 +44,7 @@ export default function ReelViewer() {
   const [likeCount, setLikeCount] = useState(0);
   const [commentCount, setCommentCount] = useState(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [giftOpen, setGiftOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -135,7 +137,8 @@ export default function ReelViewer() {
         </button>
         <Rail label={compact(likeCount)} onClick={like} active={liked}><Heart className={cn('h-7 w-7', liked && 'fill-[#ff3b6b] stroke-[#ff3b6b]')} /></Rail>
         <Rail label={commentCount > 0 ? compact(commentCount) : 'Comments'} onClick={() => { void hapticTap(); setCommentsOpen(true); }}><MessageCircle className="h-7 w-7" /></Rail>
-        <Rail label="Remix" highlight onClick={remix}><Repeat2 className="h-7 w-7" /></Rail>
+        {!reel.isStatic && <Rail label="Gift" highlight onClick={() => { void hapticTap(); setGiftOpen(true); }}><Gift className="h-7 w-7" /></Rail>}
+        <Rail label="Remix" onClick={remix}><Repeat2 className="h-7 w-7" /></Rail>
         <Rail label="Share" onClick={share}><Share2 className="h-7 w-7" /></Rail>
       </div>
 
@@ -147,6 +150,7 @@ export default function ReelViewer() {
       </div>
 
       <FeedComments open={commentsOpen} reelId={reel.id} isStatic={reel.isStatic ?? false} onClose={() => setCommentsOpen(false)} onPosted={() => setCommentCount((c) => c + 1)} />
+      <GiftSheet open={giftOpen} onClose={() => setGiftOpen(false)} reelId={reel.id} creatorName={reel.creator_name ?? 'this creator'} />
     </div>
   );
 }

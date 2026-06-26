@@ -9,12 +9,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, useMotionValue, useTransform, animate, type PanInfo } from 'framer-motion';
-import { X, MessageCircle, UserPlus, UserCheck, Loader2, Share2, MoreVertical, Ban } from 'lucide-react';
+import { X, MessageCircle, UserPlus, UserCheck, Loader2, Share2, MoreVertical, Ban, Gift } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePublicProfile } from '@/hooks/usePublicProfile';
 import { MessageThread } from '@/components/social/MessageThread';
+import { GiftSheet } from '@/components/native/GiftSheet';
 import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
 import { MasonryGrid, MediaTile } from '@/components/native/MediaTile';
 import { confirmAsync } from '@/components/ui/global-confirm';
@@ -50,6 +51,7 @@ export default function CreatorProfile() {
   const { profile, isLoading, followUser } = usePublicProfile(id);
   const reels = useCreatorReels(id);
   const [messaging, setMessaging] = useState(false);
+  const [giftOpen, setGiftOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [cover, setCover] = useState<string | null>(null);
   const [similar, setSimilar] = useState<{ id: string; display_name: string | null; avatar_url: string | null }[]>([]);
@@ -121,6 +123,7 @@ export default function CreatorProfile() {
         <SwipeProfile profile={profile} reels={reels} coverSrc={cover ?? profile.avatar_url} similar={similar}
           onFollow={() => { doFollow(); exit(); }} onMoveOn={exit}
           onMessage={() => { void hapticTap(); user ? setMessaging(true) : navigate('/auth'); }}
+          onGift={() => { void hapticTap(); user ? setGiftOpen(true) : navigate('/auth'); }}
           onTapFollow={doFollow}
           onOpenReel={(rid) => navigate(`/r/${rid}`)}
           onOpenCreator={(cid) => navigate(`/u/${cid}`)} />
@@ -155,16 +158,17 @@ export default function CreatorProfile() {
       )}
 
       {messaging && id && profile && <MessageThread recipientId={id} name={profile.display_name ?? 'creator'} avatar={profile.avatar_url} onClose={() => setMessaging(false)} />}
+      {profile && <GiftSheet open={giftOpen} onClose={() => setGiftOpen(false)} reelId={reels[0]?.id ?? null} creatorName={profile.display_name ?? 'this creator'} />}
     </div>
   );
 }
 
-function SwipeProfile({ profile, reels, coverSrc, similar, onFollow, onMoveOn, onMessage, onTapFollow, onOpenReel, onOpenCreator }: {
+function SwipeProfile({ profile, reels, coverSrc, similar, onFollow, onMoveOn, onMessage, onTapFollow, onGift, onOpenReel, onOpenCreator }: {
   profile: { display_name: string | null; avatar_url: string | null; followers_count: number; following_count: number; videos_count: number; is_following: boolean };
   reels: Reel[];
   coverSrc: string | null;
   similar: { id: string; display_name: string | null; avatar_url: string | null }[];
-  onFollow: () => void; onMoveOn: () => void; onMessage: () => void; onTapFollow: () => void; onOpenReel: (id: string) => void; onOpenCreator: (id: string) => void;
+  onFollow: () => void; onMoveOn: () => void; onMessage: () => void; onTapFollow: () => void; onGift: () => void; onOpenReel: (id: string) => void; onOpenCreator: (id: string) => void;
 }) {
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-300, 300], [-9, 9]);
@@ -237,10 +241,15 @@ function SwipeProfile({ profile, reels, coverSrc, similar, onFollow, onMoveOn, o
           )}
 
           {/* Tap actions — borderless, floating icons with labels */}
-          <div className="mt-5 flex items-center justify-center gap-14" onPointerDownCapture={(e) => e.stopPropagation()}>
+          <div className="mt-5 flex items-center justify-center gap-12" onPointerDownCapture={(e) => e.stopPropagation()}>
             <FloatIcon label={profile.is_following ? 'Following' : 'Follow'} active={profile.is_following} onClick={onTapFollow}>
               {profile.is_following ? <UserCheck className="h-[26px] w-[26px]" strokeWidth={1.9} /> : <UserPlus className="h-[26px] w-[26px]" strokeWidth={1.9} />}
             </FloatIcon>
+            {reels.length > 0 && (
+              <FloatIcon label="Gift" active onClick={onGift}>
+                <Gift className="h-[26px] w-[26px]" strokeWidth={1.9} />
+              </FloatIcon>
+            )}
             <FloatIcon label="Message" onClick={onMessage}>
               <MessageCircle className="h-[26px] w-[26px]" strokeWidth={1.9} />
             </FloatIcon>

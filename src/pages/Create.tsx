@@ -72,7 +72,7 @@ const FLOWS: Record<string, Flow> = {
       { id: 'look', q: 'Pick a look', skip: true, opts: LOOK_OPTS },
       { id: 'aspect', q: 'Format', opts: ASPECT_OPTS },
     ],
-    route: (s, p) => `/studio?tab=create&prompt=${enc(compose(p, [s.look && `${s.look} style`, ASPECT_HINT[s.aspect]]))}${fmt(s.aspect)}${img(s.image)}`,
+    route: (s, p) => `/me/generate?prompt=${enc(compose(p, [s.look && `${s.look} style`]))}${fmt(s.aspect)}${img(s.image)}`,
   },
   image: {
     Icon: ImageIcon, label: 'Image', writeQ: 'Describe the image', action: 'Generate',

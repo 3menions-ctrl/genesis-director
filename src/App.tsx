@@ -187,6 +187,9 @@ const Library = lazy(() => import("./pages/Library"));
 const Reel = lazy(() => import("./pages/Reel"));
 // Native immersive single-reel player (mobile shell renders this on /r/:id).
 const ReelViewer = lazy(() => import("./pages/ReelViewer"));
+// Native create→generate flow (wraps the mode-router render pipeline).
+const NativeGenerate = lazy(() => import("./pages/NativeGenerate"));
+const NativeProduction = lazy(() => import("./pages/NativeProduction"));
 const Account = lazy(() => import("./pages/Account"));
 
 // Standalone creation-adjacent surfaces — restored after the earlier merge
@@ -824,7 +827,15 @@ const App = () => {
                 <Route path="/production/:projectId" element={
                   <RouteContainer fallbackMessage="Loading production…">
                     <ProtectedRoute>
-                      <AppShell><Production /></AppShell>
+                      {IS_MOBILE_SHELL ? <NativeProduction /> : <AppShell><Production /></AppShell>}
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+                {/* Native create→generate (wraps the mode-router pipeline). */}
+                <Route path="/me/generate" element={
+                  <RouteContainer fallbackMessage="Loading…">
+                    <ProtectedRoute>
+                      <NativeGenerate />
                     </ProtectedRoute>
                   </RouteContainer>
                 } />

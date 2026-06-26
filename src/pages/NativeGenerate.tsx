@@ -1,0 +1,165 @@
+/**
+ * NativeGenerate — the native create→generate screen. Wraps the real render
+ * pipeline (mode-router edge function) in a fully native UI: prompt, engine +
+ * quality, length, aspect, narration/music, a live credit estimate, then one
+ * tap to start. No web Studio is ever shown — on success we go straight to the
+ * native production progress screen.
+ *
+ * Spend-only safe: generation SPENDS credits (allowed); it never BUYS them.
+ */
+import { useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ChevronLeft, Sparkles, Loader2, Film, Mic, Music2, Check, Crown } from 'lucide-react';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useEffectiveCredits } from '@/hooks/useEffectiveCredits';
+import { calculateCreditsForDurations, type VideoEngine } from '@/lib/creditSystem';
+import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
+import { hapticTap } from '@/lib/native/shell';
+import { cn } from '@/lib/utils';
+
+interface EngineOpt { token: VideoEngine; name: string; tier: string; durations: number[]; premium?: boolean }
+const ENGINE_OPTS: EngineOpt[] = [
+  { token: 'wan', name: 'Wan 2.5', tier: 'Free', durations: [5, 10] },
+  { token: 'kling', name: 'Kling V3', tier: 'Standard', durations: [5, 10] },
+  { token: 'seedance', name: 'Seedance 2', tier: 'Pro', durations: [5, 10], premium: true },
+  { token: 'veo', name: 'Veo 3', tier: 'Cinema', durations: [4, 6, 8], premium: true },
+  { token: 'sora', name: 'Sora 2', tier: 'Cinema', durations: [4, 8], premium: true },
+];
+const ASPECTS = ['9:16', '16:9', '1:1'];
+
+export default function NativeGenerate() {
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const { user } = useAuth();
+  const effective = useEffectiveCredits();
+
+  const imageUrl = params.get('image') || undefined;
+  const [prompt, setPrompt] = useState(params.get('prompt') ?? '');
+  const [engine, setEngine] = useState<VideoEngine>('wan');
+  const [scenes, setScenes] = useState(1);
+  const [aspect, setAspect] = useState(ASPECTS.includes(params.get('aspect') ?? '') ? (params.get('aspect') as string) : '9:16');
+  const [narration, setNarration] = useState(false);
+  const [music, setMusic] = useState(true);
+  const [busy, setBusy] = useState(false);
+
+  const eng = ENGINE_OPTS.find((e) => e.token === engine) ?? ENGINE_OPTS[0];
+  const clipDuration = eng.durations[0];
+  const durations = useMemo(() => Array.from({ length: scenes }, () => clipDuration), [scenes, clipDuration]);
+  const cost = useMemo(() => calculateCreditsForDurations(durations, engine), [durations, engine]);
+  const available = effective.available ?? 0;
+  const canAfford = available >= cost;
+
+  const generate = async () => {
+    void hapticTap();
+    if (!user) { toast.error('Sign in to generate'); navigate('/auth'); return; }
+    if (!prompt.trim()) { toast.error('Describe your film first'); return; }
+    if (!canAfford) { toast.error(`Need ${cost} credits — you have ${available}.`); return; }
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('mode-router', {
+        body: {
+          mode: imageUrl ? 'image-to-video' : 'text-to-video',
+          userId: user.id,
+          requireApproval: false, // one-tap native generate — no script gate
+          prompt: prompt.trim(),
+          imageUrl,
+          aspectRatio: aspect,
+          clipCount: scenes,
+          clipDuration,
+          clipDurations: durations,
+          enableNarration: narration,
+          enableMusic: music,
+          videoEngine: engine,
+          qualityOptions: {},
+        },
+      });
+      if (error || (data && data.error)) throw new Error((data && data.error) || error?.message || 'Generation failed');
+      if (!data?.projectId) throw new Error('No project returned');
+      toast.success('Generation started');
+      navigate(`/production/${data.projectId}`, { replace: true });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Generation failed');
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 overflow-y-auto text-white">
+      <AuroraBackdrop />
+      <div className="relative z-10 flex items-center gap-3 px-4 pb-1" style={{ paddingTop: 'calc(var(--safe-top,0px) + 12px)' }}>
+        <button onClick={() => navigate(-1)} aria-label="Back" className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.06] backdrop-blur-md"><ChevronLeft className="h-5 w-5" /></button>
+        <h1 className="font-display text-[20px] font-semibold">New film</h1>
+        <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[#8fb4ff]/15 px-3 py-1 font-mono text-[11px] font-semibold text-[#8fb4ff]"><Sparkles className="h-3 w-3" />{available.toLocaleString()}</span>
+      </div>
+
+      <div className="relative z-10 px-4" style={{ paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 120px)' }}>
+        {/* Prompt */}
+        <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4} placeholder="Describe your film…" className="surface-1 mt-3 w-full resize-none rounded-[18px] bg-transparent px-4 py-3.5 text-[16px] leading-relaxed text-white outline-none placeholder:text-white/30" />
+        {imageUrl && <div className="mt-2 flex items-center gap-2 text-[12px] text-white/45"><Film className="h-3.5 w-3.5" /> Animating your photo</div>}
+
+        {/* Engine */}
+        <Label>Engine</Label>
+        <div className="grid grid-cols-2 gap-2.5">
+          {ENGINE_OPTS.map((e) => {
+            const on = e.token === engine;
+            const c = calculateCreditsForDurations(Array.from({ length: scenes }, () => e.durations[0]), e.token);
+            return (
+              <button key={e.token} onClick={() => { void hapticTap(); setEngine(e.token); }} className={cn('relative rounded-[16px] p-3 text-left transition-all', on ? 'msg-glass-accent' : 'msg-glass')}>
+                <div className="flex items-center gap-1.5"><span className="font-display text-[14px] font-bold">{e.name}</span>{e.premium && <Crown className="h-3 w-3 text-[#ffd76b]" />}</div>
+                <div className="mt-0.5 font-mono text-[10px] uppercase tracking-wide text-white/45">{e.tier}</div>
+                <div className="mt-1.5 font-mono text-[11px] text-[#8fb4ff]">{c === 0 ? 'Free' : `${c} cr`}</div>
+                {on && <span className="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-[#3f78ff]"><Check className="h-3 w-3" strokeWidth={3} /></span>}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Length */}
+        <Label>Scenes · {scenes} × {clipDuration}s = {scenes * clipDuration}s</Label>
+        <div className="flex gap-2">
+          {[1, 2, 3, 4].map((n) => <Pill key={n} label={`${n}`} on={scenes === n} onClick={() => setScenes(n)} />)}
+        </div>
+
+        {/* Aspect */}
+        <Label>Aspect</Label>
+        <div className="flex gap-2">
+          {ASPECTS.map((a) => <Pill key={a} label={a} on={aspect === a} onClick={() => setAspect(a)} />)}
+        </div>
+
+        {/* Toggles */}
+        <Label>Audio</Label>
+        <div className="space-y-2">
+          <Toggle icon={Mic} label="Narration" on={narration} onClick={() => setNarration((v) => !v)} />
+          <Toggle icon={Music2} label="Music" on={music} onClick={() => setMusic((v) => !v)} />
+        </div>
+      </div>
+
+      {/* Generate bar */}
+      <div className="fixed inset-x-0 z-20 px-4" style={{ bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 14px)' }}>
+        <button onClick={generate} disabled={busy || !prompt.trim() || !canAfford}
+          className="flex h-[58px] w-full items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-[#2f6bff] via-[#5a5bff] to-[#7a3bff] text-[16px] font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,.3),0_20px_44px_-14px_rgba(80,80,255,.7)] transition-opacity disabled:opacity-40">
+          {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
+          {busy ? 'Starting…' : canAfford ? `Generate · ${cost === 0 ? 'Free' : `${cost} cr`}` : `Need ${cost} credits`}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Label({ children }: { children: React.ReactNode }) {
+  return <div className="mb-2 mt-6 font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">{children}</div>;
+}
+function Pill({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
+  return <button onClick={() => { void hapticTap(); onClick(); }} className={cn('h-10 min-w-[52px] rounded-full px-4 text-[14px] font-semibold transition-colors', on ? 'msg-glass-accent text-white' : 'msg-glass text-white/55')}>{label}</button>;
+}
+function Toggle({ icon: Icon, label, on, onClick }: { icon: typeof Mic; label: string; on: boolean; onClick: () => void }) {
+  return (
+    <button onClick={() => { void hapticTap(); onClick(); }} className={cn('flex w-full items-center gap-3 rounded-[16px] px-4 py-3 transition-colors', on ? 'msg-glass-accent' : 'msg-glass')}>
+      <Icon className="h-[18px] w-[18px] text-white/70" />
+      <span className="flex-1 text-left text-[14.5px] font-medium">{label}</span>
+      <span className={cn('relative h-6 w-10 rounded-full transition-colors', on ? 'bg-[#3f78ff]' : 'bg-white/15')}><span className={cn('absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all', on ? 'left-[18px]' : 'left-0.5')} /></span>
+    </button>
+  );
+}

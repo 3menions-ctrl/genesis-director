@@ -148,7 +148,14 @@ async function reverseCredits(order: any) {
 async function upsertSubscription(sub: any, statusOverride?: string) {
   const md = sub?.metadata ?? {};
   const userId = String(md.user_id || md.userId || sub?.customer?.external_id || "");
-  if (!/^[0-9a-f-]{36}$/i.test(userId)) { log("sub upsert: no user_id", { subId: sub?.id }); return; }
+  // THROW (not return) so the handler returns HTTP 500 and Polar RETRIES, then
+  // surfaces persistently-failing events in its dashboard. A silent return → 200
+  // → Polar marks delivery successful and never retries → the paid subscription
+  // row is never written → account_tier stays 'free' with no automatic recovery.
+  if (!/^[0-9a-f-]{36}$/i.test(userId)) {
+    log("sub upsert: no/invalid user_id", { subId: sub?.id });
+    throw new Error(`sub upsert: missing/invalid user_id for subscription ${sub?.id}`);
+  }
   const customerId = String(sub?.customer_id || sub?.customer?.id || "");
   const productId = String(sub?.product_id || sub?.product?.id || "");
   const priceId = String(md.price_id || sub?.price_id || sub?.prices?.[0]?.id || productId || "unknown");
@@ -168,7 +175,12 @@ async function upsertSubscription(sub: any, statusOverride?: string) {
     environment: ENV_TAG,
     metadata: md,
   }, { onConflict: "stripe_subscription_id,environment" });
-  if (error) { log("sub upsert error", { error: error.message, subId: sub?.id }); return; }
+  // THROW (not return) on DB failure so Polar retries — see note above. A
+  // charged customer must never be stranded on 'free' by a swallowed upsert error.
+  if (error) {
+    log("sub upsert error", { error: error.message, subId: sub?.id });
+    throw new Error(`sub upsert failed for subscription ${sub?.id}: ${error.message}`);
+  }
   log("sub upserted", { subId: sub?.id, status: statusOverride || sub?.status });
 
   // Fund the org credit pool on activation (audit #2). The webhook previously

@@ -126,3 +126,20 @@ Captured console warnings+errors across all routes:
   for the native webview the meta CSP is the only CSP, so it's needed). Left as-is.
 - 3 MEDIA 404s (a few reels/sample films reference missing storage objects) — DATA
   issue, not app code; handled gracefully by MediaTile/img fallbacks. Noted.
+
+## Cycle 12 — native config + ship-readiness (2 real ship-blockers fixed)
+- **FIXED: missing camera/photo-library usage strings** (Info.plist). The app uploads
+  photos via the WKWebView file picker (avatar/cover/film); its Take-Photo/Library
+  options touch the camera+library in-process → iOS HARD-CRASHES without the purpose
+  strings + App Review rejects. Added NSCameraUsageDescription +
+  NSPhotoLibraryUsageDescription (read-only; no Add). plutil -lint OK. (`9b8a36bd`)
+- **FIXED: Apple 3.1.1 external-purchase link** in Plans. It had a tappable "Manage
+  plan on the web" → Browser.open(smallbridges.co/credits), steering to external
+  purchase of digital credits — the exact 3.1.1 reject pattern AND a drift from the
+  app's own policy (IOS_SETUP §5: "we deliberately do not link out to the web
+  checkout"). Replaced with the neutral non-tappable notice. (`bef04164`)
+- VERIFIED clean: Info.plist valid + has deep-link URL scheme (smallbridges://),
+  push background mode, ITSAppUsesNonExemptEncryption=false; AppIcon + Splash assets
+  present; spend-only enforced (PURCHASING_ENABLED=!IS_NATIVE; no StoreKit; no
+  @capacitor/camera or other permission-linking plugins beyond push/keychain).
+- Updated IOS_SETUP §8 with the usage-strings note.

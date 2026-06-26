@@ -218,6 +218,11 @@ you have it — the current icon is upscaled from the 512px web favicon.
    **Product → Archive → Distribute App → App Store Connect**.
 4. **Export compliance:** `ITSAppUsesNonExemptEncryption` is already `false` in
    `Info.plist` (standard HTTPS only) — no per-upload prompt.
+5. **Permission strings** are already in `Info.plist`:
+   `NSCameraUsageDescription` + `NSPhotoLibraryUsageDescription` (the photo-upload
+   file picker can reach the camera/library, and iOS hard-crashes without them).
+   The app only **reads** photos, so `NSPhotoLibraryAddUsageDescription` is omitted.
+   Declare *Camera* and *Photos* accordingly in App Privacy (§b, User Content).
 
 ### b. App Privacy (nutrition labels) — declare accurately
 - **Contact Info → Email** (account): linked to identity, used for App

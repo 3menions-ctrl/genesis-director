@@ -5,7 +5,7 @@
  */
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Trash2, Loader2, Film, Layers } from 'lucide-react';
+import { ChevronLeft, Trash2, Loader2, Film, Layers, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,6 +13,7 @@ import { useMyFilms } from '@/hooks/useMyFilms';
 import { useDrafts } from '@/hooks/useProfileData';
 import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
 import { MasonryGrid, MediaTile } from '@/components/native/MediaTile';
+import { PublishSheet } from '@/components/native/PublishSheet';
 import { confirmAsync } from '@/components/ui/global-confirm';
 import { hapticTap } from '@/lib/native/shell';
 import { cn } from '@/lib/utils';
@@ -26,6 +27,7 @@ export default function MobileLibrary() {
   const { films, loading: filmsLoading } = useMyFilms();
   const drafts = useDrafts(user?.id, tab === 'drafts');
   const [removed, setRemoved] = useState<Set<string>>(new Set());
+  const [publishTarget, setPublishTarget] = useState<{ id: string; title: string } | null>(null);
 
   const del = async (id: string) => {
     void hapticTap();
@@ -84,9 +86,14 @@ export default function MobileLibrary() {
                       <span className="absolute inset-x-0 bottom-0 truncate px-2.5 py-2 font-display text-[12.5px] font-semibold drop-shadow">{d.title}</span>
                       {d.status && <span className="absolute left-1.5 top-1.5 rounded-full bg-black/55 px-2 py-0.5 font-mono text-[8.5px] uppercase tracking-wide text-white/90">{d.status}</span>}
                     </button>
-                    <button onClick={() => del(d.id)} aria-label="Delete draft" className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-black/55 text-white/90 backdrop-blur-md active:scale-90">
-                      <Trash2 className="h-[14px] w-[14px]" />
-                    </button>
+                    <div className="absolute right-1.5 top-1.5 flex gap-1.5">
+                      <button onClick={() => { void hapticTap(); setPublishTarget({ id: d.id, title: d.title }); }} aria-label="Publish draft" className="grid h-7 w-7 place-items-center rounded-full bg-[#3f78ff]/80 text-white backdrop-blur-md active:scale-90">
+                        <Send className="h-[13px] w-[13px]" />
+                      </button>
+                      <button onClick={() => del(d.id)} aria-label="Delete draft" className="grid h-7 w-7 place-items-center rounded-full bg-black/55 text-white/90 backdrop-blur-md active:scale-90">
+                        <Trash2 className="h-[14px] w-[14px]" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </MasonryGrid>
@@ -94,6 +101,8 @@ export default function MobileLibrary() {
           )}
         </div>
       </div>
+
+      {publishTarget && <PublishSheet projectId={publishTarget.id} defaultTitle={publishTarget.title} onClose={() => setPublishTarget(null)} onPublished={() => setTab('films')} />}
     </div>
   );
 }

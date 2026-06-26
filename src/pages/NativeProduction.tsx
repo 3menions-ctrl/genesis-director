@@ -36,6 +36,7 @@ export default function NativeProduction() {
   const [clips, setClips] = useState<{ done: number; total: number }>({ done: 0, total: 0 });
   const [finalClips, setFinalClips] = useState<string[] | null>(null);
   const [publish, setPublish] = useState(false);
+  const [stalled, setStalled] = useState(false); // render is taking unusually long
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const refresh = useCallback(async () => {
@@ -64,6 +65,15 @@ export default function NativeProduction() {
   const done = DONE(status);
   const failed = FAILED(status);
   const url = manifestUrl(proj);
+
+  // Safety net: a render that never reaches a terminal state shouldn't spin
+  // forever. After ~6 min still in-progress, surface a "taking longer" state
+  // (it keeps rendering server-side; the user gets a clear way out).
+  useEffect(() => {
+    if (done || failed) { setStalled(false); return; }
+    const t = window.setTimeout(() => setStalled(true), 6 * 60 * 1000);
+    return () => window.clearTimeout(t);
+  }, [done, failed]);
   useEffect(() => {
     if (!done || !url) return;
     if (pollRef.current) clearInterval(pollRef.current);
@@ -132,6 +142,23 @@ export default function NativeProduction() {
           <div className="mt-6 flex justify-center gap-2.5">
             <button onClick={() => navigate('/create')} className="flex items-center gap-2 rounded-full bg-white/10 px-5 py-2.5 text-[14px] font-semibold"><RefreshCw className="h-4 w-4" /> Try again</button>
             <button onClick={() => navigate('/feed')} className="rounded-full bg-white/[0.06] px-5 py-2.5 text-[14px] font-semibold text-white/60">Feed</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Taking longer than usual (stalled) — keeps rendering, but give a way out ──
+  if (stalled) {
+    return (
+      <div className="fixed inset-0 grid place-items-center bg-black px-8 text-center text-white">
+        <div>
+          <Loader2 className="mx-auto h-9 w-9 animate-spin text-[#8fb4ff]" />
+          <p className="mt-4 text-[15px] font-semibold">Still rendering — taking longer than usual</p>
+          <p className="mt-1 text-[13px] leading-relaxed text-white/45">Big films take time. It keeps rendering on our side — it'll land in your Library when it's done.</p>
+          <div className="mt-6 flex justify-center gap-2.5">
+            <button onClick={() => { void hapticTap(); navigate('/me/library'); }} className="flex items-center gap-2 rounded-full bg-white/10 px-5 py-2.5 text-[14px] font-semibold"><Library className="h-4 w-4" /> Library</button>
+            <button onClick={() => { void hapticTap(); setStalled(false); }} className="rounded-full bg-white/[0.06] px-5 py-2.5 text-[14px] font-semibold text-white/60">Keep waiting</button>
           </div>
         </div>
       </div>

@@ -13,7 +13,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, Radio, Users, Heart, Send, Gift as GiftIcon, X, Loader2, Plus, Video } from 'lucide-react';
+import { ChevronLeft, Radio, Users, Heart, Send, Gift as GiftIcon, X, Loader2, Plus, Video, VideoOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -129,6 +129,8 @@ function LiveRoom({ roomId }: { roomId: string }) {
   const [giftOpen, setGiftOpen] = useState(false);
   const [ending, setEnding] = useState(false);
   const [live, setLive] = useState(false); // viewer: host stream connected
+  const [mediaErr, setMediaErr] = useState(false); // host: camera/mic denied
+  const [connectTimedOut, setConnectTimedOut] = useState(false); // viewer: no stream
   const chanRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const rtcRef = useRef<LiveRTC | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);       // host: own camera
@@ -202,7 +204,7 @@ function LiveRoom({ roomId }: { roomId: string }) {
       let stream: MediaStream | null = null;
       try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true }); }
       catch { try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false }); } catch { /* no camera */ } }
-      if (!stream) return;
+      if (!stream) { if (!cancel) { setMediaErr(true); toast.error('Camera unavailable — enable camera access in Settings.'); } return; }
       if (cancel) { stream.getTracks().forEach((t) => t.stop()); return; }
       streamRef.current = stream;
       if (videoRef.current) { videoRef.current.srcObject = stream; void videoRef.current.play().catch(() => {}); }
@@ -211,6 +213,13 @@ function LiveRoom({ roomId }: { roomId: string }) {
     })();
     return () => { cancel = true; streamRef.current?.getTracks().forEach((t) => t.stop()); streamRef.current = null; };
   }, [isHost]);
+
+  // Viewer: if the host's stream never connects, stop saying "Connecting…" forever.
+  useEffect(() => {
+    if (isHost || live) { setConnectTimedOut(false); return; }
+    const t = window.setTimeout(() => setConnectTimedOut(true), 18000);
+    return () => window.clearTimeout(t);
+  }, [isHost, live]);
 
   const pushFloat = (emoji: string) => {
     const fid = ++floatId.current;
@@ -250,12 +259,25 @@ function LiveRoom({ roomId }: { roomId: string }) {
     <div className="fixed inset-0 overflow-hidden bg-black text-white">
       {/* Stage */}
       {isHost ? (
-        <video ref={videoRef} muted playsInline autoPlay className="absolute inset-0 h-full w-full -scale-x-100 object-cover" />
+        <>
+          <video ref={videoRef} muted playsInline autoPlay className="absolute inset-0 h-full w-full -scale-x-100 object-cover" />
+          {mediaErr && (
+            <div className="absolute inset-0 grid place-items-center bg-gradient-to-br from-[#241a3d] to-[#0a0a0a] px-8 text-center">
+              <div><VideoOff className="mx-auto h-8 w-8 text-white/55" /><p className="mt-3 text-[14px] font-semibold">Camera unavailable</p><p className="mt-1 text-[12.5px] text-white/45">Enable camera access for Small Bridges in Settings, then go live again.</p></div>
+            </div>
+          )}
+        </>
       ) : (
         <>
           {host?.avatar ? <img src={host.avatar} alt="" className="absolute inset-0 h-full w-full scale-110 object-cover blur-sm" /> : <div className="absolute inset-0 bg-gradient-to-br from-[#241a3d] to-[#0a0a0a]" />}
           <video ref={remoteRef} playsInline autoPlay className={cn('absolute inset-0 h-full w-full object-contain transition-opacity duration-500', live ? 'opacity-100' : 'opacity-0')} />
-          {!live && <div className="absolute inset-0 grid place-items-center"><span className="inline-flex items-center gap-2 rounded-full bg-black/45 px-3.5 py-2 text-[12.5px] backdrop-blur-md"><Loader2 className="h-3.5 w-3.5 animate-spin" />Connecting to live…</span></div>}
+          {!live && (
+            <div className="absolute inset-0 grid place-items-center px-8 text-center">
+              {connectTimedOut
+                ? <span className="rounded-2xl bg-black/55 px-4 py-3 text-[13px] leading-relaxed backdrop-blur-md">Couldn't connect to the stream — the host may have dropped. <button onClick={leave} className="font-semibold text-[#8fb4ff]">Go back</button></span>
+                : <span className="inline-flex items-center gap-2 rounded-full bg-black/45 px-3.5 py-2 text-[12.5px] backdrop-blur-md"><Loader2 className="h-3.5 w-3.5 animate-spin" />Connecting to live…</span>}
+            </div>
+          )}
         </>
       )}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/45" />

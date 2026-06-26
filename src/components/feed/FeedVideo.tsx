@@ -27,7 +27,9 @@ function isHls(url: string): boolean {
 export function FeedVideo({ src, poster, active, muted }: FeedVideoProps) {
   const ref = useRef<HTMLVideoElement>(null);
   const [ready, setReady] = useState(false);
+  const [errored, setErrored] = useState(false);
   const [progress, setProgress] = useState(0);
+  useEffect(() => { setErrored(false); setReady(false); }, [src]);
 
   // Playback progress for the active card.
   useEffect(() => {
@@ -122,9 +124,15 @@ export function FeedVideo({ src, poster, active, muted }: FeedVideoProps) {
         playsInline
         preload="auto"
         onCanPlay={() => setReady(true)}
+        onError={() => setErrored(true)}
         className="absolute inset-0 h-full w-full object-contain"
         style={{ opacity: ready ? 1 : 0, transition: 'opacity .35s ease' }}
       />
+      {errored && (
+        <div className="absolute inset-0 grid place-items-center px-8 text-center">
+          <span className="rounded-2xl bg-black/45 px-4 py-3 text-[13px] text-white/70 backdrop-blur-md">This video couldn't load.</span>
+        </div>
+      )}
 
       {/* Slim playback progress — sits just above the tab bar. */}
       {active && (

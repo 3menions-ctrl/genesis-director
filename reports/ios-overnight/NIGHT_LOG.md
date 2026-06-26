@@ -34,3 +34,14 @@ LIVE backend (types.ts is drifted). Branch `ios-app`; nothing pushed to main/DB.
 - Create-mode handoffs (image/photo/music/template → chrome-free Studio/MusicHub) all
   render without crashes.
 - No ambiguous-overload RPCs in the native path other than `send_direct_message` (fixed).
+
+## Cycle 5 — visual QA + write verification
+- **Fixed: Leaderboard rendered blank with 1-2 ranked users** — podium needed 3 rows
+  and the list only showed rows beyond top-3, so a 1-2 row board showed nothing.
+  Now renders everyone as a list when <3. (`b881874f`)
+- Visual QA of 16 screens signed-in: all others clean (feed, discover, you, recap,
+  activity, messages, plans, settings, generate, presets, templates, library,
+  avatars, create, immersive reel). Proper empty states everywhere (new account).
+- `update_profile_text` (edit-profile save) verified working ({"success":true}).
+- Minor (not bugs): profile "following" count can exceed the list when a followee
+  has no public display_name; mobile edit sheet omits p_location (not editable).

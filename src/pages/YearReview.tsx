@@ -31,7 +31,7 @@ export default function YearReview() {
       <GrainOverlay />
 
       <div className="relative z-10 flex items-center justify-between px-4 pb-2" style={{ paddingTop: 'calc(var(--safe-top,0px) + 12px)' }}>
-        <button onClick={() => navigate(-1)} aria-label="Back" className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.06] backdrop-blur-md"><ChevronLeft className="h-5 w-5" /></button>
+        <button onClick={() => navigate(-1)} aria-label="Back" className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.06] backdrop-blur-md"><ChevronLeft className="h-[18px] w-[18px]" /></button>
         <button onClick={async () => { if (!user) return; const r = await shareLink({ title: `My ${year} on Small Bridges`, text: `${made} films · ${compact(totalPlays)} plays this year`, url: `https://smallbridges.co/c/${user.id}` }); if (r === 'copied') toast.success('Link copied'); }}
           aria-label="Share" className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.06] backdrop-blur-md"><Share2 className="h-[17px] w-[17px]" /></button>
       </div>

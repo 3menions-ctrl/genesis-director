@@ -103,7 +103,7 @@ function SwipeCard({ person, onDecide, onOpen }: { person: Person; onDecide: (di
       <motion.div style={{ opacity: followGlow }} className="pointer-events-none absolute inset-0 rounded-[30px] bg-gradient-to-l from-[#2fd17a]/35 to-transparent ring-2 ring-[#5ee08a]/60" />
       <motion.div style={{ opacity: passGlow }} className="pointer-events-none absolute inset-0 rounded-[30px] bg-gradient-to-r from-[#ff5b6b]/30 to-transparent ring-2 ring-[#ff5b6b]/55" />
       {/* Stamps */}
-      <motion.span style={{ opacity: followOp }} className="pointer-events-none absolute left-5 top-6 -rotate-[14deg] inline-flex items-center gap-1.5 rounded-xl border-[2.5px] border-[#5ee08a] px-3 py-1 font-display text-[22px] font-extrabold tracking-wide text-[#5ee08a] backdrop-blur-sm"><Heart className="h-5 w-5 fill-[#5ee08a]" />FOLLOW</motion.span>
+      <motion.span style={{ opacity: followOp }} className="pointer-events-none absolute left-5 top-6 -rotate-[14deg] inline-flex items-center gap-1.5 rounded-xl border-[2.5px] border-[#5ee08a] px-3 py-1 font-display text-[22px] font-extrabold tracking-wide text-[#5ee08a] backdrop-blur-sm"><Heart className="h-[18px] w-[18px] fill-[#5ee08a]" />FOLLOW</motion.span>
       <motion.span style={{ opacity: passOp }} className="pointer-events-none absolute right-5 top-6 rotate-[14deg] rounded-xl border-[2.5px] border-[#ff5b6b] px-3 py-1 font-display text-[22px] font-extrabold tracking-wide text-[#ff5b6b] backdrop-blur-sm">SKIP</motion.span>
     </motion.div>
   );

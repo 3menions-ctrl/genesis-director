@@ -35,7 +35,7 @@ export default function TemplateGallery() {
       <AuroraBackdrop />
 
       <div className="relative z-10 flex items-center gap-3 px-4 pb-2" style={{ paddingTop: 'calc(var(--safe-top,0px) + 12px)' }}>
-        <button onClick={() => navigate(-1)} aria-label="Back" className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.06] backdrop-blur-md"><ChevronLeft className="h-5 w-5" /></button>
+        <button onClick={() => navigate(-1)} aria-label="Back" className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.06] backdrop-blur-md"><ChevronLeft className="h-[18px] w-[18px]" /></button>
         <h1 className="font-display text-[20px] font-semibold">Templates</h1>
       </div>
 
@@ -103,7 +103,7 @@ function TemplateDetail({ bp, breakout, onClose, onUse }: { bp: TemplateBlueprin
 
           <div className="mt-5 flex flex-col items-center">
             <button onClick={onUse} aria-label="Use this template" className="grid h-[64px] w-[64px] place-items-center rounded-full text-[#9fc6ff] drop-shadow-[0_3px_12px_rgba(0,0,0,.6)] transition-transform active:scale-90">
-              <ArrowRight className="h-7 w-7" strokeWidth={2.4} />
+              <ArrowRight className="h-6 w-6" strokeWidth={2.4} />
             </button>
             <span className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">Use template</span>
           </div>

@@ -35,7 +35,7 @@ export default function AvatarLibrary() {
       <AuroraBackdrop />
 
       <div className="relative z-10 flex items-center gap-3 px-4 pb-2" style={{ paddingTop: 'calc(var(--safe-top,0px) + 12px)' }}>
-        <button onClick={() => navigate(-1)} aria-label="Back" className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.06] backdrop-blur-md"><ChevronLeft className="h-5 w-5" /></button>
+        <button onClick={() => navigate(-1)} aria-label="Back" className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.06] backdrop-blur-md"><ChevronLeft className="h-[18px] w-[18px]" /></button>
         <h1 className="font-display text-[20px] font-semibold">Avatars</h1>
         <span className="ml-auto font-mono text-[11px] text-white/35">{templates.length}</span>
       </div>
@@ -68,7 +68,7 @@ export default function AvatarLibrary() {
                   <img src={a.face_image_url} alt={a.name} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent" />
                   <span className="absolute inset-x-0 bottom-0 truncate px-2 py-1.5 text-left font-display text-[11.5px] font-semibold drop-shadow">{a.name}</span>
-                  {a.is_premium && <span className="absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-black/45 text-[#ffd76b] backdrop-blur-md"><Crown className="h-3 w-3" /></span>}
+                  {a.is_premium && <span className="absolute right-1.5 top-1.5 grid h-[18px] w-[18px] place-items-center rounded-full bg-black/45 text-[#ffd76b] backdrop-blur-md"><Crown className="h-3 w-3" /></span>}
                 </button>
               ))}
             </div>
@@ -155,7 +155,7 @@ function AvatarDetail({ avatar, onClose, onUse, forTemplate }: { avatar: AvatarT
           <div className="mt-5 flex flex-col items-center">
           <button onClick={() => { if (!forTemplate && !script.trim()) return; void hapticTap(); onUse(script.trim()); }} disabled={!forTemplate && !script.trim()} aria-label={forTemplate ? `Cast ${avatar.name}` : `Use ${avatar.name}`}
             className="grid h-[64px] w-[64px] place-items-center rounded-full text-[#9fc6ff] drop-shadow-[0_3px_12px_rgba(0,0,0,.6)] transition-transform active:scale-90 disabled:opacity-40">
-            <ArrowRight className="h-7 w-7" strokeWidth={2.4} />
+            <ArrowRight className="h-6 w-6" strokeWidth={2.4} />
           </button>
             <span className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">{forTemplate ? `Cast ${avatar.name}` : `Use ${avatar.name}`}</span>
           </div>

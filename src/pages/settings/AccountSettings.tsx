@@ -70,7 +70,7 @@ export default function AccountSettings() {
         </div>
         <button onClick={changePassword} disabled={!pw || saving}
           className="msg-glass-accent flex h-12 w-full items-center justify-center gap-2 rounded-[18px] text-[14.5px] font-bold text-white transition-transform active:scale-[0.99] disabled:opacity-50">
-          {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Check className="h-[17px] w-[17px]" />Update password</>}
+          {saving ? <Loader2 className="h-[18px] w-[18px] animate-spin" /> : <><Check className="h-[17px] w-[17px]" />Update password</>}
         </button>
       </Group>
 
@@ -97,7 +97,7 @@ export default function AccountSettings() {
             <div className="flex gap-2.5">
               <button onClick={() => { void hapticTap(); setConfirmDel(false); setDelPw(''); }} disabled={deleting} className="h-11 flex-1 rounded-[14px] bg-white/[0.06] text-[14px] font-semibold text-white/80 disabled:opacity-50">Cancel</button>
               <button onClick={deleteAccount} disabled={!delPw || deleting} className="h-11 flex-1 rounded-[14px] bg-[#ff3b3b]/22 text-[14px] font-bold text-[#ff8a8a] ring-1 ring-[#ff6b6b]/40 disabled:opacity-50">
-                {deleting ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : 'Permanently delete'}
+                {deleting ? <Loader2 className="mx-auto h-[18px] w-[18px] animate-spin" /> : 'Permanently delete'}
               </button>
             </div>
           </div>

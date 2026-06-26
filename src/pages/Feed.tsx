@@ -280,7 +280,7 @@ const FeedOverlay = ({ item, onComments }: { item: FeedItem; onComments: (v: { i
               {initial}
             </span>
           )}
-          <span className="absolute -bottom-1.5 left-1/2 grid h-5 w-5 -translate-x-1/2 place-items-center rounded-full bg-[#2f6bff] text-[13px] font-bold leading-none shadow-[0_0_0_3px_#0a0a0a]">
+          <span className="absolute -bottom-1.5 left-1/2 grid h-[18px] w-[18px] -translate-x-1/2 place-items-center rounded-full bg-[#2f6bff] text-[13px] font-bold leading-none shadow-[0_0_0_3px_#0a0a0a]">
             +
           </span>
         </button>

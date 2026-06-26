@@ -127,7 +127,7 @@ export default function ReelViewer() {
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-80 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
 
       {/* Close + mute */}
-      <button onClick={close} aria-label="Close" className="absolute left-3 z-30 grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur-md active:scale-95" style={{ top: 'calc(var(--safe-top,0px) + 10px)' }}><X className="h-5 w-5" /></button>
+      <button onClick={close} aria-label="Close" className="absolute left-3 z-30 grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur-md active:scale-95" style={{ top: 'calc(var(--safe-top,0px) + 10px)' }}><X className="h-[18px] w-[18px]" /></button>
       <button onClick={() => { void hapticTap(); setMuted((m) => !m); }} aria-label={muted ? 'Unmute' : 'Mute'} className="absolute right-3 z-30 grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur-md active:scale-95" style={{ top: 'calc(var(--safe-top,0px) + 10px)' }}>{muted ? <VolumeX className="h-[18px] w-[18px]" /> : <Volume2 className="h-[18px] w-[18px]" />}</button>
 
       {/* Right rail — anchored to the bottom safe area (no tab bar here) */}

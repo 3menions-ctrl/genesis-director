@@ -132,7 +132,7 @@ export default function CreatorProfile() {
       {/* Exit */}
       {!isLoading && profile && (
         <button onClick={exit} aria-label="Exit" className="fixed z-30 grid h-10 w-10 place-items-center rounded-full bg-white/[0.06] ring-1 ring-white/25 backdrop-blur-md text-white drop-shadow-[0_2px_10px_rgba(0,0,0,.55)] transition-transform active:scale-90"
-          style={{ top: 'calc(var(--safe-top,0px) + 12px)', left: '14px' }}><X className="h-5 w-5" /></button>
+          style={{ top: 'calc(var(--safe-top,0px) + 12px)', left: '14px' }}><X className="h-[18px] w-[18px]" /></button>
       )}
       {/* Share + more (block) */}
       {!isLoading && profile && id && (
@@ -243,15 +243,15 @@ function SwipeProfile({ profile, reels, coverSrc, similar, onFollow, onMoveOn, o
           {/* Tap actions — borderless, floating icons with labels */}
           <div className="mt-5 flex items-center justify-center gap-12" onPointerDownCapture={(e) => e.stopPropagation()}>
             <FloatIcon label={profile.is_following ? 'Following' : 'Follow'} active={profile.is_following} onClick={onTapFollow}>
-              {profile.is_following ? <UserCheck className="h-[26px] w-[26px]" strokeWidth={1.9} /> : <UserPlus className="h-[26px] w-[26px]" strokeWidth={1.9} />}
+              {profile.is_following ? <UserCheck className="h-[22px] w-[22px]" strokeWidth={1.9} /> : <UserPlus className="h-[22px] w-[22px]" strokeWidth={1.9} />}
             </FloatIcon>
             {reels.length > 0 && (
               <FloatIcon label="Gift" active onClick={onGift}>
-                <Gift className="h-[26px] w-[26px]" strokeWidth={1.9} />
+                <Gift className="h-[22px] w-[22px]" strokeWidth={1.9} />
               </FloatIcon>
             )}
             <FloatIcon label="Message" onClick={onMessage}>
-              <MessageCircle className="h-[26px] w-[26px]" strokeWidth={1.9} />
+              <MessageCircle className="h-[22px] w-[22px]" strokeWidth={1.9} />
             </FloatIcon>
           </div>
 

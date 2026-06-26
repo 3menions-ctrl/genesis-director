@@ -119,7 +119,7 @@ export function FeedComments({ open, reelId, isStatic, onClose, onPosted }: Prop
         <div className="mx-auto mb-2 mt-3 h-1 w-10 rounded-full bg-white/15" />
         <div className="flex items-center justify-between px-5 pb-3">
           <span className="font-display text-[15px] font-semibold text-white">Comments{comments.length ? ` · ${comments.length}` : ''}</span>
-          <button onClick={onClose} aria-label="Close" className="text-white/50"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} aria-label="Close" className="text-white/50"><X className="h-[18px] w-[18px]" /></button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5">
@@ -178,7 +178,7 @@ export function FeedComments({ open, reelId, isStatic, onClose, onPosted }: Prop
 function Empty({ label }: { label: string }) {
   return (
     <div className="flex flex-col items-center gap-2 py-12 text-center text-white/40">
-      <MessageCircle className="h-7 w-7" strokeWidth={1.4} />
+      <MessageCircle className="h-6 w-6" strokeWidth={1.4} />
       <span className="text-[13px]">{label}</span>
     </div>
   );

@@ -99,7 +99,7 @@ export default function NativeProduction() {
         <SequentialPlayer clips={finalClips} />
         <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/60 to-transparent" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-60 bg-gradient-to-t from-black/85 to-transparent" />
-        <button onClick={() => { void hapticTap(); navigate('/feed'); }} aria-label="Close" className="absolute left-3 z-30 grid h-10 w-10 place-items-center rounded-full bg-black/40 backdrop-blur-md" style={{ top: 'calc(var(--safe-top,0px) + 10px)' }}><X className="h-5 w-5" /></button>
+        <button onClick={() => { void hapticTap(); navigate('/feed'); }} aria-label="Close" className="absolute left-3 z-30 grid h-10 w-10 place-items-center rounded-full bg-black/40 backdrop-blur-md" style={{ top: 'calc(var(--safe-top,0px) + 10px)' }}><X className="h-[18px] w-[18px]" /></button>
         <div className="absolute inset-x-0 z-20 px-4" style={{ bottom: 'calc(var(--safe-bottom,0px) + 26px)' }}>
           <div className="mb-3 font-display text-[18px] font-bold drop-shadow">{proj?.title || 'Your film is ready'}</div>
           <div className="flex gap-2.5">
@@ -169,7 +169,7 @@ export default function NativeProduction() {
   return (
     <div className="fixed inset-0 overflow-hidden text-white">
       <AuroraBackdrop />
-      <button onClick={() => navigate('/feed')} aria-label="Close" className="absolute left-3 z-30 grid h-10 w-10 place-items-center rounded-full bg-white/[0.06] backdrop-blur-md" style={{ top: 'calc(var(--safe-top,0px) + 10px)' }}><X className="h-5 w-5" /></button>
+      <button onClick={() => navigate('/feed')} aria-label="Close" className="absolute left-3 z-30 grid h-10 w-10 place-items-center rounded-full bg-white/[0.06] backdrop-blur-md" style={{ top: 'calc(var(--safe-top,0px) + 10px)' }}><X className="h-[18px] w-[18px]" /></button>
       <div className="relative z-10 grid h-full place-items-center px-8 text-center">
         <div className="w-full max-w-[300px]">
           <div className="relative mx-auto h-24 w-24">

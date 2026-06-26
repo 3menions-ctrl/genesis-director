@@ -31,7 +31,7 @@ export function PublishSheet({ projectId, defaultTitle, onClose, onPublished }: 
         <div className="mx-auto mb-3 mt-3 h-1 w-10 rounded-full bg-white/15" />
         <div className="mb-4 flex items-center justify-between">
           <span className="font-display text-[17px] font-semibold">Publish to the Lobby</span>
-          <button onClick={onClose} aria-label="Close" className="text-white/50"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} aria-label="Close" className="text-white/50"><X className="h-[18px] w-[18px]" /></button>
         </div>
         {defaultTitle && <p className="-mt-2 mb-4 truncate text-[13px] text-white/45">{defaultTitle}</p>}
 

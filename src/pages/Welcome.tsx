@@ -133,7 +133,7 @@ export default function Welcome() {
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.5 }} className="mt-6 flex flex-col items-center gap-2.5">
           <button onClick={next} disabled={saving} aria-label={step === 0 ? 'Get started' : step === 1 ? 'Continue' : 'Start creating'}
             className="msg-glass-accent grid h-[62px] w-[62px] place-items-center rounded-full text-white transition-transform active:scale-95 disabled:opacity-50">
-            {step === 2 ? <Check className="h-7 w-7" strokeWidth={2.4} /> : <ArrowRight className="h-7 w-7" strokeWidth={2.2} />}
+            {step === 2 ? <Check className="h-6 w-6" strokeWidth={2.4} /> : <ArrowRight className="h-6 w-6" strokeWidth={2.2} />}
           </button>
           <span className="font-display text-[12.5px] font-semibold tracking-wide text-white/75">{step === 0 ? 'Get started' : step === 1 ? 'Continue' : 'Start creating'}</span>
         </motion.div>
@@ -161,7 +161,7 @@ function ChipTile({ chip, on, big, delay, onClick }: { chip: Chip; on: boolean; 
       onClick={onClick}
       className={cn('relative flex flex-col items-center justify-center gap-2 rounded-2xl transition-all active:scale-95', big ? 'py-7' : 'py-[18px]', on ? 'msg-glass-accent text-white' : 'msg-glass text-white/80')}
       style={on ? { boxShadow: 'inset 0 1px 0 rgba(255,255,255,.3), inset 0 0 0 1px rgba(255,255,255,.1), 0 0 34px -6px rgba(86,96,255,.65)' } : undefined}>
-      <chip.icon className={cn(big ? 'h-7 w-7' : 'h-[22px] w-[22px]')} strokeWidth={1.8} />
+      <chip.icon className={cn(big ? 'h-6 w-6' : 'h-[22px] w-[22px]')} strokeWidth={1.8} />
       <span className={cn('font-medium', big ? 'text-[13.5px]' : 'text-[12px]')}>{chip.label}</span>
       {on && <span className="absolute right-1.5 top-1.5 grid h-4 w-4 place-items-center rounded-full bg-[#8fb4ff] text-[#0a0a0f]"><Check className="h-2.5 w-2.5" strokeWidth={3.5} /></span>}
     </motion.button>

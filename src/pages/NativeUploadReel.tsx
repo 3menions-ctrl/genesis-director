@@ -125,7 +125,7 @@ export default function NativeUploadReel() {
       <input ref={fileRef} type="file" accept="video/*" onChange={onFile} className="hidden" />
 
       <div className="relative z-10 flex items-center gap-3 px-4 pb-1" style={{ paddingTop: 'calc(var(--safe-top,0px) + 12px)' }}>
-        <button onClick={() => navigate(-1)} aria-label="Back" className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.06] backdrop-blur-md"><ChevronLeft className="h-5 w-5" /></button>
+        <button onClick={() => navigate(-1)} aria-label="Back" className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.06] backdrop-blur-md"><ChevronLeft className="h-[18px] w-[18px]" /></button>
         <h1 className="font-display text-[20px] font-semibold">Upload a reel</h1>
       </div>
 
@@ -133,7 +133,7 @@ export default function NativeUploadReel() {
         {!previewUrl ? (
           <button onClick={pick} disabled={checking}
             className="lit-edge mt-4 flex aspect-[3/4] w-full flex-col items-center justify-center gap-4 rounded-[24px] border border-dashed border-white/20 bg-white/[0.03] text-center disabled:opacity-50">
-            {checking ? <Loader2 className="h-9 w-9 animate-spin text-white/50" /> : <span className="grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br from-[#2f6bff] to-[#7a3bff] shadow-[0_14px_36px_-10px_rgba(80,80,255,.8)]"><Upload className="h-7 w-7" /></span>}
+            {checking ? <Loader2 className="h-9 w-9 animate-spin text-white/50" /> : <span className="grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br from-[#2f6bff] to-[#7a3bff] shadow-[0_14px_36px_-10px_rgba(80,80,255,.8)]"><Upload className="h-6 w-6" /></span>}
             <div>
               <div className="font-display text-[17px] font-semibold">{checking ? 'Reading video…' : 'Choose a video'}</div>
               <div className="mt-1 text-[13px] text-white/50">5-second clips · MP4 or MOV</div>
@@ -160,7 +160,7 @@ export default function NativeUploadReel() {
         <div className="fixed inset-x-0 z-20 flex flex-col items-center" style={{ bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 16px)' }}>
           <button onClick={publish} disabled={busy || !title.trim()} aria-label="Publish reel"
             className="grid h-[68px] w-[68px] place-items-center rounded-full text-[#9fc6ff] drop-shadow-[0_3px_12px_rgba(0,0,0,.6)] transition-transform active:scale-90 disabled:opacity-40">
-            {busy ? <Loader2 className="h-7 w-7 animate-spin" /> : <Check className="h-8 w-8" strokeWidth={2.6} />}
+            {busy ? <Loader2 className="h-6 w-6 animate-spin" /> : <Check className="h-8 w-8" strokeWidth={2.6} />}
           </button>
           <span className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">{busy ? stage : 'Publish'}</span>
         </div>

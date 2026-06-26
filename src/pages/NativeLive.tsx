@@ -74,7 +74,7 @@ function LiveLobby() {
     <div className="fixed inset-0 overflow-y-auto text-white">
       <AuroraBackdrop />
       <div className="relative z-10 flex items-center gap-3 px-4 pb-1" style={{ paddingTop: 'calc(var(--safe-top,0px) + 12px)' }}>
-        <button onClick={() => navigate(-1)} aria-label="Back" className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.06] backdrop-blur-md"><ChevronLeft className="h-5 w-5" /></button>
+        <button onClick={() => navigate(-1)} aria-label="Back" className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.06] backdrop-blur-md"><ChevronLeft className="h-[18px] w-[18px]" /></button>
         <h1 className="font-display text-[20px] font-semibold">Live</h1>
         <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[#ff3b5c]/20 px-3 py-1 font-mono text-[11px] font-semibold text-[#ff8aa0]"><Radio className="h-3 w-3" />{rooms.length} on</span>
       </div>
@@ -107,7 +107,7 @@ function LiveLobby() {
 
       <div className="fixed inset-x-0 z-20 flex flex-col items-center" style={{ bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 16px)' }}>
         <button onClick={goLive} disabled={going} aria-label="Go live" className="grid h-[68px] w-[68px] place-items-center text-[#ff7a96] drop-shadow-[0_3px_12px_rgba(0,0,0,.6)] transition-transform active:scale-90 disabled:opacity-50">
-          {going ? <Loader2 className="h-7 w-7 animate-spin" /> : <Plus className="h-8 w-8" strokeWidth={2.6} />}
+          {going ? <Loader2 className="h-6 w-6 animate-spin" /> : <Plus className="h-8 w-8" strokeWidth={2.6} />}
         </button>
         <span className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">Go live</span>
       </div>
@@ -248,7 +248,7 @@ function LiveRoom({ roomId }: { roomId: string }) {
     navigate('/live', { replace: true });
   };
 
-  if (loading) return <div className="fixed inset-0 grid place-items-center bg-black text-white"><Loader2 className="h-7 w-7 animate-spin text-white/40" /></div>;
+  if (loading) return <div className="fixed inset-0 grid place-items-center bg-black text-white"><Loader2 className="h-6 w-6 animate-spin text-white/40" /></div>;
   if (!room || room.status !== 'live') return (
     <div className="fixed inset-0 grid place-items-center bg-black text-white">
       <div className="text-center"><p className="text-[14px] text-white/55">This live has ended.</p><button onClick={() => navigate('/live', { replace: true })} className="mt-3 rounded-full bg-white/10 px-4 py-2 text-[13px] font-semibold">Back to Live</button></div>
@@ -285,12 +285,12 @@ function LiveRoom({ roomId }: { roomId: string }) {
       {/* Top bar */}
       <div className="absolute inset-x-0 z-30 flex items-center gap-2 px-3" style={{ top: 'calc(var(--safe-top,0px) + 10px)' }}>
         <div className="flex items-center gap-2 rounded-full bg-black/45 py-1 pl-1 pr-3 backdrop-blur-md">
-          {host?.avatar ? <img src={host.avatar} className="h-7 w-7 rounded-full object-cover" alt="" /> : <span className="grid h-7 w-7 place-items-center rounded-full bg-white/15 text-[12px] font-bold">{(host?.name ?? 'L')[0]}</span>}
+          {host?.avatar ? <img src={host.avatar} className="h-6 w-6 rounded-full object-cover" alt="" /> : <span className="grid h-6 w-6 place-items-center rounded-full bg-white/15 text-[12px] font-bold">{(host?.name ?? 'L')[0]}</span>}
           <span className="max-w-[36vw] truncate text-[13px] font-semibold">{host?.name ?? 'Live'}</span>
           <span className="inline-flex items-center gap-1 rounded-full bg-[#ff3b5c] px-1.5 py-0.5 font-mono text-[8.5px] font-bold uppercase"><span className="h-1.5 w-1.5 rounded-full bg-white" />Live</span>
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-black/45 px-3 py-1.5 text-[12px] font-semibold backdrop-blur-md"><Users className="h-3.5 w-3.5" />{viewers}</span>
-        <button onClick={leave} aria-label={isHost ? 'End live' : 'Leave'} className="ml-auto grid h-9 w-9 place-items-center rounded-full bg-black/45 backdrop-blur-md active:scale-95">{ending ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-5 w-5" />}</button>
+        <button onClick={leave} aria-label={isHost ? 'End live' : 'Leave'} className="ml-auto grid h-9 w-9 place-items-center rounded-full bg-black/45 backdrop-blur-md active:scale-95">{ending ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-[18px] w-[18px]" />}</button>
       </div>
 
       {/* Floating reactions */}

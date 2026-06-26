@@ -160,7 +160,7 @@ export default function Create() {
       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
       {uploading && (
         <div className="absolute inset-0 z-40 grid place-items-center bg-black/55">
-          <div className="msg-glass flex items-center gap-3 rounded-2xl px-5 py-3.5"><Loader2 className="h-5 w-5 animate-spin text-[#8fb4ff]" /><span className="text-[14px] font-medium">Uploading photo…</span></div>
+          <div className="msg-glass flex items-center gap-3 rounded-2xl px-5 py-3.5"><Loader2 className="h-[18px] w-[18px] animate-spin text-[#8fb4ff]" /><span className="text-[14px] font-medium">Uploading photo…</span></div>
         </div>
       )}
 
@@ -216,7 +216,7 @@ function Choice({ q, opts, cols, onPick, onSkip }: { q: string; opts: Opt[]; col
         {opts.map((o) => (
           <button key={o.v} onClick={() => onPick(o.v)}
             className="surface-1 flex flex-col items-center gap-2.5 rounded-[18px] py-5 text-white/85 transition-transform active:scale-95">
-            <o.icon className="h-[26px] w-[26px]" strokeWidth={1.5} />
+            <o.icon className="h-[22px] w-[22px]" strokeWidth={1.5} />
             <span className="text-[12.5px] font-medium text-white">{o.label}</span>
           </button>
         ))}

@@ -216,7 +216,7 @@ export default function Presets() {
       </div>
 
       {/* ── Back ── */}
-      <button onClick={goBack} aria-label="Back" className="absolute left-3 z-20 grid h-10 w-10 place-items-center text-white drop-shadow-[0_2px_6px_rgba(0,0,0,.7)]" style={{ top: 'calc(var(--safe-top,0px) + 10px)' }}><ChevronLeft className="h-7 w-7" strokeWidth={2} /></button>
+      <button onClick={goBack} aria-label="Back" className="absolute left-3 z-20 grid h-10 w-10 place-items-center text-white drop-shadow-[0_2px_6px_rgba(0,0,0,.7)]" style={{ top: 'calc(var(--safe-top,0px) + 10px)' }}><ChevronLeft className="h-6 w-6" strokeWidth={2} /></button>
 
       {/* ── Right tool rail ── */}
       <div className="absolute right-3 z-20 flex flex-col items-center gap-[15px]" style={{ bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 14px)' }}>
@@ -229,12 +229,12 @@ export default function Presets() {
         <Tool icon={Wand2} label="Looks+" onClick={() => { void hapticTap(); setSheet('templates'); }} />
         <button onMouseDown={() => setShowBefore(true)} onMouseUp={() => setShowBefore(false)} onMouseLeave={() => setShowBefore(false)} onTouchStart={() => setShowBefore(true)} onTouchEnd={() => setShowBefore(false)}
           aria-label="Hold to compare" className={cn('flex flex-col items-center gap-1 drop-shadow-[0_2px_6px_rgba(0,0,0,.7)] transition-colors', showBefore ? 'text-[#8fb4ff]' : 'text-white')}>
-          <Eye className="h-[23px] w-[23px]" strokeWidth={1.8} /><span className="font-display text-[10px] font-medium">Compare</span>
+          <Eye className="h-[21px] w-[21px]" strokeWidth={1.8} /><span className="font-display text-[10px] font-medium">Compare</span>
         </button>
         <Tool icon={RotateCcw} label="Reset" onClick={resetAll} />
         {/* Save — accent icon button */}
         <button onClick={save} disabled={saving} aria-label="Save" className="flex flex-col items-center gap-1 text-[#8fb4ff] transition-transform active:scale-95 disabled:opacity-60">
-          <span className="grid h-12 w-12 place-items-center drop-shadow-[0_2px_8px_rgba(0,0,0,.7)]">{saving ? <Loader2 className="h-[24px] w-[24px] animate-spin" /> : look.premium ? <Lock className="h-[24px] w-[24px]" /> : <Save className="h-[24px] w-[24px]" strokeWidth={1.9} />}</span>
+          <span className="grid h-12 w-12 place-items-center drop-shadow-[0_2px_8px_rgba(0,0,0,.7)]">{saving ? <Loader2 className="h-[21px] w-[21px] animate-spin" /> : look.premium ? <Lock className="h-[21px] w-[21px]" /> : <Save className="h-[21px] w-[21px]" strokeWidth={1.9} />}</span>
           <span className="font-display text-[10px] font-semibold drop-shadow">{saving ? 'Saving' : look.premium ? 'Pro' : 'Save'}</span>
         </button>
       </div>
@@ -249,7 +249,7 @@ export default function Presets() {
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
                 <span className="absolute inset-x-0 bottom-0 truncate px-2.5 py-1.5 text-left font-display text-[12px] font-semibold drop-shadow">{c.title}</span>
                 {!c.id.startsWith('sample-') && <span className="absolute left-2 top-2 rounded-full bg-[#3f78ff]/85 px-2 py-0.5 font-mono text-[8.5px] font-bold uppercase tracking-wide backdrop-blur-md">Yours</span>}
-                {c.id === clip?.id && <span className="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-[#3f78ff]"><Check className="h-3 w-3" strokeWidth={3} /></span>}
+                {c.id === clip?.id && <span className="absolute right-2 top-2 grid h-[18px] w-[18px] place-items-center rounded-full bg-[#3f78ff]"><Check className="h-3 w-3" strokeWidth={3} /></span>}
               </button>
             ))}
           </div>
@@ -264,7 +264,7 @@ export default function Presets() {
                 {src ? <video src={src} muted loop autoPlay playsInline className="block w-full" style={{ filter: l.filter }} /> : <div className="aspect-video w-full bg-gradient-to-br from-[#241a3a] to-[#0a0a0a]" />}
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                 <div className="absolute inset-x-0 bottom-0 flex items-center gap-1 px-2.5 py-2"><span className="font-display text-[12.5px] font-semibold drop-shadow">{l.name}</span>{l.premium && <Lock className="h-3 w-3 text-white/85" />}</div>
-                {l.id === selected && <span className="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-[#3f78ff]"><Check className="h-3 w-3" strokeWidth={3} /></span>}
+                {l.id === selected && <span className="absolute right-2 top-2 grid h-[18px] w-[18px] place-items-center rounded-full bg-[#3f78ff]"><Check className="h-3 w-3" strokeWidth={3} /></span>}
               </button>
             ))}
           </div>
@@ -353,7 +353,7 @@ export default function Presets() {
 function Tool({ icon: Icon, label, active, onClick }: { icon: typeof LayoutGrid; label: string; active?: boolean; onClick: () => void }) {
   return (
     <button onClick={onClick} aria-label={label} className={cn('flex flex-col items-center gap-1 drop-shadow-[0_2px_6px_rgba(0,0,0,.7)] transition-colors', active ? 'text-[#8fb4ff]' : 'text-white')}>
-      <Icon className="h-[23px] w-[23px]" strokeWidth={1.8} /><span className="font-display text-[10px] font-medium">{label}</span>
+      <Icon className="h-[21px] w-[21px]" strokeWidth={1.8} /><span className="font-display text-[10px] font-medium">{label}</span>
     </button>
   );
 }
@@ -373,7 +373,7 @@ function SheetShell({ title, onClose, children }: { title: string; onClose: () =
       <div onClick={onClose} className="absolute inset-0 bg-black/55" />
       <div className="absolute inset-x-0 bottom-0 max-h-[78%] overflow-y-auto rounded-t-[28px] bg-[#0d0d14]/92 px-5 pt-3 backdrop-blur-2xl shadow-[0_-24px_70px_-24px_rgba(0,0,0,.9),inset_0_1px_0_rgba(255,255,255,.08)]" style={{ paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 20px)' }}>
         <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
-        <div className="mb-4 flex items-center justify-between"><span className="font-display text-[15px] font-semibold">{title}</span><button onClick={onClose} aria-label="Close" className="text-white/50"><X className="h-5 w-5" /></button></div>
+        <div className="mb-4 flex items-center justify-between"><span className="font-display text-[15px] font-semibold">{title}</span><button onClick={onClose} aria-label="Close" className="text-white/50"><X className="h-[18px] w-[18px]" /></button></div>
         {children}
       </div>
     </div>

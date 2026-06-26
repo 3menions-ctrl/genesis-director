@@ -51,7 +51,7 @@ export default function MobileLibrary() {
       <AuroraBackdrop />
 
       <div className="relative z-10 flex items-center gap-3 px-4 pb-2" style={{ paddingTop: 'calc(var(--safe-top,0px) + 12px)' }}>
-        <button onClick={() => navigate(-1)} aria-label="Back" className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.06] backdrop-blur-md"><ChevronLeft className="h-5 w-5" /></button>
+        <button onClick={() => navigate(-1)} aria-label="Back" className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.06] backdrop-blur-md"><ChevronLeft className="h-[18px] w-[18px]" /></button>
         <h1 className="font-display text-[20px] font-semibold">Library</h1>
       </div>
 
@@ -87,10 +87,10 @@ export default function MobileLibrary() {
                       {d.status && <span className="absolute left-1.5 top-1.5 rounded-full bg-black/55 px-2 py-0.5 font-mono text-[8.5px] uppercase tracking-wide text-white/90">{d.status}</span>}
                     </button>
                     <div className="absolute right-1.5 top-1.5 flex gap-1.5">
-                      <button onClick={() => { void hapticTap(); setPublishTarget({ id: d.id, title: d.title }); }} aria-label="Publish draft" className="grid h-7 w-7 place-items-center rounded-full bg-[#3f78ff]/80 text-white backdrop-blur-md active:scale-90">
+                      <button onClick={() => { void hapticTap(); setPublishTarget({ id: d.id, title: d.title }); }} aria-label="Publish draft" className="grid h-6 w-6 place-items-center rounded-full bg-[#3f78ff]/80 text-white backdrop-blur-md active:scale-90">
                         <Send className="h-[13px] w-[13px]" />
                       </button>
-                      <button onClick={() => del(d.id)} aria-label="Delete draft" className="grid h-7 w-7 place-items-center rounded-full bg-black/55 text-white/90 backdrop-blur-md active:scale-90">
+                      <button onClick={() => del(d.id)} aria-label="Delete draft" className="grid h-6 w-6 place-items-center rounded-full bg-black/55 text-white/90 backdrop-blur-md active:scale-90">
                         <Trash2 className="h-[14px] w-[14px]" />
                       </button>
                     </div>

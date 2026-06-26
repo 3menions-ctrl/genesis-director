@@ -103,7 +103,7 @@ function TabButton({
     >
       <span className="relative grid place-items-center">
         {(active || accent) && (
-          <span className="pointer-events-none absolute h-7 w-7 rounded-full bg-[#3f78ff]/30 blur-md" />
+          <span className="pointer-events-none absolute h-6 w-6 rounded-full bg-[#3f78ff]/30 blur-md" />
         )}
         <Icon className="relative h-[21px] w-[21px]" strokeWidth={accent ? 2.2 : 1.9} />
       </span>

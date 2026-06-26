@@ -70,7 +70,7 @@ export default function Discover() {
                 return (
                   <button key={c.id} onClick={() => { void hapticTap(); setCat(c.id); }} aria-label={c.label}
                     className={cn('relative flex flex-col items-center gap-1.5 px-3 transition-colors active:scale-95', on ? 'text-[#8fb4ff]' : 'text-white/40')}>
-                    {on && <span className="pointer-events-none absolute -top-1 h-7 w-7 rounded-full bg-[#3f78ff]/25 blur-md" />}
+                    {on && <span className="pointer-events-none absolute -top-1 h-6 w-6 rounded-full bg-[#3f78ff]/25 blur-md" />}
                     <c.icon className="relative h-[20px] w-[20px]" strokeWidth={on ? 2.2 : 1.7} />
                     <span className={cn('h-[3px] w-[3px] rounded-full transition-colors', on ? 'bg-[#8fb4ff]' : 'bg-transparent')} />
                   </button>

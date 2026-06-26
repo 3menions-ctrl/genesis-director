@@ -47,7 +47,7 @@ function Lightbox({ index, onClose, onPrev, onNext }: { index: number; onClose: 
 
   return (
     <motion.div className="fixed inset-0 z-[80] grid place-items-center bg-black/92 px-4 backdrop-blur-xl" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
-      <button type="button" onClick={onClose} aria-label="Close" className="absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-full bg-white/8 text-white backdrop-blur-md transition-colors hover:bg-white/16"><X className="h-5 w-5" /></button>
+      <button type="button" onClick={onClose} aria-label="Close" className="absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-full bg-white/8 text-white backdrop-blur-md transition-colors hover:bg-white/16"><X className="h-[18px] w-[18px]" /></button>
       <button type="button" onClick={(e) => { e.stopPropagation(); onPrev(); }} aria-label="Previous" className="absolute left-3 top-1/2 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/8 text-white backdrop-blur-md transition-colors hover:bg-white/16 sm:flex"><ChevronLeft className="h-6 w-6" /></button>
       <button type="button" onClick={(e) => { e.stopPropagation(); onNext(); }} aria-label="Next" className="absolute right-3 top-1/2 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/8 text-white backdrop-blur-md transition-colors hover:bg-white/16 sm:flex"><ChevronRight className="h-6 w-6" /></button>
 

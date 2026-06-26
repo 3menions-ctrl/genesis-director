@@ -81,7 +81,7 @@ export function GiftSheet({ open, onClose, reelId, creatorName, onSent }: {
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
             <div className="mb-1 flex items-center justify-between">
               <span className="font-display text-[16px] font-semibold">Send {creatorName} a gift</span>
-              <button onClick={onClose} aria-label="Close" className="text-white/50"><X className="h-5 w-5" /></button>
+              <button onClick={onClose} aria-label="Close" className="text-white/50"><X className="h-[18px] w-[18px]" /></button>
             </div>
             <div className="mb-4 flex items-center gap-1.5 text-[12px] text-white/45"><Sparkles className="h-3.5 w-3.5 text-[#8fb4ff]" /> {available.toLocaleString()} credits · creators keep 90%</div>
 
@@ -100,7 +100,7 @@ export function GiftSheet({ open, onClose, reelId, creatorName, onSent }: {
                       {g.tag && <span className="text-[10.5px] text-white/55">{g.tag}</span>}
                       <span className="font-mono text-[10.5px] text-[#8fb4ff]">{g.cr} cr</span>
                     </span>
-                    {sending === g.id && <span className="absolute inset-0 grid place-items-center rounded-[16px] bg-black/40"><Loader2 className="h-5 w-5 animate-spin" /></span>}
+                    {sending === g.id && <span className="absolute inset-0 grid place-items-center rounded-[16px] bg-black/40"><Loader2 className="h-[18px] w-[18px] animate-spin" /></span>}
                   </button>
                 );
               })}

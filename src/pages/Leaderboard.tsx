@@ -30,7 +30,7 @@ export default function Leaderboard() {
       <AuroraBackdrop />
 
       <div className="relative z-10 flex items-center gap-3 px-4 pb-2" style={{ paddingTop: 'calc(var(--safe-top,0px) + 12px)' }}>
-        <button onClick={() => navigate(-1)} aria-label="Back" className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.06] backdrop-blur-md"><ChevronLeft className="h-5 w-5" /></button>
+        <button onClick={() => navigate(-1)} aria-label="Back" className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.06] backdrop-blur-md"><ChevronLeft className="h-[18px] w-[18px]" /></button>
         <h1 className="font-display text-[20px] font-semibold">Leaderboard</h1>
       </div>
 
@@ -51,7 +51,7 @@ export default function Leaderboard() {
                     <button key={r.user_id} onClick={() => { void hapticTap(); if (r.user_id && r.user_id !== user?.id) navigate(`/u/${r.user_id}`); }} className="flex w-1/3 flex-col items-center">
                       <div className="relative">
                         {r.avatar_url ? <img src={r.avatar_url} alt="" className={cn('rounded-full object-cover', idx === 0 ? 'h-16 w-16' : 'h-14 w-14')} style={{ boxShadow: `0 0 0 2px ${PODIUM[idx]}` }} /> : <span className={cn('grid place-items-center rounded-full bg-white/10 font-display font-bold', idx === 0 ? 'h-16 w-16 text-xl' : 'h-14 w-14 text-lg')} style={{ boxShadow: `0 0 0 2px ${PODIUM[idx]}` }}>{(r.display_name ?? '?').charAt(0)}</span>}
-                        {idx === 0 && <Crown className="absolute -top-3 left-1/2 h-5 w-5 -translate-x-1/2 text-[#ffd76b]" />}
+                        {idx === 0 && <Crown className="absolute -top-3 left-1/2 h-[18px] w-[18px] -translate-x-1/2 text-[#ffd76b]" />}
                       </div>
                       <span className="mt-1.5 max-w-full truncate text-[12.5px] font-semibold">{r.display_name ?? 'Anon'}</span>
                       <span className="font-mono text-[11px] text-[#8fb4ff]">{compact(r.xp_total ?? 0)} XP</span>

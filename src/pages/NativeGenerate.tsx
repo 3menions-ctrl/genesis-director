@@ -137,7 +137,7 @@ export default function NativeGenerate() {
     <div className="fixed inset-0 overflow-y-auto text-white">
       <AuroraBackdrop />
       <div className="relative z-10 flex items-center gap-3 px-4 pb-1" style={{ paddingTop: 'calc(var(--safe-top,0px) + 12px)' }}>
-        <button onClick={() => navigate(-1)} aria-label="Back" className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.06] backdrop-blur-md"><ChevronLeft className="h-5 w-5" /></button>
+        <button onClick={() => navigate(-1)} aria-label="Back" className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.06] backdrop-blur-md"><ChevronLeft className="h-[18px] w-[18px]" /></button>
         <h1 className="font-display text-[20px] font-semibold">{tpl ? 'Use template' : 'New film'}</h1>
         <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[#8fb4ff]/15 px-3 py-1 font-mono text-[11px] font-semibold text-[#8fb4ff]"><Sparkles className="h-3 w-3" />{available.toLocaleString()}</span>
       </div>
@@ -190,7 +190,7 @@ export default function NativeGenerate() {
                 <div className="flex items-center gap-1.5"><span className="font-display text-[14px] font-bold">{e.name}</span>{e.premium && <Crown className="h-3 w-3 text-[#ffd76b]" />}</div>
                 <div className="mt-0.5 font-mono text-[10px] uppercase tracking-wide text-white/45">{e.tier}</div>
                 <div className="mt-1.5 font-mono text-[11px] text-[#8fb4ff]">{c === 0 ? 'Free' : `${c} cr`}</div>
-                {on && <span className="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-[#3f78ff]"><Check className="h-3 w-3" strokeWidth={3} /></span>}
+                {on && <span className="absolute right-2 top-2 grid h-[18px] w-[18px] place-items-center rounded-full bg-[#3f78ff]"><Check className="h-3 w-3" strokeWidth={3} /></span>}
               </button>
             );
           })}
@@ -221,7 +221,7 @@ export default function NativeGenerate() {
       <div className="fixed inset-x-0 z-20 flex flex-col items-center" style={{ bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 16px)' }}>
         <button onClick={generate} disabled={busy || (!needsAvatar && (!canAfford || (!tpl && !prompt.trim())))} aria-label={needsAvatar ? 'Pick your star' : 'Generate'}
           className="grid h-[68px] w-[68px] place-items-center rounded-full text-[#9fc6ff] drop-shadow-[0_3px_12px_rgba(0,0,0,.6)] transition-transform active:scale-90 disabled:opacity-40">
-          {busy ? <Loader2 className="h-7 w-7 animate-spin" /> : needsAvatar ? <UserPlus className="h-7 w-7" /> : <Sparkles className="h-7 w-7" />}
+          {busy ? <Loader2 className="h-6 w-6 animate-spin" /> : needsAvatar ? <UserPlus className="h-6 w-6" /> : <Sparkles className="h-6 w-6" />}
         </button>
         <span className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">{busy ? 'Starting…' : needsAvatar ? 'Pick your star' : canAfford ? `Generate · ${cost === 0 ? 'Free' : `${cost} cr`}` : `Need ${cost} cr`}</span>
       </div>
@@ -240,7 +240,7 @@ function Toggle({ icon: Icon, label, on, onClick }: { icon: typeof Mic; label: s
     <button onClick={() => { void hapticTap(); onClick(); }} className={cn('flex w-full items-center gap-3 rounded-[16px] px-4 py-3 transition-colors', on ? 'msg-glass-accent' : 'msg-glass')}>
       <Icon className="h-[18px] w-[18px] text-white/70" />
       <span className="flex-1 text-left text-[14.5px] font-medium">{label}</span>
-      <span className={cn('relative h-6 w-10 rounded-full transition-colors', on ? 'bg-[#3f78ff]' : 'bg-white/15')}><span className={cn('absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all', on ? 'left-[18px]' : 'left-0.5')} /></span>
+      <span className={cn('relative h-6 w-10 rounded-full transition-colors', on ? 'bg-[#3f78ff]' : 'bg-white/15')}><span className={cn('absolute top-0.5 h-[18px] w-[18px] rounded-full bg-white transition-all', on ? 'left-[18px]' : 'left-0.5')} /></span>
     </button>
   );
 }

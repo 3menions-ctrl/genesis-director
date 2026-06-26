@@ -74,7 +74,7 @@ export default function You() {
         <Sparkles className="relative z-10 h-9 w-9 text-[#7aa2ff]" />
         <div className="relative z-10 text-[24px] font-light italic" style={{ fontFamily: 'Fraunces, serif' }}>Sign in to see your studio</div>
         <button onClick={() => navigate('/auth')} className="relative z-10 mt-1 flex flex-col items-center gap-1.5 text-[#7aa2ff]" aria-label="Sign in">
-          <LogIn className="h-[26px] w-[26px]" /><span className="font-display text-[11px] font-semibold">Sign in</span>
+          <LogIn className="h-[22px] w-[22px]" /><span className="font-display text-[11px] font-semibold">Sign in</span>
         </button>
       </div>
     );
@@ -129,7 +129,7 @@ export default function You() {
               {rank != null && <span className="inline-flex items-center gap-1 rounded-full bg-[#ffd76b]/15 px-2 py-0.5 font-mono text-[10px] font-semibold text-[#ffd76b]"><Crown className="h-3 w-3" />#{rank}</span>}
             </div>
             <div className="flex items-center gap-3.5">
-              <span className="flex items-center gap-1 text-[13px] font-semibold"><Flame className={cn('h-5 w-5', streak > 0 ? 'fill-orange-500 text-orange-400' : 'text-white/25')} />{streak}</span>
+              <span className="flex items-center gap-1 text-[13px] font-semibold"><Flame className={cn('h-[18px] w-[18px]', streak > 0 ? 'fill-orange-500 text-orange-400' : 'text-white/25')} />{streak}</span>
               <span className="flex items-center gap-1 text-[13px] font-semibold text-[#8fb4ff]">◇ {compact(available)}</span>
             </div>
           </div>
@@ -293,7 +293,7 @@ function EmptyTab({ tab, onCreate }: { tab: Tab; onCreate: () => void }) {
     <div className="flex flex-col items-center gap-3 py-12 text-center">
       <div className="text-[16px] font-light italic text-white/70" style={{ fontFamily: 'Fraunces, serif' }}>{copy}</div>
       {tab !== 'liked' && (
-        <button onClick={() => { void hapticTap(); onCreate(); }} className="flex flex-col items-center gap-1.5 text-[#7aa2ff]"><Sparkles className="h-[24px] w-[24px]" /><span className="text-[10px] font-semibold">Create</span></button>
+        <button onClick={() => { void hapticTap(); onCreate(); }} className="flex flex-col items-center gap-1.5 text-[#7aa2ff]"><Sparkles className="h-[21px] w-[21px]" /><span className="text-[10px] font-semibold">Create</span></button>
       )}
     </div>
   );
@@ -307,7 +307,7 @@ function SheetShell({ title, onClose, children }: { title: string; onClose: () =
         <div className="mx-auto mb-2 mt-3 h-1 w-10 rounded-full bg-white/15" />
         <div className="flex items-center justify-between px-5 pb-3">
           <span className="font-display text-[15px] font-semibold">{title}</span>
-          <button onClick={onClose} aria-label="Close" className="text-white/50"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} aria-label="Close" className="text-white/50"><X className="h-[18px] w-[18px]" /></button>
         </div>
         <div className="flex-1 overflow-y-auto px-5">{children}</div>
       </div>
@@ -320,7 +320,7 @@ function PeopleSheet({ kind, userId, onClose, onOpen }: { kind: 'followers' | 'f
   return (
     <SheetShell title={kind === 'followers' ? 'Followers' : 'Following'} onClose={onClose}>
       {loading ? (
-        <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-white/40" /></div>
+        <div className="flex justify-center py-10"><Loader2 className="h-[18px] w-[18px] animate-spin text-white/40" /></div>
       ) : people.length === 0 ? (
         <div className="py-10 text-center text-[13px] text-white/40">{kind === 'followers' ? 'No followers yet.' : 'Not following anyone yet.'}</div>
       ) : (
@@ -453,7 +453,7 @@ function EditSheet({ initial, onClose, onSaved }: { initial: { display_name: str
             <span className="block h-20 w-20 overflow-hidden rounded-full ring-4 ring-[#0d0d14]">
               {avatar ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : <span className="grid h-full w-full place-items-center bg-gradient-to-br from-[#9c8bff] to-[#6b3bff] font-display text-2xl font-bold">{name.trim().charAt(0).toUpperCase()}</span>}
             </span>
-            <span className="absolute bottom-0 right-0 grid h-7 w-7 place-items-center rounded-full bg-[#2f6bff] text-white shadow-[0_0_0_3px_#0d0d14]">{busy === 'avatar' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}</span>
+            <span className="absolute bottom-0 right-0 grid h-6 w-6 place-items-center rounded-full bg-[#2f6bff] text-white shadow-[0_0_0_3px_#0d0d14]">{busy === 'avatar' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}</span>
             <input type="file" accept="image/*" className="hidden" onChange={(e) => pick(e.target.files?.[0], 'avatar')} />
           </label>
         </div>
@@ -465,7 +465,7 @@ function EditSheet({ initial, onClose, onSaved }: { initial: { display_name: str
         <div className="flex justify-center pt-1">
           <button onClick={save} disabled={saving} aria-label="Save" title="Save"
             className="surface-1 grid h-14 w-14 place-items-center rounded-2xl text-[#8fb4ff] transition-transform active:scale-95 disabled:opacity-50">
-            {saving ? <Loader2 className="h-6 w-6 animate-spin" /> : <Check className="h-7 w-7" strokeWidth={2.2} />}
+            {saving ? <Loader2 className="h-6 w-6 animate-spin" /> : <Check className="h-6 w-6" strokeWidth={2.2} />}
           </button>
         </div>
       </div>

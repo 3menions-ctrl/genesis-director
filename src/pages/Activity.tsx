@@ -64,7 +64,7 @@ export default function Activity() {
       <AuroraBackdrop />
 
       <div className="relative z-10 flex items-center gap-3 px-4 pb-2" style={{ paddingTop: 'calc(var(--safe-top,0px) + 12px)' }}>
-        <button onClick={() => navigate(-1)} aria-label="Back" className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.06] backdrop-blur-md"><ChevronLeft className="h-5 w-5" /></button>
+        <button onClick={() => navigate(-1)} aria-label="Back" className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.06] backdrop-blur-md"><ChevronLeft className="h-[18px] w-[18px]" /></button>
         <h1 className="flex-1 font-display text-[20px] font-semibold">Activity</h1>
         {unreadCount > 0 && (
           <button onClick={() => { void hapticTap(); markAllRead(); }} aria-label="Mark all read" className="flex items-center gap-1.5 rounded-full bg-white/[0.06] px-3 py-1.5 text-[12px] font-semibold text-[#8fb4ff] backdrop-blur-md"><CheckCheck className="h-[15px] w-[15px]" />Read all</button>

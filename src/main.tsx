@@ -298,8 +298,26 @@ window.addEventListener("unhandledrejection", (event) => {
 // Suspense spinner. So in dev we actively unregister + purge caches.
 if ("serviceWorker" in navigator) {
   if (import.meta.env.PROD) {
+    // Auto-reload onto a fresh deploy (audit D42). registerType:"autoUpdate"
+    // regenerates + activates a new SW, but nothing reloaded the PAGE, so an
+    // installed PWA / open tab kept running the OLD cached bundle until a manual
+    // refresh — the recurring "stale version" symptom. When a new SW takes
+    // control we reload, but ONLY if this page already had a controller (a real
+    // UPDATE) so the first-install claim doesn't bounce a fresh visit.
+    const hadController = !!navigator.serviceWorker.controller;
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (refreshing || !hadController) return;
+      refreshing = true;
+      window.location.reload();
+    });
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/sw.js").catch(() => {
+      navigator.serviceWorker.register("/sw.js").then((reg) => {
+        // Proactively pull a newer SW on load and every few minutes so a deploy
+        // is picked up without waiting for the next cold start.
+        reg.update().catch(() => {});
+        setInterval(() => reg.update().catch(() => {}), 5 * 60 * 1000);
+      }).catch(() => {
         // Service worker registration failed - app still works
       });
     });

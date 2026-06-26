@@ -7,7 +7,26 @@
 **Test account:** `qa.uxtest.0625@gmail.com` (dedicated QA user, created pre-confirmed via Admin API; `free` tier, 0 credits). No real customer data was touched. No Polar/Stripe payments were made.
 **Screenshots:** `qa-report-assets/` (referenced inline below).
 
-> **Method note:** Every flow was performed as a real user — clicking, typing, navigating — not via unit tests. Console errors and network responses were captured per action. Any test data created (comments, one project, a temporary credit grant) was cleaned up afterward; the account is left in a clean state.
+> **Method note:** Every flow was performed as a real user — clicking, typing, navigating — not via unit tests. Console errors and network responses were captured per action. Any test data created (comments, projects, temporary credit grants) was cleaned up afterward; the account is left in a clean state.
+
+---
+
+## ✅ Fixes applied in this branch (2026-06-26)
+
+The four genuinely-broken items below were fixed and **re-verified in the live browser** after the report.
+
+| # | Bug | Fix | Verified |
+|---|---|---|---|
+| BUG-1 | Inbox 400 (missing `patron_lapsed` enum) | New migration `20260705000700_fix_notification_type_patron_lapsed.sql` **and** the `ALTER TYPE … ADD VALUE` was applied to the live DB | Inbox + all lanes load with **0** 4xx errors |
+| BUG-2 | Generation pipeline fails **silently** | `handleEdgeFunctionError` (`src/lib/userFriendlyErrors.ts`) no longer suppresses real edge-function errors as "non-fatal"; explicit error payloads and non-abort failures are force-surfaced | Submitting a failing generation now shows an error toast instead of nothing |
+| BUG-3 | Comment delete: stale UI + no confirm | Delete moved into `useProjectComments.deleteComment` (invalidates cache) + routed through the standard `confirmAsync` dialog | Confirm dialog appears; comment disappears immediately (no reload) |
+| BUG-5 | Rapid double-submit duplicates comments | Synchronous `sendingRef` re-entrancy lock in `VideoCommentsSection` | 6 rapid clicks → **1** comment |
+
+Regression suite `src/test/regression/comments-system.test.ts` updated for the refactor — **49/49 pass**.
+
+**Still open (not in this pass):** BUG-2's secondary issue — a mid-pipeline failure still leaves a `movie_projects` row stuck in `generating` (needs a rollback/mark-failed in the `mode-router` edge function); BUG-4 (no comment editing); BUG-6 (security headers via `<meta>`); BUG-7 (WebMediaPlayer accumulation). The exact generation 500 should still be re-confirmed with a real-purchase balance (the test used an out-of-band credit grant).
+
+> ⚠️ **Note for reviewers:** the `patron_lapsed` enum value was applied directly to the **live** Supabase database (an additive, idempotent `ALTER TYPE … ADD VALUE IF NOT EXISTS`) so the inbox works immediately. The migration file is committed so the change is reproducible in other environments.
 
 ---
 

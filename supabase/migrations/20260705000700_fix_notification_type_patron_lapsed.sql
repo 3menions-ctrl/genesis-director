@@ -1,0 +1,13 @@
+-- Fix: inbox_overview / inbox_list_lane RPCs 400 with
+--   22P02: invalid input value for enum notification_type: "patron_lapsed"
+--
+-- The unified-inbox functions (20260613240000_unified_inbox.sql) reference the
+-- enum value 'patron_lapsed' in their tips_pledges lane cast and in the system
+-- unread-count filter, but that migration only ever added 'patron_received' —
+-- 'patron_lapsed' was never added to the enum. Every inbox_overview call casts a
+-- non-existent enum value and Postgres rejects the whole RPC, so the inbox shows
+-- a false "All caught up" for every user.
+--
+-- ADD VALUE is additive, idempotent (IF NOT EXISTS), and must run outside a
+-- transaction block — keep it as the only statement in this migration.
+ALTER TYPE public.notification_type ADD VALUE IF NOT EXISTS 'patron_lapsed';

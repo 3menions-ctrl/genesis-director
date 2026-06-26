@@ -15,10 +15,12 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { confirmAsync } from '@/components/ui/global-confirm';
 
 interface CommentItemProps {
   comment: ProjectComment & { profile?: { display_name: string | null; avatar_url: string | null } };
   onReply: (commentId: string, authorName: string) => void;
+  onDelete: (commentId: string) => void | Promise<void>;
   isReply?: boolean;
 }
 
@@ -73,9 +75,10 @@ const CommentReactions = memo(function CommentReactions({ commentId }: { comment
   );
 });
 
-const CommentItem = memo(function CommentItem({ 
-  comment, 
+const CommentItem = memo(function CommentItem({
+  comment,
   onReply,
+  onDelete,
   isReply = false,
 }: CommentItemProps) {
   const { user } = useAuth();
@@ -84,16 +87,13 @@ const CommentItem = memo(function CommentItem({
   const isOwn = user?.id === comment.user_id;
 
   const handleDelete = async () => {
-    try {
-      const { error } = await supabase
-        .from('project_comments')
-        .delete()
-        .eq('id', comment.id);
-      if (error) throw error;
-      toast.success('Comment deleted');
-    } catch (err) {
-      toast.error('Failed to delete comment');
-    }
+    const confirmed = await confirmAsync({
+      title: 'Delete comment?',
+      description: 'This permanently removes your comment. This cannot be undone.',
+      destructive: true,
+    });
+    if (!confirmed) return;
+    await onDelete(comment.id);
   };
 
   return (
@@ -158,8 +158,21 @@ export function VideoCommentsSection({ projectId, className }: VideoCommentsSect
   const [inputValue, setInputValue] = useState('');
   const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // Synchronous re-entrancy lock. addComment.isPending is React state and does
+  // not flip until the next render, so rapid double-clicks all pass the guard
+  // and post duplicate comments. A ref blocks them within the same tick.
+  const sendingRef = useRef(false);
   
-  const { comments, isLoading, addComment } = useProjectComments(projectId);
+  const { comments, isLoading, addComment, deleteComment } = useProjectComments(projectId);
+
+  const handleDeleteComment = async (commentId: string) => {
+    try {
+      await deleteComment.mutateAsync(commentId);
+      toast.success('Comment deleted');
+    } catch (err) {
+      toast.error('Failed to delete comment');
+    }
+  };
   
   // Fetch profiles for comments
   const [commentsWithProfiles, setCommentsWithProfiles] = useState<(ProjectComment & { profile?: { display_name: string | null; avatar_url: string | null } })[]>([]);
@@ -199,7 +212,8 @@ export function VideoCommentsSection({ projectId, className }: VideoCommentsSect
   };
 
   const handleSend = async () => {
-    if (!inputValue.trim() || addComment.isPending) return;
+    if (!inputValue.trim() || addComment.isPending || sendingRef.current) return;
+    sendingRef.current = true;
 
     try {
       await addComment.mutateAsync({
@@ -211,6 +225,8 @@ export function VideoCommentsSection({ projectId, className }: VideoCommentsSect
       toast.success('Comment added');
     } catch (err) {
       toast.error('Failed to add comment');
+    } finally {
+      sendingRef.current = false;
     }
   };
 
@@ -294,14 +310,15 @@ export function VideoCommentsSection({ projectId, className }: VideoCommentsSect
         ) : (
           topLevelComments.map(comment => (
             <div key={comment.id}>
-              <CommentItem comment={comment} onReply={handleReply} />
+              <CommentItem comment={comment} onReply={handleReply} onDelete={handleDeleteComment} />
               {/* Replies */}
               {repliesMap.get(comment.id)?.map(reply => (
-                <CommentItem 
-                  key={reply.id} 
-                  comment={reply} 
+                <CommentItem
+                  key={reply.id}
+                  comment={reply}
                   onReply={handleReply}
-                  isReply 
+                  onDelete={handleDeleteComment}
+                  isReply
                 />
               ))}
             </div>

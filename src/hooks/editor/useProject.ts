@@ -109,6 +109,13 @@ export function useProject(projectId: string | undefined) {
       setProject(buildDemoProject());
       return;
     }
+    // Clear the previous project + error before loading a new one (audit D30).
+    // Without this, navigating /editor/A -> /editor/B kept project A truthy
+    // during B's load, so EditorShell's `loading && !project` shimmer never
+    // showed (A's timeline rendered under B's URL) and a failed B load left
+    // the `error && !project` not-found UI unreachable.
+    setProject(null);
+    setError(null);
     let cancelled = false;
 
     (async () => {

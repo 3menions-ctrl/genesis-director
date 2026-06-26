@@ -4,7 +4,7 @@
  * sign out. Deeper screens link to the existing web surfaces for now.
  */
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, CreditCard, UserRound, Bell, ShieldCheck, HelpCircle, LogOut, Pencil, type LucideIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CreditCard, UserRound, Bell, ShieldCheck, HelpCircle, LogOut, Pencil, FolderOpen, type LucideIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
 import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
@@ -39,6 +39,10 @@ export default function MobileSettings() {
           </div>
           <Pencil className="h-[18px] w-[18px] text-white/40" />
         </button>
+
+        <Group label="Content">
+          <Row icon={FolderOpen} label="Your library" onClick={() => go('/me/library')} />
+        </Group>
 
         <Group label="Account">
           <Row icon={CreditCard} label="Credits & billing" hint={`◇ ${available}`} onClick={() => go('/account?tab=credits')} />

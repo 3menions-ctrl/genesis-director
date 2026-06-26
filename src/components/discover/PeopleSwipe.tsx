@@ -26,10 +26,12 @@ export function PeopleSwipe({ userId }: { userId: string }) {
     try {
       const { data: f } = await supabase.from('user_follows' as never).select('following_id').eq('follower_id', userId);
       const followed = new Set(((f ?? []) as unknown as { following_id: string }[]).map((r) => r.following_id));
-      const { data } = await supabase.from('find_friends_directory' as never)
+      // profiles_public is the real, populated directory (find_friends_directory
+      // returns 0 rows). Holds every signed-up creator — web or app.
+      const { data } = await supabase.from('profiles_public' as never)
         .select('id, display_name, avatar_url, tagline, location, bio')
-        .order('profile_view_count', { ascending: false }).limit(40);
-      const cands = ((data ?? []) as unknown as Person[]).filter((p) => p.id !== userId && !followed.has(p.id));
+        .limit(60);
+      const cands = ((data ?? []) as unknown as Person[]).filter((p) => p.id && p.id !== userId && !followed.has(p.id) && p.display_name);
       setPeople(cands);
     } catch { setPeople([]); }
     finally { setLoading(false); }

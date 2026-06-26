@@ -19,6 +19,8 @@ const MAP: Array<[RegExp, (m: RegExpMatchArray) => string]> = [
   [/^\/settings(?:\/.*)?$/, () => '/me/settings'],
   [/^\/c\/([^/]+)$/, (m) => `/u/${m[1]}`],
   [/^\/(?:library|projects)$/, () => '/me/library'],
+  [/^\/production$/, () => '/me/library'],   // bare production dashboard → native library
+  [/^\/c\/([^/]+)\/patron$/, (m) => `/u/${m[1]}`],
   [/^\/lobby$/, () => '/feed'],
   [/^\/(?:search|explore)$/, () => '/discover'],
   [/^\/films$/, () => '/discover'],

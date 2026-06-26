@@ -91,12 +91,13 @@ export function useSearchEverything(query: string) {
     setLoading(true);
     const t = setTimeout(async () => {
       try {
-        // search_everything (ranked) AND a direct directory name match, so ANY
-        // registered user — including people who signed up on the web — is
-        // findable, not just those who've published content. Same backend.
+        // search_everything (ranked) AND a direct profiles_public name match, so
+        // ANY registered user — including people who signed up on the web — is
+        // findable, not just those who've published content. (find_friends_directory
+        // returns 0 rows; profiles_public is the populated directory.)
         const [rpcRes, dirRes] = await Promise.all([
           supabase.rpc('search_everything' as never, { p_query: term, p_limit: 16 } as never),
-          supabase.from('find_friends_directory' as never).select('id, display_name, avatar_url, tagline').ilike('display_name', `%${term}%`).limit(16),
+          supabase.from('profiles_public' as never).select('id, display_name, avatar_url, tagline').ilike('display_name', `%${term}%`).limit(16),
         ]);
         const payload = (rpcRes.data as unknown as { reels?: ReelHit[]; creators?: CreatorHit[] }) ?? {};
         const dir = ((dirRes.data ?? []) as unknown as { id: string; display_name: string | null; avatar_url: string | null; tagline: string | null }[])

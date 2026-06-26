@@ -218,17 +218,21 @@ export function useDirectMessages(otherUserId?: string) {
     enabled: !!user,
   });
 
-  // Fetch decrypted messages with a specific user via RPC
+  // Fetch the thread with a specific user. Read straight from direct_messages
+  // (content is plaintext; the old get_decrypted_messages RPC doesn't exist).
   const { data: messages, isLoading: messagesLoading } = useQuery({
     queryKey: ['direct-messages', user?.id, otherUserId],
     queryFn: async () => {
       if (!user || !otherUserId) return [];
-      
-      const { data, error } = await (supabase as any)
-        .rpc('get_decrypted_messages', { p_other_user_id: otherUserId });
-      
+
+      const { data, error } = await supabase
+        .from('direct_messages')
+        .select('id, sender_id, recipient_id, content, created_at, read_at')
+        .or(`and(sender_id.eq.${user.id},recipient_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},recipient_id.eq.${user.id})`)
+        .order('created_at', { ascending: true });
+
       if (error) throw error;
-      return (data ?? []) as DirectMessage[];
+      return (data ?? []) as unknown as DirectMessage[];
     },
     enabled: !!user && !!otherUserId,
   });

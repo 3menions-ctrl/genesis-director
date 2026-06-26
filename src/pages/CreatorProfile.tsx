@@ -80,7 +80,9 @@ export default function CreatorProfile() {
     if (!id) return; let c = false;
     (async () => {
       try {
-        const { data } = await supabase.from('profiles' as never).select('cover_url').eq('id', id).maybeSingle();
+        // profiles_public exposes cover_url; the base profiles table is RLS-locked
+        // to the owner, so reading another creator's row there returns nothing.
+        const { data } = await supabase.from('profiles_public' as never).select('cover_url').eq('id', id).maybeSingle();
         if (!c) setCover((data as { cover_url?: string | null } | null)?.cover_url ?? null);
       } catch { /* RLS / not available → avatar fallback */ }
     })();

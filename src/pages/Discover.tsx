@@ -4,7 +4,7 @@
  * aspect). People = a swipe deck (right to follow). Search overrides the
  * category and returns reels + creators (search_everything).
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, X, Loader2, Clapperboard, Sparkles, Users } from 'lucide-react';
 import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
@@ -43,10 +43,24 @@ export default function Discover() {
   // Only Videos falls back to the bundled films when empty; Reels (≤5s) stays accurate.
   const reels = !list.loading && list.reels.length === 0 && cat === 'videos' ? STATIC : list.reels;
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const pullY = useRef(0);
+  const pulling = useRef(false);
+  const browsing = !searching && !searchOpen && cat !== 'people';
+  const onScroll = () => {
+    const c = scrollRef.current; if (!c || !browsing) return;
+    if (c.scrollTop + c.clientHeight >= c.scrollHeight - 700) void list.loadMore();
+  };
+  const onTouchStart = (e: React.TouchEvent) => { const c = scrollRef.current; if (c && c.scrollTop <= 0 && browsing) { pullY.current = e.touches[0].clientY; pulling.current = true; } };
+  const onTouchMove = (e: React.TouchEvent) => { if (!pulling.current || refreshing) return; if (e.touches[0].clientY - pullY.current > 80) { pulling.current = false; setRefreshing(true); list.refresh(); window.setTimeout(() => setRefreshing(false), 1300); } };
+  const onTouchEnd = () => { pulling.current = false; };
+
   return (
     <div className="fixed inset-0 text-white">
       <AuroraBackdrop />
-      <div className="relative z-10 h-full overflow-y-auto px-4" style={{ paddingTop: 'calc(var(--safe-top,0px) + 14px)', paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 28px)' }}>
+      {refreshing && <div className="pointer-events-none absolute inset-x-0 z-30 flex justify-center" style={{ top: 'calc(var(--safe-top,0px) + 14px)' }}><span className="inline-flex items-center gap-2 rounded-full bg-black/50 px-3 py-1.5 text-[12px] backdrop-blur-md"><Loader2 className="h-3.5 w-3.5 animate-spin" />Refreshing</span></div>}
+      <div ref={scrollRef} onScroll={onScroll} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} className="relative z-10 h-full overflow-y-auto px-4" style={{ paddingTop: 'calc(var(--safe-top,0px) + 14px)', paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 28px)' }}>
         {/* Category icons (no titles) + a search toggle in the top-right */}
         {!searching && !searchOpen && (
           <div className="relative mt-5 flex items-center justify-center gap-10">

@@ -3,7 +3,7 @@
  * Wired to channel_worlds + published_reels + the search_everything RPC (same
  * sources the web Lobby / SearchHub use).
  */
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface World { id: string; slug: string; name: string; accent_hsl: string; glyph: string | null }
@@ -41,26 +41,53 @@ export function useWorlds() {
  *  - 'reels' : short reels ONLY — clips of 5 seconds or less — newest first.
  *    A reel is, by definition, a ≤5s clip.
  */
+const PAGE = 24;
+async function fetchListPage(kind: 'videos' | 'reels', world: string | null | undefined, page: number): Promise<ReelHit[]> {
+  let q = supabase.from('published_reels' as never)
+    .select('id, title, thumbnail_url, video_url, world_slug, play_count, like_count, creator_id, created_at, duration_sec')
+    .eq('is_taken_down', false);
+  if (kind === 'reels') q = q.gt('duration_sec', 0).lte('duration_sec', 5);
+  else q = q.or('duration_sec.gt.5,duration_sec.is.null');
+  if (world) q = q.eq('world_slug', world);
+  const from = page * PAGE;
+  const { data } = await q.order(kind === 'reels' ? 'created_at' : 'play_count', { ascending: false }).range(from, from + PAGE - 1);
+  return ((data ?? []) as unknown as ReelHit[]).map((r) => ({ ...r, title: r.title ?? 'Untitled' }));
+}
+
 export function useReelsList(kind: 'videos' | 'reels', world?: string | null) {
   const [reels, setReels] = useState<ReelHit[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0);
+  const pageRef = useRef(0);
+  const busyRef = useRef(false);
+
   useEffect(() => {
-    let cancel = false; setLoading(true);
+    let cancel = false; setLoading(true); pageRef.current = 0;
     (async () => {
-      try {
-        let q = supabase.from('published_reels' as never)
-          .select('id, title, thumbnail_url, video_url, world_slug, play_count, like_count, creator_id, created_at, duration_sec')
-          .eq('is_taken_down', false);
-        if (kind === 'reels') q = q.gt('duration_sec', 0).lte('duration_sec', 5);
-        else q = q.or('duration_sec.gt.5,duration_sec.is.null');
-        if (world) q = q.eq('world_slug', world);
-        const { data } = await q.order(kind === 'reels' ? 'created_at' : 'play_count', { ascending: false }).limit(30);
-        if (!cancel) { setReels(((data ?? []) as unknown as ReelHit[]).map((r) => ({ ...r, title: r.title ?? 'Untitled' }))); setLoading(false); }
-      } catch { if (!cancel) { setReels([]); setLoading(false); } }
+      try { const rows = await fetchListPage(kind, world, 0); if (!cancel) { setReels(rows); setHasMore(rows.length === PAGE); } }
+      catch { if (!cancel) { setReels([]); setHasMore(false); } }
+      finally { if (!cancel) setLoading(false); }
     })();
     return () => { cancel = true; };
-  }, [kind, world]);
-  return { reels, loading };
+  }, [kind, world, reloadKey]);
+
+  const refresh = useCallback(() => { busyRef.current = false; setReloadKey((k) => k + 1); }, []);
+  const loadMore = useCallback(async () => {
+    if (busyRef.current || !hasMore || loading) return;
+    busyRef.current = true; setLoadingMore(true);
+    try {
+      const next = pageRef.current + 1;
+      const rows = await fetchListPage(kind, world, next);
+      pageRef.current = next;
+      setReels((prev) => { const seen = new Set(prev.map((p) => p.id)); return [...prev, ...rows.filter((r) => !seen.has(r.id))]; });
+      setHasMore(rows.length === PAGE);
+    } catch { setHasMore(false); }
+    finally { busyRef.current = false; setLoadingMore(false); }
+  }, [kind, world, hasMore, loading]);
+
+  return { reels, loading, loadingMore, hasMore, refresh, loadMore };
 }
 
 export interface DailyPrompt { id?: string; prompt_text: string; prompt_hint?: string | null; cover_url?: string | null; world_slug?: string | null }

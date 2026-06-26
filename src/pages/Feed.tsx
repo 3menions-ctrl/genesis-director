@@ -13,7 +13,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Repeat2, Share2, Volume2, VolumeX, Sparkles, SmilePlus } from 'lucide-react';
+import { Heart, MessageCircle, Repeat2, Share2, Volume2, VolumeX, Sparkles, SmilePlus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,10 +32,13 @@ function compact(n: number): string {
 }
 
 export default function Feed() {
-  const { items, loading } = useReelsFeed();
+  const { items, loading, loadMore, refresh } = useReelsFeed();
   const [active, setActive] = useState(0);
   const [muted, setMuted] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [comments, setComments] = useState<{ item: FeedItem; bump: () => void } | null>(null);
+  const pullY = useRef(0);
+  const pulling = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -57,6 +60,17 @@ export default function Feed() {
     return () => io.disconnect();
   }, [items.length]);
 
+  // Infinite scroll — fetch the next page as the active reel nears the end.
+  useEffect(() => { if (!loading && active >= items.length - 3) void loadMore(); }, [active, items.length, loading, loadMore]);
+
+  // Pull-to-refresh at the top of the feed.
+  const onTouchStart = (e: React.TouchEvent) => { const c = containerRef.current; if (c && c.scrollTop <= 0) { pullY.current = e.touches[0].clientY; pulling.current = true; } };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!pulling.current || refreshing) return;
+    if (e.touches[0].clientY - pullY.current > 80) { pulling.current = false; setRefreshing(true); refresh(); window.setTimeout(() => setRefreshing(false), 1300); }
+  };
+  const onTouchEnd = () => { pulling.current = false; };
+
   return (
     <div className="fixed inset-0 bg-[#0a0a0a] text-white">
       {/* Mute toggle */}
@@ -69,9 +83,19 @@ export default function Feed() {
         {muted ? <VolumeX className="h-[20px] w-[20px]" /> : <Volume2 className="h-[20px] w-[20px]" />}
       </button>
 
+      {/* Pull-to-refresh indicator */}
+      {refreshing && (
+        <div className="pointer-events-none absolute inset-x-0 z-30 flex justify-center" style={{ top: 'calc(var(--safe-top,0px) + 14px)' }}>
+          <span className="inline-flex items-center gap-2 rounded-full bg-black/50 px-3 py-1.5 text-[12px] backdrop-blur-md"><Loader2 className="h-3.5 w-3.5 animate-spin" />Refreshing</span>
+        </div>
+      )}
+
       {/* Snap-scrolling feed */}
       <div
         ref={containerRef}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
         className="h-full snap-y snap-mandatory overflow-y-scroll overscroll-y-contain"
         style={{ scrollbarWidth: 'none' }}
       >

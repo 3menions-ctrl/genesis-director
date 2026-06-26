@@ -719,6 +719,23 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
+    // IDOR guard (audit D23): an end-user may only generate/attach music for a
+    // project they own. Without this, any authenticated caller could pass a
+    // victim's projectId and overwrite their movie_projects.music_url + inject
+    // a clip onto their editor timeline. Service-role (internal pipeline) calls
+    // bypass. Checked BEFORE generation so a hijack also can't burn AI credits.
+    if (projectId && supabase && !auth.isServiceRole) {
+      const { data: ownerProj } = await supabase
+        .from('movie_projects')
+        .select('user_id')
+        .eq('id', projectId)
+        .maybeSingle();
+      if (ownerProj && ownerProj.user_id !== auth.userId) {
+        const { forbiddenResponse } = await import("../_shared/auth-guard.ts");
+        return forbiddenResponse(corsHeaders, 'Forbidden: you do not own this project');
+      }
+    }
+
     // Generate world-class music with optimized settings based on mood
     const generationSettings = {
       temperature: intensity === 'explosive' ? 1.1 : 1.0,

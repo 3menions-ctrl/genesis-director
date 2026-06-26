@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
           await supabase.from('photo_edits').update({
             status: 'failed',
             error_message: 'Content policy violation',
-          }).eq('id', editId);
+          }).eq('id', editId).eq('user_id', auth.userId);
         }
         return new Response(
           JSON.stringify({ error: safetyCheck.message, category: safetyCheck.category }),
@@ -143,7 +143,7 @@ Deno.serve(async (req) => {
           await supabase.from('photo_edits').update({
             status: 'failed',
             error_message: 'Insufficient credits',
-          }).eq('id', editId);
+          }).eq('id', editId).eq('user_id', auth.userId);
         }
         return new Response(
           JSON.stringify({ error: 'Insufficient credits', required: creditsCost, available: profile?.credits_balance || 0 }),
@@ -170,7 +170,7 @@ Deno.serve(async (req) => {
           await supabase.from('photo_edits').update({
             status: 'failed',
             error_message: deductErr ? 'Credit deduction error' : 'Insufficient credits',
-          }).eq('id', editId);
+          }).eq('id', editId).eq('user_id', auth.userId);
         }
         return new Response(
           JSON.stringify({ error: deductErr ? 'Failed to deduct credits' : 'Insufficient credits', required: creditsCost, available: profile?.credits_balance || 0 }),
@@ -184,7 +184,7 @@ Deno.serve(async (req) => {
       await supabase.from('photo_edits').update({
         status: 'processing',
         credits_charged: creditsCost,
-      }).eq('id', editId);
+      }).eq('id', editId).eq('user_id', auth.userId);
     }
 
     console.log(`[edit-photo] Processing via Lovable AI gateway for user ${auth.userId.slice(0, 8)}...`);
@@ -248,7 +248,7 @@ Deno.serve(async (req) => {
         await supabase.from('photo_edits').update({
           status: 'failed',
           error_message: errorMsg,
-        }).eq('id', editId);
+        }).eq('id', editId).eq('user_id', auth.userId);
       }
 
       // Refund via the dedicated refund_credits RPC (single source of truth).
@@ -281,7 +281,7 @@ Deno.serve(async (req) => {
         await supabase.from('photo_edits').update({
           status: 'failed',
           error_message: 'No edited image returned',
-        }).eq('id', editId);
+        }).eq('id', editId).eq('user_id', auth.userId);
       }
       if (creditsCost > 0) {
         const { error: refundError } = await supabase.rpc('refund_credits', {
@@ -344,7 +344,7 @@ Deno.serve(async (req) => {
         status: 'completed',
         edited_url: editedUrl,
         processing_time_ms: processingTime,
-      }).eq('id', editId);
+      }).eq('id', editId).eq('user_id', auth.userId);
     }
 
     console.log(`[edit-photo] Completed in ${processingTime}ms for user ${auth.userId.slice(0, 8)}`);

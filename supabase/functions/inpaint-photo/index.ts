@@ -140,7 +140,7 @@ Deno.serve(async (req) => {
           await supabase.from('photo_edits').update({
             status: 'failed',
             error_message: 'Content policy violation',
-          }).eq('id', editId);
+          }).eq('id', editId).eq('user_id', auth.userId);
         }
         return new Response(
           JSON.stringify({ error: safetyCheck.message, category: safetyCheck.category }),
@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
           await supabase.from('photo_edits').update({
             status: 'failed',
             error_message: 'Insufficient credits',
-          }).eq('id', editId);
+          }).eq('id', editId).eq('user_id', auth.userId);
         }
         return new Response(
           JSON.stringify({ error: 'Insufficient credits', required: creditsCost, available: profile?.credits_balance || 0 }),
@@ -190,7 +190,7 @@ Deno.serve(async (req) => {
         await supabase.from('photo_edits').update({
           status: 'failed',
           error_message: deductErr ? 'Credit deduction error' : 'Insufficient credits',
-        }).eq('id', editId);
+        }).eq('id', editId).eq('user_id', auth.userId);
       }
       return new Response(
         JSON.stringify({ error: deductErr ? 'Failed to deduct credits' : 'Insufficient credits', required: creditsCost }),
@@ -213,7 +213,7 @@ Deno.serve(async (req) => {
       await supabase.from('photo_edits').update({
         status: 'processing',
         credits_charged: creditsCost,
-      }).eq('id', editId);
+      }).eq('id', editId).eq('user_id', auth.userId);
     }
 
     console.log(`[inpaint-photo] Processing via Replicate FLUX Fill for user ${auth.userId.slice(0, 8)}...`);
@@ -296,7 +296,7 @@ Deno.serve(async (req) => {
           await supabase.from('photo_edits').update({
             status: 'failed',
             error_message: 'Inpainting failed',
-          }).eq('id', editId);
+          }).eq('id', editId).eq('user_id', auth.userId);
         }
         return new Response(
           JSON.stringify({ error: fluxResponse.status === 429 ? 'Rate limited, try again shortly' : 'Inpainting failed' }),
@@ -317,7 +317,7 @@ Deno.serve(async (req) => {
         await supabase.from('photo_edits').update({
           status: 'failed',
           error_message: 'Inpainting failed',
-        }).eq('id', editId);
+        }).eq('id', editId).eq('user_id', auth.userId);
       }
       return new Response(
         JSON.stringify({ error: e instanceof Error ? e.message : 'Inpainting failed' }),
@@ -343,7 +343,7 @@ Deno.serve(async (req) => {
         await supabase.from('photo_edits').update({
           status: 'failed',
           error_message: 'Failed to retrieve result',
-        }).eq('id', editId);
+        }).eq('id', editId).eq('user_id', auth.userId);
       }
       return new Response(
         JSON.stringify({ error: 'Failed to retrieve inpainted image' }),
@@ -363,7 +363,7 @@ Deno.serve(async (req) => {
         await supabase.from('photo_edits').update({
           status: 'failed',
           error_message: 'Failed to save image',
-        }).eq('id', editId);
+        }).eq('id', editId).eq('user_id', auth.userId);
       }
       throw new Error('Failed to save inpainted image');
     }
@@ -387,7 +387,7 @@ Deno.serve(async (req) => {
         status: 'completed',
         edited_url: editedUrl,
         processing_time_ms: processingTime,
-      }).eq('id', editId);
+      }).eq('id', editId).eq('user_id', auth.userId);
     }
 
     console.log(`[inpaint-photo] Completed in ${processingTime}ms for user ${auth.userId.slice(0, 8)}`);

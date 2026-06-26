@@ -76,3 +76,19 @@ export async function hapticTap(): Promise<void> {
     /* haptics optional */
   }
 }
+
+/**
+ * Open the native share sheet (Web Share API → works in WKWebView), falling
+ * back to copying the link to the clipboard. Returns what happened so callers
+ * can toast appropriately.
+ */
+export async function shareLink(opts: { title?: string; text?: string; url: string }): Promise<'shared' | 'copied' | 'failed'> {
+  void hapticTap();
+  const nav = typeof navigator !== 'undefined' ? navigator : undefined;
+  if (nav?.share) {
+    try { await nav.share({ title: opts.title, text: opts.text, url: opts.url }); return 'shared'; }
+    catch (e) { if (e instanceof DOMException && e.name === 'AbortError') return 'shared'; /* cancelled */ }
+  }
+  try { await nav?.clipboard?.writeText(opts.url); return 'copied'; }
+  catch { return 'failed'; }
+}

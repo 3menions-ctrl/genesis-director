@@ -9,14 +9,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, useMotionValue, useTransform, animate, type PanInfo } from 'framer-motion';
-import { X, MessageCircle, UserPlus, UserCheck, Loader2 } from 'lucide-react';
+import { X, MessageCircle, UserPlus, UserCheck, Loader2, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePublicProfile } from '@/hooks/usePublicProfile';
 import { MessageThread } from '@/components/social/MessageThread';
 import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
-import { hapticTap } from '@/lib/native/shell';
+import { hapticTap, shareLink } from '@/lib/native/shell';
 import { cn } from '@/lib/utils';
 
 const compact = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1).replace(/\.0$/, '')}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1).replace(/\.0$/, '')}k` : String(n));
@@ -107,6 +107,12 @@ export default function CreatorProfile() {
       {!isLoading && profile && (
         <button onClick={exit} aria-label="Exit" className="fixed z-30 grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur-md"
           style={{ top: 'calc(var(--safe-top,0px) + 12px)', left: '14px' }}><X className="h-5 w-5" /></button>
+      )}
+      {/* Share */}
+      {!isLoading && profile && id && (
+        <button onClick={async () => { const r = await shareLink({ title: `${profile.display_name ?? 'A creator'} on Small Bridges`, text: `Watch ${profile.display_name ?? 'their'} films`, url: `https://smallbridges.co/c/${id}` }); if (r === 'copied') toast.success('Link copied'); }}
+          aria-label="Share profile" className="fixed z-30 grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur-md"
+          style={{ top: 'calc(var(--safe-top,0px) + 12px)', right: '14px' }}><Share2 className="h-[18px] w-[18px]" /></button>
       )}
 
       {messaging && id && profile && <MessageThread recipientId={id} name={profile.display_name ?? 'creator'} avatar={profile.avatar_url} onClose={() => setMessaging(false)} />}

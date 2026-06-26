@@ -13,6 +13,7 @@ import { PeopleSwipe } from '@/components/discover/PeopleSwipe';
 import { useAuth } from '@/contexts/AuthContext';
 import { useReelsList, useSearchEverything, useDailyPrompt, useWorlds, type ReelHit } from '@/hooks/useDiscover';
 import { FILMS } from '@/data/filmsLibrary';
+import { PremiereStrip } from '@/components/native/PremiereStrip';
 import { hapticTap } from '@/lib/native/shell';
 import { cn } from '@/lib/utils';
 
@@ -84,6 +85,9 @@ export default function Discover() {
             </div>
           </button>
         )}
+
+        {/* Upcoming + live premieres */}
+        {!searching && <PremiereStrip />}
 
         {/* Worlds filter — borderless chips (Videos/Reels only) */}
         {!searching && cat !== 'people' && (

@@ -158,3 +158,15 @@ reachable in-app purchase or external-checkout path — verified at every layer:
 - ADDED: /pricing,/billing → /me/plans in MobileRouteRedirects (defense-in-depth +
   consistency; lands credit intents on the compliant page in preview AND device).
 - Runtime: /pricing→/me/plans, /credits→/you, no external page opened. (`d59eba7b`)
+
+## Cycle 14 — ship assets + accessibility + visual regression (PASS)
+- **App icon**: REAL branded "SB" art (white serif monogram on the dark-blue Aurora
+  gradient + accent bar), 1024x1024, hasAlpha=NO (App Store opaque requirement met).
+  NOT the Capacitor placeholder. (Minor cosmetic: baked-in rounded corners; iOS masks
+  again — acceptable, not a blocker.) Splash: matching branded "SB" art, dark theme.
+- **Accessibility**: 0 unlabeled buttons and 0 undersized (<40pt) unlabeled tap
+  targets across 14 native screens — every interactive control has an accessible name.
+- **Visual regression**: re-screenshot creator-profile masonry (varied aspect ratios,
+  immersive) and leaderboard (demo's row renders) after the night's commits — both
+  still correct. No regression.
+- No fixes needed this cycle.

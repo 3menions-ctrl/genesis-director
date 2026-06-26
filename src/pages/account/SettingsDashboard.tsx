@@ -1285,18 +1285,33 @@ function PrivacyModule({
   // on every load, so query the table directly.)
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
+      // Two-step fetch: user_blocks.blocked_id has a FK to auth.users (not
+      // public.profiles), so PostgREST can't embed profiles directly — the
+      // old `profiles!user_blocks_blocked_id_fkey` embed 400'd (PGRST200).
+      // Fetch the rows, then resolve display info from profiles_public.
+      const { data: rows } = await supabase
         .from("user_blocks" as never)
-        .select("blocked_id, created_at, blocked:profiles!user_blocks_blocked_id_fkey(id, display_name, username, avatar_url)")
+        .select("blocked_id, created_at")
         .eq("blocker_id", profile.id);
-      if (Array.isArray(data)) {
-        setBlocked(data.map((r: any) => ({
-          id: r.blocked_id,
-          display_name: r.blocked?.display_name ?? null,
-          username: r.blocked?.username ?? null,
-          avatar_url: r.blocked?.avatar_url ?? null,
-          created_at: r.created_at,
-        })));
+      if (Array.isArray(rows) && rows.length > 0) {
+        const ids = [...new Set(rows.map((r: any) => r.blocked_id))];
+        const { data: profs } = await supabase
+          .from("profiles_public")
+          .select("id, display_name, username, avatar_url")
+          .in("id", ids);
+        const pmap = new Map((profs || []).map((p: any) => [p.id, p]));
+        setBlocked(rows.map((r: any) => {
+          const prof = pmap.get(r.blocked_id);
+          return {
+            id: r.blocked_id,
+            display_name: prof?.display_name ?? null,
+            username: prof?.username ?? null,
+            avatar_url: prof?.avatar_url ?? null,
+            created_at: r.created_at,
+          };
+        }));
+      } else {
+        setBlocked([]);
       }
       setLoadingBlocked(false);
     })();

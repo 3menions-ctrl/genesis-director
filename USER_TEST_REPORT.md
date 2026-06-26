@@ -294,6 +294,49 @@ Minor: the "year in review" page references `noise.svg` which 404s. Cosmetic/mis
 
 ---
 
+# Round 3 — Autonomous fix + full regular-user verification (2026-06-26)
+
+Autonomous pass: fixed every clearly-broken regular-user item, kept testing the rest, and verified each fix in the real browser. No pipelines were run and no credits were purchased. All test data was cleaned up (account: 0 credits / 0 projects / 0 comments / 0 reactions / 0 blocks).
+
+## Fixes applied & verified
+
+| # | Issue | Fix | Verified |
+|---|---|---|---|
+| BUG-8 | Search 500 (crews RLS infinite recursion) | `SECURITY DEFINER` helpers `is_crew_member` / `is_public_crew` break the policy cycle (migration `20260705000800` + applied live) | `search_everything` now 200; "bunny" returns Big Buck Bunny |
+| BUG-4 | No comment editing | Inline editor on own comments + `(edited)` marker + `updateComment` mutation (RLS already allowed it) | Edit → PATCH 204 → persists with marker |
+| BUG-9 | Lobby `editor_presence` 404 every load | Removed the dead query + the never-shown "In the editor" stat | 0 `editor_presence` requests |
+| BUG-10 | `<button>` inside `<button>` (Environment/Crossover/avatar cards) | Outer card → `div role="button"` + keyboard handler | 0 `validateDOMNesting` warnings; cards still open |
+| BUG-6 | Console warnings: header `<meta>` tags ignored by browsers | Removed redundant `X-Frame-Options` + CSP `frame-ancestors` meta (real HTTP headers already enforce them) | 0 header warnings |
+| BUG-11 | `noise.svg` loaded from an external site (404) | Bundled `public/noise.svg` locally; updated 4 references | `noise.svg` now 200 |
+| **BUG-12** *(new)* | Blocked-users settings 400 (`PGRST200`) — embed `profiles!user_blocks_blocked_id_fkey` but that FK points to `auth.users`, not `profiles` | Two-step fetch via `profiles_public` (same secure pattern as comments) | `user_blocks` now 200 |
+
+## Regular-user surfaces tested this round (all pass)
+
+- **Inbox** — all 9 lanes (all/people/rooms/comments/mentions/tips_pledges/renders/brand/system) load with no errors (enum fix holding).
+- **Account** — settings / credits / developers tabs; **privacy toggle** writes (PATCH 204) and restores; **bio edit** persists.
+- **Watch page** (`/watch/:id`) — Share (native-share with clipboard fallback → "Link copied" + URL copied), Download, Commentary, Watch Party, emoji reactions, comments all present; 0 errors.
+- **Notifications** — header bell opens panel.
+- **Help, Pricing, How-it-works** — render (Buy buttons present; not clicked — no purchases).
+- **Templates / Editor / Likes / Comments** — re-confirmed working from rounds 1–2.
+
+## Final regression sweep
+
+Loaded **29 regular-user routes** (lobby, studio, editor, templates, library, projects, account+tabs, search, discover, creators, crews, universes, music, cast, avatars, environments, crossover, inbox, messages, notifications, gallery, pricing, help, how-it-works, director, me/year, profile) and captured console + network per route:
+
+> **Result: 0 console errors, 0 HTTP 4xx across all 29 routes.** ✅
+
+Regression suites: `comments-system` + `qa-audit` — **97/97 pass**.
+
+## Still open (intentionally not done this pass)
+- **Comment editing surface** added to the social comments (`/reel`, `/watch`); the editor's frame-note panel and `ReelComments` (theater) remain add-only — lower priority.
+- **BUG-2 zombie project on mid-pipeline failure** — requires a `mode-router` edge-function rollback; the trigger was an artificial credit grant, so it needs a real-purchase repro before changing the pipeline. The user-facing silent-failure half is already fixed.
+- **BUG-7 WebMediaPlayer accumulation** on very long single-tab sessions — performance polish, not a correctness bug.
+- A real **presence** system for the lobby "now editing" count (the dead query was removed rather than building heartbeats/realtime — a feature, not a fix).
+
+> ⚠️ Two DB changes were applied directly to the **live** Supabase project this round (both additive/idempotent, both committed as migrations): the `patron_lapsed` enum value (round 1) and the crews-recursion `SECURITY DEFINER` helpers + policy rewrite (this round). Everything else is application code.
+
+---
+
 ## Test environment / repro notes
 
 - Dev server started with `bun run dev -- --port 7788` (port 7777 was occupied by another worktree).

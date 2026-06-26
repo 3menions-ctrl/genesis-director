@@ -8,6 +8,7 @@
  * movie_projects. Admin-gated. CSV export of the leaderboard.
  */
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { csvRow } from "@/lib/csvSafe";
 import { Lock, Users, Download } from "lucide-react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -148,7 +149,7 @@ export default function BusinessAnalytics() {
 
   const exportCsv = () => {
     const header = "Member,Email,Credits,Projects\n";
-    const body = a.stats.map((m) => `"${m.name}","${m.email}",${m.credits},${m.projects}`).join("\n");
+    const body = a.stats.map((m) => csvRow([m.name, m.email, m.credits, m.projects])).join("\n");
     const blob = new Blob([header + body], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");

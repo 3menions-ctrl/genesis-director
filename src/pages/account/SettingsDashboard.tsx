@@ -79,6 +79,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserPreferences } from "@/contexts/UserPreferencesContext";
 import { cn } from "@/lib/utils";
+import { csvRow } from "@/lib/csvSafe";
 import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import { TYPE_META } from "@/lib/design-system";
 import { Input } from "@/components/ui/input";
@@ -1860,7 +1861,7 @@ function BillingModule({
 
   const exportCsv = () => {
     const rows = [["date", "type", "amount", "description"], ...transactions.map((t) => [t.created_at, t.type, String(t.amount), t.description ?? ""])];
-    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const csv = rows.map((r) => csvRow(r)).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);

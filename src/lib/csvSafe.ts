@@ -7,7 +7,7 @@
  */
 export function csvCell(value: unknown): string {
   let s = value == null ? "" : String(value);
-  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+  if (/^[=+\-@\t\r\n]/.test(s)) s = "'" + s;
   // Standard CSV quoting: wrap and double any embedded quotes.
   if (/[",\n\r]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
   return s;

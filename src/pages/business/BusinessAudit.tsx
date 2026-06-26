@@ -8,6 +8,7 @@
  * export. Admin-gated. Real data only.
  */
 import { useEffect, useMemo, useState } from "react";
+import { csvRow } from "@/lib/csvSafe";
 import { Lock, History, Download, Search, X } from "lucide-react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -152,7 +153,7 @@ export default function BusinessAudit() {
 
   const exportCsv = () => {
     const header = "Timestamp,Kind,Category,Action,Actor,Detail,Amount\n";
-    const body = visible.map((r) => `"${new Date(r.ts).toISOString()}","${r.kind}","${r.category ?? ""}","${r.label}","${r.actor ?? ""}","${(r.detail || "").replace(/"/g, "'")}",${r.amount ?? ""}`).join("\n");
+    const body = visible.map((r) => csvRow([new Date(r.ts).toISOString(), r.kind, r.category ?? "", r.label, r.actor ?? "", r.detail || "", r.amount ?? ""])).join("\n");
     const blob = new Blob([header + body], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");

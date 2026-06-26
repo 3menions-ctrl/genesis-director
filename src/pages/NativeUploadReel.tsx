@@ -159,7 +159,7 @@ export default function NativeUploadReel() {
       {previewUrl && (
         <div className="fixed inset-x-0 z-20 flex flex-col items-center" style={{ bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 16px)' }}>
           <button onClick={publish} disabled={busy || !title.trim()} aria-label="Publish reel"
-            className="grid h-[68px] w-[68px] place-items-center rounded-full bg-[#3f78ff]/18 text-white ring-1 ring-[#7aa2ff]/40 backdrop-blur-md shadow-[0_14px_34px_-14px_rgba(80,110,255,.55)] transition-transform active:scale-90 disabled:opacity-40">
+            className="grid h-[68px] w-[68px] place-items-center rounded-full text-[#9fc6ff] drop-shadow-[0_3px_12px_rgba(0,0,0,.6)] transition-transform active:scale-90 disabled:opacity-40">
             {busy ? <Loader2 className="h-7 w-7 animate-spin" /> : <Check className="h-8 w-8" strokeWidth={2.6} />}
           </button>
           <span className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">{busy ? stage : 'Publish'}</span>

@@ -87,9 +87,9 @@ export function PremiereStrip() {
                 <div className="flex justify-center">
                   <button onClick={() => { void hapticTap(); if (live) { if (p.reel_id) navigate(`/r/${p.reel_id}`); } else rsvp(p); }} disabled={!live && isGoing}
                     aria-label={live ? 'Watch live' : isGoing ? 'Going' : 'RSVP'}
-                    className={cn('grid h-12 w-12 place-items-center rounded-full ring-1 backdrop-blur-md transition-transform active:scale-90',
-                      live ? 'bg-[#ff3b5c]/18 text-white ring-[#ff8aa0]/45' : isGoing ? 'bg-white/[0.06] text-white/70 ring-white/15' : 'bg-[#3f78ff]/18 text-white ring-[#7aa2ff]/45')}>
-                    {live ? <Play className="h-[19px] w-[19px] fill-white" /> : isGoing ? <Check className="h-[19px] w-[19px]" strokeWidth={2.6} /> : <CalendarPlus className="h-[19px] w-[19px]" />}
+                    className={cn('grid h-11 w-11 place-items-center drop-shadow-[0_2px_8px_rgba(0,0,0,.7)] transition-transform active:scale-90',
+                      live ? 'text-[#ff7a96]' : isGoing ? 'text-white/55' : 'text-[#9fc6ff]')}>
+                    {live ? <Play className="h-[22px] w-[22px] fill-current" /> : isGoing ? <Check className="h-[22px] w-[22px]" strokeWidth={2.6} /> : <CalendarPlus className="h-[22px] w-[22px]" />}
                   </button>
                 </div>
               </div>

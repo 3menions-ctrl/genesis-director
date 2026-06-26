@@ -106,7 +106,7 @@ function LiveLobby() {
       </div>
 
       <div className="fixed inset-x-0 z-20 flex flex-col items-center" style={{ bottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 16px)' }}>
-        <button onClick={goLive} disabled={going} aria-label="Go live" className="grid h-[68px] w-[68px] place-items-center rounded-full bg-[#ff3b5c]/18 text-white ring-1 ring-[#ff8aa0]/45 backdrop-blur-md shadow-[0_14px_34px_-14px_rgba(255,59,92,.5)] transition-transform active:scale-90 disabled:opacity-50">
+        <button onClick={goLive} disabled={going} aria-label="Go live" className="grid h-[68px] w-[68px] place-items-center text-[#ff7a96] drop-shadow-[0_3px_12px_rgba(0,0,0,.6)] transition-transform active:scale-90 disabled:opacity-50">
           {going ? <Loader2 className="h-7 w-7 animate-spin" /> : <Plus className="h-8 w-8" strokeWidth={2.6} />}
         </button>
         <span className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">Go live</span>
@@ -301,7 +301,7 @@ function LiveRoom({ roomId }: { roomId: string }) {
         </div>
         {REACTIONS.slice(0, 2).map((e) => <button key={e} onClick={() => react(e)} className="grid h-11 w-11 place-items-center rounded-full bg-black/45 text-[20px] backdrop-blur-md active:scale-90">{e}</button>)}
         {!isHost && (
-          <button onClick={() => { void hapticTap(); host?.topReel ? setGiftOpen(true) : react('🎉'); }} aria-label="Gift" className="grid h-11 w-11 place-items-center rounded-full bg-[#3f78ff]/20 ring-1 ring-[#7aa2ff]/40 backdrop-blur-md active:scale-90"><GiftIcon className="h-[20px] w-[20px]" /></button>
+          <button onClick={() => { void hapticTap(); host?.topReel ? setGiftOpen(true) : react('🎉'); }} aria-label="Gift" className="grid h-11 w-11 place-items-center text-[#9fc6ff] drop-shadow-[0_2px_8px_rgba(0,0,0,.7)] active:scale-90"><GiftIcon className="h-[22px] w-[22px]" /></button>
         )}
       </div>
 

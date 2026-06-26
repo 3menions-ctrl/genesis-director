@@ -46,13 +46,6 @@ export default function Discover() {
     <div className="fixed inset-0 text-white">
       <AuroraBackdrop />
       <div className="relative z-10 h-full overflow-y-auto px-4" style={{ paddingTop: 'calc(var(--safe-top,0px) + 14px)', paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 28px)' }}>
-        {/* Search */}
-        <div className="surface-1 flex h-12 items-center gap-2.5 rounded-full px-4">
-          <Search className="h-[18px] w-[18px] text-white/50" strokeWidth={1.8} />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search films & creators" className="flex-1 bg-transparent text-[15px] text-white outline-none placeholder:text-white/35" />
-          {query && <button onClick={() => setQuery('')} aria-label="Clear" className="text-white/40"><X className="h-[18px] w-[18px]" /></button>}
-        </div>
-
         {/* Categories — borderless, floating icons with labels */}
         {!searching && (
           <div className="mt-5 flex items-center justify-around">
@@ -71,6 +64,13 @@ export default function Discover() {
             })}
           </div>
         )}
+
+        {/* Search — below the Videos / Reels / People tabs */}
+        <div className="surface-1 mt-4 flex h-12 items-center gap-2.5 rounded-full px-4">
+          <Search className="h-[18px] w-[18px] text-white/50" strokeWidth={1.8} />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search films & creators" className="flex-1 bg-transparent text-[15px] text-white outline-none placeholder:text-white/35" />
+          {query && <button onClick={() => setQuery('')} aria-label="Clear" className="text-white/40"><X className="h-[18px] w-[18px]" /></button>}
+        </div>
 
         {!searching && daily && (
           <button onClick={() => { void hapticTap(); navigate(`/me/generate?prompt=${encodeURIComponent(daily.prompt_text)}`); }}

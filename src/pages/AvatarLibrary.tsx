@@ -154,7 +154,7 @@ function AvatarDetail({ avatar, onClose, onUse, forTemplate }: { avatar: AvatarT
           )}
           <div className="mt-5 flex flex-col items-center">
           <button onClick={() => { if (!forTemplate && !script.trim()) return; void hapticTap(); onUse(script.trim()); }} disabled={!forTemplate && !script.trim()} aria-label={forTemplate ? `Cast ${avatar.name}` : `Use ${avatar.name}`}
-            className="grid h-[64px] w-[64px] place-items-center rounded-full bg-[#3f78ff]/18 text-white ring-1 ring-[#7aa2ff]/40 backdrop-blur-md shadow-[0_14px_34px_-14px_rgba(80,110,255,.55)] transition-transform active:scale-90 disabled:opacity-40">
+            className="grid h-[64px] w-[64px] place-items-center rounded-full text-[#9fc6ff] drop-shadow-[0_3px_12px_rgba(0,0,0,.6)] transition-transform active:scale-90 disabled:opacity-40">
             <ArrowRight className="h-7 w-7" strokeWidth={2.4} />
           </button>
             <span className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">{forTemplate ? `Cast ${avatar.name}` : `Use ${avatar.name}`}</span>

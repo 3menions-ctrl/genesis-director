@@ -16,52 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import { IS_NATIVE } from '@/lib/native';
 import { initNativeShell, hideSplash } from '@/lib/native/shell';
 import { initPush } from '@/lib/native/push';
-
-/**
- * Map an incoming deep-link URL to an in-app path.
- *
- * Accepts both:
- *   • Custom scheme:   smallbridges://studio/abc   →  /studio/abc
- *   • Universal Link:  https://smallbridges.co/studio/abc → /studio/abc
- *
- * Auth callbacks (which carry Supabase tokens in the hash/query) are passed
- * through verbatim to /auth/callback so the existing AuthCallback page can
- * complete the session exchange.
- */
-function deepLinkToPath(rawUrl: string): string | null {
-  let url: URL;
-  try {
-    url = new URL(rawUrl);
-  } catch {
-    return null;
-  }
-
-  // Scheme allowlist — only our custom scheme + http(s) Universal Links. Rejects
-  // javascript:/data:/file:/etc. so a hostile link can't reach navigate().
-  if (!['smallbridges:', 'https:', 'http:'].includes(url.protocol)) return null;
-
-  // Supabase auth redirect — keep the hash/query, route to the callback page.
-  const looksLikeAuth =
-    url.host === 'auth' ||
-    url.pathname.includes('auth') ||
-    /access_token|refresh_token|error_description|code=/.test(url.hash + url.search);
-  if (looksLikeAuth) {
-    return `/auth/callback${url.search}${url.hash}`;
-  }
-
-  // Build the in-app route. CAUTION: for the custom scheme, smallbridges://u/123
-  // parses "u" as the HOST and "/123" as the pathname — so url.pathname alone
-  // DROPS the first segment. Reassemble host+pathname for custom-scheme links;
-  // Universal Links (https://smallbridges.co/u/123) keep the domain as host, so
-  // the route is just the pathname.
-  const isUniversalLink = url.protocol === 'https:' || url.protocol === 'http:';
-  const base = isUniversalLink ? url.pathname : `/${url.host}${url.pathname}`;
-  let path = `${base}${url.search}${url.hash}`.replace(/\/{2,}/g, '/');
-
-  // Only ever hand navigate() a same-app absolute path; fall back to /feed.
-  if (!path.startsWith('/')) return '/feed';
-  return path !== '/' ? path : '/feed';
-}
+import { deepLinkToPath } from '@/lib/native/deepLink';
 
 export function NativeShell() {
   const navigate = useNavigate();

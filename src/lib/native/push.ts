@@ -12,6 +12,7 @@
  */
 import { IS_NATIVE } from './index';
 import { supabase } from '@/integrations/supabase/client';
+import { safeInAppPath } from './deepLink';
 
 let started = false;
 
@@ -71,11 +72,13 @@ export async function initPush(navigate?: Navigate): Promise<void> {
     console.warn('[push] registration error', err?.error);
   });
 
-  // Tapping a notification routes the user wherever the payload points.
+  // Tapping a notification routes the user wherever the payload points — but the
+  // payload is server-controlled, so the target is VALIDATED (same allowlist as
+  // deep links): only same-app absolute paths, never a hostile scheme/external URL.
   PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
     const data = action.notification?.data ?? {};
-    const path = data.path || data.url || data.route;
-    if (path && navigate) navigate(String(path));
+    const path = safeInAppPath(data.path ?? data.url ?? data.route);
+    if (path && navigate) navigate(path);
   });
 }
 

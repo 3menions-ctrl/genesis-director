@@ -9,13 +9,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, useMotionValue, useTransform, animate, type PanInfo } from 'framer-motion';
-import { X, MessageCircle, UserPlus, UserCheck, Loader2, Share2 } from 'lucide-react';
+import { X, MessageCircle, UserPlus, UserCheck, Loader2, Share2, MoreVertical, Ban } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePublicProfile } from '@/hooks/usePublicProfile';
 import { MessageThread } from '@/components/social/MessageThread';
 import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
+import { confirmAsync } from '@/components/ui/global-confirm';
 import { hapticTap, shareLink } from '@/lib/native/shell';
 import { cn } from '@/lib/utils';
 
@@ -51,8 +52,16 @@ export default function CreatorProfile() {
   const [leaving, setLeaving] = useState(false);
   const [cover, setCover] = useState<string | null>(null);
   const [similar, setSimilar] = useState<{ id: string; display_name: string | null; avatar_url: string | null }[]>([]);
+  const [blocked, setBlocked] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => { if (id && user?.id === id) navigate('/you', { replace: true }); }, [id, user?.id, navigate]);
+
+  useEffect(() => {
+    if (!id || !user) return; let c = false;
+    (async () => { try { const { data } = await supabase.rpc('viewer_blocks' as never, { p_target: id } as never); if (!c) setBlocked(!!data); } catch { /* ignore */ } })();
+    return () => { c = true; };
+  }, [id, user]);
 
   // Similar creators (shared-audience overlap) for the discovery rail.
   useEffect(() => {
@@ -83,6 +92,16 @@ export default function CreatorProfile() {
     if (!user) { navigate('/auth'); return; }
     if (!profile?.is_following) { followUser.mutate(); toast.success(`Following ${profile?.display_name ?? 'creator'}`); }
   };
+  const toggleBlock = async () => {
+    setMenuOpen(false);
+    if (!user || !id) { navigate('/auth'); return; }
+    const who = profile?.display_name ?? 'this creator';
+    const ok = await confirmAsync({ title: blocked ? `Unblock ${who}?` : `Block ${who}?`, description: blocked ? 'They can follow and message you again.' : "They won't be able to follow or message you, and you won't see their content.", confirmLabel: blocked ? 'Unblock' : 'Block', destructive: !blocked });
+    if (!ok) return;
+    const was = blocked; setBlocked(!was); void hapticTap();
+    try { const { error } = await supabase.rpc('toggle_block' as never, { p_target: id } as never); if (error) throw error; toast.success(was ? 'Unblocked' : `Blocked ${who}`); }
+    catch { setBlocked(was); toast.error('Could not update'); }
+  };
 
   return (
     <div className="fixed inset-0 bg-[#0a0a0f] text-white">
@@ -108,11 +127,27 @@ export default function CreatorProfile() {
         <button onClick={exit} aria-label="Exit" className="fixed z-30 grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur-md"
           style={{ top: 'calc(var(--safe-top,0px) + 12px)', left: '14px' }}><X className="h-5 w-5" /></button>
       )}
-      {/* Share */}
+      {/* Share + more (block) */}
       {!isLoading && profile && id && (
-        <button onClick={async () => { const r = await shareLink({ title: `${profile.display_name ?? 'A creator'} on Small Bridges`, text: `Watch ${profile.display_name ?? 'their'} films`, url: `https://smallbridges.co/c/${id}` }); if (r === 'copied') toast.success('Link copied'); }}
-          aria-label="Share profile" className="fixed z-30 grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur-md"
-          style={{ top: 'calc(var(--safe-top,0px) + 12px)', right: '14px' }}><Share2 className="h-[18px] w-[18px]" /></button>
+        <div className="fixed z-30 flex items-center gap-2" style={{ top: 'calc(var(--safe-top,0px) + 12px)', right: '14px' }}>
+          <button onClick={async () => { const r = await shareLink({ title: `${profile.display_name ?? 'A creator'} on Small Bridges`, text: `Watch ${profile.display_name ?? 'their'} films`, url: `https://smallbridges.co/c/${id}` }); if (r === 'copied') toast.success('Link copied'); }}
+            aria-label="Share profile" className="grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur-md"><Share2 className="h-[18px] w-[18px]" /></button>
+          {!isSelf && (
+            <div className="relative">
+              <button onClick={() => { void hapticTap(); setMenuOpen((o) => !o); }} aria-label="More" className="grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur-md"><MoreVertical className="h-[18px] w-[18px]" /></button>
+              {menuOpen && (
+                <>
+                  <div className="fixed inset-0" onClick={() => setMenuOpen(false)} />
+                  <div className="msg-glass absolute right-0 top-12 z-10 w-44 overflow-hidden rounded-2xl py-1">
+                    <button onClick={toggleBlock} className={cn('flex w-full items-center gap-2.5 px-4 py-3 text-left text-[14px] font-medium', blocked ? 'text-white/90' : 'text-[#ff6b6b]')}>
+                      <Ban className="h-[16px] w-[16px]" /> {blocked ? 'Unblock' : 'Block'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       )}
 
       {messaging && id && profile && <MessageThread recipientId={id} name={profile.display_name ?? 'creator'} avatar={profile.avatar_url} onClose={() => setMessaging(false)} />}

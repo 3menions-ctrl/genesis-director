@@ -1,5 +1,6 @@
 /** Audit — real wiring against admin_audit_log via admin_get_audit_logs RPC. */
 import { useEffect, useMemo, useState } from "react";
+import { csvRow } from "@/lib/csvSafe";
 import { Download, FileText, Filter, RefreshCw, Search } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { FloatSection, DeckButton } from "@/admin/ui/primitives";
@@ -54,7 +55,7 @@ export default function AdminAuditLogPage() {
 
   function exportCsv() {
     const header = "created_at,admin_id,action,target_type,target_id,details\n";
-    const body = filtered.map(r => [r.created_at, r.admin_id, r.action, r.target_type ?? "", r.target_id ?? "", JSON.stringify(r.details ?? {}).replace(/"/g, '""')].map(v => `"${String(v)}"`).join(",")).join("\n");
+    const body = filtered.map(r => csvRow([r.created_at, r.admin_id, r.action, r.target_type ?? "", r.target_id ?? "", JSON.stringify(r.details ?? {})])).join("\n");
     const blob = new Blob([header + body], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a"); a.href = url; a.download = `audit-log-${Date.now()}.csv`; a.click();

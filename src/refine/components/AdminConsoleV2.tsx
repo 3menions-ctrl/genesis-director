@@ -172,7 +172,9 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
 
   // Export the currently-shown rows to CSV (raw values, not rendered cells).
   const exportCsv = () => {
-    const esc = (s: string) => `"${s.replace(/"/g, '""')}"`;
+    // Neutralize formula injection (S236): a leading =,+,-,@ is run as a formula
+    // when the CSV is opened in Excel/Sheets.
+    const esc = (s: string) => `"${(/^[=+\-@\t\r]/.test(s) ? "'" + s : s).replace(/"/g, '""')}"`;
     const header = visibleColumns.map((c) => esc(c.label)).join(",");
     const lines = displayRows.map((r) =>
       visibleColumns.map((c) => {

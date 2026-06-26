@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
 import { checkMultipleContent } from "../_shared/content-safety.ts";
 import {
   CAMERA_MOVEMENTS,
@@ -348,6 +349,20 @@ serve(async (req) => {
       throw new Error(`Avatar image URL is not accessible: ${imageValidation.error}. The image may have expired or been deleted.`);
     }
     console.log("[AvatarDirect] ✅ Avatar image URL is valid and accessible");
+
+    // ═══ AI CREDIT GATE: rate-limit + credit preflight BEFORE any paid provider call ═══
+    const __gateBlock = await preflightAiGate({
+      supabase,
+      fnName: "generate-avatar-direct",
+      userId,
+      isServiceRole: __auth.isServiceRole,
+      orgId: undefined,
+      projectId,
+      cost: 3,
+      dailyCap: 60,
+      corsHeaders,
+    });
+    if (__gateBlock) return __gateBlock;
 
     // Clip count driven by user request (no audio-driven calculation)
     const requestedClipCount = Math.max(1, Math.min(clipCount, 20));
@@ -988,6 +1003,19 @@ serve(async (req) => {
     console.log(`[AvatarDirect] Started ${pendingPredictions.length} Kling predictions`);
     console.log("[AvatarDirect] Using Kling native audio - no TTS overlay");
     console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════");
+
+    // ═══ AI CREDIT GATE: charge once now that the Kling prediction started successfully ═══
+    await chargeAiGate({
+      supabase,
+      fnName: "generate-avatar-direct",
+      userId,
+      isServiceRole: __auth.isServiceRole,
+      orgId: undefined,
+      projectId,
+      cost: 3,
+      dailyCap: 60,
+      corsHeaders,
+    });
 
     return new Response(
       JSON.stringify({

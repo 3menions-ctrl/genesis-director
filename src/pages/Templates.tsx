@@ -81,6 +81,7 @@ const CATEGORIES: { id: TemplateCategory | "all"; label: string; icon: typeof Fi
   { id: "educational",   label: "Educational",   icon: BookOpen },
   { id: "entertainment", label: "Entertainment", icon: Smile },
   { id: "corporate",     label: "Corporate",     icon: Briefcase },
+  { id: "vfx",           label: "VFX & Breakouts", icon: Wand2 },
 ];
 
 type EngineFilter = "all" | "free" | "standard" | "pro" | "cinema";

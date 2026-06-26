@@ -27,6 +27,7 @@ import type {
 import type { TransitionKind, AspectRatio } from "@/lib/editor/types";
 import type { EngineId } from "@/lib/video/engines";
 import { BREAKOUT_TEMPLATES } from "./breakout-templates";
+import { getBreakthroughBlueprints } from "./breakthrough";
 
 // ─── Thumbnails (re-imported here so registry is single source of truth) ────
 import viralHookImg from "@/assets/templates/viral-hook.jpg";
@@ -741,8 +742,13 @@ const BREAKOUT_IDS = [
 
 const BREAKOUT_BLUEPRINTS: TemplateBlueprint[] = BREAKOUT_IDS.map(buildBreakoutBlueprint);
 
+/** Data-driven Breakthrough Effects (container × violation × destination),
+ *  resolved into blueprints so they render through the same clips pipeline. */
+const BREAKTHROUGH_BLUEPRINTS: TemplateBlueprint[] = getBreakthroughBlueprints();
+
 export const TEMPLATE_BLUEPRINTS: TemplateBlueprint[] = [
   ...BREAKOUT_BLUEPRINTS,
+  ...BREAKTHROUGH_BLUEPRINTS,
   ...BUILT_INS,
 ];
 

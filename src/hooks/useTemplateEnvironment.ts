@@ -2,11 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { 
-  getBreakoutTemplate, 
+import {
+  getBreakoutTemplate,
   isBreakoutTemplate,
   BreakoutTemplateConfig
 } from '@/lib/templates/breakout-templates';
+import { getTemplateBlueprint } from '@/lib/templates/registry';
+import { getBreakthroughTemplate } from '@/lib/templates/breakthrough';
 
 // Import breakout template images - NEW 5-TEMPLATE SYSTEM
 import postEscapeImg from '@/assets/templates/post-escape.jpg';
@@ -1344,6 +1346,40 @@ export function useTemplateEnvironment() {
         setAppliedSettings(settings);
         const breakoutNote = builtIn.isBreakout ? ' (Breakout mode enabled)' : '';
         toast.success(`Template "${builtIn.name}" loaded${breakoutNote}`);
+        return settings;
+      }
+
+      // Registry-aware fallback — covers the unified TemplateBlueprint
+      // catalogue (breakout VFX, data-driven Breakthrough Effects, and the
+      // enriched built-ins) that aren't in the local BUILT_IN_TEMPLATES array.
+      const blueprint = getTemplateBlueprint(id);
+      if (blueprint) {
+        // Data-driven Breakthrough Effects carry richer authoring than a flat
+        // concept prompt — fold the per-layer AI-gen prompts into the concept
+        // so the generation pipeline reproduces the container → break → after.
+        const bt = getBreakthroughTemplate(id);
+        const concept = bt
+          ? [
+              `CONTAINER (${bt.container.kind}): ${bt.prompts.chrome}`,
+              `INNER WINDOW: ${bt.prompts.innerVideo}`,
+              `BREAKTHROUGH (${bt.boundaryViolation} → ${bt.destination}): ${bt.prompts.breakthrough}`,
+              `AFTERMATH: ${bt.prompts.aftermath}`,
+            ].join('\n\n')
+          : blueprint.clips.map((c, i) => `CLIP ${i + 1} — ${c.label}: ${c.prompt}`).join('\n\n');
+
+        const settings: AppliedSettings = {
+          concept,
+          mood: blueprint.mood,
+          genre: blueprint.genre,
+          clipCount: blueprint.clips.length,
+          colorGrading: blueprint.colorGrade.label ?? 'cinematic',
+          environmentPrompt: '',
+          templateName: blueprint.name,
+          pacingStyle: blueprint.pacing,
+          isBreakout: blueprint.isBreakout ?? false,
+        };
+        setAppliedSettings(settings);
+        toast.success(`Template "${blueprint.name}" loaded`);
         return settings;
       }
 

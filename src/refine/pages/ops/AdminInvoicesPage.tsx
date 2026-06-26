@@ -1,5 +1,6 @@
 /** Invoices — credit purchase ledger (Polar-backed; payment id stored in legacy stripe_payment_id column) with export. */
 import { useEffect, useMemo, useState } from "react";
+import { csvRow } from "@/lib/csvSafe";
 import { Download, RefreshCw, Search } from "lucide-react";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { FloatSection, FloatTable, DeckButton, StatusPill } from "@/admin/ui/primitives";
@@ -60,12 +61,12 @@ export default function AdminInvoicesPage() {
 
   function exportCsv() {
     const header = "created_at,user_id,type,amount_credits,amount_usd,stripe_payment_id,description\n";
-    const body = filtered.map(r => [
+    const body = filtered.map(r => csvRow([
       r.created_at, r.user_id, r.transaction_type, r.amount,
       (r.amount * CENTS_PER_CREDIT / 100).toFixed(2),
       r.stripe_payment_id ?? "",
-      (r.description ?? "").replace(/"/g, '""'),
-    ].map(v => `"${String(v)}"`).join(",")).join("\n");
+      r.description ?? "",
+    ])).join("\n");
     const blob = new Blob([header + body], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a"); a.href = url; a.download = `invoices-${Date.now()}.csv`; a.click();

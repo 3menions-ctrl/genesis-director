@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { safeHref } from '@/lib/safeHref';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import {
@@ -550,7 +551,7 @@ export function ImageStudioHub() {
                           <Layers className="w-4 h-4" />
                         </Button>
                         <a
-                          href={img.url}
+                          href={safeHref(img.url)}
                           download={`smallbridges-${img.id}.png`}
                           onClick={(e) => e.stopPropagation()}
                           className="ml-auto inline-flex h-8 px-3 items-center gap-1.5 rounded-full bg-primary text-primary-foreground text-xs font-medium hover:opacity-90"

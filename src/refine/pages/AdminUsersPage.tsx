@@ -3,6 +3,7 @@
  * Extracted from Admin.tsx users tab.
  */
 import { useState, useCallback, useEffect } from "react";
+import { csvRow } from "@/lib/csvSafe";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -183,10 +184,10 @@ export default function AdminUsersPage() {
   const exportSelectedCsv = () => {
     const rows = users.filter((u) => selected.has(u.id));
     const header = ["id", "email", "display_name", "credits_balance", "account_tier", "roles"].join(",");
-    const lines = rows.map((u) => [
+    const lines = rows.map((u) => csvRow([
       u.id, u.email, u.display_name, u.credits_balance, u.account_tier,
       (u.roles ?? []).join("|"),
-    ].map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(","));
+    ]));
     const blob = new Blob([[header, ...lines].join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

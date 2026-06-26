@@ -12,6 +12,7 @@
  * the exact secret required.
  */
 import { useCallback, useEffect, useState } from "react";
+import { safeHref } from "@/lib/safeHref";
 import { useSearchParams } from "react-router-dom";
 import {
   Instagram, Youtube, Linkedin, Music2, Loader2, Plug, Link2, Unlink, Send,
@@ -411,7 +412,7 @@ function JobRow({ job }: { job: DistJob }) {
         </div>
       </div>
       {job.external_url
-        ? <a href={job.external_url} target="_blank" rel="noreferrer" className="text-[11px] font-mono uppercase tracking-[0.18em] text-[hsl(215,100%,78%)] hover:text-[hsl(215,100%,88%)]">View</a>
+        ? <a href={safeHref(job.external_url)} target="_blank" rel="noreferrer" className="text-[11px] font-mono uppercase tracking-[0.18em] text-[hsl(215,100%,78%)] hover:text-[hsl(215,100%,88%)]">View</a>
         : null}
       <Badge tone={JOB_TONE[job.status] ?? "neutral"}>{job.status.replace(/_/g, " ")}</Badge>
     </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { safeHref } from '@/lib/safeHref';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -397,7 +398,7 @@ function VideoGrid({ videos, onAction, processing }: VideoGridProps) {
               {video.video_url && (
                 <>
                   <Button size="sm" variant="secondary" asChild>
-                    <a href={video.video_url} target="_blank" rel="noopener noreferrer">
+                    <a href={safeHref(video.video_url)} target="_blank" rel="noopener noreferrer">
                       <Play className="w-4 h-4 mr-1" />
                       Play
                     </a>

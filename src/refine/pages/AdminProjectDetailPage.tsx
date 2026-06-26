@@ -14,6 +14,7 @@
  * always renders something useful.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { safeHref } from "@/lib/safeHref";
 import { useParams, Link } from "react-router-dom";
 import {
   AlertCircle, ArrowLeft, Coins, Trash2, RefreshCcw, AlertTriangle,
@@ -444,7 +445,7 @@ function PipelineTab({ clips }: { clips: ClipRow[] }) {
             </div>
             {c.video_url && (
               <a
-                href={c.video_url}
+                href={safeHref(c.video_url)}
                 target="_blank"
                 rel="noreferrer"
                 className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/45 hover:text-white"

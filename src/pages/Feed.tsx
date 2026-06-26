@@ -13,11 +13,12 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Repeat2, Share2, Volume2, VolumeX, Sparkles } from 'lucide-react';
+import { Heart, MessageCircle, Repeat2, Share2, Volume2, VolumeX, Sparkles, SmilePlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useReelsFeed, type FeedItem } from '@/hooks/useReelsFeed';
+import { useVideoReactions, EMOJI_OPTIONS } from '@/hooks/useVideoReactions';
 import { FeedVideo } from '@/components/feed/FeedVideo';
 import { FeedComments } from '@/components/feed/FeedComments';
 import { GrainOverlay } from '@/components/native/AuroraBackdrop';
@@ -121,6 +122,11 @@ const FeedCard = ({ innerRef, index, item, active, muted, onComments }: FeedCard
   const [likeCount, setLikeCount] = useState(item.like_count);
   const [commentCount, setCommentCount] = useState(item.comment_count);
   const [busy, setBusy] = useState(false);
+  const [reactOpen, setReactOpen] = useState(false);
+  // Only the in-view card fetches reactions (one query, not the whole feed).
+  const reactions = useVideoReactions(active && !item.isStatic ? (item.project_id ?? undefined) : undefined);
+  const myReaction = reactions.reactionCounts.find((r) => r.hasReacted)?.emoji;
+  const reactionTotal = reactions.reactionCounts.reduce((s, r) => s + r.count, 0);
 
   const like = useCallback(async () => {
     void hapticTap();
@@ -242,6 +248,27 @@ const FeedCard = ({ innerRef, index, item, active, muted, onComments }: FeedCard
         <RailButton label={commentCount > 0 ? compact(commentCount) : 'Comments'} onClick={() => { void hapticTap(); onComments({ item, bump: () => setCommentCount((c) => c + 1) }); }} aria-label="Comments">
           <MessageCircle className="h-7 w-7" />
         </RailButton>
+
+        {/* React — emoji reactions */}
+        <div className="relative">
+          {reactOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setReactOpen(false)} />
+              <div className="msg-glass absolute right-full top-1/2 z-20 mr-3 flex -translate-y-1/2 items-center gap-0.5 rounded-full px-2 py-1.5">
+                {EMOJI_OPTIONS.map((e) => (
+                  <button key={e} onClick={() => { void hapticTap(); reactions.toggleReaction.mutate(e); setReactOpen(false); }}
+                    className={cn('grid h-9 w-9 place-items-center rounded-full text-[22px] leading-none transition-transform active:scale-110', myReaction === e && 'bg-white/15')}>
+                    {e}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+          <RailButton label={reactionTotal > 0 ? compact(reactionTotal) : 'React'} active={!!myReaction}
+            onClick={() => { void hapticTap(); if (!item.isStatic) setReactOpen((o) => !o); else toast('Reactions open up on published films'); }} aria-label="React">
+            {myReaction ? <span className="text-[26px] leading-none">{myReaction}</span> : <SmilePlus className="h-7 w-7" />}
+          </RailButton>
+        </div>
 
         <RailButton label="Remix" highlight onClick={remix} aria-label="Remix">
           <Repeat2 className="h-7 w-7" />

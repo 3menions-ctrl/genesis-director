@@ -95,3 +95,23 @@ Exercised the interactions the basic sweep missed (where the People-tap crash hi
   wizards, /welcome steps, settings autosave toggles) · comment composer.
 - Result: 0 crashes / 14 interactions. The Cycle-8 People-tap fix resolved the last
   interaction crash; no new ones. Native files stay tsc-clean (no code changes).
+
+## Cycle 10 — network-failure resilience (PASS + 1 documented edge case)
+- Aborted ALL supabase data traffic (rest/rpc/functions/realtime) and loaded every
+  major data screen: **0 crashes, 0 stuck spinners** — graceful degradation. Hooks
+  all clear loading in catch/finally or use React Query; usePinnedReels has no
+  loading state (its bare catch is fine).
+- FOUND (documented, NOT auto-fixed — critical shared auth path): an offline/slow
+  launch can bounce an already-onboarded user to /welcome. When get_my_profile
+  times out, AuthContext commits a FALLBACK profile with onboarding_completed=false
+  (intentional, "MUST be false — forces onboarding for new OAuth users",
+  authProfile.ts:15), and MobileOnboardingGate redirects on it. Severity LOW
+  (recoverable: tap Skip; corrects when the authoritative profile loads; no crash).
+  RECOMMENDED FIX (needs review + testing, not applied autonomously): expose a
+  monotonic `profileAuthoritative` boolean from AuthContext
+  (`setProfileAuthoritative(p => p || authoritative)` at the reconcileProfile commit
+  sites ~166/191/286/376; reset to false on the setProfile(null) sign-out sites),
+  add it to the context value/type, and in MobileOnboardingGate require
+  `profileAuthoritative` before redirecting (`if (!profileAuthoritative) return;`).
+  Then a fallback profile can never trigger onboarding; real new users still get it
+  once their authoritative (onboarding=false) profile loads.

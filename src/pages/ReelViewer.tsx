@@ -65,8 +65,14 @@ export default function ReelViewer() {
         } catch { /* creator best-effort */ }
         if (!cancel) {
           setReel({ ...r, creator_name: name, creator_avatar: avatar });
-          setLikeCount(r.like_count ?? 0); setCommentCount(r.comment_count ?? 0); setLoading(false);
+          setLikeCount(r.like_count ?? 0); setLoading(false);
         }
+        // Comment count: separate best-effort head count (the published_reels
+        // comment_count column is anon-restricted, so we can't select it inline).
+        try {
+          const { count } = await supabase.from('reel_comments' as never).select('id', { count: 'exact', head: true }).eq('reel_id', r.id);
+          if (!cancel && typeof count === 'number') setCommentCount(count);
+        } catch { /* count is best-effort */ }
       } catch { if (!cancel) { setReel(filmToReel(id)); setLoading(false); } }
     })();
     return () => { cancel = true; };

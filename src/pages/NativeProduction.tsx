@@ -15,7 +15,9 @@ import { cn } from '@/lib/utils';
 
 interface ProjState { status: string; video_url: string | null; pending_video_tasks: unknown; title: string | null }
 const DONE = (s: string) => s === 'completed';
-const FAILED = (s: string) => s === 'failed' || s === 'stitching_failed' || s === 'payment_failed' || s === 'cancelled';
+// Robust: any terminal failure-ish status (incl. ones the backend may add later)
+// so the progress screen can never spin forever.
+const FAILED = (s: string) => /fail|error|cancel|reject|timeout|expired/i.test(s);
 
 const STAGE_LABEL: Record<string, string> = {
   generating: 'Writing your film', processing: 'Setting the scene', pending: 'Queued',

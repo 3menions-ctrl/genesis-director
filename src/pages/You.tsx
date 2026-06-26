@@ -10,7 +10,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Flame, LogIn, Sparkles, Settings, Pencil, X, Heart, Film, Layers,
-  ChevronRight, Loader2, Trophy, Crown, Lock, Check, MessageCircle, Camera, Bell,
+  Loader2, Trophy, Crown, Lock, Check, MessageCircle, Camera, Bell,
   type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -304,7 +304,7 @@ function SheetShell({ title, onClose, children }: { title: string; onClose: () =
 }
 
 function PeopleSheet({ kind, userId, onClose, onOpen }: { kind: 'followers' | 'following'; userId: string; onClose: () => void; onOpen: (id: string) => void }) {
-  const { people, loading } = useFollowList(userId, kind, true);
+  const { people, loading, followingIds, toggleFollow, meId } = useFollowList(userId, kind, true);
   return (
     <SheetShell title={kind === 'followers' ? 'Followers' : 'Following'} onClose={onClose}>
       {loading ? (
@@ -312,16 +312,24 @@ function PeopleSheet({ kind, userId, onClose, onOpen }: { kind: 'followers' | 'f
       ) : people.length === 0 ? (
         <div className="py-10 text-center text-[13px] text-white/40">{kind === 'followers' ? 'No followers yet.' : 'Not following anyone yet.'}</div>
       ) : (
-        <ul className="space-y-2 pb-3">
-          {people.map((p: Person) => (
-            <li key={p.id}>
-              <button onClick={() => onOpen(p.id)} className="flex w-full items-center gap-3 rounded-2xl px-1 py-2 text-left active:bg-white/5">
-                {p.avatar_url ? <img src={p.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover" /> : <span className="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-[#9c8bff] to-[#6b3bff] text-[13px] font-bold">{(p.display_name?.[0] ?? '?').toUpperCase()}</span>}
-                <span className="flex-1 text-[14px] font-medium">{p.display_name ?? 'Anonymous'}</span>
-                <ChevronRight className="h-4 w-4 text-white/30" />
-              </button>
-            </li>
-          ))}
+        <ul className="space-y-1 pb-3">
+          {people.map((p: Person) => {
+            const followsThem = followingIds.has(p.id);
+            return (
+              <li key={p.id} className="flex items-center gap-3 rounded-2xl px-1 py-2">
+                <button onClick={() => onOpen(p.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left active:opacity-70">
+                  {p.avatar_url ? <img src={p.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover" /> : <span className="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-[#9c8bff] to-[#6b3bff] text-[13px] font-bold">{(p.display_name?.[0] ?? '?').toUpperCase()}</span>}
+                  <span className="truncate text-[14px] font-medium">{p.display_name ?? 'Anonymous'}</span>
+                </button>
+                {p.id !== meId && (
+                  <button onClick={() => { void hapticTap(); toggleFollow(p.id); }}
+                    className={cn('shrink-0 rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold transition-colors', followsThem ? 'msg-glass text-white/80' : 'msg-glass-accent text-white')}>
+                    {followsThem ? 'Following' : 'Follow'}
+                  </button>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </SheetShell>

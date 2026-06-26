@@ -5,6 +5,7 @@
  */
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface Person { id: string; display_name: string | null; avatar_url: string | null }
 export interface GridItem { id: string; title: string; thumbnail_url: string | null; video_url: string | null; status?: string; play_count?: number }
@@ -29,10 +30,13 @@ export function useFollowCounts(userId?: string) {
   return c;
 }
 
-/** The people in a user's followers / following list. */
+/** The people in a user's followers / following list, plus follow-back state. */
 export function useFollowList(userId: string | undefined, kind: 'followers' | 'following', enabled: boolean) {
+  const { user: me } = useAuth();
   const [people, setPeople] = useState<Person[]>([]);
+  const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
+
   useEffect(() => {
     if (!userId || !enabled) return;
     let cancel = false; setLoading(true);
@@ -42,14 +46,33 @@ export function useFollowList(userId: string | undefined, kind: 'followers' | 'f
         const pickCol = kind === 'followers' ? 'follower_id' : 'following_id';
         const { data } = await supabase.from('user_follows' as never).select(pickCol).eq(matchCol, userId).order('created_at', { ascending: false }).limit(100);
         const ids = ((data ?? []) as unknown as Record<string, string>[]).map((r) => r[pickCol]).filter(Boolean);
-        if (!ids.length) { if (!cancel) { setPeople([]); setLoading(false); } return; }
+        if (!ids.length) { if (!cancel) { setPeople([]); setFollowingIds(new Set()); setLoading(false); } return; }
         const { data: profs } = await supabase.from('profiles_public' as never).select('id, display_name, avatar_url').in('id', ids);
-        if (!cancel) { setPeople((profs ?? []) as unknown as Person[]); setLoading(false); }
+        // Which of these do I already follow?
+        let mine = new Set<string>();
+        if (me) {
+          const { data: f } = await supabase.from('user_follows' as never).select('following_id').eq('follower_id', me.id).in('following_id', ids);
+          mine = new Set(((f ?? []) as unknown as { following_id: string }[]).map((r) => r.following_id));
+        }
+        if (!cancel) { setPeople((profs ?? []) as unknown as Person[]); setFollowingIds(mine); setLoading(false); }
       } catch { if (!cancel) { setPeople([]); setLoading(false); } }
     })();
     return () => { cancel = true; };
-  }, [userId, kind, enabled]);
-  return { people, loading };
+  }, [userId, kind, enabled, me]);
+
+  const toggleFollow = async (id: string) => {
+    if (!me || id === me.id) return;
+    const was = followingIds.has(id);
+    setFollowingIds((prev) => { const n = new Set(prev); was ? n.delete(id) : n.add(id); return n; });
+    try {
+      if (was) await supabase.from('user_follows' as never).delete().eq('follower_id', me.id).eq('following_id', id);
+      else await supabase.from('user_follows' as never).insert({ follower_id: me.id, following_id: id } as never);
+    } catch {
+      setFollowingIds((prev) => { const n = new Set(prev); was ? n.add(id) : n.delete(id); return n; });
+    }
+  };
+
+  return { people, loading, followingIds, toggleFollow, meId: me?.id ?? null };
 }
 
 /** Reels the user has liked. */

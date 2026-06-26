@@ -89,11 +89,16 @@ export default function Feed() {
               active={i === active}
               near={Math.abs(i - active) <= 1}
               muted={muted}
-              onComments={setComments}
             />
           ))
         )}
       </div>
+
+      {/* Stationary overlay — rail + caption stay put while videos scroll.
+          Keyed on the active reel so its state resets as you scroll. */}
+      {items[active] && (
+        <FeedOverlay key={items[active].id} item={items[active]} onComments={setComments} />
+      )}
 
       <FeedComments
         open={!!comments}
@@ -114,10 +119,28 @@ interface FeedCardProps {
   item: FeedItem;
   active: boolean;
   muted: boolean;
-  onComments: (v: { item: FeedItem; bump: () => void }) => void;
 }
 
-const FeedCard = ({ innerRef, index, item, active, near, muted, onComments }: FeedCardProps & { innerRef: (el: HTMLDivElement | null) => void }) => {
+const FeedCard = ({ innerRef, index, item, active, near, muted }: FeedCardProps & { innerRef: (el: HTMLDivElement | null) => void }) => {
+  return (
+    <section ref={innerRef} data-idx={index} className="relative h-full w-full snap-start snap-always overflow-hidden">
+      {/* Windowing: only the active card + immediate neighbours mount a <video>;
+          far cards show a lightweight poster so long feeds stay smooth. */}
+      {near ? (
+        <FeedVideo src={item.video_url} poster={item.thumbnail_url ?? undefined} active={active} muted={muted} />
+      ) : (
+        <div className="absolute inset-0 bg-[#0a0a0a]">
+          {item.thumbnail_url ? <img src={item.thumbnail_url} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-2xl" /> : <div className="absolute inset-0" style={{ background: 'radial-gradient(120% 80% at 50% 30%, rgba(47,107,255,.18), transparent 60%)' }} />}
+        </div>
+      )}
+      <GrainOverlay opacity={0.05} />
+    </section>
+  );
+};
+
+/* ─────────────── stationary overlay (rail + caption) ─────────────── */
+
+const FeedOverlay = ({ item, onComments }: { item: FeedItem; onComments: (v: { item: FeedItem; bump: () => void }) => void }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [liked, setLiked] = useState(false);
@@ -125,8 +148,8 @@ const FeedCard = ({ innerRef, index, item, active, near, muted, onComments }: Fe
   const [commentCount, setCommentCount] = useState(item.comment_count);
   const [busy, setBusy] = useState(false);
   const [reactOpen, setReactOpen] = useState(false);
-  // Only the in-view card fetches reactions (one query, not the whole feed).
-  const reactions = useVideoReactions(active && !item.isStatic ? (item.project_id ?? undefined) : undefined);
+  // This overlay only ever shows the active reel, so fetch its reactions.
+  const reactions = useVideoReactions(!item.isStatic ? (item.project_id ?? undefined) : undefined);
   const myReaction = reactions.reactionCounts.find((r) => r.hasReacted)?.emoji;
   const reactionTotal = reactions.reactionCounts.reduce((s, r) => s + r.count, 0);
 
@@ -213,29 +236,16 @@ const FeedCard = ({ innerRef, index, item, active, near, muted, onComments }: Fe
   const initial = (item.creator_name ?? 'S').trim().charAt(0).toUpperCase();
 
   return (
-    <section
-      ref={innerRef}
-      data-idx={index}
-      className="relative h-full w-full snap-start snap-always overflow-hidden"
-    >
-      {/* Windowing: only the active card + immediate neighbours mount a <video>;
-          far cards show a lightweight poster so long feeds stay smooth. */}
-      {near ? (
-        <FeedVideo src={item.video_url} poster={item.thumbnail_url ?? undefined} active={active} muted={muted} />
-      ) : (
-        <div className="absolute inset-0 bg-[#0a0a0a]">
-          {item.thumbnail_url ? <img src={item.thumbnail_url} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-2xl" /> : <div className="absolute inset-0" style={{ background: 'radial-gradient(120% 80% at 50% 30%, rgba(47,107,255,.18), transparent 60%)' }} />}
-        </div>
-      )}
-
-      {/* cinematic grain + legibility scrims */}
-      <GrainOverlay opacity={0.05} />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-black/60 via-black/15 to-transparent" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-80 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+    // Fixed overlay over the scrolling feed: pointer-events pass through to the
+    // video (so swiping still scrolls) except on the rail/caption.
+    <div className="pointer-events-none absolute inset-0 z-20">
+      {/* legibility scrims */}
+      <div className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-black/60 via-black/15 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 h-80 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
 
       {/* right action rail */}
       <div
-        className="absolute right-3 z-20 flex flex-col items-center gap-5"
+        className="pointer-events-auto absolute right-3 z-20 flex flex-col items-center gap-5"
         style={{ bottom: 'calc(var(--safe-bottom, 0px) + var(--tabbar-h, 0px) + 132px)' }}
       >
         <button onClick={() => navigate(item.creator_id ? `/u/${item.creator_id}` : '/you')} className="relative drop-shadow-[0_4px_12px_rgba(0,0,0,.6)]" aria-label="Creator">
@@ -309,8 +319,7 @@ const FeedCard = ({ innerRef, index, item, active, near, muted, onComments }: Fe
           </div>
         )}
       </div>
-
-    </section>
+    </div>
   );
 };
 

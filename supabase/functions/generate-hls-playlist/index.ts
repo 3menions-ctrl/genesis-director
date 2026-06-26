@@ -22,7 +22,7 @@ serve(async (req) => {
   }
 
   try {
-    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const { validateAuth, unauthorizedResponse, forbiddenResponse } = await import("../_shared/auth-guard.ts");
     const auth = await validateAuth(req);
     if (!auth.authenticated) {
       return unauthorizedResponse(corsHeaders, auth.error);
@@ -34,6 +34,43 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // ── OWNERSHIP GATE ───────────────────────────────────────────────────────
+    // This handler uses the service-role client (RLS bypassed). Without an
+    // explicit ownership check, any authenticated user could pass any projectId
+    // and retrieve another user's private signed video URLs (IDOR).
+    //
+    // Access is allowed for, in order:
+    //   • internal service-role callers — the render pipeline generating a
+    //     playlist is not acting on behalf of a specific user and is trusted
+    //     (holding the service-role key already implies full DB access);
+    //   • a public project (is_public);
+    //   • the project owner (user_id);
+    //   • a member of the project's organization (checked below).
+    const { data: proj, error: projErr } = await supabase
+      .from("movie_projects")
+      .select("user_id, organization_id, is_public")
+      .eq("id", projectId)
+      .maybeSingle();
+    if (projErr) throw new Error(`Failed to load project: ${projErr.message}`);
+    if (!proj) {
+      return new Response(JSON.stringify({ error: "Project not found" }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    let allowed = auth.isServiceRole === true || proj.is_public === true || proj.user_id === auth.userId;
+    if (!allowed && proj.organization_id && auth.userId) {
+      const { data: membership } = await supabase
+        .from("organization_members")
+        .select("user_id")
+        .eq("organization_id", proj.organization_id)
+        .eq("user_id", auth.userId)
+        .maybeSingle();
+      allowed = !!membership;
+    }
+    if (!allowed) {
+      return forbiddenResponse(corsHeaders, "You don't have access to this project.");
+    }
 
     console.log(`[HLSPlaylist] Generating playlist for project ${projectId}`);
 

@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { validateAuth } from "../_shared/auth-guard.ts";
+import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,7 +24,7 @@ serve(async (req) => {
       });
     }
 
-    const { prompt, action, clipContext } = await req.json();
+    const { prompt, action, clipContext, projectId } = await req.json();
 
     if (!prompt || typeof prompt !== "string") {
       return new Response(JSON.stringify({ error: "prompt is required" }), {
@@ -35,6 +37,24 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY not configured");
     }
+
+    // 💳 Credit + rate-limit gate (before the paid provider call)
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const gateCtx = {
+      supabase,
+      fnName: "editor-ai-scene",
+      userId: auth.userId,
+      isServiceRole: auth.isServiceRole,
+      projectId: typeof projectId === "string" ? projectId : null,
+      cost: 1,
+      dailyCap: 300,
+      corsHeaders,
+    };
+    const blocked = await preflightAiGate(gateCtx);
+    if (blocked) return blocked;
 
     const systemPrompt = `You are a professional cinematic scene director and video editor AI assistant.
 Your job is to enhance user scene descriptions into detailed, production-ready video prompts.
@@ -120,6 +140,9 @@ ${clipContext ? `Current clip context: ${JSON.stringify(clipContext)}` : ""}`,
         mood: "cinematic",
       };
     }
+
+    // 💳 Charge once on successful generation
+    await chargeAiGate(gateCtx);
 
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

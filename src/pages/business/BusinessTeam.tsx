@@ -145,20 +145,16 @@ export function TeamContent() {
   };
 
   const updateRole = async (memberId: string, role: OrgRole) => {
-    const target = members.find((m) => m.id === memberId);
-    const oldRole = target?.role;
     const { error } = await supabase.from("organization_members").update({ role }).eq("id", memberId);
     if (error) { toast.error(safeErrorMessage(error, "Couldn't update role.")); return; }
     toast.success("Role updated");
     void load();
-    if (target?.profile?.email && oldRole && oldRole !== role) {
-      void supabase.functions.invoke("send-transactional-email", {
-        body: { template: "org_role_changed", recipientEmail: target.profile.email, templateData: {
-          orgName: currentOrg?.name ?? "your workspace", oldRole, newRole: role,
-          memberName: target.profile.display_name ?? target.profile.full_name ?? target.profile.email?.split("@")[0] ?? "there",
-        } },
-      }).catch((e) => console.warn("[BusinessTeam] role email failed", e));
-    }
+    // NOTE: the "role changed" notification email is intentionally NOT sent
+    // from the client. send-transactional-email is service-role only (it 403s
+    // any user-JWT caller), so the previous direct invoke here never delivered
+    // — it failed silently on every role change. The notification must be
+    // dispatched server-side (DB trigger or a SECURITY DEFINER RPC that enqueues
+    // the email) so it runs with service-role credentials. Tracked separately.
   };
 
   const removeMember = async (memberId: string) => {

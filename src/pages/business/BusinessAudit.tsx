@@ -8,6 +8,7 @@
  * export. Admin-gated. Real data only.
  */
 import { useEffect, useMemo, useState } from "react";
+import { csvRow } from "@/lib/csvSafe";
 import { Lock, History, Download, Search, X } from "lucide-react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -76,10 +77,17 @@ export default function BusinessAudit() {
       const projIds = (projects ?? []).map((p) => p.id);
       const titleMap = new Map<string, string>((projects ?? []).map((p) => [p.id, p.title]));
 
+      // AUDIT FIX B-2/H-6: org-scoped ledger via the SECURITY DEFINER
+      // org_credit_transactions() RPC (transactions tagged by the project's
+      // org, membership-gated). The previous direct credit_transactions read
+      // was silently narrowed to the viewer's own rows by RLS, so an admin
+      // never saw transactions made by other org members.
       const creditPromise = projIds.length
-        ? supabase.from("credit_transactions")
-            .select("id, amount, transaction_type, description, project_id, created_at")
-            .in("project_id", projIds).order("created_at", { ascending: false }).limit(250)
+        ? (supabase.rpc as unknown as (
+            fn: string,
+            args: Record<string, unknown>,
+          ) => Promise<{ data: CreditTx[] | null }>
+          )("org_credit_transactions", { p_org_id: currentOrg.id })
         : Promise.resolve({ data: [] as CreditTx[] });
 
       const [{ data: wsEvents }, { data: credits }] = await Promise.all([
@@ -145,7 +153,7 @@ export default function BusinessAudit() {
 
   const exportCsv = () => {
     const header = "Timestamp,Kind,Category,Action,Actor,Detail,Amount\n";
-    const body = visible.map((r) => `"${new Date(r.ts).toISOString()}","${r.kind}","${r.category ?? ""}","${r.label}","${r.actor ?? ""}","${(r.detail || "").replace(/"/g, "'")}",${r.amount ?? ""}`).join("\n");
+    const body = visible.map((r) => csvRow([new Date(r.ts).toISOString(), r.kind, r.category ?? "", r.label, r.actor ?? "", r.detail || "", r.amount ?? ""])).join("\n");
     const blob = new Blob([header + body], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");

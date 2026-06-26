@@ -1,4 +1,5 @@
 import { useState, useEffect, memo, forwardRef } from 'react';
+import { csvRow } from '@/lib/csvSafe';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -176,14 +177,14 @@ export const BillingSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
     }
 
     const csvContent = [
-      ['Date', 'Type', 'Description', 'Amount', 'Clip Duration (s)'].join(','),
-      ...transactions.map(tx => [
+      csvRow(['Date', 'Type', 'Description', 'Amount', 'Clip Duration (s)']),
+      ...transactions.map(tx => csvRow([
         new Date(tx.created_at).toISOString(),
         tx.transaction_type,
-        `"${tx.description || ''}"`,
+        tx.description || '',
         tx.amount,
         tx.clip_duration_seconds || ''
-      ].join(','))
+      ]))
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });

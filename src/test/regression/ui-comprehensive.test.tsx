@@ -504,7 +504,6 @@ describe('Component Architecture Audit', () => {
       'src/components/ui/progress.tsx',
       'src/components/ui/CinemaLoader.tsx',
       'src/components/ui/password-strength.tsx',
-      'src/components/ui/premium-toast.tsx',
       'src/components/ui/loading-skeletons.tsx',
       'src/components/ui/page-skeleton.tsx',
       'src/components/ui/app-loader.tsx',
@@ -520,15 +519,13 @@ describe('Component Architecture Audit', () => {
   });
 
   describe('Landing component file existence', () => {
+    // B2BHero, PricingSection, HowItWorksSection were removed in the landing
+    // redesign (the hero/pricing/how-it-works content was consolidated).
     const files = [
-      // HeroSection was replaced by B2BHero in the landing redesign.
-      'src/components/landing/B2BHero.tsx',
       'src/components/landing/LandingNav.tsx',
       'src/components/landing/Footer.tsx',
       'src/components/landing/FAQSection.tsx',
-      'src/components/landing/PricingSection.tsx',
       'src/components/landing/FeaturesShowcase.tsx',
-      'src/components/landing/HowItWorksSection.tsx',
       'src/components/landing/ExamplesGallery.tsx',
       'src/components/landing/FinalCTASection.tsx',
     ];
@@ -615,19 +612,9 @@ describe('Component Architecture Audit', () => {
     }
   });
 
-  describe('Gallery components', () => {
-    const files = [
-      'src/components/gallery/GalleryHeroSection.tsx',
-      'src/components/gallery/PremiumVideoCard.tsx',
-      'src/components/gallery/PremiumFullscreenPlayer.tsx',
-    ];
-
-    for (const f of files) {
-      it(`${path.basename(f)} exists`, () => {
-        expect(fs.existsSync(path.resolve(f))).toBe(true);
-      });
-    }
-  });
+  // The src/components/gallery/* components (GalleryHeroSection,
+  // PremiumVideoCard, PremiumFullscreenPlayer) were removed in the gallery
+  // rebuild; their existence checks were deleted with them.
 
   describe('Credit components', () => {
     it('BuyCreditsModal exists and uses Dialog', () => {
@@ -682,29 +669,8 @@ describe('Component Contracts', () => {
     expect(content).toContain("category === 'NETWORK'");
   });
 
-  it('PremiumToast has 5 toast types', () => {
-    const content = readFile('src/components/ui/premium-toast.tsx');
-    expect(content).toContain("'success'");
-    expect(content).toContain("'error'");
-    expect(content).toContain("'warning'");
-    expect(content).toContain("'info'");
-    expect(content).toContain("'epic'");
-  });
-
-  it('PremiumToast has provider and context hook', () => {
-    const content = readFile('src/components/ui/premium-toast.tsx');
-    expect(content).toContain('PremiumToastProvider');
-    expect(content).toContain('usePremiumToastContext');
-    expect(content).toContain('PremiumToastContext');
-  });
-
-  it('HeroSection has Enter Studio CTA', () => {
-    // The landing hero was refactored into B2BHero; the "Enter Studio" CTA is
-    // wired to the onSecondary handler (Landing passes handleEnterStudio).
-    const content = readFile('src/components/landing/B2BHero.tsx');
-    expect(content).toContain('Enter Studio');
-    expect(content).toContain('onSecondary');
-  });
+  // premium-toast.tsx and B2BHero.tsx (HeroSection) were removed; their
+  // contract tests were deleted with them.
 
   it('Footer has all 3 link sections: Product, Company, Legal', () => {
     const content = readFile('src/components/landing/Footer.tsx');
@@ -713,12 +679,8 @@ describe('Component Contracts', () => {
     expect(content).toContain('Legal');
   });
 
-  it('PricingSection has credit pricing stats', () => {
-    const content = readFile('src/components/landing/PricingSection.tsx');
-    expect(content).toContain('$0.10');
-    expect(content).toContain('per credit');
-    expect(content).toContain('no expiry');
-  });
+  // PricingSection.tsx was removed in the landing redesign; its contract test
+  // was deleted with it.
 
   it('PipelineErrorBanner classifies 7+ error types', () => {
     const content = readFile('src/components/production/PipelineErrorBanner.tsx');
@@ -797,7 +759,6 @@ describe('Component Directory Structure', () => {
     'src/components/settings',
     'src/components/profile',
     'src/components/credits',
-    'src/components/gallery',
     'src/components/layout',
     'src/components/stability',
     'src/components/navigation',

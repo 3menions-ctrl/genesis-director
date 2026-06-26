@@ -1,5 +1,6 @@
 /** Admin Analytics — live, cinematic, instrumented. */
 import { useEffect, useMemo, useRef, useState } from "react";
+import { csvCell } from "@/lib/csvSafe";
 import { useSearchParams } from "react-router-dom";
 import { Activity, Users, DollarSign, Sparkles, Zap, RefreshCw, AlertCircle, X, ArrowUpRight, Loader2, ArrowDown, ArrowUp, Filter, Crown, Download, CalendarIcon } from "lucide-react";
 import {
@@ -1138,11 +1139,7 @@ function Leaderboard({ rows, loading }: { rows: NonNullable<AnalyticsPayload["to
 }
 
 function downloadCsv(payload: DetailPayload, opts: { filtered?: boolean } = {}) {
-  const esc = (v: unknown) => {
-    if (v == null) return "";
-    const s = String(v);
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
+  const esc = csvCell; // neutralizes formula-injection (=,+,-,@) + CSV-quotes (S235/S236)
   const header = payload.columns.map((c) => esc(c.label)).join(",");
   const lines = payload.rows.map((r) => payload.columns.map((c) => esc(r[c.key])).join(","));
   const csv = [header, ...lines].join("\n") + "\n";

@@ -32,8 +32,11 @@ async function lookupPriceId(stripe: ReturnType<typeof createStripeClient>, look
   return list.data[0].id;
 }
 
+import { STRIPE_BILLING_LOCKED, stripeBillingLockedResponse } from "../_shared/stripe-lock.ts";
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (STRIPE_BILLING_LOCKED) return stripeBillingLockedResponse(corsHeaders);
 
   try {
     const body = await req.json().catch(() => ({}));

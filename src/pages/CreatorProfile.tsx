@@ -54,6 +54,7 @@ export default function CreatorProfile() {
   const [similar, setSimilar] = useState<{ id: string; display_name: string | null; avatar_url: string | null }[]>([]);
   const [blocked, setBlocked] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const isSelf = !!user && user.id === id;
 
   useEffect(() => { if (id && user?.id === id) navigate('/you', { replace: true }); }, [id, user?.id, navigate]);
 

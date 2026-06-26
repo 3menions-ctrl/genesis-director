@@ -286,11 +286,11 @@ const FeedOverlay = ({ item, onComments }: { item: FeedItem; onComments: (v: { i
         </button>
 
         <RailButton label={compact(likeCount)} onClick={like} active={liked} aria-label="Like">
-          <Heart className={cn('h-7 w-7', liked && 'fill-[#ff3b6b] stroke-[#ff3b6b]')} />
+          <Heart className={cn('h-6 w-6', liked && 'fill-[#ff3b6b] stroke-[#ff3b6b]')} />
         </RailButton>
 
         <RailButton label={commentCount > 0 ? compact(commentCount) : 'Comments'} onClick={() => { void hapticTap(); onComments({ item, bump: () => setCommentCount((c) => c + 1) }); }} aria-label="Comments">
-          <MessageCircle className="h-7 w-7" />
+          <MessageCircle className="h-6 w-6" />
         </RailButton>
 
         {/* React — emoji reactions */}
@@ -310,16 +310,16 @@ const FeedOverlay = ({ item, onComments }: { item: FeedItem; onComments: (v: { i
           )}
           <RailButton label={reactionTotal > 0 ? compact(reactionTotal) : 'React'} active={!!myReaction}
             onClick={() => { void hapticTap(); if (!item.isStatic) setReactOpen((o) => !o); else toast('Reactions open up on published films'); }} aria-label="React">
-            {myReaction ? <span className="text-[26px] leading-none">{myReaction}</span> : <SmilePlus className="h-7 w-7" />}
+            {myReaction ? <span className="text-[26px] leading-none">{myReaction}</span> : <SmilePlus className="h-6 w-6" />}
           </RailButton>
         </div>
 
         <RailButton label="Remix" highlight onClick={remix} aria-label="Remix">
-          <Repeat2 className="h-7 w-7" />
+          <Repeat2 className="h-6 w-6" />
         </RailButton>
 
         <RailButton label="Share" onClick={share} aria-label="Share">
-          <Share2 className="h-7 w-7" />
+          <Share2 className="h-6 w-6" />
         </RailButton>
       </div>
 

@@ -112,7 +112,7 @@ export default function ReelViewer() {
     await shareLink({ title: reel.title ?? 'A film on Small Bridges', url: `${window.location.origin}/r/${reel.id}` });
   }, [reel]);
 
-  if (loading) return <div className="fixed inset-0 grid place-items-center bg-black text-white"><Loader2 className="h-7 w-7 animate-spin text-white/40" /></div>;
+  if (loading) return <div className="fixed inset-0 grid place-items-center bg-black text-white"><Loader2 className="h-6 w-6 animate-spin text-white/40" /></div>;
   if (!reel) return (
     <div className="fixed inset-0 grid place-items-center bg-black text-white">
       <div className="text-center"><p className="text-[14px] text-white/55">This reel isn't available.</p><button onClick={close} className="mt-3 rounded-full bg-white/10 px-4 py-2 text-[13px] font-semibold">Back</button></div>
@@ -135,11 +135,11 @@ export default function ReelViewer() {
         <button onClick={() => navigate(reel.creator_id ? `/u/${reel.creator_id}` : '/you')} aria-label="Creator" className="relative drop-shadow-[0_4px_12px_rgba(0,0,0,.6)]">
           {reel.creator_avatar ? <img src={reel.creator_avatar} alt="" className="h-12 w-12 rounded-full object-cover" /> : <span className="grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-[#ffb86b] to-[#ff6bcb] font-display text-lg font-bold">{(reel.creator_name ?? 'S').charAt(0).toUpperCase()}</span>}
         </button>
-        <Rail label={compact(likeCount)} onClick={like} active={liked}><Heart className={cn('h-7 w-7', liked && 'fill-[#ff3b6b] stroke-[#ff3b6b]')} /></Rail>
-        <Rail label={commentCount > 0 ? compact(commentCount) : 'Comments'} onClick={() => { void hapticTap(); setCommentsOpen(true); }}><MessageCircle className="h-7 w-7" /></Rail>
-        {!reel.isStatic && <Rail label="Gift" highlight onClick={() => { void hapticTap(); setGiftOpen(true); }}><Gift className="h-7 w-7" /></Rail>}
-        <Rail label="Remix" onClick={remix}><Repeat2 className="h-7 w-7" /></Rail>
-        <Rail label="Share" onClick={share}><Share2 className="h-7 w-7" /></Rail>
+        <Rail label={compact(likeCount)} onClick={like} active={liked}><Heart className={cn('h-6 w-6', liked && 'fill-[#ff3b6b] stroke-[#ff3b6b]')} /></Rail>
+        <Rail label={commentCount > 0 ? compact(commentCount) : 'Comments'} onClick={() => { void hapticTap(); setCommentsOpen(true); }}><MessageCircle className="h-6 w-6" /></Rail>
+        {!reel.isStatic && <Rail label="Gift" highlight onClick={() => { void hapticTap(); setGiftOpen(true); }}><Gift className="h-6 w-6" /></Rail>}
+        <Rail label="Remix" onClick={remix}><Repeat2 className="h-6 w-6" /></Rail>
+        <Rail label="Share" onClick={share}><Share2 className="h-6 w-6" /></Rail>
       </div>
 
       {/* Caption */}

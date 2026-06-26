@@ -105,7 +105,7 @@ function TabButton({
         {(active || accent) && (
           <span className="pointer-events-none absolute h-7 w-7 rounded-full bg-[#3f78ff]/30 blur-md" />
         )}
-        <Icon className="relative h-[24px] w-[24px]" strokeWidth={accent ? 2.2 : 1.9} />
+        <Icon className="relative h-[21px] w-[21px]" strokeWidth={accent ? 2.2 : 1.9} />
       </span>
       <span className="font-display text-[9.5px] font-medium tracking-[0.02em]">{label}</span>
     </button>

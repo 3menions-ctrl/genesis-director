@@ -2788,7 +2788,7 @@ img, a, button {
      the inset, e.g. URL-bar collapsed) we floor it so top content never tucks
      under the camera cutout. Scoped to the mobile shells only — desktop web is
      untouched. */
-  --safe-top: max(env(safe-area-inset-top, 0px), 44px);
+  --safe-top: max(env(safe-area-inset-top, 0px), 12px);
 }
 
 .capacitor-native {

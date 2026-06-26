@@ -61,21 +61,25 @@ export default function Discover() {
       <AuroraBackdrop />
       {refreshing && <div className="pointer-events-none absolute inset-x-0 z-30 flex justify-center" style={{ top: 'calc(var(--safe-top,0px) + 14px)' }}><span className="inline-flex items-center gap-2 rounded-full bg-black/50 px-3 py-1.5 text-[12px] backdrop-blur-md"><Loader2 className="h-3.5 w-3.5 animate-spin" />Refreshing</span></div>}
       <div ref={scrollRef} onScroll={onScroll} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} className="relative z-10 h-full overflow-y-auto px-4" style={{ paddingTop: 'calc(var(--safe-top,0px) + 14px)', paddingBottom: 'calc(var(--safe-bottom,0px) + var(--tabbar-h,0px) + 28px)' }}>
-        {/* Category icons (no titles) + a search toggle in the top-right */}
+        {/* Category icons (no titles) evenly distributed + a search toggle, right */}
         {!searching && !searchOpen && (
-          <div className="relative mt-5 flex items-center justify-center gap-10">
-            {CATS.map((c) => {
-              const on = cat === c.id;
-              return (
-                <button key={c.id} onClick={() => { void hapticTap(); setCat(c.id); }} aria-label={c.label}
-                  className={cn('relative grid place-items-center px-2 py-1 transition-colors active:scale-95', on ? 'text-[#8fb4ff]' : 'text-white/45')}>
-                  {on && <span className="pointer-events-none absolute h-9 w-9 rounded-full bg-[#3f78ff]/30 blur-md" />}
-                  <c.icon className="relative h-[26px] w-[26px]" strokeWidth={on ? 2.1 : 1.8} />
-                </button>
-              );
-            })}
-            <button onClick={() => { void hapticTap(); setSearchOpen(true); }} aria-label="Search" className="absolute right-0 text-white/55 drop-shadow-[0_2px_8px_rgba(0,0,0,.6)] transition-transform active:scale-90">
-              <Search className="h-[24px] w-[24px]" strokeWidth={1.9} />
+          <div className="mt-1.5 flex items-center gap-3">
+            <div className="flex flex-1 items-center justify-around">
+              {CATS.map((c) => {
+                const on = cat === c.id;
+                return (
+                  <button key={c.id} onClick={() => { void hapticTap(); setCat(c.id); }} aria-label={c.label}
+                    className={cn('relative flex flex-col items-center gap-1.5 px-3 transition-colors active:scale-95', on ? 'text-[#8fb4ff]' : 'text-white/40')}>
+                    {on && <span className="pointer-events-none absolute -top-1 h-7 w-7 rounded-full bg-[#3f78ff]/25 blur-md" />}
+                    <c.icon className="relative h-[20px] w-[20px]" strokeWidth={on ? 2.2 : 1.7} />
+                    <span className={cn('h-[3px] w-[3px] rounded-full transition-colors', on ? 'bg-[#8fb4ff]' : 'bg-transparent')} />
+                  </button>
+                );
+              })}
+            </div>
+            <span className="h-5 w-px bg-white/10" />
+            <button onClick={() => { void hapticTap(); setSearchOpen(true); }} aria-label="Search" className="shrink-0 pb-[5px] text-white/45 transition-transform active:scale-90">
+              <Search className="h-[20px] w-[20px]" strokeWidth={1.9} />
             </button>
           </div>
         )}

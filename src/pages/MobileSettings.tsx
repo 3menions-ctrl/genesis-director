@@ -4,7 +4,7 @@
  * sign out. Deeper screens link to the existing web surfaces for now.
  */
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, CreditCard, UserRound, Bell, ShieldCheck, HelpCircle, LogOut, Pencil, FolderOpen, Share2, type LucideIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CreditCard, UserRound, Bell, ShieldCheck, HelpCircle, LogOut, Pencil, FolderOpen, Share2, Sparkles, type LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
@@ -43,6 +43,7 @@ export default function MobileSettings() {
 
         <Group label="Content">
           <Row icon={FolderOpen} label="Your library" onClick={() => go('/me/library')} />
+          <Row icon={Sparkles} label="Your year in review" onClick={() => go('/me/recap')} />
           <Row icon={Share2} label="Share your profile" onClick={async () => { if (!user) return; const r = await shareLink({ title: `${name} on Small Bridges`, text: 'My films on Small Bridges', url: `https://smallbridges.co/c/${user.id}` }); if (r === 'copied') toast.success('Link copied'); }} />
         </Group>
 

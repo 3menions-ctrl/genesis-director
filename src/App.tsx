@@ -97,6 +97,8 @@ const Activity = lazy(() => import("./pages/Activity"));
 const MobileLibrary = lazy(() => import("./pages/MobileLibrary"));
 // Mobile view-only plans / credits.
 const Plans = lazy(() => import("./pages/Plans"));
+// Mobile Year-in-review recap.
+const YearReview = lazy(() => import("./pages/YearReview"));
 // Mobile-first one-prompt create screen (hands off to Studio's engine).
 const Create = lazy(() => import("./pages/Create"));
 // Mobile-first presets "editor" (one-tap looks) + gamified profile.
@@ -379,6 +381,12 @@ const App = () => {
                 <Route path="/me/plans" element={
                   <RouteContainer fallbackMessage="Loading…">
                     <Plans />
+                  </RouteContainer>
+                } />
+                {/* Mobile Year-in-review. */}
+                <Route path="/me/recap" element={
+                  <RouteContainer fallbackMessage="Loading…">
+                    <YearReview />
                   </RouteContainer>
                 } />
                 {/* Mobile one-prompt create screen (hands the prompt to Studio). */}

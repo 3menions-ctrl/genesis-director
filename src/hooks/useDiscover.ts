@@ -73,7 +73,8 @@ export function useDailyPrompt() {
     (async () => {
       try {
         const { data } = await supabase.rpc('current_daily_prompt' as never);
-        const raw = (Array.isArray(data) ? data[0] : data) as unknown as DailyPrompt | null;
+        const d = data as unknown as DailyPrompt[] | DailyPrompt | null;
+        const raw = (Array.isArray(d) ? (d[0] ?? null) : d) as DailyPrompt | null;
         if (!cancel && raw && raw.prompt_text) setPrompt(raw);
       } catch { /* no prompt today */ }
     })();

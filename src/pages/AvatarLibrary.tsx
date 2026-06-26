@@ -9,7 +9,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, X, ChevronLeft, Play, Pause, Sparkles, Crown, ArrowRight, Loader2, Mic } from 'lucide-react';
 import { useAvatarTemplatesQuery } from '@/hooks/useAvatarTemplatesQuery';
-import type { AvatarTemplate } from '@/types/avatar-templates';
+import type { AvatarTemplate, AvatarTemplateFilter } from '@/types/avatar-templates';
 import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
 import { hapticTap } from '@/lib/native/shell';
 import { cn } from '@/lib/utils';
@@ -25,7 +25,7 @@ export default function AvatarLibrary() {
   const [gender, setGender] = useState<string>('all');
   const [open, setOpen] = useState<AvatarTemplate | null>(null);
 
-  const filter = useMemo(() => ({ search: search.trim() || undefined, avatarType: type === 'all' ? undefined : type, gender: gender === 'all' ? undefined : gender }), [search, type, gender]);
+  const filter = useMemo<AvatarTemplateFilter>(() => ({ search: search.trim() || undefined, avatarType: type === 'all' ? undefined : (type as AvatarTemplateFilter['avatarType']), gender: gender === 'all' ? undefined : gender }), [search, type, gender]);
   const { templates, isLoading } = useAvatarTemplatesQuery(filter, { includePlaceholders: false });
 
   return (

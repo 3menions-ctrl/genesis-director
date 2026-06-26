@@ -400,7 +400,7 @@ function EditSheet({ initial, onClose, onSaved }: { initial: { display_name: str
   const [tagline, setTagline] = useState(initial.tagline);
   const [bio, setBio] = useState(initial.bio);
   const [avatar, setAvatar] = useState<string | null>(profile?.avatar_url ?? null);
-  const [cover, setCover] = useState<string | null>(profile?.cover_url ?? null);
+  const [cover, setCover] = useState<string | null>((profile as { cover_url?: string | null } | null)?.cover_url ?? null);
   const [busy, setBusy] = useState<'avatar' | 'cover' | null>(null);
   const [saving, setSaving] = useState(false);
 

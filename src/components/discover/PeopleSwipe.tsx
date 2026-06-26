@@ -95,7 +95,7 @@ function SwipeCard({ person, onDecide, onOpen }: { person: Person; onDecide: (di
 
   return (
     <motion.div style={{ x, rotate }} drag="x" dragConstraints={{ left: 0, right: 0 }} dragElastic={0.7} onDragEnd={onEnd}
-      onTap={(_, info) => { if (Math.abs(info.offset.x) < 6) onOpen(); }}
+      onTap={() => onOpen()}
       className="absolute inset-0 cursor-pointer touch-none">
       <CardFace person={person} />
       <span className="pointer-events-none absolute bottom-3 right-4 rounded-full bg-black/40 px-2.5 py-1 font-mono text-[9px] uppercase tracking-wider text-white/70 backdrop-blur-md">Tap to view</span>

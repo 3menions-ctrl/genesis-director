@@ -6,6 +6,7 @@
  * you already follow; Follow inserts into user_follows (the real follow graph).
  */
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, useMotionValue, useTransform, animate, type PanInfo } from 'framer-motion';
 import { X, UserPlus, MapPin, Sparkles, RotateCcw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -15,6 +16,7 @@ import { hapticTap } from '@/lib/native/shell';
 interface Person { id: string; display_name: string | null; avatar_url: string | null; tagline: string | null; location: string | null; bio: string | null }
 
 export function PeopleSwipe({ userId }: { userId: string }) {
+  const navigate = useNavigate();
   const [people, setPeople] = useState<Person[]>([]);
   const [i, setI] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -60,7 +62,7 @@ export function PeopleSwipe({ userId }: { userId: string }) {
     <div className="mt-4 flex flex-col items-center">
       <div className="relative w-full max-w-[340px]" style={{ height: 'min(400px, 46vh)' }}>
         {next && <CardFace person={next} className="absolute inset-0 scale-[0.94] opacity-60" />}
-        <SwipeCard key={current.id} person={current} onDecide={(dir) => decide(current, dir)} />
+        <SwipeCard key={current.id} person={current} onDecide={(dir) => decide(current, dir)} onOpen={() => { void hapticTap(); navigate(`/u/${current.id}`); }} />
       </div>
 
       <div className="mt-5 flex items-center gap-7">
@@ -76,7 +78,7 @@ export function PeopleSwipe({ userId }: { userId: string }) {
   );
 }
 
-function SwipeCard({ person, onDecide }: { person: Person; onDecide: (dir: 'left' | 'right') => void }) {
+function SwipeCard({ person, onDecide, onOpen }: { person: Person; onDecide: (dir: 'left' | 'right') => void; onOpen: () => void }) {
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-220, 220], [-15, 15]);
   const followOp = useTransform(x, [30, 130], [0, 1]);
@@ -91,8 +93,10 @@ function SwipeCard({ person, onDecide }: { person: Person; onDecide: (dir: 'left
 
   return (
     <motion.div style={{ x, rotate }} drag="x" dragConstraints={{ left: 0, right: 0 }} dragElastic={0.7} onDragEnd={onEnd}
-      className="absolute inset-0 cursor-grab touch-none active:cursor-grabbing">
+      onTap={(_, info) => { if (Math.abs(info.offset.x) < 6) onOpen(); }}
+      className="absolute inset-0 cursor-pointer touch-none">
       <CardFace person={person} />
+      <span className="pointer-events-none absolute bottom-3 right-4 rounded-full bg-black/40 px-2.5 py-1 font-mono text-[9px] uppercase tracking-wider text-white/70 backdrop-blur-md">Tap to view</span>
       <motion.span style={{ opacity: followOp }} className="pointer-events-none absolute left-4 top-5 -rotate-12 rounded-lg border-2 border-[#5ee08a] px-3 py-1 font-display text-[20px] font-extrabold tracking-wide text-[#5ee08a]">FOLLOW</motion.span>
       <motion.span style={{ opacity: passOp }} className="pointer-events-none absolute right-4 top-5 rotate-12 rounded-lg border-2 border-[#ff5b6b] px-3 py-1 font-display text-[20px] font-extrabold tracking-wide text-[#ff5b6b]">PASS</motion.span>
     </motion.div>

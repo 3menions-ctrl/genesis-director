@@ -129,7 +129,13 @@ export default function Create() {
   const atWriting = !!def && step >= steps.length;
   const total = steps.length + 1;
 
-  const start = (type: string) => { void hapticTap(); setFlow(type); setStep(0); setSel({}); setPrompt(''); };
+  const start = (type: string) => {
+    void hapticTap();
+    // Avatar → straight into the real avatar library (pick presenter + hear
+    // voice + write a script there) rather than placeholder chips.
+    if (type === 'avatar') { navigate('/avatars'); return; }
+    setFlow(type); setStep(0); setSel({}); setPrompt('');
+  };
 
   // A photo source opens the native picker, uploads, then advances with the URL.
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {

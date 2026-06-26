@@ -545,7 +545,12 @@ With approval, exercised the recoverable destructive actions on my own test acco
 
 All worked correctly; the QA account was verified back to a healthy state (not suspended, email verified, 0 credits). The `admin_audit_log` correctly recorded each action.
 
-**Still not executed (genuinely irreversible / money-moving):** **Delete account** and **Refunds** — left untouched on production by design.
+## Round 7d — the last two actions (Delete + Refunds)
+
+- **Delete account** — tested on a **brand-new disposable throwaway user** (never a real user). Flow: `admin-user-action` edge fn → 200, toast "User account deleted", and **verified the user was actually removed from auth** (`getUserById` → null). The disposable user was the test's own subject, so nothing of value was lost.
+- **Refunds** — the admin Refunds page is **safe by design**: it states *"Approving here marks intent only — actually issuing the refund is a separate step in the Polar dashboard. Recording it here does not move money,"* and the actions only update `refund_requests.status`. Seeded a pending request, exercised **Approve** → PATCH 204, "Approve succeeded", DB status `pending → approved` (no money moved), then removed the seed.
+
+**Admin app is now fully exercised** — every route, sub-tab, detail page, search, and every action (grant credits, impersonation, password reset, magic link, suspend/unsuspend, revoke sessions, delete account, refund approve). The only thing not done is wiring a **real** Polar refund (that's a manual Polar-dashboard step that doesn't run from this app anyway).
 
 ---
 

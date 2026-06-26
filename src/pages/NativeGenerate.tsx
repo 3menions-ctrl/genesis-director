@@ -19,13 +19,16 @@ import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
 import { hapticTap } from '@/lib/native/shell';
 import { cn } from '@/lib/utils';
 
-interface EngineOpt { token: VideoEngine; name: string; tier: string; durations: number[]; premium?: boolean }
+// `def` = the engine's RECOMMENDED default clip length (matches engines.ts
+// defaultDuration). Generating at durations[0] (the minimum) gave Kling/Seedance/
+// Veo/Sora users shorter-than-standard clips; default to the recommended length.
+interface EngineOpt { token: VideoEngine; name: string; tier: string; def: number; premium?: boolean }
 const ENGINE_OPTS: EngineOpt[] = [
-  { token: 'wan', name: 'Wan 2.5', tier: 'Free', durations: [5, 10] },
-  { token: 'kling', name: 'Kling V3', tier: 'Standard', durations: [5, 10] },
-  { token: 'seedance', name: 'Seedance 2', tier: 'Pro', durations: [5, 10], premium: true },
-  { token: 'veo', name: 'Veo 3', tier: 'Cinema', durations: [4, 6, 8], premium: true },
-  { token: 'sora', name: 'Sora 2', tier: 'Cinema', durations: [4, 8], premium: true },
+  { token: 'wan', name: 'Wan 2.5', tier: 'Free', def: 5 },
+  { token: 'kling', name: 'Kling V3', tier: 'Standard', def: 10 },
+  { token: 'seedance', name: 'Seedance 2', tier: 'Pro', def: 10, premium: true },
+  { token: 'veo', name: 'Veo 3', tier: 'Cinema', def: 6, premium: true },
+  { token: 'sora', name: 'Sora 2', tier: 'Cinema', def: 8, premium: true },
 ];
 const ASPECTS = ['9:16', '16:9', '1:1'];
 
@@ -45,7 +48,7 @@ export default function NativeGenerate() {
   const [busy, setBusy] = useState(false);
 
   const eng = ENGINE_OPTS.find((e) => e.token === engine) ?? ENGINE_OPTS[0];
-  const clipDuration = eng.durations[0];
+  const clipDuration = eng.def;
   const durations = useMemo(() => Array.from({ length: scenes }, () => clipDuration), [scenes, clipDuration]);
   const cost = useMemo(() => calculateCreditsForDurations(durations, engine), [durations, engine]);
   const available = effective.available ?? 0;
@@ -104,7 +107,7 @@ export default function NativeGenerate() {
         <div className="grid grid-cols-2 gap-2.5">
           {ENGINE_OPTS.map((e) => {
             const on = e.token === engine;
-            const c = calculateCreditsForDurations(Array.from({ length: scenes }, () => e.durations[0]), e.token);
+            const c = calculateCreditsForDurations(Array.from({ length: scenes }, () => e.def), e.token);
             return (
               <button key={e.token} onClick={() => { void hapticTap(); setEngine(e.token); }} className={cn('relative rounded-[16px] p-3 text-left transition-all', on ? 'msg-glass-accent' : 'msg-glass')}>
                 <div className="flex items-center gap-1.5"><span className="font-display text-[14px] font-bold">{e.name}</span>{e.premium && <Crown className="h-3 w-3 text-[#ffd76b]" />}</div>

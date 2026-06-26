@@ -54,7 +54,7 @@ export default function ReelViewer() {
         // 400 the whole query. The real count loads when comments open.
         const { data } = await supabase.from('published_reels' as never)
           .select('id, video_url, thumbnail_url, title, synopsis, tags, creator_id, like_count, project_id')
-          .eq('id', id).maybeSingle();
+          .eq('id', id).eq('is_taken_down', false).maybeSingle();
         const r = data as unknown as Reel | null;
         if (!r) { if (!cancel) { setReel(filmToReel(id)); setLoading(false); } return; }
         let name: string | null = null, avatar: string | null = null;

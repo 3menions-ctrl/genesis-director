@@ -16,13 +16,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePublicProfile } from '@/hooks/usePublicProfile';
 import { MessageThread } from '@/components/social/MessageThread';
 import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
+import { MasonryGrid, MediaTile } from '@/components/native/MediaTile';
 import { confirmAsync } from '@/components/ui/global-confirm';
 import { hapticTap, shareLink } from '@/lib/native/shell';
 import { cn } from '@/lib/utils';
 
 const compact = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1).replace(/\.0$/, '')}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1).replace(/\.0$/, '')}k` : String(n));
 
-interface Reel { id: string; title: string | null; thumbnail_url: string | null; play_count: number }
+interface Reel { id: string; title: string | null; thumbnail_url: string | null; video_url: string | null; play_count: number }
 
 function useCreatorReels(creatorId?: string) {
   const [reels, setReels] = useState<Reel[]>([]);
@@ -32,8 +33,8 @@ function useCreatorReels(creatorId?: string) {
     (async () => {
       try {
         const { data } = await supabase.from('published_reels' as never)
-          .select('id, title, thumbnail_url, play_count').eq('creator_id', creatorId).eq('is_taken_down', false)
-          .order('play_count', { ascending: false }).limit(12);
+          .select('id, title, thumbnail_url, video_url, play_count').eq('creator_id', creatorId).eq('is_taken_down', false)
+          .order('play_count', { ascending: false }).limit(36);
         if (!cancel) setReels((data ?? []) as unknown as Reel[]);
       } catch { /* ignore */ }
     })();
@@ -181,8 +182,10 @@ function SwipeProfile({ profile, reels, coverSrc, similar, onFollow, onMoveOn, o
   const handle = `@${name.replace(/\s+/g, '').toLowerCase()}`;
 
   return (
-    <motion.div style={{ x, rotate }} drag="x" dragConstraints={{ left: 0, right: 0 }} dragElastic={0.55} onDragEnd={onEnd}
-      className="absolute inset-0 cursor-grab touch-pan-y overflow-hidden active:cursor-grabbing">
+    <div className="absolute inset-0 overflow-y-auto overscroll-contain" style={{ scrollbarWidth: 'none' }}>
+      {/* ── Immersive hero — swipe → follow / ← later ── */}
+      <motion.div style={{ x, rotate }} drag="x" dragConstraints={{ left: 0, right: 0 }} dragElastic={0.55} onDragEnd={onEnd}
+        className="relative h-[100dvh] w-full cursor-grab touch-pan-y overflow-hidden active:cursor-grabbing">
       <div className="absolute inset-0">
         {/* Full-bleed cover — their uploaded cover photo, else avatar */}
         {coverSrc ? (
@@ -211,17 +214,6 @@ function SwipeProfile({ profile, reels, coverSrc, similar, onFollow, onMoveOn, o
             <span><b className="font-display text-[15px] font-semibold">{reels.length || profile.videos_count}</b> <span className="text-white/55">films</span></span>
           </div>
 
-          {/* Their media — tap to watch (height-fixed → keeps each clip's aspect) */}
-          {reels.length > 0 && (
-            <div className="mt-4 flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }} onPointerDownCapture={(e) => e.stopPropagation()}>
-              {reels.map((r) => (
-                <button key={r.id} onClick={() => onOpenReel(r.id)} className="lit-edge relative h-24 flex-none overflow-hidden rounded-xl bg-black/30">
-                  {r.thumbnail_url ? <img src={r.thumbnail_url} alt={r.title ?? ''} className="block h-24 w-auto" /> : <div className="h-24 w-16 bg-gradient-to-br from-[#241a3a] to-[#0a0a0a]" />}
-                </button>
-              ))}
-            </div>
-          )}
-
           {/* Similar creators — discovery rail */}
           {similar.length > 0 && (
             <div className="mt-3.5" onPointerDownCapture={(e) => e.stopPropagation()}>
@@ -247,10 +239,23 @@ function SwipeProfile({ profile, reels, coverSrc, similar, onFollow, onMoveOn, o
             </FloatIcon>
           </div>
 
-          <p className="mt-4 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-white/35">Swipe → follow · ← later</p>
+          <p className="mt-4 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-white/35">Swipe → follow · ← later{reels.length > 0 ? ' · ↓ films' : ''}</p>
         </div>
       </div>
-    </motion.div>
+      </motion.div>
+
+      {/* ── Their media — a masonry gallery below everything (media-native aspect) ── */}
+      {reels.length > 0 && (
+        <div className="relative bg-[#0a0a0f] px-4 pt-7" style={{ paddingBottom: 'calc(var(--safe-bottom,0px) + 40px)' }} onPointerDownCapture={(e) => e.stopPropagation()}>
+          <div className="mb-3.5 font-mono text-[10px] uppercase tracking-[0.22em] text-white/45">{reels.length} {reels.length === 1 ? 'film' : 'films'}</div>
+          <MasonryGrid cols={2}>
+            {reels.map((r) => (
+              <MediaTile key={r.id} src={r.thumbnail_url} videoSrc={r.video_url} title={r.title} play={r.play_count} onClick={() => onOpenReel(r.id)} />
+            ))}
+          </MasonryGrid>
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -76,10 +76,17 @@ export default function BusinessAudit() {
       const projIds = (projects ?? []).map((p) => p.id);
       const titleMap = new Map<string, string>((projects ?? []).map((p) => [p.id, p.title]));
 
+      // AUDIT FIX B-2/H-6: org-scoped ledger via the SECURITY DEFINER
+      // org_credit_transactions() RPC (transactions tagged by the project's
+      // org, membership-gated). The previous direct credit_transactions read
+      // was silently narrowed to the viewer's own rows by RLS, so an admin
+      // never saw transactions made by other org members.
       const creditPromise = projIds.length
-        ? supabase.from("credit_transactions")
-            .select("id, amount, transaction_type, description, project_id, created_at")
-            .in("project_id", projIds).order("created_at", { ascending: false }).limit(250)
+        ? (supabase.rpc as unknown as (
+            fn: string,
+            args: Record<string, unknown>,
+          ) => Promise<{ data: CreditTx[] | null }>
+          )("org_credit_transactions", { p_org_id: currentOrg.id })
         : Promise.resolve({ data: [] as CreditTx[] });
 
       const [{ data: wsEvents }, { data: credits }] = await Promise.all([

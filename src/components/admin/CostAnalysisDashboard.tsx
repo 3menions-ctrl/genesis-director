@@ -806,7 +806,7 @@ export function CostAnalysisDashboard() {
           <FloatSection title="Storage Usage & Costs" meta={`${(totalStorageMB / 1024).toFixed(2)} GB · ${formatCurrency(totalStorageCostCents)}/mo`}>
             <div className="space-y-4">
               {storageCosts.map((storage, idx) => {
-                const percentage = (storage.size_mb / totalStorageMB) * 100;
+                const percentage = totalStorageMB > 0 ? (storage.size_mb / totalStorageMB) * 100 : 0;
                 return (
                   <div key={idx} className="space-y-2">
                     <div className="flex items-center justify-between">

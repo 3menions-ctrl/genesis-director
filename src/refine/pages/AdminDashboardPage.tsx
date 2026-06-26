@@ -12,7 +12,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Activity, AlertTriangle, Coins, FolderKanban, MessageSquare, RefreshCw,
-  Sparkles, TrendingUp, Users, Wallet, Zap, ChevronRight, type LucideIcon,
+  Sparkles, TrendingUp, Users, Wallet, Zap, ChevronRight, Gauge, Server,
+  Timer, DollarSign, HeartPulse, CircleDot, type LucideIcon,
 } from "lucide-react";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -25,6 +26,9 @@ import {
   StatOrb, FloatSection, FloatRow, DeckButton, AttentionCard, ORB_AURAS,
   ACCENT_HSL, accent, CYAN, VIOLET, ROSE, AMBER,
 } from "@/admin/ui/primitives";
+import {
+  TrendArea, MultiTrend, CategoryBars, Donut, bucketByDay, sumBy, topN, pct,
+} from "@/admin/ui/charts";
 
 interface Pulse {
   users:    { total_users: number; signups_24h: number; signups_7d: number };
@@ -42,6 +46,27 @@ const empty: Pulse = {
 type ActionCard = { priority: "high" | "medium" | "low"; icon: LucideIcon; title: string; body: string; ctaLabel: string; ctaTo: string };
 const priorityRank = (p: ActionCard["priority"]) => (p === "high" ? 0 : p === "medium" ? 1 : 2);
 
+// Real rows pulled for the new analytics + health panels (all admin-gated reads).
+interface ApiLog { created_at: string; service: string; status: string; real_cost_cents: number | null }
+interface CreditTxn { created_at: string; amount: number; transaction_type: string }
+interface ProjRow { created_at: string; status: string | null }
+// Live operational health, computed from real 24h windows.
+interface Health {
+  renderSuccess: number | null;   // % from render_success_snapshot (authoritative)
+  renderFailures: number;         // failed renders, 24h
+  apiSuccess: number | null;      // % completed of (completed+failed), 24h, exact head counts
+  apiCalls24h: number;            // total api_cost_logs rows, 24h (exact)
+  apiSpend24h: number;            // $ from sampled 24h logs
+  queueActive: number;            // clips pending/generating (exact)
+  queueStuck: number;             // clips stuck >10m (exact)
+}
+const emptyHealth: Health = { renderSuccess: null, renderFailures: 0, apiSuccess: null, apiCalls24h: 0, apiSpend24h: 0, queueActive: 0, queueStuck: 0 };
+
+// Tone for a 0-100 health percentage (higher = better).
+const rateTone = (v: number | null): "emerald" | "amber" | "rose" | "neutral" =>
+  v == null ? "neutral" : v >= 95 ? "emerald" : v >= 80 ? "amber" : "rose";
+const toneColor = { emerald: CYAN, amber: AMBER, rose: ROSE, neutral: "rgba(255,255,255,0.5)" } as const;
+
 const HUBS = [
   { icon: Users, title: "People", sub: "Users · sessions · roles · GDPR · abuse", to: "/admin/people" },
   { icon: FolderKanban, title: "Production", sub: "Projects · queue · providers · edge logs", to: "/admin/production-hub" },
@@ -53,6 +78,10 @@ const HUBS = [
 export default function AdminDashboardPage() {
   const [pulse, setPulse] = useState<Pulse>(empty);
   const [series, setSeries] = useState<{ day: string; signups: number }[]>([]);
+  const [apiLogs, setApiLogs] = useState<ApiLog[]>([]);
+  const [credits, setCredits] = useState<CreditTxn[]>([]);
+  const [projects, setProjects] = useState<ProjRow[]>([]);
+  const [health, setHealth] = useState<Health>(emptyHealth);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -93,6 +122,43 @@ export default function AdminDashboardPage() {
       }
       setSeries(Array.from(buckets.entries()).map(([k, v]) => ({ day: k.slice(5), signups: v })));
 
+      // ── Analytics + health windows — all real, admin-gated reads in parallel ──
+      const since14 = since.toISOString();                                   // 14d ago (00:00)
+      const since24h = new Date(Date.now() - 86400_000).toISOString();        // rolling 24h
+      const stuckCut = new Date(Date.now() - 10 * 60_000).toISOString();      // 10m staleness
+      const [
+        creditsRes, projRes, apiRes, renderSnap,
+        apiTotal, apiFailed, qActive, qStuck,
+      ] = await Promise.all([
+        supabase.from("credit_transactions").select("created_at, amount, transaction_type").gte("created_at", since14).limit(8000),
+        supabase.from("movie_projects").select("created_at, status").gte("created_at", since14).limit(8000),
+        supabase.from("api_cost_logs").select("created_at, service, status, real_cost_cents").gte("created_at", since24h).order("created_at", { ascending: false }).limit(5000),
+        supabase.rpc("render_success_snapshot" as never, { window_hours: 24 } as never),
+        supabase.from("api_cost_logs").select("id", { count: "exact", head: true }).gte("created_at", since24h),
+        supabase.from("api_cost_logs").select("id", { count: "exact", head: true }).gte("created_at", since24h).eq("status", "failed"),
+        supabase.from("video_clips").select("id", { count: "exact", head: true }).in("status", ["pending", "generating"]),
+        supabase.from("video_clips").select("id", { count: "exact", head: true }).in("status", ["pending", "generating"]).lt("updated_at", stuckCut),
+      ]);
+
+      const apiRows = (apiRes.data as ApiLog[]) ?? [];
+      setApiLogs(apiRows);
+      setCredits((creditsRes.data as CreditTxn[]) ?? []);
+      setProjects((projRes.data as ProjRow[]) ?? []);
+
+      const snap = ((renderSnap.data as { failures: number; success_rate_pct: number }[]) ?? [])[0];
+      const apiTot = apiTotal.count ?? 0;
+      const apiFail = apiFailed.count ?? 0;
+      const apiOk = Math.max(0, apiTot - apiFail);
+      setHealth({
+        renderSuccess: snap?.success_rate_pct != null ? Number(snap.success_rate_pct) : null,
+        renderFailures: snap?.failures != null ? Number(snap.failures) : 0,
+        apiSuccess: apiTot > 0 ? pct(apiOk, apiTot) : null,
+        apiCalls24h: apiTot,
+        apiSpend24h: apiRows.reduce((s, r) => s + (r.real_cost_cents || 0), 0) / 100,
+        queueActive: qActive.count ?? 0,
+        queueStuck: qStuck.count ?? 0,
+      });
+
       setLastUpdated(new Date());
     } catch (e) {
       console.error("[AdminDashboard] load error", e);
@@ -105,6 +171,9 @@ export default function AdminDashboardPage() {
 
   const cards = useMemo<ActionCard[]>(() => {
     const items: ActionCard[] = [];
+    if (health.queueStuck > 0) items.push({ priority: "high", icon: Timer, title: `${health.queueStuck} render job${health.queueStuck === 1 ? "" : "s"} stuck >10m`, body: "Clips still pending/generating with no update for over 10 minutes — likely wedged. Requeue or cancel.", ctaLabel: "Open queue", ctaTo: "/admin/queue" });
+    if (health.renderSuccess != null && health.renderSuccess < 80) items.push({ priority: "high", icon: HeartPulse, title: `Render success at ${health.renderSuccess}% (24h)`, body: `${health.renderFailures} failed render${health.renderFailures === 1 ? "" : "s"} in the last day. Check the failure classifications.`, ctaLabel: "Open telemetry", ctaTo: "/admin/observability" });
+    if (health.apiSuccess != null && health.apiSuccess < 90 && health.apiCalls24h > 0) items.push({ priority: "medium", icon: Server, title: `Provider success at ${health.apiSuccess}% (24h)`, body: "Upstream API calls are failing above the normal rate. Inspect per-provider reliability.", ctaLabel: "Open providers", ctaTo: "/admin/providers" });
     if (pulse.support.open_tickets > 0) items.push({ priority: "high", icon: MessageSquare, title: `${pulse.support.open_tickets} open support ticket${pulse.support.open_tickets === 1 ? "" : "s"}`, body: "Waiting on first response or follow-up from a teammate.", ctaLabel: "Open inbox", ctaTo: "/admin/messages" });
     if (pulse.projects.failed > 0) items.push({ priority: pulse.projects.failed > 5 ? "high" : "medium", icon: AlertTriangle, title: `${pulse.projects.failed} project${pulse.projects.failed === 1 ? "" : "s"} in failed state`, body: "These never reached completion and likely need a retry or refund.", ctaLabel: "Review failures", ctaTo: "/admin/projects?status=failed" });
     if (pulse.projects.in_flight > 0) items.push({ priority: "low", icon: Activity, title: `${pulse.projects.in_flight} render${pulse.projects.in_flight === 1 ? "" : "s"} in flight`, body: "Live jobs across the pipeline — watch the queue if any stall past ETA.", ctaLabel: "Open queue", ctaTo: "/admin/queue" });
@@ -113,7 +182,7 @@ export default function AdminDashboardPage() {
     if (items.length === 0) items.push({ priority: "low", icon: Sparkles, title: "All clear.", body: "No open tickets, no failed renders, no urgent action required. Take a breath.", ctaLabel: "Open analytics", ctaTo: "/admin/analytics" });
     items.sort((a, b) => priorityRank(a.priority) - priorityRank(b.priority));
     return items;
-  }, [pulse]);
+  }, [pulse, health]);
 
   const statusData = useMemo(() => ([
     { key: "completed", name: "Completed", value: pulse.projects.completed, from: ACCENT_HSL, to: CYAN },
@@ -123,6 +192,58 @@ export default function AdminDashboardPage() {
 
   const spark = useMemo(() => series.map((s) => s.signups), [series]);
 
+  // 14-day projects-created trend.
+  const projectsSeries = useMemo(
+    () => bucketByDay(projects, (r) => r.created_at, { days: 14 }),
+    [projects],
+  );
+  // 14-day credit flow — inflow (grants/purchases) vs consumption magnitude.
+  const creditFlow = useMemo(() => {
+    const inS = bucketByDay(credits.filter((t) => t.amount > 0), (t) => t.created_at, { days: 14, value: (t) => t.amount });
+    const outS = bucketByDay(credits.filter((t) => t.amount < 0), (t) => t.created_at, { days: 14, value: (t) => Math.abs(t.amount) });
+    return inS.map((p, i) => ({ label: p.label, inflow: p.value, spend: outS[i]?.value ?? 0 }));
+  }, [credits]);
+  // API spend by provider/service, last 24h (proportional from sampled logs).
+  const costByService = useMemo(
+    () => topN(sumBy(apiLogs, (r) => r.service, (r) => (r.real_cost_cents || 0) / 100), 7),
+    [apiLogs],
+  );
+  // Provider call outcomes, last 24h.
+  const apiOutcomes = useMemo(() => {
+    let ok = 0, fail = 0, other = 0;
+    for (const r of apiLogs) {
+      if (r.status === "completed" || r.status === "success") ok++;
+      else if (r.status === "failed") fail++;
+      else other++;
+    }
+    return [
+      { key: "Completed", value: ok, color: CYAN },
+      { key: "Failed", value: fail, color: ROSE },
+      { key: "Pending / other", value: other, color: "rgba(255,255,255,0.28)" },
+    ].filter((d) => d.value > 0);
+  }, [apiLogs]);
+  // Hourly API invocation cadence over the last 24h.
+  const apiHourly = useMemo(() => {
+    const now = Date.now(), start = now - 24 * 3600_000;
+    const arr = new Array(24).fill(0);
+    for (const r of apiLogs) {
+      const t = new Date(r.created_at).getTime();
+      if (isNaN(t) || t < start) continue;
+      const idx = Math.min(23, Math.floor((t - start) / 3600_000));
+      arr[idx]++;
+    }
+    return arr.map((value, i) => ({ label: `${String(new Date(start + i * 3600_000).getHours()).padStart(2, "0")}h`, value }));
+  }, [apiLogs]);
+
+  // Overall operational status rolled up from the health signals.
+  const overall = useMemo(() => {
+    const bad = health.queueStuck > 0 || rateTone(health.renderSuccess) === "rose" || rateTone(health.apiSuccess) === "rose";
+    const watch = rateTone(health.renderSuccess) === "amber" || rateTone(health.apiSuccess) === "amber" || pulse.projects.failed > 5;
+    if (bad) return { label: "Degraded", tone: "rose" as const };
+    if (watch) return { label: "Watch", tone: "amber" as const };
+    return { label: "Operational", tone: "emerald" as const };
+  }, [health, pulse.projects.failed]);
+
   return (
     <AdminPageShell
       eyebrow="01 // PULSE"
@@ -131,10 +252,20 @@ export default function AdminDashboardPage() {
       italic="control."
       description="What needs you right now — and the signals behind it. Drill into any card to act."
       actions={
-        <DeckButton onClick={() => void load(true)} disabled={refreshing}>
-          <RefreshCw className={cn("h-3 w-3", refreshing && "animate-spin")} />
-          {refreshing ? "Refreshing" : lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Refresh"}
-        </DeckButton>
+        <div className="flex items-center gap-3">
+          <span
+            className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 font-mono text-[10px] font-medium uppercase tracking-[0.2em]"
+            style={{ color: toneColor[overall.tone], background: `${toneColor[overall.tone]}1f` }}
+            title="Overall operational status, rolled up from render, provider and queue health"
+          >
+            <CircleDot className="h-3 w-3" style={{ filter: `drop-shadow(0 0 5px ${toneColor[overall.tone]})` }} />
+            {overall.label}
+          </span>
+          <DeckButton onClick={() => void load(true)} disabled={refreshing}>
+            <RefreshCw className={cn("h-3 w-3", refreshing && "animate-spin")} />
+            {refreshing ? "Refreshing" : lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Refresh"}
+          </DeckButton>
+        </div>
       }
     >
       <div className="space-y-14">
@@ -147,6 +278,28 @@ export default function AdminDashboardPage() {
           <StatOrb index={4} aura={ORB_AURAS[4]} label="Failed" value={pulse.projects.failed} icon={AlertTriangle} sub={pulse.projects.failed > 0 ? "need attention" : "all clear"} />
           <StatOrb index={5} aura={ORB_AURAS[5]} label="Open tickets" value={pulse.support.open_tickets} icon={MessageSquare} sub="support" />
         </div>
+
+        {/* App health — live operational signals across render, providers and the
+            queue. Render success is authoritative (render_success_snapshot RPC);
+            provider success + call volume are exact 24h head-counts; spend is the
+            sum of the sampled 24h api_cost_logs. */}
+        <FloatSection title="App health" meta="last 24 hours" actions={
+          <span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em]" style={{ color: toneColor[overall.tone] }}>
+            <CircleDot className="h-3 w-3" /> {overall.label}
+          </span>
+        }>
+          <div className="grid grid-cols-2 gap-x-10 gap-y-12 md:grid-cols-3 xl:grid-cols-6">
+            <StatOrb index={0} aura={toneColor[rateTone(health.renderSuccess)]} icon={HeartPulse} label="Render success"
+              value={health.renderSuccess == null ? "—" : `${health.renderSuccess}%`} sub={`${health.renderFailures.toLocaleString()} failed`} />
+            <StatOrb index={1} aura={toneColor[rateTone(health.apiSuccess)]} icon={Server} label="Provider success"
+              value={health.apiSuccess == null ? "—" : `${health.apiSuccess}%`} sub={`${health.apiCalls24h.toLocaleString()} calls`} />
+            <StatOrb index={2} aura={ACCENT_HSL} icon={Activity} label="Queue active" value={health.queueActive} sub="rendering / queued" />
+            <StatOrb index={3} aura={health.queueStuck > 0 ? ROSE : CYAN} icon={Timer} label="Stuck >10m" value={health.queueStuck}
+              sub={health.queueStuck > 0 ? "needs attention" : "healthy"} />
+            <StatOrb index={4} aura={AMBER} icon={DollarSign} label="API spend" value={`$${health.apiSpend24h.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} sub="sampled 24h" />
+            <StatOrb index={5} aura={VIOLET} icon={Gauge} label="API calls" value={health.apiCalls24h} sub="last 24h" />
+          </div>
+        </FloatSection>
 
         {/* Charts */}
         <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-[1.6fr_1fr]">
@@ -210,6 +363,35 @@ export default function AdminDashboardPage() {
                 ))}
               </div>
             </div>
+          </FloatSection>
+        </div>
+
+        {/* Growth & revenue trends — projects created and credit flow over 14d. */}
+        <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-2">
+          <FloatSection title="Projects created" meta="last 14 days" actions={<DeckButton accent><Link to="/admin/projects">Open projects →</Link></DeckButton>}>
+            <TrendArea data={projectsSeries} valueLabel="projects" height={220} color={VIOLET} color2={ACCENT_HSL} interval={1} />
+          </FloatSection>
+          <FloatSection title="Credit flow" meta="grants vs consumption · 14d" actions={<DeckButton accent><Link to="/admin/credits">Open ledger →</Link></DeckButton>}>
+            <MultiTrend
+              data={creditFlow}
+              series={[{ key: "inflow", label: "Granted / purchased", color: CYAN }, { key: "spend", label: "Consumed", color: ROSE }]}
+              height={220}
+              interval={1}
+              emptyLabel="No credit movement in this window."
+            />
+          </FloatSection>
+        </div>
+
+        {/* Cost & provider health — where the money and the calls go (24h). */}
+        <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-[1fr_1fr_1.2fr]">
+          <FloatSection title="Spend by provider" meta="last 24h · USD" actions={<DeckButton accent><Link to="/admin/providers">Providers →</Link></DeckButton>}>
+            <CategoryBars data={costByService} formatValue={(v) => `$${v.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} emptyLabel="No provider spend in this window." />
+          </FloatSection>
+          <FloatSection title="Call outcomes" meta="last 24h">
+            <Donut data={apiOutcomes} height={200} centerLabel="calls" emptyLabel="No provider calls in this window." />
+          </FloatSection>
+          <FloatSection title="Call cadence" meta="invocations / hour · 24h" actions={<DeckButton accent><Link to="/admin/edge-logs">Edge logs →</Link></DeckButton>}>
+            <TrendArea data={apiHourly} valueLabel="calls" height={200} color={AMBER} color2={ROSE} interval={3} emptyLabel="No provider calls in this window." />
           </FloatSection>
         </div>
 

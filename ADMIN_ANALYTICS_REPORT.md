@@ -44,6 +44,32 @@ Added `charts?: (rows) => ReactNode`, rendered between the signals and the table
 
 ---
 
+## Dashboard (Mission Control) — comprehensive expansion
+
+`/admin` was expanded from a single trend + status donut into a decision-making cockpit. Everything is real and the time window is labeled on every panel (windows are never presented as all-time totals).
+
+**New — App Health band** (live operational signals, 24h):
+| Signal | Value | Real source |
+|---|---|---|
+| Render success | `success_rate_pct` % + failure count, tone-colored (≥95 green / ≥80 amber / <80 rose) | RPC `render_success_snapshot(24)` — authoritative, server-side |
+| Provider success | `(total − failed) / total` %, tone-colored | `api_cost_logs` exact **head-counts** (total + `status='failed'`), 24h |
+| Queue active | clips pending/generating | `video_clips` head-count |
+| Stuck >10m | clips with no update for 10m, rose if >0 | `video_clips` head-count (`updated_at < now-10m`) |
+| API spend | `$` sum of sampled logs | `api_cost_logs.real_cost_cents` (24h) |
+| API calls | exact volume | `api_cost_logs` head-count (24h) |
+
+A rolled-up **overall status pill** (Operational / Watch / Degraded) sits in the hero and the health header, derived from those signals.
+
+**New — Growth & revenue trends (14d):** Projects-created `TrendArea` (`movie_projects.created_at`) · Credit-flow `MultiTrend` of grants/purchases vs consumption (`credit_transactions.amount`).
+
+**New — Cost & provider health (24h):** Spend-by-provider `CategoryBars` (`api_cost_logs.real_cost_cents` by `service`, top 7) · Call-outcomes `Donut` (completed/failed/other) · Hourly call-cadence `TrendArea`.
+
+**New — health-driven action cards:** the attention queue now surfaces stuck render jobs, sub-80% render success, and sub-90% provider success — each deep-linking to the relevant ops page for one-click triage.
+
+_Existing 6-orb KPI rail, 14-day signups trend, projects-by-status donut, action queue and hub nav are preserved._ All new reads run in one parallel batch alongside the existing pulse fetch.
+
+---
+
 ## Per-surface additions (chart → real data source)
 
 ### Money

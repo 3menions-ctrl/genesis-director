@@ -86,3 +86,12 @@ Result: no component-level bugs — the component layer is robust.
   ios-app commit, not native work: Profile.tsx (redirected to /you on native —
   unreachable) and CreationHub.tsx (non-crash aspect-setState type looseness in the
   web Studio). All 60 native files are tsc-clean.
+
+## Cycle 9 — deep gesture/media/flow sweep (CLEAN)
+Exercised the interactions the basic sweep missed (where the People-tap crash hid):
+- Tap media tiles directly (discover/avatar/library) · swipe gestures (people deck
+  L/R drag, creator profile swipe, feed scroll) · media controls (avatar voice
+  play, reel mute, presets compare-hold) · multi-step flows (create video + music
+  wizards, /welcome steps, settings autosave toggles) · comment composer.
+- Result: 0 crashes / 14 interactions. The Cycle-8 People-tap fix resolved the last
+  interaction crash; no new ones. Native files stay tsc-clean (no code changes).

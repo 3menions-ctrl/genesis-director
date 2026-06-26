@@ -1303,12 +1303,16 @@ function PrivacyModule({
   }, [profile.id]);
 
   const unblock = async (target: string) => {
-    setBlocked((prev) => prev.filter((b) => b.id !== target));
-    try {
-      await supabase.rpc("toggle_block" as never, { p_target: target } as never);
-      toast.success("Unblocked.");
-    } catch {
+    const prev = blocked;
+    setBlocked((p) => p.filter((b) => b.id !== target));
+    // supabase.rpc resolves with { error } rather than throwing, so the old
+    // try/catch was dead code and always toasted success (audit D33).
+    const { error } = await supabase.rpc("toggle_block" as never, { p_target: target } as never);
+    if (error) {
+      setBlocked(prev); // rollback the optimistic removal
       toast.error("Could not unblock.");
+    } else {
+      toast.success("Unblocked.");
     }
   };
 
@@ -1407,13 +1411,17 @@ function FollowRequestsCard({ userId }: { userId: string }) {
   }, []);
   useEffect(() => { void load(); void userId; }, [load, userId]);
   const accept = async (id: string) => {
+    const prev = reqs;
     setReqs((p) => p.filter((r) => r.id !== id));
-    await supabase.rpc("accept_follow_request" as never, { p_id: id } as never);
-    toast.success("Request accepted.");
+    const { error } = await supabase.rpc("accept_follow_request" as never, { p_id: id } as never);
+    if (error) { setReqs(prev); toast.error("Could not accept the request."); }
+    else { toast.success("Request accepted."); }
   };
   const reject = async (id: string) => {
+    const prev = reqs;
     setReqs((p) => p.filter((r) => r.id !== id));
-    await supabase.rpc("reject_follow_request" as never, { p_id: id } as never);
+    const { error } = await supabase.rpc("reject_follow_request" as never, { p_id: id } as never);
+    if (error) { setReqs(prev); toast.error("Could not decline the request."); }
   };
   if (loading) return null;
   if (reqs.length === 0) return null;
@@ -2059,7 +2067,10 @@ function SecurityModule({ profile }: { profile: ProfileRow }) {
             variant="ghost"
             className={SOFT_BUTTON}
             onClick={async () => {
-              await supabase.auth.signOut({ scope: "others" });
+              // signOut resolves with { error } — don't claim success blindly
+              // (this is a security action; a false confirmation is dangerous).
+              const { error } = await supabase.auth.signOut({ scope: "others" });
+              if (error) { toast.error("Could not sign out other sessions."); return; }
               toast.success("Signed out of all other sessions.");
               await loadSecurity();
             }}
@@ -2070,7 +2081,8 @@ function SecurityModule({ profile }: { profile: ProfileRow }) {
             variant="ghost"
             className={SOFT_BUTTON}
             onClick={async () => {
-              await supabase.auth.signOut({ scope: "global" });
+              const { error } = await supabase.auth.signOut({ scope: "global" });
+              if (error) { toast.error("Could not sign out everywhere."); return; }
               toast.success("Signed out everywhere.");
               window.location.href = "/auth";
             }}

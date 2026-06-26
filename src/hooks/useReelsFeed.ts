@@ -77,8 +77,11 @@ export function useReelsFeed(limit = 30) {
       try {
         const { data, error } = await supabase
           .from('published_reels' as never)
+          // NB: comment_count is column-restricted for anon and 400s the whole
+          // query → the feed would fall back to sample films for signed-out users.
+          // Omit it (defaults to 0; the count loads when the comment sheet opens).
           .select(
-            'id, title, synopsis, video_url, thumbnail_url, tags, play_count, like_count, remix_count, comment_count, project_id, creator_id',
+            'id, title, synopsis, video_url, thumbnail_url, tags, play_count, like_count, remix_count, project_id, creator_id',
           )
           .eq('is_taken_down', false)
           .order('play_count', { ascending: false })

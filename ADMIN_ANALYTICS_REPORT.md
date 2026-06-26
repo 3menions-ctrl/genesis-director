@@ -44,6 +44,26 @@ Added `charts?: (rows) => ReactNode`, rendered between the signals and the table
 
 ---
 
+## Run Diagnostic — comprehensive one-click health check
+
+A new **Run Diagnostic** tool probes the whole platform on demand and surfaces every real error in one place. Launch it from the **Run diagnostic** button on the dashboard hero, or visit `/admin/diagnostics` (Observability section) — it auto-runs on load and can be re-run any time.
+
+**What it does:** fires a battery of **read-only** probes (head-counts, SELECTs, SECURITY-DEFINER read RPCs, a presence check of edge secrets) across four domains, with bounded concurrency, per-check timing, and crash/timeout safety. Results **stream in** as they settle and roll up to a verdict (Healthy / Degraded / Critical). Every failing or warning row expands to its **raw backend error** + a remediation hint + a deep link to the surface to fix it. Export the full report via **Copy** or **CSV**.
+
+> Strictly read-only — **0 mutations**. A missing RPC, RLS denial, or unreachable table is reported as a genuine failure with the backend's own message (exactly the "degraded fallback" class of bug flagged in `ADMIN_REVIEW.md`). Nothing is fabricated; a probe that can't run says so.
+
+**Coverage (≈32 checks):**
+| Domain | Sample checks (real source) |
+|---|---|
+| **Platform & infrastructure** | DB connectivity (`profiles`), `is_admin` authorization, core RPCs (`admin_dashboard_pulse`, `admin_db_diagnostics`, `admin_storage_overview`, `admin_get_audit_logs`), edge secrets present (`check-secrets-status`) |
+| **App & render pipeline** | clips table, render success 24h (`render_success_snapshot`), stuck jobs >10m (`video_clips`), failed projects, stitch jobs, provider success rate 24h (`api_cost_logs`), failure-log RPC |
+| **Business accounts** | `organizations`, `organization_members`, active `subscriptions`, `org_api_keys`, failing `webhook_endpoints`, pending `refund_requests`, `ledger_pnl`, credit-balance drift (`ledger_reconcile`) |
+| **Regular user accounts** | profiles + email column readability, `credit_transactions`, sessions RPC, onboarding RPC, open `support_messages`, overdue `gdpr_requests` (>30d), `signup_analytics`, `notification_preferences` |
+
+**Engineering:** the framework (`src/admin/diagnostics/engine.ts`) is network-agnostic and unit-tested (16 tests: concurrency cap, throw→fail, timeout→fail, streaming, verdict rollup, report rendering); the probes live in `src/admin/diagnostics/checks.ts`; the UI is `src/refine/pages/ops/AdminDiagnosticsPage.tsx`. Registered in the ops registry + routed in `AdminApp.tsx` (contract tests pass).
+
+---
+
 ## Dashboard (Mission Control) — comprehensive expansion
 
 `/admin` was expanded from a single trend + status donut into a decision-making cockpit. Everything is real and the time window is labeled on every panel (windows are never presented as all-time totals).

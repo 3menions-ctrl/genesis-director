@@ -32,6 +32,13 @@ export type OpsRegistry = readonly OpsRegistryEntry[];
 
 export const OPS_PAGES = [
   {
+    "file": "AdminDiagnosticsPage",
+    "path": "/admin/diagnostics",
+    "section": "Observability",
+    "label": "Diagnostics",
+    "code": "DIA"
+  },
+  {
     "file": "AdminAuditLogPage",
     "path": "/admin/audit",
     "section": "Observability",

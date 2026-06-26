@@ -13,7 +13,7 @@ import { Link } from "react-router-dom";
 import {
   Activity, AlertTriangle, Coins, FolderKanban, MessageSquare, RefreshCw,
   Sparkles, TrendingUp, Users, Wallet, Zap, ChevronRight, Gauge, Server,
-  Timer, DollarSign, HeartPulse, CircleDot, type LucideIcon,
+  Timer, DollarSign, HeartPulse, CircleDot, Stethoscope, type LucideIcon,
 } from "lucide-react";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -261,6 +261,7 @@ export default function AdminDashboardPage() {
             <CircleDot className="h-3 w-3" style={{ filter: `drop-shadow(0 0 5px ${toneColor[overall.tone]})` }} />
             {overall.label}
           </span>
+          <DeckButton accent><Link to="/admin/diagnostics?autorun=1"><span className="inline-flex items-center gap-2"><Stethoscope className="h-3.5 w-3.5" /> Run diagnostic</span></Link></DeckButton>
           <DeckButton onClick={() => void load(true)} disabled={refreshing}>
             <RefreshCw className={cn("h-3 w-3", refreshing && "animate-spin")} />
             {refreshing ? "Refreshing" : lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Refresh"}

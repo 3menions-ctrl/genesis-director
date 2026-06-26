@@ -46,7 +46,8 @@ const AdminStorageBillingPage = lazy(() => import("../refine/pages/ops/AdminStor
 const AdminDbDiagnosticsPage = lazy(() => import("../refine/pages/ops/AdminDbDiagnosticsPage"));
 const AdminPackagesPage = lazy(() => import("../refine/pages/AdminPackagesPage"));
 
-// ── Ops pages (37) ──────────────────────────────────────────
+// ── Ops pages (38) ──────────────────────────────────────────
+const AdminDiagnosticsPage = lazy(() => import("../refine/pages/ops/AdminDiagnosticsPage"));
 const AdminAuditLogPage = lazy(() => import("../refine/pages/ops/AdminAuditLogPage"));
 const AdminEdgeLogsPage = lazy(() => import("../refine/pages/ops/AdminEdgeLogsPage"));
 const AdminProvidersPage = lazy(() => import("../refine/pages/ops/AdminProvidersPage"));
@@ -127,7 +128,8 @@ export default function AdminApp() {
         <Route path="moderation" element={<AdminModerationPage />} />
         <Route path="config" element={<AdminConfigPage />} />
         <Route path="emails" element={<AdminEmailsPage />} />
-        {/* ── Ops pages (37) ─────────────────────────── */}
+        {/* ── Ops pages (38) ─────────────────────────── */}
+        <Route path="diagnostics" element={<AdminDiagnosticsPage />} />
         <Route path="audit" element={<AdminAuditLogPage />} />
         <Route path="edge-logs" element={<AdminEdgeLogsPage />} />
         <Route path="providers" element={<AdminProvidersPage />} />

@@ -1003,7 +1003,9 @@ function ProductionContentInner() {
 
 
   const handleRetryClip = async (clipIndex: number) => {
-    if (!projectId || !user) return;
+    // Guard against double-submit: a clip retry submits a billable regeneration,
+    // and a second click while one is in flight would charge/render twice.
+    if (!projectId || !user || retryingClipIndex !== null) return;
     setRetryingClipIndex(clipIndex);
     
     try {
@@ -1243,16 +1245,18 @@ function ProductionContentInner() {
   };
 
   const handleRegenerateScript = async () => {
-    if (!projectId || !user) return;
-    
+    // Reuse the script-busy flag (the regenerate/approve buttons watch it) so a
+    // second click can't fire a second billable regenerate_script job.
+    if (!projectId || !user || isApprovingScript) return;
+    setIsApprovingScript(true);
     try {
       addLog('Regenerating script...', 'info');
       toast.info('Regenerating script...');
-      
+
       const { data, error } = await supabase.functions.invoke('hollywood-pipeline', {
             body: { projectId, action: 'regenerate_script' },
       });
-      
+
       if (error) throw error;
       if (data?.success) {
         setScriptShots(null);
@@ -1260,6 +1264,8 @@ function ProductionContentInner() {
       }
     } catch (err) {
       toast.error(getErrorMessage(err, 'Failed to regenerate script'));
+    } finally {
+      setIsApprovingScript(false);
     }
   };
 
@@ -1472,7 +1478,7 @@ const transitionsData = useMemo(() =>
           progress={realTimeProgress}
           pipeline={livePipeline}
           prompt={scriptShots?.[0]?.description || projectTitle}
-          onCancel={() => navigate('/projects')}
+          onCancel={() => { void handleCancelPipeline(); }}
         />
       )}
 

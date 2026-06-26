@@ -10,7 +10,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Flame, LogIn, Sparkles, Settings, Pencil, X, Heart, Film, Layers,
-  Loader2, Trophy, Crown, Lock, Check, MessageCircle, Camera, Bell,
+  Loader2, Trophy, Crown, Lock, Check, MessageCircle, Camera, Bell, Plus, Pin,
   type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -33,7 +33,7 @@ const RARITY: Record<string, string> = { common: '#9aa3b2', rare: '#5b9bff', epi
 const compact = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1).replace(/\.0$/, '')}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1).replace(/\.0$/, '')}k` : String(n));
 
 type Tab = 'films' | 'liked' | 'drafts';
-type Sheet = null | 'followers' | 'following' | 'edit';
+type Sheet = null | 'followers' | 'following' | 'edit' | 'pins';
 
 export default function You() {
   const navigate = useNavigate();
@@ -137,15 +137,22 @@ export default function You() {
         </div>
 
         {/* Pinned Highlights */}
-        {pinned.length > 0 && (
-          <Section title="Highlights" icon={Sparkles}>
+        <div className="mt-7">
+          <div className="mb-3 flex items-center gap-2">
+            <Sparkles className="h-3.5 w-3.5 text-white/45" strokeWidth={1.8} />
+            <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/45">Highlights</span>
+            <button onClick={() => { void hapticTap(); setSheet('pins'); }} aria-label="Edit highlights" className="ml-auto text-[#8fb4ff]"><Pencil className="h-[14px] w-[14px]" /></button>
+          </div>
+          {pinned.length > 0 ? (
             <div className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-1" style={{ scrollbarWidth: 'none' }}>
-              {pinned.map((p) => (
-                <MediaTile key={p.id} src={p.thumbnail_url} title={p.title} play={p.play_count} width={180} onClick={() => navigate(`/r/${p.id}`)} />
-              ))}
+              {pinned.map((p) => <MediaTile key={p.id} src={p.thumbnail_url} title={p.title} play={p.play_count} width={180} onClick={() => navigate(`/r/${p.id}`)} />)}
             </div>
-          </Section>
-        )}
+          ) : (
+            <button onClick={() => { void hapticTap(); setSheet('pins'); }} className="msg-glass flex w-full items-center justify-center gap-2 rounded-[18px] py-5 text-[13px] font-medium text-white/55 transition-transform active:scale-[0.99]">
+              <Plus className="h-4 w-4" /> Pin your best films
+            </button>
+          )}
+        </div>
 
         {/* Achievements */}
         {gam.achievements && gam.achievements.length > 0 && (
@@ -209,6 +216,9 @@ export default function You() {
       {/* ── Sheets ── */}
       {(sheet === 'followers' || sheet === 'following') && (
         <PeopleSheet kind={sheet} userId={user.id} onClose={() => setSheet(null)} onOpen={(id) => { setSheet(null); navigate(`/u/${id}`); }} />
+      )}
+      {sheet === 'pins' && (
+        <PinSheet pinnedIds={(profile as { pinned_reel_ids?: string[] })?.pinned_reel_ids ?? []} onClose={() => setSheet(null)} onChanged={() => { void refreshProfile(); }} />
       )}
       {sheet === 'edit' && (
         <EditSheet
@@ -329,6 +339,52 @@ function PeopleSheet({ kind, userId, onClose, onOpen }: { kind: 'followers' | 'f
                     {followsThem ? 'Following' : 'Follow'}
                   </button>
                 )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </SheetShell>
+  );
+}
+
+function PinSheet({ pinnedIds, onClose, onChanged }: { pinnedIds: string[]; onClose: () => void; onChanged: () => void }) {
+  const { films } = useMyFilms();
+  const [pins, setPins] = useState<Set<string>>(new Set(pinnedIds));
+
+  const toggle = async (id: string) => {
+    const was = pins.has(id);
+    if (!was && pins.size >= 3) { toast('You can feature up to 3 films'); return; }
+    void hapticTap();
+    setPins((p) => { const n = new Set(p); was ? n.delete(id) : n.add(id); return n; });
+    try {
+      const { error } = await supabase.rpc('toggle_pin_reel' as never, { p_reel_id: id } as never);
+      if (error) throw error;
+      onChanged();
+    } catch (e) {
+      setPins((p) => { const n = new Set(p); was ? n.add(id) : n.delete(id); return n; });
+      toast.error(e instanceof Error ? e.message : 'Could not update');
+    }
+  };
+
+  return (
+    <SheetShell title="Pin highlights" onClose={onClose}>
+      <p className="mb-3 text-[12.5px] text-white/45">Feature up to 3 of your published films at the top of your profile.</p>
+      {films.length === 0 ? (
+        <div className="py-10 text-center text-[13px] text-white/40">Publish a film to feature it.</div>
+      ) : (
+        <ul className="space-y-2 pb-2">
+          {films.map((f) => {
+            const on = pins.has(f.id);
+            return (
+              <li key={f.id}>
+                <button onClick={() => toggle(f.id)} className="flex w-full items-center gap-3 rounded-2xl px-1 py-2 text-left active:opacity-70">
+                  {f.thumbnail_url ? <img src={f.thumbnail_url} alt="" className="h-12 w-[68px] rounded-lg object-cover" /> : <span className="grid h-12 w-[68px] place-items-center rounded-lg bg-gradient-to-br from-[#241a3a] to-[#0a0a0a] text-white/30"><Film className="h-4 w-4" /></span>}
+                  <span className="min-w-0 flex-1 truncate text-[14px] font-medium">{f.title}</span>
+                  <span className={cn('grid h-8 w-8 shrink-0 place-items-center rounded-full transition-colors', on ? 'msg-glass-accent text-white' : 'msg-glass text-white/45')}>
+                    {on ? <Check className="h-[16px] w-[16px]" strokeWidth={2.6} /> : <Pin className="h-[15px] w-[15px]" />}
+                  </span>
+                </button>
               </li>
             );
           })}

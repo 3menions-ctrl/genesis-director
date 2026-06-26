@@ -205,6 +205,13 @@ function SwipeProfile({ profile, reels, coverSrc, similar, onFollow, onMoveOn, o
 
         {/* Bottom content */}
         <div className="absolute inset-x-0 bottom-0 px-6" style={{ paddingBottom: 'calc(var(--safe-bottom,0px) + 22px)' }}>
+          {/* Profile picture — distinct from the full-bleed cover so you always
+              see who this creator actually is. */}
+          {profile.avatar_url ? (
+            <img src={profile.avatar_url} alt={name} className="mb-3 h-[72px] w-[72px] rounded-full object-cover shadow-[0_10px_28px_-8px_rgba(0,0,0,.8)]" style={{ boxShadow: '0 0 0 3px rgba(255,255,255,.18), 0 10px 28px -8px rgba(0,0,0,.8)' }} />
+          ) : (
+            <span className="mb-3 grid h-[72px] w-[72px] place-items-center rounded-full bg-gradient-to-br from-[#9c8bff] to-[#6b3bff] font-display text-[26px] font-bold" style={{ boxShadow: '0 0 0 3px rgba(255,255,255,.18)' }}>{name.charAt(0).toUpperCase()}</span>
+          )}
           <h1 className="text-[34px] font-light leading-none" style={{ fontFamily: 'Fraunces, serif' }}>{name}</h1>
           <div className="mt-1 font-mono text-[13px] text-white/55">{handle}</div>
 

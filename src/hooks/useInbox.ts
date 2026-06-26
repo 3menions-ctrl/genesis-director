@@ -17,6 +17,23 @@ export interface Conversation {
   mine: boolean;
 }
 
+/** Lightweight unread DM count for header badges. */
+export function useUnreadDMCount() {
+  const { user } = useAuth();
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!user) return; let cancel = false;
+    (async () => {
+      try {
+        const { count: n } = await supabase.from('direct_messages' as never).select('*', { count: 'exact', head: true }).eq('recipient_id', user.id).is('read_at', null);
+        if (!cancel) setCount(n ?? 0);
+      } catch { /* ignore */ }
+    })();
+    return () => { cancel = true; };
+  }, [user]);
+  return count;
+}
+
 export function useInbox() {
   const { user } = useAuth();
   const [items, setItems] = useState<Conversation[]>([]);

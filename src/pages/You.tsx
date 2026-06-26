@@ -19,6 +19,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
 import { useGamification } from '@/hooks/useGamification';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useUnreadDMCount } from '@/hooks/useInbox';
 import { useMyFilms } from '@/hooks/useMyFilms';
 import { useFollowCounts, useFollowList, useLikedReels, useDrafts, usePinnedReels, useActivityHeatmap, type GridItem, type Person } from '@/hooks/useProfileData';
 import { AuroraBackdrop } from '@/components/native/AuroraBackdrop';
@@ -42,6 +43,7 @@ export default function You() {
   const counts = useFollowCounts(user?.id);
   const gam = useGamification();
   const { unreadCount } = useNotifications();
+  const dmUnread = useUnreadDMCount();
   const pinned = usePinnedReels((profile as { pinned_reel_ids?: string[] })?.pinned_reel_ids);
   const heat = useActivityHeatmap(user?.id);
   const [tab, setTab] = useState<Tab>('films');
@@ -92,7 +94,7 @@ export default function You() {
       {/* Floating actions over the shared Aurora backdrop (no cover banner) */}
       <div className="fixed right-4 z-20 flex gap-2" style={{ top: 'calc(var(--safe-top,0px) + 12px)' }}>
         <IconBtn label="Activity" badge={unreadCount} onClick={() => { void hapticTap(); navigate('/activity'); }}><Bell className="h-[18px] w-[18px]" /></IconBtn>
-        <IconBtn label="Messages" onClick={() => { void hapticTap(); navigate('/messages'); }}><MessageCircle className="h-[18px] w-[18px]" /></IconBtn>
+        <IconBtn label="Messages" badge={dmUnread} onClick={() => { void hapticTap(); navigate('/messages'); }}><MessageCircle className="h-[18px] w-[18px]" /></IconBtn>
         <IconBtn label="Edit profile" onClick={() => { void hapticTap(); setSheet('edit'); }}><Pencil className="h-[18px] w-[18px]" /></IconBtn>
         <IconBtn label="Settings" onClick={() => { void hapticTap(); navigate('/me/settings'); }}><Settings className="h-[18px] w-[18px]" /></IconBtn>
       </div>

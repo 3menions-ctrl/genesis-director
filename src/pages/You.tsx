@@ -120,8 +120,8 @@ export default function You() {
           <Count label="Views" value={compact(views)} divider />
         </div>
 
-        {/* Level / streak + rank + credits */}
-        <div className="lit-edge relative mt-6 overflow-hidden rounded-[24px] bg-gradient-to-br from-[#2f6bff]/20 to-[#7a3bff]/10 p-4">
+        {/* Level / streak + rank + credits → tap for the leaderboard */}
+        <div onClick={() => { void hapticTap(); navigate('/leaderboard'); }} className="lit-edge relative mt-6 cursor-pointer overflow-hidden rounded-[24px] bg-gradient-to-br from-[#2f6bff]/20 to-[#7a3bff]/10 p-4 transition-transform active:scale-[0.99]">
           <div className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full bg-[#7a3bff]/25 blur-3xl" />
           <div className="relative flex items-center justify-between">
             <div className="flex items-center gap-2">

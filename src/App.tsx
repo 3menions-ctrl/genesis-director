@@ -100,6 +100,7 @@ const MobileLibrary = lazy(() => import("./pages/MobileLibrary"));
 const Plans = lazy(() => import("./pages/Plans"));
 // Mobile Year-in-review recap.
 const YearReview = lazy(() => import("./pages/YearReview"));
+const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 // Mobile-first one-prompt create screen (hands off to Studio's engine).
 const Create = lazy(() => import("./pages/Create"));
 // Mobile-first presets "editor" (one-tap looks) + gamified profile.
@@ -392,6 +393,11 @@ const App = () => {
                 <Route path="/me/recap" element={
                   <RouteContainer fallbackMessage="Loading…">
                     <YearReview />
+                  </RouteContainer>
+                } />
+                <Route path="/leaderboard" element={
+                  <RouteContainer fallbackMessage="Loading ranks…">
+                    <Leaderboard />
                   </RouteContainer>
                 } />
                 {/* Mobile one-prompt create screen (hands the prompt to Studio). */}

@@ -103,7 +103,15 @@ serve(async (req) => {
   }
 
   const startTime = Date.now();
-  
+
+  // Handler-scoped (NOT inside the try) so the catch-block error recovery below
+  // can read projectId. These were previously declared inside the try while the
+  // recovery referenced body.projectId — both out of scope in catch, throwing a
+  // ReferenceError that left projects stuck in 'stitching' on any stitch error.
+  let projectId: string | undefined;
+  let userId: string | undefined;
+  let forceStitch = false;
+
   try {
     // ═══ AUTH GUARD ═══
     const { validateAuth, unauthorizedResponse, resolveEffectiveUserId, forbiddenResponse } = await import("../_shared/auth-guard.ts");
@@ -113,10 +121,6 @@ serve(async (req) => {
     }
 
     // Parse body ONCE — use closure for error recovery below
-    let projectId: string | undefined;
-    let userId: string | undefined;
-    let forceStitch = false;
-    
     const body = await req.json() as AutoStitchRequest;
     projectId = body.projectId;
     // SECURITY: trust JWT, never the body, for end-user calls
@@ -300,7 +304,7 @@ serve(async (req) => {
         const { data: clips } = await supabase
           .from('video_clips')
           .select('id')
-          .eq('project_id', body.projectId)
+          .eq('project_id', projectId)
           .eq('status', 'completed');
         
         if (clips && clips.length > 0) {
@@ -319,7 +323,7 @@ serve(async (req) => {
               },
               updated_at: new Date().toISOString(),
             })
-            .eq('id', body.projectId);
+            .eq('id', projectId);
         }
       }
     } catch (recoveryError) {

@@ -125,7 +125,7 @@ export function RenderTheater() {
       <div
         aria-hidden
         className="absolute inset-0 opacity-[0.04] pointer-events-none mix-blend-overlay"
-        style={{ backgroundImage: "url('https://grainy-gradients.vercel.app/noise.svg')" }}
+        style={{ backgroundImage: "url('/noise.svg')" }}
       />
 
       {/* Close affordance — always available */}

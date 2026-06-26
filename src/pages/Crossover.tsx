@@ -179,11 +179,13 @@ const CrossoverCard = memo(function CrossoverCard({
   const aspectDims = ASPECT_RATIOS[bp.aspectRatio];
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onClick={onOpen}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
       className="group relative block text-left cursor-pointer animate-fade-in w-full"
       style={{ animationDelay: `${Math.min(index * 25, 300)}ms` }}
     >
@@ -298,7 +300,7 @@ const CrossoverCard = memo(function CrossoverCard({
           </div>
         )}
       </div>
-    </button>
+    </div>
   );
 });
 CrossoverCard.displayName = "CrossoverCard";

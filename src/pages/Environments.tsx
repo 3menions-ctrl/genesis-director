@@ -186,11 +186,13 @@ const EnvironmentCard = memo(function EnvironmentCard({
   const Icon = bp.icon;
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onClick={onOpen}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
       className="group relative block text-left cursor-pointer animate-fade-in w-full"
       style={{ animationDelay: `${Math.min(index * 25, 300)}ms` }}
     >
@@ -286,7 +288,7 @@ const EnvironmentCard = memo(function EnvironmentCard({
           </div>
         )}
       </div>
-    </button>
+    </div>
   );
 });
 

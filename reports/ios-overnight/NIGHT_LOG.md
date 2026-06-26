@@ -234,3 +234,21 @@ row, /pricing→/me/plans, /credits→/you, People-tap→/u/:id no crash, deep-l
 logic holds); tsc.app — only the 2 KNOWN pre-existing web files (CreationHub.tsx,
 Profile.tsx) error, every native file clean; dev 5180 + tunnel + demo login healthy.
 Nothing regressed. Winding cadence down to ~30-min heartbeats until morning.
+
+## Morning — fresh gap-analysis exercise (logic/data/state lens, 2 real bugs)
+Re-ran the multi-agent gap analysis pointed at the dimensions the overnight cycles
+touched least (business-logic correctness, React state/races, data/RLS column
+correctness). Verified every finding vs live code/backend before acting:
+- **FIXED: ReelViewer didn't filter is_taken_down=false** — a moderated/taken-down
+  reel was viewable by direct /r/:id link (every other published_reels read filters
+  it). HIGH. (`b51dc60b`)
+- **FIXED: NativeGenerate generated at durations[0] (minimum), not the engine's
+  defaultDuration** — Kling/Seedance/Veo/Sora users got shorter-than-standard clips +
+  min-price cost cards. Now uses the recommended default (Kling 10s/Seedance 10s/
+  Veo 6s/Sora 8s; cost cards 18→35cr etc.). MEDIUM. (`b51dc60b`)
+- Verified by-design/harmless (not fixed): You.tsx films-derived XP fallback (deliberate
+  never-empty estimate; real users use the quadratic backend level); usePublicProfile
+  video_clips read fails silently + native profile uses useCreatorReels; feed
+  comment_count already 0 post anon-fix; FeedCard index-in-key + IntersectionObserver-
+  recreate are latent anti-patterns (feed doesn't reorder/infinite-scroll). PublicShare
+  profiles-table read is a WEB page, not native.

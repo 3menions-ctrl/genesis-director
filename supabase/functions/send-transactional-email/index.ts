@@ -98,12 +98,20 @@ Deno.serve(async (req) => {
   let bodyCategory: string | undefined
   try {
     const body = await req.json()
-    templateName = body.templateName || body.template_name
-    recipientEmail = body.recipientEmail || body.recipient_email
+    // Accept the shorthand field names several callers use (audit D19):
+    // auto-stitch-trigger, update-user-email, and the low_credits /
+    // org_credits_low DB triggers send { template, to, data } instead of
+    // { templateName, recipientEmail, templateData }. Without these aliases the
+    // function 400'd on "templateName is required" and those emails (incl.
+    // render_complete "your video is ready") silently never sent.
+    templateName = body.templateName || body.template_name || body.template
+    recipientEmail = body.recipientEmail || body.recipient_email || body.to
     messageId = crypto.randomUUID()
     idempotencyKey = body.idempotencyKey || body.idempotency_key || messageId
     if (body.templateData && typeof body.templateData === 'object') {
       templateData = body.templateData
+    } else if (body.data && typeof body.data === 'object') {
+      templateData = body.data
     }
     if (typeof body.category === 'string') {
       bodyCategory = body.category

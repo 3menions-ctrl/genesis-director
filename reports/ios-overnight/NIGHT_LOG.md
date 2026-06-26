@@ -210,3 +210,19 @@ reachable in-app purchase or external-checkout path — verified at every layer:
 - MORNING READINESS: dev server 5180 = 200; demo login (password grant) = 200; tunnel
   restarted with a stable subdomain → https://smallbridges-ios.loca.lt (password =
   public IP 47.233.68.241). Demo: demo@smallbridges.co / Demo-SmallBridges-2026.
+
+## Cycle 18 — push-notification + secure-storage audit (1 hardening fix)
+- push.ts: permission-denied returns early (no crash/retry); device token upserted to
+  device_push_tokens with onConflict:'token' (de-duped); all best-effort (try/catch).
+  initPush is native-only + no-op until permission. ✓
+- **FIXED (hardening): the notification-tap handler navigated to a server-controlled
+  payload path with NO validation** (same risk class as the deep-link bug). Extracted
+  the verified resolver to src/lib/native/deepLink.ts (deepLinkToPath + new
+  safeInAppPath) and routed BOTH the deep-link and push-tap handlers through it →
+  a push can only navigate to a same-app absolute path; hostile schemes/external/
+  protocol-relative URLs rejected. 14/14 safeInAppPath + 15/15 deepLinkToPath pass.
+  (`95b750df`)
+- secureStorage.ts: Keychain-first on native with graceful localStorage fallback
+  (degrades rather than logging the user out); no token left in plaintext in normal
+  operation. ✓ No fix needed.
+- Boot check after the shared-resolver refactor: 0 errors / 5 routes.

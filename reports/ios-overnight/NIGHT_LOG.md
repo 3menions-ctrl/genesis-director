@@ -194,3 +194,19 @@ reachable in-app purchase or external-checkout path — verified at every layer:
   screen is immersive; exit via X.)
 - **Final stability gate**: all-routes crash sweep = 0 / 24 routes with errors.
 - No fixes needed this cycle.
+
+## Cycle 17 — deep-link audit + morning readiness (1 real bug fixed)
+- **FIXED: custom-scheme deep links dropped the first path segment.** deepLinkToPath
+  used url.pathname for everything, but new URL('smallbridges://u/123') parses "u" as
+  the HOST and "/123" as the pathname → smallbridges://u/123 routed to /123 (404). Most
+  custom-scheme deep links were broken (only single-segment like smallbridges://feed
+  worked by accident). Now reassembles host+pathname for the custom scheme; Universal
+  Links keep pathname. ALSO added a scheme allowlist (smallbridges/https/http only) so
+  javascript:/data:/file: can't reach navigate(), normalized //, safe /feed fallback.
+  15/15 logic cases pass. (`c83ff217`)
+- exit()/close() handlers (ReelViewer, CreatorProfile): robust for native — cold
+  deep-link launch uses navigate(replace) → history.length<=1 → /feed fallback; warm
+  start → in-app back. (The about:blank in c16 was a Playwright goto artifact.)
+- MORNING READINESS: dev server 5180 = 200; demo login (password grant) = 200; tunnel
+  restarted with a stable subdomain → https://smallbridges-ios.loca.lt (password =
+  public IP 47.233.68.241). Demo: demo@smallbridges.co / Demo-SmallBridges-2026.

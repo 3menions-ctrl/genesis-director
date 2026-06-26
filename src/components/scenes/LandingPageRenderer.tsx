@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { WidgetConfig, WidgetScene } from '@/types/widget';
+import { safeHref } from '@/lib/safeHref';
 
 interface LandingPageRendererProps {
   config: WidgetConfig;
@@ -246,7 +247,7 @@ export function LandingPageRenderer({ config, onCtaClick, onScenePlay }: Landing
 
             {config.secondary_cta_text && config.secondary_cta_url && (
               <a
-                href={config.secondary_cta_url}
+                href={safeHref(config.secondary_cta_url)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-6 py-4 rounded-2xl text-sm sm:text-base font-medium text-white/70 hover:text-white backdrop-blur-md transition-all duration-300 hover:bg-white/10"

@@ -49,6 +49,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCredits } from "@/contexts/CreditsContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useSafeNavigation } from "@/lib/navigation";
+import { safeHref } from "@/lib/safeHref";
 import { PageShell } from "@/components/shell";
 import { StudioTabs } from "@/components/studio/StudioTabs";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -922,7 +923,7 @@ export default function Profile() {
                       {Object.entries(p?.external_links ?? {}).map(([key, value]) => (
                         <a
                           key={key}
-                          href={value}
+                          href={safeHref(value)}
                           target="_blank"
                           rel="noreferrer noopener"
                           className="group flex items-center gap-3 w-full px-3 py-2.5 rounded-xl border border-white/[0.04] hover:border-white/15 hover:bg-glass transition-colors"
@@ -1406,7 +1407,7 @@ function SocialLinks({
   return (
     <div className="mt-5 flex flex-wrap items-center gap-2">
       {entries.map(([k, v]) => (
-        <a key={k} href={v} target="_blank" rel="noreferrer noopener"
+        <a key={k} href={safeHref(v)} target="_blank" rel="noreferrer noopener"
            className="w-9 h-9 rounded-full bg-glass-hover border border-white/[0.06] hover:border-white/30 flex items-center justify-center text-white/65 hover:text-white transition-colors"
            aria-label={k}>
           <SocialIcon platform={k} />

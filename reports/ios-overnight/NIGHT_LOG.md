@@ -170,3 +170,14 @@ reachable in-app purchase or external-checkout path — verified at every layer:
   immersive) and leaderboard (demo's row renders) after the night's commits — both
   still correct. No regression.
 - No fixes needed this cycle.
+
+## Cycle 15 — performance / memory (PASS)
+- **Feed video windowing works**: across 18 scrolls the mounted <video> count stayed
+  BOUNDED at 2–3 (never grew), JS heap stable ~21MB (even dropped — GC reclaiming, no
+  leak), image count flat (31), 0 pageerrors. Far cards render a poster, not a <video>;
+  unmount cleanup confirmed empirically.
+- **Galleries are img-only**: discover (30 imgs), creator masonry (20), templates (10),
+  avatars (461 imgs, loading=lazy so off-screen bytes don't fetch) — 0 <video> elements
+  mounted (real reels have thumbnails → MediaTile uses img, the metadata-video fallback
+  only fires for thumbnail-less tiles, none here). No excessive simultaneous videos.
+- No performance fixes needed.

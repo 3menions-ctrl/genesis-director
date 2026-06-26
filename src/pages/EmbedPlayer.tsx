@@ -32,7 +32,7 @@ export default function EmbedPlayer() {
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    if (!slug) return;
+    if (!slug) { setNotFound(true); setLoading(false); return; }
     let cancelled = false;
     (async () => {
       const { data: share } = await supabase

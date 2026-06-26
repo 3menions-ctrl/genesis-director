@@ -79,7 +79,7 @@ export function MyLibraryPanel({ project }: { project: EditorProject | null }) {
     for (let i = 0; i < list.length; i++) {
       const file = list[i];
       try {
-        const validated = await validateUploadFile(file).catch((e) => { throw new Error(describeIngestError(e)); });
+        const validated = await validateUploadFile(file).catch((e) => { throw new Error(describeIngestError(e).message); });
         const id = crypto.randomUUID();
         const m = file.name.match(/\.([a-zA-Z0-9]{2,5})$/);
         const ext = (m ? m[1] : file.type === "video/quicktime" ? "mov" : file.type === "video/webm" ? "webm" : "mp4").toLowerCase();

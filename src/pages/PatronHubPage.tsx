@@ -179,7 +179,9 @@ export default function PatronHubPage() {
     () => (creator?.username ? `@${creator.username}` : creatorId ?? ""),
     [creator?.username, creatorId],
   );
-  const goalPct = goal ? Math.min(100, Math.round((goal.current_credits / goal.target_credits) * 100)) : 0;
+  const goalPct = goal && goal.target_credits > 0
+    ? Math.min(100, Math.round((goal.current_credits / goal.target_credits) * 100))
+    : 0;
   const popularIdx = tiers.length >= 3 ? Math.floor(tiers.length / 2) : -1;
 
   usePageMeta({

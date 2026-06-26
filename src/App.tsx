@@ -47,6 +47,7 @@ import { NavigationGuardProvider, NavigationBridge } from "@/lib/navigation";
 import { NativeShell } from "@/components/native/NativeShell";
 import { MobileTabBar } from "@/components/native/MobileTabBar";
 import { MobileOnboardingGate } from "@/components/native/MobileOnboardingGate";
+import { IS_MOBILE_SHELL } from "@/lib/native";
 import { AppShell } from "@/components/shell/AppShell";
 import { AdaptiveShell } from "@/components/shell/AdaptiveShell";
 
@@ -173,6 +174,8 @@ const Press = lazy(() => import("./pages/Press"));
 // ExtractThumbnails removed — orphan utility with no nav entry
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Avatars = lazy(() => import("./pages/Avatars"));
+// Native avatar library (mobile shell renders this on /avatars).
+const AvatarLibrary = lazy(() => import("./pages/AvatarLibrary"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const VideoEditorPage = lazy(() => import("./pages/VideoEditor"));
 
@@ -788,7 +791,7 @@ const App = () => {
                   <RouteContainer fallbackMessage="Calling cast to set…">
                     <RedirectBusinessToModule base="/avatars" target="/business/avatars">
                       <ProtectedRoute>
-                        <Avatars />
+                        {IS_MOBILE_SHELL ? <AvatarLibrary /> : <Avatars />}
                       </ProtectedRoute>
                     </RedirectBusinessToModule>
                   </RouteContainer>

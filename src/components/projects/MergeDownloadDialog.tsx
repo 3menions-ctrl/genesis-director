@@ -139,6 +139,9 @@ export function MergeDownloadDialog({
 
     try {
       const response = await fetch(url);
+      // An expired/403/404 signed URL otherwise saves the error body AS a .mp4
+      // (audit S222) — fail loudly instead.
+      if (!response.ok) throw new Error(`download failed: ${response.status}`);
       const blob = await response.blob();
       downloadBlob(blob, `${sanitizedName}-clip${index + 1}.mp4`);
     } catch (err) {

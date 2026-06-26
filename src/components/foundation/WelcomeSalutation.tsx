@@ -56,7 +56,12 @@ function firstName(displayName: string | null | undefined, email: string | null 
   if (local) {
     // Title-case a plausible name out of the email local-part.
     const cleaned = local.replace(/[._-]+/g, " ").trim();
-    if (cleaned) return cleaned.charAt(0).toUpperCase() + cleaned.slice(1).split(" ")[0].slice(1);
+    if (cleaned) {
+      // Title-case the first word. The old form did .slice(1) twice and dropped
+      // a second character ("john" -> "Jhn"), audit S221.
+      const first = cleaned.split(" ")[0];
+      return first.charAt(0).toUpperCase() + first.slice(1);
+    }
   }
   return "director";
 }

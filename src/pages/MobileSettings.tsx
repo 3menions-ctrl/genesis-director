@@ -45,7 +45,7 @@ export default function MobileSettings() {
         </Group>
 
         <Group label="Account">
-          <Row icon={CreditCard} label="Credits & billing" hint={`◇ ${available}`} onClick={() => go('/account?tab=credits')} />
+          <Row icon={CreditCard} label="Plans & credits" hint={`◇ ${available}`} onClick={() => go('/me/plans')} />
           <Row icon={UserRound} label="Account & data" onClick={() => go('/me/settings/account')} />
         </Group>
 

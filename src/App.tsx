@@ -95,6 +95,8 @@ const Welcome = lazy(() => import("./pages/Welcome"));
 const Activity = lazy(() => import("./pages/Activity"));
 // Mobile library (manage own films + drafts).
 const MobileLibrary = lazy(() => import("./pages/MobileLibrary"));
+// Mobile view-only plans / credits.
+const Plans = lazy(() => import("./pages/Plans"));
 // Mobile-first one-prompt create screen (hands off to Studio's engine).
 const Create = lazy(() => import("./pages/Create"));
 // Mobile-first presets "editor" (one-tap looks) + gamified profile.
@@ -371,6 +373,12 @@ const App = () => {
                 <Route path="/me/library" element={
                   <RouteContainer fallbackMessage="Loading library…">
                     <MobileLibrary />
+                  </RouteContainer>
+                } />
+                {/* Mobile view-only plans / credits. */}
+                <Route path="/me/plans" element={
+                  <RouteContainer fallbackMessage="Loading…">
+                    <Plans />
                   </RouteContainer>
                 } />
                 {/* Mobile one-prompt create screen (hands the prompt to Studio). */}

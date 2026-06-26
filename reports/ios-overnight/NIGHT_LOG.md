@@ -115,3 +115,14 @@ Exercised the interactions the basic sweep missed (where the People-tap crash hi
   `profileAuthoritative` before redirecting (`if (!profileAuthoritative) return;`).
   Then a fallback profile can never trigger onboarding; real new users still get it
   once their authoritative (onboarding=false) profile loads.
+
+## Cycle 11 — console / React-warning sweep (CLEAN)
+Captured console warnings+errors across all routes:
+- **No React warnings** — no "unique key" warnings, no controlled/uncontrolled input,
+  no setState-after-unmount, no act() warnings. Component code is solid (stable keys,
+  controlled inputs throughout).
+- CSP meta warnings (X-Frame-Options + frame-ancestors ignored in <meta>) are KNOWN
+  & INTENTIONAL (index.html:46-48 comment — real enforcement ships as HTTP headers;
+  for the native webview the meta CSP is the only CSP, so it's needed). Left as-is.
+- 3 MEDIA 404s (a few reels/sample films reference missing storage objects) — DATA
+  issue, not app code; handled gracefully by MediaTile/img fallbacks. Noted.

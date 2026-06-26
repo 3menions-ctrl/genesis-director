@@ -1431,8 +1431,13 @@ const transitionsData = useMemo(() =>
   }, [scriptShots, clipResults, projectStatus, completedClips, expectedClipCount, realTimeProgress]);
 
   const showScriptApproval = isStandardMode && !!scriptShots && scriptShots.length > 0 && pipelineStage === 'awaiting_approval';
+  // The Continuity Engine is the monitor for EVERY non-terminal standard-mode
+  // state — initializing / queued / assets / preproduction and the active
+  // build — not just while clips are rendering. Terminal states keep their own
+  // views: completed → final video, failed → error, cancelled → exit. Awaiting
+  // approval shows the ScriptApproval takeover above.
   const showBridge = isStandardMode && !isComplete && !isError && pipelineStage !== 'awaiting_approval'
-    && ['generating', 'producing', 'rendering', 'stitching'].includes(projectStatus || '');
+    && !['cancelled', 'completed'].includes(projectStatus || '');
 
   if (gatekeeper.isLoading) {
     return (

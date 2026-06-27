@@ -63,7 +63,7 @@ export const PrimaryCTA = forwardRef<HTMLButtonElement, PrimaryCTAProps>(
     ref,
   ) {
     const klass = cn(
-      'group inline-flex items-center gap-2 uppercase tracking-[0.22em] font-semibold text-white rounded-lg border border-brand/50 bg-gradient-to-b from-brand to-brand-dark shadow-[0_8px_24px_-10px_hsl(var(--brand)/0.6)] hover:shadow-[0_12px_32px_-10px_hsl(var(--brand)/0.8)] transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-[0_8px_24px_-10px_hsl(var(--brand)/0.6)]',
+      'group inline-flex items-center gap-2 uppercase tracking-[0.22em] font-semibold text-foreground rounded-lg transition-colors hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 disabled:opacity-50 disabled:cursor-not-allowed',
       sizeClass[size],
       className,
     );

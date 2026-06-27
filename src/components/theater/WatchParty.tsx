@@ -132,7 +132,7 @@ export function WatchParty({ partyId, hostId, videoRef }: Props) {
 
   return (
     <aside
-      className="fixed right-0 top-0 bottom-0 w-[min(360px,40vw)] z-40 border-l border-glass-active bg-glass backdrop-blur-xl flex flex-col"
+      className="fixed right-0 top-0 bottom-0 w-[min(360px,40vw)] z-40 bg-glass backdrop-blur-xl flex flex-col"
       aria-label="Watch party chat"
     >
       <header className="px-4 py-3 border-b border-glass-active/50">

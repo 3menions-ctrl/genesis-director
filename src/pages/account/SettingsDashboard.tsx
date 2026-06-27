@@ -99,7 +99,7 @@ import { CenterLine } from "@/components/ui/CenterLine";
 
 // Borderless soft-fill button — the standard replacement for `variant="outline"`.
 // Pairs with `variant="ghost"`; resting fill + brighter hover, no border/ring.
-const SOFT_BUTTON = "bg-white/[0.05] hover:bg-white/[0.1] text-foreground";
+const SOFT_BUTTON = "hover:bg-white/[0.06] text-foreground";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Module catalog
@@ -668,7 +668,7 @@ function Card({ children, className }: { children: React.ReactNode; className?: 
     <div
       className={cn(
         "relative rounded-2xl p-6 sm:p-7",
-        "bg-white/[0.03] shadow-[0_24px_60px_-32px_hsl(0_0%_0%/0.7)]",
+        "shadow-[0_24px_60px_-32px_hsl(0_0%_0%/0.7)]",
         "backdrop-blur-2xl",
         className,
       )}
@@ -1681,7 +1681,7 @@ function PayoutAccountBlock({ creatorId }: { creatorId: string }) {
         <Stat label="Pending payout"  value={`$${(earnings.pending_cents / 100).toFixed(2)}`} />
       </div>
 
-      <div className="rounded-xl bg-white/[0.04] p-4 flex items-start justify-between gap-3">
+      <div className="rounded-xl p-4 flex items-start justify-between gap-3">
         <div>
           <div className="text-[13px] font-medium text-foreground/90 inline-flex items-center gap-2">
             <Wallet className="h-3.5 w-3.5" />Stripe Connect
@@ -1742,7 +1742,7 @@ function PatronTierEditor({
   onRemove: () => void;
 }) {
   return (
-    <li className="rounded-xl bg-white/[0.04] p-4">
+    <li className="rounded-xl p-4">
       <div className="flex items-center gap-3">
         <div
           className="h-10 w-10 rounded-full flex items-center justify-center font-mono text-[12px] text-black shrink-0"
@@ -1951,7 +1951,7 @@ function BillingModule({
 
 function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className="rounded-xl bg-white/[0.03] p-4">
+    <div className="rounded-xl p-4">
       <div className={cn(TYPE_META, "text-muted-foreground/65 tracking-[0.22em]")}>{label}</div>
       <div
         className={cn("mt-2 font-display italic tabular-nums leading-none", accent ? "text-amber-200" : "text-foreground")}

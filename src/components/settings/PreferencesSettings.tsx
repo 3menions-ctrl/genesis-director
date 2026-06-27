@@ -147,12 +147,13 @@ export const PreferencesSettings = memo(forwardRef<HTMLDivElement, Record<string
           <Button
             onClick={handleSave}
             disabled={isSaving}
-            className="bg-white text-black hover:bg-white/90"
+            variant="ghost"
+            className="text-foreground hover:bg-white/[0.06]"
           >
             {isSaving ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             ) : (
-              <Save className="w-4 h-4 mr-2" />
+              <Save className="w-4 h-4 mr-2 text-[hsl(215,100%,72%)]" />
             )}
             Save Changes
           </Button>
@@ -257,10 +258,10 @@ export const PreferencesSettings = memo(forwardRef<HTMLDivElement, Record<string
                   key={option.value}
                   onClick={() => updatePreference('theme', option.value as UserPreferences['theme'])}
                   className={cn(
-                    "flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border transition-all",
+                    "flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-colors",
                     preferences.theme === option.value
-                      ? "bg-white/10 border-white/20 text-white"
-                      : "border-white/[0.06] text-white/50 hover:text-white hover:border-white/10"
+                      ? "bg-white/[0.06] text-[hsl(215,100%,72%)]"
+                      : "text-white/50 hover:text-white hover:bg-white/[0.06]"
                   )}
                 >
                   <option.icon className="w-4 h-4" />
@@ -271,7 +272,7 @@ export const PreferencesSettings = memo(forwardRef<HTMLDivElement, Record<string
           </div>
 
           {/* Compact Mode */}
-          <div className="flex items-center justify-between p-4 rounded-xl bg-glass border border-white/[0.06]">
+          <div className="flex items-center justify-between p-4 rounded-xl">
             <div>
               <p className="font-medium text-white">Compact Mode</p>
               <p className="text-sm text-white/50">Use a more condensed layout</p>
@@ -283,7 +284,7 @@ export const PreferencesSettings = memo(forwardRef<HTMLDivElement, Record<string
           </div>
 
           {/* Tutorial Hints */}
-          <div className="flex items-center justify-between p-4 rounded-xl bg-glass border border-white/[0.06]">
+          <div className="flex items-center justify-between p-4 rounded-xl">
             <div className="flex items-center gap-3">
               <Sparkles className="w-5 h-5 text-amber-400" />
               <div>
@@ -313,7 +314,7 @@ export const PreferencesSettings = memo(forwardRef<HTMLDivElement, Record<string
 
         <div className="space-y-6">
           {/* Autoplay */}
-          <div className="flex items-center justify-between p-4 rounded-xl bg-glass border border-white/[0.06]">
+          <div className="flex items-center justify-between p-4 rounded-xl">
             <div>
               <p className="font-medium text-white">Autoplay Videos</p>
               <p className="text-sm text-white/50">Automatically play videos when visible</p>
@@ -352,10 +353,10 @@ export const PreferencesSettings = memo(forwardRef<HTMLDivElement, Record<string
                   key={speed}
                   onClick={() => updatePreference('defaultPlaybackSpeed', speed)}
                   className={cn(
-                    "flex-1 py-2 rounded-lg text-sm font-medium transition-all",
+                    "flex-1 py-2 rounded-lg text-sm font-medium transition-colors",
                     preferences.defaultPlaybackSpeed === speed
-                      ? "bg-white text-black"
-                      : "bg-glass-hover text-white/60 hover:text-white hover:bg-white/10"
+                      ? "bg-white/[0.06] text-[hsl(215,100%,72%)]"
+                      : "text-white/60 hover:text-white hover:bg-white/[0.06]"
                   )}
                 >
                   {speed}x

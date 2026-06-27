@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { Check, X } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -100,16 +101,18 @@ function ConfirmDialogImpl({ open, options, onClose }: ImplProps) {
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={() => onClose(false)}>
+            <X className="h-4 w-4" />
             {options.cancelLabel ?? 'Cancel'}
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={() => onClose(true)}
             className={
               options.destructive
-                ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+                ? 'text-destructive hover:bg-destructive/10'
                 : ''
             }
           >
+            <Check className="h-4 w-4" />
             {options.confirmLabel ?? 'Confirm'}
           </AlertDialogAction>
         </AlertDialogFooter>

@@ -39,7 +39,7 @@ export const UserStatsBar = memo(forwardRef<HTMLDivElement, Record<string, never
   }
 
   return (
-    <div ref={ref} className="flex items-center gap-4 px-4 py-2 bg-muted/30 rounded-lg border">
+    <div ref={ref} className="flex items-center gap-4 px-4 py-2 rounded-lg">
       {/* Level & XP */}
       <Tooltip>
         <TooltipTrigger asChild>

@@ -12,7 +12,7 @@ import { useMemo, useRef, useState, useLayoutEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
-import { Send, MessagesSquare, Loader2, ImagePlus, X } from "lucide-react";
+import { Send, MessagesSquare, Loader2, LogIn, ImagePlus, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorldChat, type WorldChatMessage } from "@/hooks/useWorldChat";
 import { cn } from "@/lib/utils";
@@ -224,7 +224,6 @@ export function WorldChat({ className }: { className?: string }) {
         "flex h-[480px] flex-col overflow-hidden rounded-[20px] ring-1 ring-white/[0.06] shadow-[0_24px_60px_-32px_rgba(0,0,0,0.8)]",
         className
       )}
-      style={{ background: "linear-gradient(180deg, hsl(0 0% 100% / .05), hsl(0 0% 100% / .015))" }}
     >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/[0.05] px-5 pt-4 pb-3">
@@ -331,8 +330,9 @@ export function WorldChat({ className }: { className?: string }) {
           <button
             type="button"
             onClick={() => navigate("/auth?next=/lobby")}
-            className="w-full rounded-2xl bg-white/[0.04] px-4 py-3 text-[12.5px] font-medium text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[12.5px] font-medium text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground"
           >
+            <LogIn className="h-3.5 w-3.5" />
             Sign in to join the conversation →
           </button>
         )}

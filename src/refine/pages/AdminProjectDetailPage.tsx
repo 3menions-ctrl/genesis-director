@@ -21,6 +21,7 @@ import {
   ExternalLink, ImageOff,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { confirmAsync } from "@/components/ui/global-confirm";
 import { useSafeNavigation } from "@/lib/navigation";
 import { AdminPageShell } from "../components/AdminPageShell";
 import { FloatSection, StatusPill, DeckButton } from "@/admin/ui/primitives";
@@ -208,7 +209,13 @@ export default function AdminProjectDetailPage() {
 
   const deleteProject = async () => {
     if (!projectId) return;
-    if (!window.confirm("Delete this project permanently? This cannot be undone.")) return;
+    const ok = await confirmAsync({
+      title: "Delete this project permanently?",
+      description: "This cannot be undone.",
+      confirmLabel: "Delete project",
+      destructive: true,
+    });
+    if (!ok) return;
     setActing(true);
     try {
       const { error } = await supabase.rpc("admin_moderate_content", {

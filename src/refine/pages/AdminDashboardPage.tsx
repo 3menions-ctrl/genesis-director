@@ -56,9 +56,11 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [loadErr, setLoadErr] = useState<string | null>(null);
 
   const load = useCallback(async (silent = false) => {
     if (silent) setRefreshing(true); else setLoading(true);
+    setLoadErr(null);
     try {
       const { data, error } = await supabase.rpc("admin_dashboard_pulse" as never);
       if (!error && data) {
@@ -96,6 +98,7 @@ export default function AdminDashboardPage() {
       setLastUpdated(new Date());
     } catch (e) {
       console.error("[AdminDashboard] load error", e);
+      setLoadErr(e instanceof Error ? e.message : "Failed to load dashboard metrics");
     } finally {
       setLoading(false); setRefreshing(false);
     }
@@ -138,6 +141,12 @@ export default function AdminDashboardPage() {
       }
     >
       <div className="space-y-14">
+        {loadErr && (
+          <div className="rounded-xl border border-rose-400/30 bg-rose-400/5 px-5 py-4 font-mono text-[11px] text-rose-300/90">
+            Dashboard metrics failed to load — {loadErr}
+            <div className="mt-1 text-white/45">The figures below may be stale or zeroed by the error — they are not a confirmed quiet state.</div>
+          </div>
+        )}
         {/* KPI rail — floating figures */}
         <div className="grid grid-cols-2 gap-x-10 gap-y-12 md:grid-cols-3 xl:grid-cols-6">
           <StatOrb index={0} aura={ORB_AURAS[0]} label="Total users" value={pulse.users.total_users} icon={Users} delta={pulse.users.signups_24h} deltaLabel="today" sparkData={spark} />

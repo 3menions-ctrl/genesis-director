@@ -17,10 +17,11 @@ export default function AdminStatusPage() {
     (async () => {
       setLoading(true);
       const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-      const [costs, stuck, recentClips] = await Promise.all([
+      const [costs, stuck, recentClips, auth] = await Promise.all([
         supabase.from("api_cost_logs").select("service,status").gte("created_at", cutoff),
         supabase.from("video_clips").select("id", { count: "exact", head: true }).in("status", ["pending","generating"]).lt("updated_at", new Date(Date.now() - 10 * 60 * 1000).toISOString()),
         supabase.from("video_clips").select("status").gte("created_at", cutoff),
+        supabase.auth.getSession(),
       ]);
 
       const byService = new Map<string, { total: number; failed: number }>();
@@ -50,8 +51,26 @@ export default function AdminStatusPage() {
         status: (stuck.count ?? 0) > 20 ? "outage" : (stuck.count ?? 0) > 5 ? "degraded" : "operational",
         detail: `${stuck.count ?? 0} stuck clips (>10m)`,
       });
-      list.unshift({ name: "Database", status: "operational", detail: "Supabase managed Postgres" });
-      list.unshift({ name: "Auth", status: "operational", detail: "Email OTP + OAuth" });
+      // Derive Database health from whether the live probe queries actually
+      // succeeded — never assert "operational" blindly (it would read Nominal
+      // mid-outage). All three errored → outage; some errored → degraded.
+      const dbProbes = [costs.error, stuck.error, recentClips.error];
+      const dbFailed = dbProbes.filter(Boolean).length;
+      list.unshift({
+        name: "Database",
+        status: dbFailed === dbProbes.length ? "outage" : dbFailed > 0 ? "degraded" : "operational",
+        detail: dbFailed === dbProbes.length
+          ? "All probe queries failed"
+          : dbFailed > 0
+            ? `${dbFailed}/${dbProbes.length} probe queries failed`
+            : "Probe queries OK (last 15m)",
+      });
+      // Auth derived from a real getSession() round-trip rather than pinned.
+      list.unshift({
+        name: "Auth",
+        status: auth.error ? "outage" : "operational",
+        detail: auth.error ? `getSession failed: ${auth.error.message}` : "getSession OK",
+      });
 
       if (on) { setComponents(list); setLoading(false); }
     })();

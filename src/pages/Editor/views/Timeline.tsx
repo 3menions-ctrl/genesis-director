@@ -95,6 +95,7 @@ import { useEditor } from "@/hooks/editor/useEditor";
 import { useAudioWaveform } from "@/hooks/editor/useAudioWaveform";
 import { Toolbar } from "../components/Toolbar";
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/global-confirm";
 import { supabase } from "@/integrations/supabase/client";
 import { useSyncExternalStore as useSyncExternalStoreForPills } from "react";
 import {
@@ -445,12 +446,17 @@ export function Timeline({
 
   // Clear-all wipes every clip from the in-memory project AND from the
   // video_clips DB table so the timeline stays empty across reload.
-  // Confirmation guard so an errant click doesn't nuke a long edit.
+  // This is permanent — the DB rows are deleted and cannot be restored
+  // by undo — so the confirm copy says so explicitly.
   const onClearAll = async () => {
     if (clips.length === 0) return;
-    const ok = window.confirm(
-      `Remove all ${clips.length} clip${clips.length === 1 ? "" : "s"} from the timeline?\n\nUse Cmd-Z to undo.`,
-    );
+    const ok = await confirmAsync({
+      title: `Clear all ${clips.length} clip${clips.length === 1 ? "" : "s"}?`,
+      description:
+        "This permanently deletes every clip from the timeline, including from the database. This cannot be undone.",
+      confirmLabel: "Clear timeline",
+      destructive: true,
+    });
     if (!ok) return;
     clearAllClips();
     try {
@@ -662,12 +668,18 @@ export function Timeline({
                         track={t}
                         addGap={i < tracks.length - 1}
                         onRename={(label) => renameTrack(t.id, label)}
-                        onRemove={() => {
+                        onRemove={async () => {
                           if (t.id.startsWith("sys:")) {
                             toast.message("System tracks can't be removed");
                             return;
                           }
-                          if (!confirm(`Delete "${t.label}"?`)) return;
+                          const ok = await confirmAsync({
+                            title: `Delete "${t.label}"?`,
+                            description: "This removes the track and its clips from the timeline.",
+                            confirmLabel: "Delete track",
+                            destructive: true,
+                          });
+                          if (!ok) return;
                           removeTrack(t.id);
                         }}
                         // A2 (Music) track gets dedicated score actions.
@@ -1040,7 +1052,7 @@ function TimelineHeader({
           <button
             type="button"
             onClick={onClearAll}
-            title="Clear every clip on the timeline (Cmd-Z to undo)"
+            title="Permanently clear every clip on the timeline (cannot be undone)"
             className={cn(
               "inline-flex items-center gap-1.5 px-3 h-7 rounded-md",
               "text-[11px] font-mono uppercase tracking-[0.16em]",

@@ -293,7 +293,7 @@ export function AdminCreditPackagesManager() {
               { key: 'price', label: 'Price', align: 'right' },
               { key: 'perCredit', label: '$/Credit', align: 'right' },
               { key: 'status', label: 'Status' },
-              { key: 'stripe', label: 'Stripe ID' },
+              { key: 'stripe', label: 'Polar Price ID' },
               { key: 'actions', label: 'Actions', align: 'right' },
             ]}
             rows={packages.map((pkg) => ({
@@ -362,7 +362,7 @@ export function AdminCreditPackagesManager() {
           <ul className="text-[13px] text-white/55 mt-2 space-y-1">
             <li>• Offer volume discounts - lower $/credit for larger packages</li>
             <li>• Keep one package marked as "Popular" to guide users</li>
-            <li>• Ensure Stripe Price IDs are correctly configured for payments</li>
+            <li>• Ensure Polar Price IDs are correctly configured for payments (column is legacy-named stripe_price_id but holds the Polar id)</li>
             <li>• Deactivate packages instead of deleting to preserve history</li>
           </ul>
         </div>

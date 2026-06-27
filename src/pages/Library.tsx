@@ -36,6 +36,7 @@ import {
 import { usePaginatedProjects } from "@/hooks/usePaginatedProjects";
 import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { useAuth } from "@/contexts/AuthContext";
 import { ActiveRendersCard } from "@/components/library/ActiveRendersCard";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -86,15 +87,20 @@ export default function Library() {
 
   const navigate = useNavigate();
   const reducedMotion = useReducedMotion();
+  const { user } = useAuth();
 
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<Genre>("all");
 
+  // Category is filtered SERVER-SIDE (5th arg) so it works across every page,
+  // not just the first 25 already in memory — which previously made categories
+  // whose films lived on later pages silently appear empty with no way to load.
   const { projects: rawProjects, isLoading: loading, hasMore, loadMore } = usePaginatedProjects(
     "updated",
     "desc",
     "all",
     search,
+    category,
   );
   const liveRenderTimecode = useLiveRenderTimecode();
 
@@ -110,13 +116,10 @@ export default function Library() {
     [rawProjects, deletedIds],
   );
 
-  // Filter by category in-memory — categories live in movie_projects.genre.
-  // We don't filter at the SQL layer because usePaginatedProjects' API
-  // doesn't expose `genre`; cheaper to filter the small client list.
-  const filtered = useMemo(() => {
-    if (category === "all") return projects;
-    return projects.filter((p) => p.genre === category);
-  }, [projects, category]);
+  // Category filtering now happens server-side (passed into the hook), so the
+  // already-paginated list is the filtered list — no in-memory narrowing that
+  // only saw the first page.
+  const filtered = projects;
 
   const counts = useMemo(() => {
     const total = projects.length;
@@ -137,15 +140,28 @@ export default function Library() {
     return playable ?? projects.find((p) => !!p.video_url) ?? null;
   }, [projects]);
 
-  // Per-category counts for the pill bar (shows total per category).
-  const byCategory = useMemo(() => {
-    const map: Partial<Record<Genre, number>> = { all: projects.length };
-    for (const p of projects) {
-      const g = (p.genre ?? "") as Genre;
-      if (g) map[g] = (map[g] ?? 0) + 1;
-    }
-    return map;
-  }, [projects]);
+  // Per-category counts for the pill bar (total per category, across ALL pages
+  // — not just the loaded slice). One lightweight single-column query keeps the
+  // pills accurate now that the paginated list is itself category-scoped.
+  const [byCategory, setByCategory] = useState<Partial<Record<Genre, number>>>({});
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("movie_projects")
+        .select("genre")
+        .eq("user_id", user.id);
+      if (cancelled || !data) return;
+      const map: Partial<Record<Genre, number>> = { all: data.length };
+      for (const r of data as { genre: string | null }[]) {
+        const g = (r.genre ?? "") as Genre;
+        if (g) map[g] = (map[g] ?? 0) + 1;
+      }
+      setByCategory(map);
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   // DELETE handler — confirmed via dialog state then writes to DB.
   // Optimistic remove from UI; if the delete fails we put it back and

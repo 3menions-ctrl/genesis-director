@@ -129,6 +129,10 @@ const sections: { id: string; title: string; body: ReactNode }[] = [
             generates your video and image Outputs from your Inputs;
           </li>
           <li>
+            <strong className="text-white">ElevenLabs</strong> — voice, narration, and sound
+            generation from the text and audio Inputs you provide;
+          </li>
+          <li>
             <strong className="text-white">Polar</strong> — payment processing for credits and
             subscriptions;
           </li>
@@ -325,7 +329,7 @@ const Privacy = () => {
   usePageMeta({
     title: "Privacy Policy — Small Bridges | AI Cinematic Video Creation",
     description:
-      "How Small Bridges collects, uses, and protects your data: account info, prompts and generated content, processors (Supabase, Polar, Replicate, Resend, Vercel), GDPR and CCPA rights, and our no-AI-training, no-sale commitments.",
+      "How Small Bridges collects, uses, and protects your data: account info, prompts and generated content, processors (Supabase, Replicate, ElevenLabs, Polar, Resend, Vercel), GDPR and CCPA rights, and our no-AI-training, no-sale commitments.",
   });
 
   return (

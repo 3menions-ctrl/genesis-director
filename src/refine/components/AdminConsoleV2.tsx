@@ -15,6 +15,7 @@
  */
 import { ReactNode, useEffect, useMemo, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { confirmAsync } from "@/components/ui/global-confirm";
 import { cn } from "@/lib/utils";
 import {
   ArrowUpRight,
@@ -258,7 +259,7 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
 
   const runAction = useCallback(
     async (a: AdminAction<T>, row: T) => {
-      if (a.confirm && !window.confirm(a.confirm)) return;
+      if (a.confirm && !(await confirmAsync({ title: a.confirm, confirmLabel: a.label, destructive: a.variant === "destructive" }))) return;
       try {
         await a.onRun(row);
         if (a.silent) return; // dialog-opener; no success toast / refresh
@@ -521,7 +522,9 @@ export function AdminConsoleV2<T extends AdminRow = AdminRow>(
               </tbody>
             </table>
             <div className="px-5 py-3 text-[10px] font-mono uppercase tracking-[0.22em] text-white/40">
-              {rows.length} record{rows.length === 1 ? "" : "s"}
+              {rows.length >= (query.limit ?? 100)
+                ? `Showing first ${rows.length} (capped — not a total)`
+                : `${rows.length} record${rows.length === 1 ? "" : "s"}`}
               {loading && (
                 <Loader2 className="w-3 h-3 ml-2 inline animate-spin" />
               )}

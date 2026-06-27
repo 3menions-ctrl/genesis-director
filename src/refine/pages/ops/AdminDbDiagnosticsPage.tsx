@@ -15,7 +15,8 @@ function fmtBytes(n: number) { if (!n) return "0 B"; const u = ["B", "KB", "MB",
 export default function AdminDbDiagnosticsPage() {
   const [d, setD] = useState<Diag | null>(null);
   const [loading, setLoading] = useState(true);
-  useEffect(() => { (async () => { const { data } = await supabase.rpc("admin_db_diagnostics" as never, {} as never); setD((data as Diag) ?? null); setLoading(false); })(); }, []);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => { (async () => { const { data, error } = await supabase.rpc("admin_db_diagnostics" as never, {} as never); if (error) setErr(error.message); else setD((data as Diag) ?? null); setLoading(false); })(); }, []);
 
   return (
     <AdminPageShell
@@ -33,6 +34,7 @@ export default function AdminDbDiagnosticsPage() {
     >
       <FloatSection title="Tables" meta="by size">
         {loading ? <div className="py-12 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/40">Loading…</div>
+          : err ? <div className="py-12 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-rose-300/80">Diagnostics unavailable — {err}<div className="mt-2 normal-case tracking-normal text-white/40">Stats below could not be loaded; this is a backend error, not an empty database.</div></div>
           : <FloatTable
               columns={[
                 { key: "table", label: "Table" },

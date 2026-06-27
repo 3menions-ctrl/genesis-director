@@ -834,10 +834,12 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
   }, [loopRegion, playheadSec, inSec, outSec, project.durationSec]);
 
   // ── Keyboard map ──────────────────────────────────────────────────
-  // Space toggles play. F = fullscreen. Shift+T = theater. P = PiP.
-  // J/K/L = transport. Shift+S = snapshot. Shift+M = mute. Cmd+L =
-  // loop. Cmd+G = goto timecode. (Period/comma frame-step lives in
-  // Timeline; this handler does NOT swallow those.)
+  // Space toggles play. P = PiP. J/K/L = transport. Shift+S = snapshot.
+  // Cmd+L = loop. Cmd+G = goto timecode. (Period/comma frame-step lives
+  // in Timeline; this handler does NOT swallow those.)
+  // F (fullscreen) and Shift+M (mute) are NOT bound here — EditorShell
+  // owns those keys for the Effects/Markers panels; the on-screen buttons
+  // still trigger fullscreen/mute. Shift+T (theater) is likewise EditorShell's.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
@@ -898,11 +900,10 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
         handleL();
         return;
       }
-      if (!meta && (e.key === "f" || e.key === "F")) {
-        e.preventDefault();
-        toggleFullscreen();
-        return;
-      }
+      // NOTE: F is intentionally NOT handled here. EditorShell owns F as the
+      // global Effects-panel toggle; binding it here too made BOTH fire on one
+      // keypress (fullscreen + effects). The Fullscreen button below still
+      // calls toggleFullscreen directly.
       // NOTE: Shift+T (theater) is intentionally NOT handled here. EditorShell
       // owns that global shortcut so it works in every view. Binding it here
       // too made BOTH handlers fire on one keypress — a double toggle that
@@ -919,11 +920,10 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
         snapshot();
         return;
       }
-      if (!meta && e.shiftKey && (e.key === "M")) {
-        e.preventDefault();
-        setMasterMuted(!masterMuted);
-        return;
-      }
+      // NOTE: Shift+M is intentionally NOT handled here. EditorShell owns it as
+      // the global Markers-panel toggle; binding it here too made BOTH fire on
+      // one keypress (mute + markers). The Mute button below still calls
+      // setMasterMuted directly.
       if (meta && (e.key === "l" || e.key === "L")) {
         e.preventDefault();
         toggleLoopRegion();
@@ -1044,7 +1044,7 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
         <ChromeButton
           active={isFullscreen}
           onClick={toggleFullscreen}
-          title={isFullscreen ? "Exit fullscreen (F)" : "Fullscreen (F)"}
+          title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
           ariaLabel="Fullscreen"
           icon={
             isFullscreen ? (
@@ -1446,7 +1446,7 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
           <button
             type="button"
             onClick={() => setMasterMuted(!masterMuted)}
-            title={masterMuted ? "Unmute (Shift+M)" : "Mute (Shift+M)"}
+            title={masterMuted ? "Unmute" : "Mute"}
             className="inline-flex items-center justify-center h-7 w-7 rounded-md text-foreground/75 hover:text-foreground hover:bg-white/[0.05]"
             aria-label={masterMuted ? "Unmute" : "Mute"}
           >

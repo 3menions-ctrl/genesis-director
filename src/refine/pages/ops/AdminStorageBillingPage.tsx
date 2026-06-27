@@ -19,6 +19,7 @@ const usd = (n: number) => `$${(n ?? 0).toLocaleString(undefined, { maximumFract
 export default function AdminStorageBillingPage() {
   const [d, setD] = useState<Overview | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadErr, setLoadErr] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   // Guard against the documented double-charge: the busy flag only blocks
   // concurrent runs, so a second click AFTER completion re-invokes bill_storage.
@@ -27,8 +28,10 @@ export default function AdminStorageBillingPage() {
   const [billedThisSession, setBilledThisSession] = useState(false);
 
   const load = useCallback(async () => {
-    const { data } = await supabase.rpc("storage_overview" as never, {} as never);
-    setD((data as Overview) ?? null); setLoading(false);
+    const { data, error } = await supabase.rpc("storage_overview" as never, {} as never);
+    if (error) { setLoadErr(error.message); setD(null); }
+    else { setLoadErr(null); setD((data as Overview) ?? null); }
+    setLoading(false);
   }, []);
   useEffect(() => { void load(); }, [load]);
 
@@ -62,11 +65,17 @@ export default function AdminStorageBillingPage() {
       actions={
         <>
           <DeckButton onClick={recompute} disabled={!!busy}><RefreshCw className={busy === "compute" ? "h-3 w-3 animate-spin" : "h-3 w-3"} /> Recompute</DeckButton>
-          <DeckButton primary onClick={runBilling} disabled={!!busy || billedThisSession}><Play className="h-3 w-3" /> {busy === "bill" ? "Billing…" : billedThisSession ? "Billed ✓" : "Run billing"}</DeckButton>
+          <DeckButton primary onClick={runBilling} disabled={!!busy || billedThisSession || !!loadErr}><Play className="h-3 w-3" /> {busy === "bill" ? "Billing…" : billedThisSession ? "Billed ✓" : "Run billing"}</DeckButton>
         </>
       }
     >
       <div className="space-y-14">
+        {loadErr && (
+          <div className="rounded-xl border border-rose-400/30 bg-rose-400/5 px-5 py-4 font-mono text-[11px] text-rose-300/90">
+            storage_overview failed — {loadErr}
+            <div className="mt-1 text-white/45">Figures below are not loaded (this is a backend error, not zero usage). Billing is disabled until the overview loads.</div>
+          </div>
+        )}
         {/* KPI rail — floating figures */}
         <div className="grid grid-cols-2 gap-x-10 gap-y-12 md:grid-cols-3 xl:grid-cols-6">
           <StatOrb index={0} aura={ORB_AURAS[0]} label="Total storage" value={`${(d?.total_gb ?? 0).toFixed(2)} GB`} icon={HardDrive} accentNumber />

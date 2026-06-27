@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { confirmAsync } from '@/components/ui/global-confirm';
 
 interface BulkPhoto {
   id: string;
@@ -56,6 +57,21 @@ export function PhotoBulkPanel({ photos, onComplete }: PhotoBulkPanelProps) {
       return;
     }
 
+    // Pre-flight confirm — bulk edits charge per photo, so make the total
+    // cost explicit before spending. Per-photo cost mirrors the edit-photo
+    // function: template cost (min 2), or 2 for a custom instruction.
+    const selectedTemplate = templates.find((t) => t.id === selectedTemplateId);
+    const perPhotoCost = selectedTemplateId
+      ? Math.max(2, selectedTemplate?.credits_cost || 2)
+      : 2;
+    const totalCost = perPhotoCost * photos.length;
+    const ok = await confirmAsync({
+      title: `Edit all ${photos.length} photo${photos.length === 1 ? '' : 's'}?`,
+      description: `This will spend up to ${totalCost} credits (${perPhotoCost} per photo × ${photos.length}). Failed edits are refunded.`,
+      confirmLabel: `Spend ${totalCost} credits`,
+    });
+    if (!ok) return;
+
     setIsRunning(true);
     setProgress(0);
     setResults([]);
@@ -90,7 +106,7 @@ export function PhotoBulkPanel({ photos, onComplete }: PhotoBulkPanelProps) {
 
     setIsRunning(false);
     onComplete(bulkResults);
-  }, [photos, selectedTemplateId, customInstruction, user, onComplete]);
+  }, [photos, selectedTemplateId, customInstruction, templates, user, onComplete]);
 
   const successCount = results.filter(r => r.editedUrl).length;
   const failCount = results.filter(r => r.error).length;

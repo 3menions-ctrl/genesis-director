@@ -1,37 +1,35 @@
 /**
- * SupportInboxModal — Giant blocking admin-support popup.
+ * SupportInboxModal — Full-screen admin-support popup.
  *
  * Renders the SupportInbox inside a full-screen Radix dialog that:
  *   - opens automatically
- *   - cannot be dismissed (no close button, Esc disabled, outside-click disabled)
- *   - only "closes" when the user exits (signs out, navigates away, closes tab)
+ *   - can be dismissed via the close button, Esc, or clicking outside,
+ *     restoring access to the help-center article browser underneath
  *
  * It sends messages to admins via the existing `support_messages` table
  * (handled inside <SupportInbox/>), and surfaces admin replies in realtime.
  */
+import { useState } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { SupportInbox } from './SupportInbox';
 import { useAuth } from '@/contexts/AuthContext';
-import { LifeBuoy } from 'lucide-react';
+import { LifeBuoy, X } from 'lucide-react';
 
 export function SupportInboxModal() {
   const { user } = useAuth();
+  const [open, setOpen] = useState(true);
   // No user → nothing to bind messages to; render nothing so the popup
   // doesn't trap signed-out visitors.
   if (!user) return null;
 
   return (
-    <DialogPrimitive.Root open modal>
+    <DialogPrimitive.Root open={open} onOpenChange={setOpen} modal>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay
           className="fixed inset-0 z-[200] bg-[hsla(220,14%,2%,0.92)] backdrop-blur-2xl
                      data-[state=open]:animate-in data-[state=open]:fade-in-0"
         />
         <DialogPrimitive.Content
-          // Block every dismissal vector — only "exit" (sign out / navigate / close tab) clears it.
-          onEscapeKeyDown={(e) => e.preventDefault()}
-          onPointerDownOutside={(e) => e.preventDefault()}
-          onInteractOutside={(e) => e.preventDefault()}
           onOpenAutoFocus={(e) => e.preventDefault()}
           className="fixed inset-0 z-[201] flex flex-col
                      bg-gradient-to-b from-[hsl(220,14%,3%)] to-[hsl(220,14%,2%)]
@@ -42,8 +40,18 @@ export function SupportInboxModal() {
             Help &amp; Support — Direct line to admins
           </DialogPrimitive.Title>
           <DialogPrimitive.Description className="sr-only">
-            Send a message to small-bridges admins. This window stays open until you exit.
+            Send a message to small-bridges admins. Close this window to return to the help center.
           </DialogPrimitive.Description>
+
+          <DialogPrimitive.Close
+            aria-label="Close support"
+            className="absolute right-5 top-5 z-10 flex h-10 w-10 items-center justify-center
+                       rounded-full border border-white/10 bg-white/[0.04] text-muted-foreground
+                       transition-colors hover:bg-white/[0.08] hover:text-foreground
+                       focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+          >
+            <X className="h-5 w-5" />
+          </DialogPrimitive.Close>
 
           {/* Hero band */}
           <div className="px-8 pt-10 pb-6 border-b border-white/[0.06]">

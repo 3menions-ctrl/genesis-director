@@ -97,7 +97,10 @@ export function usePaginatedProjects(
   sortBy: 'updated' | 'created' | 'name' = 'updated',
   sortOrder: 'asc' | 'desc' = 'desc',
   statusFilter: 'all' | 'completed' | 'processing' | 'failed' = 'all',
-  searchQuery: string = ''
+  searchQuery: string = '',
+  // Filter by movie genre server-side so category filtering works ACROSS all
+  // pages, not just the first 25 already loaded into memory. 'all' = no filter.
+  genreFilter: string = 'all'
 ): PaginatedProjectsResult {
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -113,8 +116,8 @@ export function usePaginatedProjects(
   const abortControllerRef = useRef<AbortController | null>(null);
   
   // STABILITY FIX: Store filter state in refs to prevent callback identity changes
-  const filtersRef = useRef({ sortBy, sortOrder, statusFilter, searchQuery });
-  filtersRef.current = { sortBy, sortOrder, statusFilter, searchQuery };
+  const filtersRef = useRef({ sortBy, sortOrder, statusFilter, searchQuery, genreFilter });
+  filtersRef.current = { sortBy, sortOrder, statusFilter, searchQuery, genreFilter };
   
   const userIdRef = useRef(user?.id);
   userIdRef.current = user?.id;
@@ -130,7 +133,7 @@ export function usePaginatedProjects(
 
   // Build query using current ref values (no deps that change identity)
   const buildQuery = useCallback((currentOffset: number) => {
-    const { sortBy: sb, sortOrder: so, statusFilter: sf, searchQuery: sq } = filtersRef.current;
+    const { sortBy: sb, sortOrder: so, statusFilter: sf, searchQuery: sq, genreFilter: gf } = filtersRef.current;
     
     let query = supabase
       .from('movie_projects')
@@ -155,7 +158,11 @@ export function usePaginatedProjects(
     if (sq.trim()) {
       query = query.ilike('title', `%${sq.trim()}%`);
     }
-    
+
+    if (gf && gf !== 'all') {
+      query = query.eq('genre', gf);
+    }
+
     const sortColumn = sb === 'updated' ? 'updated_at' : sb === 'created' ? 'created_at' : 'title';
     query = query.order(sortColumn, { ascending: so === 'asc' });
     
@@ -274,7 +281,7 @@ export function usePaginatedProjects(
     }, 200); // Small debounce to batch rapid filter changes
     
     return () => clearTimeout(timer);
-  }, [sortBy, sortOrder, statusFilter, searchQuery]); // Intentionally uses values, not fetchProjects
+  }, [sortBy, sortOrder, statusFilter, searchQuery, genreFilter]); // Intentionally uses values, not fetchProjects
 
   // Optimistically remove a project from the list
   const optimisticRemove = useCallback((projectId: string) => {

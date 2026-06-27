@@ -1,10 +1,9 @@
 /**
- * BuyCreditsModal — pick a credit pack and check out via Stripe.
+ * BuyCreditsModal — pick a credit pack and check out via Polar.
  *
- * Selecting a pack opens hosted Stripe Checkout (redirect). Credits are
- * granted server-side by the payments-webhook on
- * `checkout.session.completed`, then reflected on return to
- * /credits?payment=success.
+ * Selecting a pack opens hosted Polar Checkout (redirect). Credits are
+ * granted server-side by the payments-webhook on checkout completion,
+ * then reflected on return to /credits?payment=success.
  *
  * Same export name + props as before so existing call sites
  * (BillingSettings, CostConfirmationDialog, CreationHub, Pricing,
@@ -59,7 +58,7 @@ export function BuyCreditsModal({ open, onOpenChange }: BuyCreditsModalProps) {
           <Sparkles className="w-4 h-4 text-accent" /> Buy credits
         </DialogTitle>
         <DialogDescription className="text-white/55 text-[13px]">
-          Credits never expire. You&rsquo;re only charged once — there&rsquo;s no subscription. Secure checkout via Stripe.
+          Credits never expire. You&rsquo;re only charged once — there&rsquo;s no subscription. Secure checkout via Polar.
         </DialogDescription>
 
         <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">

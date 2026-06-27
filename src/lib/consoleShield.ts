@@ -159,22 +159,26 @@ export function installConsoleShield(): () => void {
   // that users and support staff need for bug reports. The redaction layer
   // already prevents sensitive data exposure without destroying logs.
 
-  // Detect DevTools opening via debugger timing
+  // Detect DevTools opening via a window-dimension heuristic. The previous
+  // implementation force-triggered an Image getter every tick (`void el.id`),
+  // so console.clear() fired on EVERY interval regardless of DevTools state —
+  // destroying error evidence support needs. We now only clear on the
+  // transition into the "open" state, and re-arm the warning when it closes.
   let devtoolsCheckInterval: ReturnType<typeof setInterval> | null = null;
+  let devtoolsOpen = false;
+  const DEVTOOLS_SIZE_THRESHOLD = 160;
   const detectDevTools = () => {
-    const start = performance.now();
-    // debugger statement causes a pause if DevTools are open
-    // We use a timing heuristic instead to avoid the pause
-    const el = new Image();
-    Object.defineProperty(el, 'id', {
-      get: () => {
-        // This getter fires when DevTools inspect the element
-        console.clear();
-        showDeterrentWarning(originalLog);
-      },
-    });
-    // Trigger getter silently
-    void el.id;
+    const widthGap = window.outerWidth - window.innerWidth;
+    const heightGap = window.outerHeight - window.innerHeight;
+    const open = widthGap > DEVTOOLS_SIZE_THRESHOLD || heightGap > DEVTOOLS_SIZE_THRESHOLD;
+    if (open && !devtoolsOpen) {
+      devtoolsOpen = true;
+      // Only clear once, when DevTools are actually detected — not every tick.
+      console.clear();
+      showDeterrentWarning(originalLog);
+    } else if (!open && devtoolsOpen) {
+      devtoolsOpen = false;
+    }
   };
 
   devtoolsCheckInterval = setInterval(detectDevTools, 10000);

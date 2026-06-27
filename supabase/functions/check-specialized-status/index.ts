@@ -459,7 +459,7 @@ async function handleSingleClip(
     }
 
     case 'failed':
-    case 'canceled':
+    case 'canceled': {
       newState = {
         ...currentState,
         stage: 'failed',
@@ -468,9 +468,43 @@ async function handleSingleClip(
         message: prediction.error || 'Video generation failed',
       };
       newStatus = 'failed';
-      
+
       console.log(`[CheckSpecializedStatus] Failed: ${prediction.error}`);
+
+      // AUDIT FIX (charge-but-deliver-nothing): specialized modes are charged
+      // up front in mode-router via deduct_credits (idempotency_key
+      // `mode-router:<projectId>`, linked to the project + org-aware). The prior
+      // failed/canceled branch issued NO refund — the user paid and got nothing.
+      // Refund the EXACT amount charged (read from the ledger row), idempotently,
+      // via the canonical org-aware refund_credits so the refund routes to the
+      // same pool the charge came from and can't double-refund on repeated polls.
+      try {
+        const { data: chargeRow } = await supabase
+          .from('credit_transactions')
+          .select('amount, user_id')
+          .eq('project_id', projectId)
+          .eq('idempotency_key', `mode-router:${projectId}`)
+          .maybeSingle();
+        const charged = chargeRow ? Math.abs(Number(chargeRow.amount) || 0) : 0;
+        if (charged > 0 && chargeRow?.user_id) {
+          const { error: refundErr } = await supabase.rpc('refund_credits', {
+            p_user_id: chargeRow.user_id,
+            p_amount: charged,
+            p_description: `Refund: specialized generation failed (${projectId})`,
+            p_project_id: projectId,
+            p_idempotency_key: `specialized-fail:${projectId}`,
+          });
+          if (refundErr) {
+            console.error(`[CheckSpecializedStatus] refund failed for ${projectId}:`, refundErr.message);
+          } else {
+            console.log(`[CheckSpecializedStatus] Refunded ${charged} credits for failed project ${projectId}`);
+          }
+        }
+      } catch (e) {
+        console.error(`[CheckSpecializedStatus] refund lookup failed for ${projectId}:`, e);
+      }
       break;
+    }
 
     case 'processing': {
       // Estimate progress based on logs if available

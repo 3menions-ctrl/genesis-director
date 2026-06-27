@@ -107,7 +107,20 @@ serve(async (req) => {
     if (!request.userId || !request.projectId || request.clipIndex === undefined) {
       throw new Error("userId, projectId, and clipIndex are required");
     }
-    
+
+    // IDOR GUARD (audit): a non-admin end-user may only retry clips on a project
+    // they own. The admin branch above already resolved + verified ownership and
+    // service-role bypasses; this closes the remaining non-admin path, where
+    // resolveEffectiveUserId pins userId to the JWT but does not stop passing a
+    // victim's projectId.
+    if (!auth.isServiceRole && !resolvedAsAdmin) {
+      const { data: ownerRow } = await supabase
+        .from("movie_projects").select("user_id").eq("id", request.projectId).maybeSingle();
+      if (!ownerRow || ownerRow.user_id !== auth.userId) {
+        return forbiddenResponse(corsHeaders, "Forbidden: you do not own this project");
+      }
+    }
+
     console.log(`[RetryClip] Retrying clip ${request.clipIndex} for project ${request.projectId}`);
     
     // =========================================================

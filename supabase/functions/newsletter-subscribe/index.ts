@@ -51,6 +51,24 @@ Deno.serve(async (req) => {
 
   const supabase = createClient(supabaseUrl, serviceKey)
 
+  // RATE LIMIT (audit fix): this public endpoint sends a Resend welcome to any
+  // submitted address. Without a limit it can be abused to email-bomb third
+  // parties and burn Resend spend. Cap per client IP via the DB-backed atomic
+  // limiter (5 / 5 min — generous for a legitimate one-time signup form).
+  const clientIp = (
+    req.headers.get('cf-connecting-ip') ||
+    req.headers.get('x-forwarded-for')?.split(',')[0] ||
+    'unknown'
+  ).trim()
+  const { data: underLimit } = await supabase.rpc('rate_limit_hit', {
+    p_key: `newsletter:${clientIp}`,
+    p_limit: 5,
+    p_window_seconds: 300,
+  })
+  if (underLimit === false) {
+    return json({ error: 'Too many requests. Please try again later.' }, 429)
+  }
+
   // Is this a brand-new subscriber? (drives whether we send the welcome)
   const { data: existing } = await supabase
     .from('newsletter_subscribers')

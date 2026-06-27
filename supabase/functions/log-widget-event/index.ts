@@ -2,29 +2,15 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 // @public-endpoint
 // Widget telemetry sink. Public by design — embedded widgets POST analytics
-// events from third-party sites. Protected by per-visitor-session rate limit
-// (100 events/min) and a strict event-type allowlist; widget_id must exist.
+// events from third-party sites. Protected by a DB-backed atomic rate limit
+// keyed on client IP (NOT the attacker-controlled visitor_session) and a strict
+// event-type allowlist; widget_id must exist. The credit-bearing `view` event
+// has an additional per-(widget, IP) cap so it can't be inflated to drain the
+// widget owner's credits.
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
-
-// Rate limiter per session
-const sessionLimits = new Map<string, { count: number; resetAt: number }>()
-const SESSION_RATE_LIMIT = 100
-const SESSION_RATE_WINDOW = 60_000
-
-function checkSessionRate(session: string): boolean {
-  const now = Date.now()
-  const entry = sessionLimits.get(session)
-  if (!entry || now > entry.resetAt) {
-    sessionLimits.set(session, { count: 1, resetAt: now + SESSION_RATE_WINDOW })
-    return true
-  }
-  if (entry.count >= SESSION_RATE_LIMIT) return false
-  entry.count++
-  return true
 }
 
 const VALID_EVENTS = [
@@ -75,19 +61,31 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Rate limit per session
-    const sessionKey = visitor_session || 'anon'
-    if (!checkSessionRate(sessionKey)) {
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    )
+
+    // RATE LIMIT (audit fix): the previous limiter was in-memory (lost across
+    // edge isolates) and keyed on the attacker-controlled `visitor_session`, so
+    // an attacker could rotate the session per request to send unlimited events.
+    // Use the DB-backed atomic limiter keyed on client IP instead.
+    const clientIp = (
+      req.headers.get('cf-connecting-ip') ||
+      req.headers.get('x-forwarded-for')?.split(',')[0] ||
+      'unknown'
+    ).trim()
+    const { data: underGlobalLimit } = await supabase.rpc('rate_limit_hit', {
+      p_key: `widget_evt:${clientIp}`,
+      p_limit: 240,
+      p_window_seconds: 60,
+    })
+    if (underGlobalLimit === false) {
       return new Response(
         JSON.stringify({ error: 'Too many events' }),
         { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    )
 
     // Verify widget exists and is published
     const { data: widget, error: widgetError } = await supabase
@@ -135,11 +133,21 @@ Deno.serve(async (req) => {
       p_event_type: event_type,
     })
 
-    // Check view credit metering (every 1K views)
+    // Check view credit metering (every 1K views). A per-(widget, IP) cap
+    // ensures an attacker can't inflate `view` events to drain the owner's
+    // credits — excess views are still recorded as analytics above but do NOT
+    // drive owner-credit deduction.
     if (event_type === 'view') {
-      await supabase.rpc('check_widget_view_credits', {
-        p_widget_id: widget_id,
+      const { data: underViewLimit } = await supabase.rpc('rate_limit_hit', {
+        p_key: `widget_view:${widget_id}:${clientIp}`,
+        p_limit: 60,
+        p_window_seconds: 60,
       })
+      if (underViewLimit !== false) {
+        await supabase.rpc('check_widget_view_credits', {
+          p_widget_id: widget_id,
+        })
+      }
     }
 
     return new Response(

@@ -228,6 +228,19 @@ serve(async (req) => {
     const body = (await req.json()) as StitchRequest;
     bodySnapshot = body;
 
+    // AUTH (audit fix): seamless-stitcher previously had NO in-code auth and
+    // relied solely on the gateway verify_jwt=true. That blocks anonymous calls
+    // but still lets ANY authenticated user pass an arbitrary projectId. We
+    // validate here so the caller identity is available for the project
+    // ownership check below. Service-role (internal pipeline) passes and is
+    // exempted from the ownership check. Placed before the breakthrough branch
+    // so that mode is authenticated too.
+    const { validateAuth, unauthorizedResponse, forbiddenResponse } = await import("../_shared/auth-guard.ts");
+    const auth = await validateAuth(req);
+    if (!auth.authenticated) {
+      return unauthorizedResponse(corsHeaders, auth.error);
+    }
+
     // ── Breakthrough composite mode ──────────────────────────────────
     // A layered 4-plane render (chrome still + masked inner video +
     // chroma-keyed subject + aftermath), NOT a clip xfade. Reuses the same
@@ -357,6 +370,15 @@ serve(async (req) => {
       projectUserId = (project as { user_id?: string }).user_id ?? null;
       projectVideoEngine = (project as { video_engine?: string }).video_engine ?? null;
       projectQualityOptions = readQualityIntent(editorState);
+
+      // IDOR GUARD (audit fix): a non-service-role caller may only stitch a
+      // project they own. Without this, any authenticated user could pass a
+      // victim's projectId and overwrite their final movie_projects.video_url
+      // AND spend the owner's credits (deduct_credits runs against
+      // projectUserId in the post-stitch quality pass below).
+      if (!auth.isServiceRole && projectUserId && projectUserId !== auth.userId) {
+        return forbiddenResponse(corsHeaders, "Forbidden: you do not own this project");
+      }
       const projectTracks: Array<{
         id: string;
         kind: "video" | "audio";

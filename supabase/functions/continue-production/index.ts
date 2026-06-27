@@ -137,6 +137,22 @@ serve(async (req: Request) => {
 
     console.log(`[ContinueProduction] Clip ${completedClipIndex + 1}/${totalClips} completed for project ${projectId}`);
 
+    // IDOR GUARD (audit): an end-user may only continue production for a project
+    // they own. Without this, any authenticated caller could pass a victim's
+    // projectId and drive/mutate their pipeline (status writes, clip inserts,
+    // assembly triggers). Service-role (the internal pipeline) bypasses — it
+    // legitimately acts on any project. Mirrors the pattern in generate-music.
+    if (!auth.isServiceRole) {
+      const { data: ownerProj } = await supabase
+        .from('movie_projects')
+        .select('user_id')
+        .eq('id', projectId)
+        .maybeSingle();
+      if (!ownerProj || ownerProj.user_id !== auth.userId) {
+        return forbiddenResponse(corsHeaders, 'Forbidden: you do not own this project');
+      }
+    }
+
     // Check if all clips are done
     if (completedClipIndex + 1 >= totalClips) {
       console.log(`[ContinueProduction] All ${totalClips} clips completed! Triggering post-production...`);

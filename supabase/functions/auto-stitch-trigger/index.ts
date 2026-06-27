@@ -141,6 +141,17 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // IDOR GUARD (audit): a non-service-role caller may only stitch a project
+    // they own. resolveEffectiveUserId above pins userId to the JWT but does
+    // not verify project ownership.
+    if (!auth.isServiceRole) {
+      const { data: ownerRow } = await supabase
+        .from('movie_projects').select('user_id').eq('id', projectId).maybeSingle();
+      if (!ownerRow || ownerRow.user_id !== auth.userId) {
+        return forbiddenResponse(corsHeaders, 'Forbidden: you do not own this project');
+      }
+    }
+
     // Step 1: Get project details (include pipeline_state for avatar totalClips)
     const { data: project, error: projectError } = await supabase
       .from('movie_projects')

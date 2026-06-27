@@ -34,6 +34,7 @@ import { FoundationShell } from "@/components/foundation/FoundationShell";
 import { ImmersiveTheater, type TheaterReel } from "@/components/social/ImmersiveTheater";
 import { ImmersiveFeed, type FeedReel } from "@/components/social/ImmersiveFeed";
 import { CenterLine } from "@/components/ui/CenterLine";
+import { WorldChat } from "@/components/lobby/WorldChat";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface ChannelWorld {
@@ -491,6 +492,10 @@ export default function Lobby() {
 
           {/* ── SIDEBAR INFO CENTER ─────────────────────────────────── */}
           <aside className="mt-2 lg:mt-0 lg:sticky lg:top-6 lg:self-start">
+            <div className="mb-[18px]">
+              <WorldChat />
+            </div>
+
             <Panel title="The Lobby · live" badge={<span className="text-[hsl(160_60%_50%)]">● now</span>}>
               <Stat label="Films today" value={String(filmsToday)} />
             </Panel>

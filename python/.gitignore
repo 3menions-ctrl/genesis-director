@@ -4,3 +4,4 @@ __pycache__/
 *.pyo
 .model_cache/
 runs/
+.venv_comp

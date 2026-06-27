@@ -74,6 +74,7 @@ function QueryPreservingRedirect({ to }: { to: string }) {
 
 const Cinema = lazy(() => import("./pages/Cinema"));
 const StudioShowcase = lazy(() => import("./pages/StudioShowcase"));
+const BreakthroughLab = lazy(() => import("./pages/BreakthroughLab"));
 const FilmsGallery = lazy(() => import("./pages/FilmsGallery"));
 const Studio = lazy(() => import("./pages/Studio"));
 const Auth = lazy(() => import("./pages/Auth"));
@@ -295,6 +296,12 @@ const App = () => {
                 <Route path="/studio-showcase" element={
                   <RouteContainer fallbackMessage="Loading…">
                     <StudioShowcase />
+                  </RouteContainer>
+                } />
+                {/* Public demo — real-time procedural Breakthrough FX engine. */}
+                <Route path="/breakthrough-lab" element={
+                  <RouteContainer fallbackMessage="Loading the lab…">
+                    <BreakthroughLab />
                   </RouteContainer>
                 } />
                 <Route path="/films" element={

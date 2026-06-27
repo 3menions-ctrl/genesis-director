@@ -252,8 +252,18 @@ export default function Auth() {
   }, [pendingEmail]);
 
   return (
-    <div className="relative min-h-[100dvh] w-full bg-[#0a0b0f] text-foreground overflow-hidden">
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] min-h-[100dvh]">
+    <div className="relative w-full bg-[#0a0b0f] text-foreground overflow-y-auto lg:overflow-hidden">
+      {/* Immersive full-bleed backdrop — covers UNDER the notch + home indicator
+          (the global body has safe-area padding; a fixed layer escapes it so the
+          dark background reaches every edge of the iPhone). */}
+      <div aria-hidden className="fixed inset-0 -z-10 bg-[#0a0b0f]" />
+      {/* Size the grid to the SAFE visible area (between notch + home indicator)
+          so `items-center` lands the form on the true optical centre, not pushed
+          down by the top inset. Reduces to 100dvh on devices with no insets. */}
+      <div
+        className="relative z-10 grid grid-cols-1 lg:grid-cols-[1.1fr_1fr]"
+        style={{ minHeight: "calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom))" }}
+      >
         {/* HERO — desktop only. */}
         <div className="hidden lg:block">
           <AuthHeroStage />

@@ -249,6 +249,28 @@ export default function Lobby() {
 
   return (
     <FoundationShell>
+      {/* Signature animated Aurora backdrop — slow-drifting brand-hue blooms
+          behind all content. Frozen under reduced-motion. */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <motion.div
+          className="absolute -top-[20%] left-[-12%] h-[72vh] w-[72vh] rounded-full blur-[130px]"
+          style={{ background: "radial-gradient(circle, hsl(215 100% 60% / 0.20), transparent 70%)" }}
+          animate={reduced ? undefined : { x: [0, 90, 0], y: [0, 50, 0] }}
+          transition={{ duration: 28, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute bottom-[-22%] right-[-12%] h-[64vh] w-[64vh] rounded-full blur-[130px]"
+          style={{ background: "radial-gradient(circle, hsl(280 72% 60% / 0.15), transparent 70%)" }}
+          animate={reduced ? undefined : { x: [0, -70, 0], y: [0, -36, 0] }}
+          transition={{ duration: 34, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute top-[30%] left-[40%] h-[46vh] w-[46vh] rounded-full blur-[120px]"
+          style={{ background: "radial-gradient(circle, hsl(160 60% 50% / 0.10), transparent 70%)" }}
+          animate={reduced ? undefined : { x: [0, -50, 40, 0], y: [0, 40, -30, 0] }}
+          transition={{ duration: 40, repeat: Infinity, ease: "easeInOut" }}
+        />
+      </div>
       <div className="relative z-10">
         {/* ── HERO TAKEOVER (shuffles over time) ─────────────────────── */}
         {heroReel && (
@@ -278,6 +300,29 @@ export default function Lobby() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: reduced ? 0 : 0.6, ease: "easeOut" }}
                 >
+                  {/* Trending / engagement chips above the title */}
+                  <div className="mb-3 flex flex-wrap items-center gap-2.5">
+                    {heroReel.is_featured ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(38_90%_60%/0.16)] px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[hsl(38_90%_64%)] ring-1 ring-[hsl(38_90%_60%/0.3)]">
+                        <Trophy className="h-3 w-3" /> Featured
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-foreground/70 ring-1 ring-white/10">
+                        <Flame className="h-3 w-3 text-[hsl(14_90%_62%)]" /> Trending
+                      </span>
+                    )}
+                    {heroReel.world_name && (
+                      <span className="font-mono text-[11px]" style={accentStyle(heroReel.world_accent)}>
+                        {heroReel.world_glyph ?? "◆"} {heroReel.world_name}
+                      </span>
+                    )}
+                    <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-foreground/55">
+                      <Play className="h-3 w-3" /> {heroReel.play_count.toLocaleString()}
+                    </span>
+                    {heroReel.like_count > 0 && (
+                      <span className="font-mono text-[11px] text-foreground/55">♥ {heroReel.like_count.toLocaleString()}</span>
+                    )}
+                  </div>
                   {/* No oversized headline — a restrained title + synopsis carry it. */}
                   <h2 className="max-w-2xl font-display text-[22px] font-semibold leading-tight tracking-tight text-foreground sm:text-[26px]">
                     {heroReel.title}
@@ -503,8 +548,9 @@ function VideoCard({ reel, onOpen, reduced }: { reel: FeedRow; onOpen: (r: FeedR
         <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
         <span className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-1.5 p-3.5 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
           <span className="block font-display text-[15px] font-semibold leading-tight tracking-tight text-white line-clamp-2">{reel.title}</span>
-          <span className="mt-1 block truncate text-[11.5px] text-white/65">
-            {reel.creator_name ?? "Unknown director"}
+          <span className="mt-1 flex items-center gap-2 text-[11.5px] text-white/65">
+            <span className="truncate">{reel.creator_name ?? "Unknown director"}</span>
+            {reel.play_count > 0 && <span className="shrink-0 text-white/45">· {reel.play_count.toLocaleString()} plays</span>}
           </span>
         </span>
 

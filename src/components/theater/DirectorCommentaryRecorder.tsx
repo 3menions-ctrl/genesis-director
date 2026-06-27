@@ -134,13 +134,13 @@ export function DirectorCommentaryRecorder({
   };
 
   return (
-    <div className="rounded-xl border border-glass bg-glass p-3 flex items-center gap-3">
+    <div className="rounded-xl p-3 flex items-center gap-3">
       {recording ? (
-        <Button type="button" size="sm" variant="destructive" onClick={() => void stop()}>
+        <Button type="button" size="sm" variant="ghost" onClick={() => void stop()} className="text-destructive hover:bg-white/[0.06]">
           <Square className="w-3.5 h-3.5 mr-2" /> Stop
         </Button>
       ) : (
-        <Button type="button" size="sm" onClick={() => void start()} disabled={uploading}>
+        <Button type="button" size="sm" variant="ghost" onClick={() => void start()} disabled={uploading} className="hover:bg-white/[0.06]">
           {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" /> : <Circle className="w-3.5 h-3.5 mr-2 text-destructive" fill="currentColor" />}
           {uploading ? "Saving…" : "Record commentary"}
         </Button>

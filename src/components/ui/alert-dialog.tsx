@@ -34,7 +34,7 @@ const AlertDialogContent = React.forwardRef<
     <AlertDialogPrimitive.Content
       ref={ref}
       className={cn(
-         "fixed inset-0 z-50 m-auto grid h-fit w-[calc(100vw-2rem)] max-w-lg gap-4 p-6 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 rounded-2xl bg-black/95 border border-white/[0.08] backdrop-blur-2xl",
+         "fixed inset-0 z-50 m-auto grid h-fit w-[calc(100vw-2rem)] max-w-lg gap-4 p-6 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 rounded-2xl bg-black/95 backdrop-blur-2xl",
         className,
       )}
       style={{
@@ -82,8 +82,8 @@ const AlertDialogAction = React.forwardRef<
   <AlertDialogPrimitive.Action 
     ref={ref} 
     className={cn(
-      "inline-flex h-10 items-center justify-center rounded-full px-6 text-sm font-medium transition-all duration-200",
-      "bg-white text-black hover:bg-white/90",
+      "inline-flex h-10 items-center justify-center gap-2 rounded-full px-6 text-sm font-medium transition-all duration-200",
+      "text-white hover:bg-white/[0.06]",
       className
     )} 
     {...props} 
@@ -98,8 +98,8 @@ const AlertDialogCancel = React.forwardRef<
   <AlertDialogPrimitive.Cancel
     ref={ref}
     className={cn(
-      "inline-flex h-10 items-center justify-center rounded-full px-6 text-sm font-medium transition-all duration-200 mt-2 sm:mt-0",
-      "bg-glass-active text-white/70 hover:bg-white/10 hover:text-white border border-white/[0.08]",
+      "inline-flex h-10 items-center justify-center gap-2 rounded-full px-6 text-sm font-medium transition-all duration-200 mt-2 sm:mt-0",
+      "text-white/70 hover:bg-white/[0.06] hover:text-white",
       className
     )}
     {...props}

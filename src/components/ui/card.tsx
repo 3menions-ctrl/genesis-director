@@ -7,15 +7,15 @@ const cardVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-white/[0.03] text-card-foreground border border-white/[0.06] shadow-[0_24px_60px_-30px_rgba(0,0,0,0.7)] hover:bg-white/[0.05]",
-        glass: "bg-white/[0.04] backdrop-blur-2xl border border-white/[0.06] shadow-[0_24px_60px_-30px_rgba(0,0,0,0.7)] hover:bg-white/[0.06] hover:-translate-y-0.5",
-        premium: "bg-white/[0.06] backdrop-blur-2xl border border-white/[0.08] shadow-[0_30px_70px_-30px_rgba(0,0,0,0.8)] hover:bg-white/[0.08] hover:-translate-y-1",
-        obsidian: "bg-gradient-to-br from-[hsl(0_0%_10%)] to-[hsl(0_0%_6%)] border border-[hsl(0_0%_18%)] text-white shadow-[0_8px_32px_hsl(0_0%_0%/0.3)] hover:shadow-[0_12px_48px_hsl(0_0%_0%/0.4)] hover:-translate-y-1",
-        subtle: "bg-white/[0.02] backdrop-blur-xl border border-white/[0.05] hover:bg-white/[0.04]",
-        success: "bg-[hsl(145_50%_97%/0.9)] backdrop-blur-xl border border-[hsl(145_45%_75%/0.5)] text-[hsl(145_55%_28%)] shadow-[0_4px_24px_hsl(145_50%_40%/0.08)]",
-        error: "bg-[hsl(0_50%_97%/0.9)] backdrop-blur-xl border border-[hsl(0_45%_80%/0.5)] text-[hsl(0_55%_35%)] shadow-[0_4px_24px_hsl(0_50%_50%/0.08)]",
-        warning: "bg-[hsl(38_60%_97%/0.9)] backdrop-blur-xl border border-[hsl(38_50%_75%/0.5)] text-[hsl(30_60%_32%)] shadow-[0_4px_24px_hsl(38_60%_50%/0.08)]",
-        info: "bg-[hsl(210_50%_97%/0.9)] backdrop-blur-xl border border-[hsl(210_45%_80%/0.5)] text-[hsl(210_55%_35%)] shadow-[0_4px_24px_hsl(210_60%_50%/0.08)]",
+        default: "text-card-foreground shadow-[0_24px_60px_-30px_rgba(0,0,0,0.7)]",
+        glass: "backdrop-blur-2xl shadow-[0_24px_60px_-30px_rgba(0,0,0,0.7)] hover:-translate-y-0.5",
+        premium: "backdrop-blur-2xl shadow-[0_30px_70px_-30px_rgba(0,0,0,0.8)] hover:-translate-y-1",
+        obsidian: "text-white shadow-[0_8px_32px_hsl(0_0%_0%/0.3)] hover:shadow-[0_12px_48px_hsl(0_0%_0%/0.4)] hover:-translate-y-1",
+        subtle: "backdrop-blur-xl",
+        success: "backdrop-blur-xl text-[hsl(145_55%_28%)] shadow-[0_4px_24px_hsl(145_50%_40%/0.08)]",
+        error: "backdrop-blur-xl text-[hsl(0_55%_35%)] shadow-[0_4px_24px_hsl(0_50%_50%/0.08)]",
+        warning: "backdrop-blur-xl text-[hsl(30_60%_32%)] shadow-[0_4px_24px_hsl(38_60%_50%/0.08)]",
+        info: "backdrop-blur-xl text-[hsl(210_55%_35%)] shadow-[0_4px_24px_hsl(210_60%_50%/0.08)]",
       },
     },
     defaultVariants: {

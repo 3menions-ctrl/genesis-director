@@ -23,7 +23,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
-  Play, Sparkles, ArrowRight, Flame, Trophy, Aperture, Search, Plus, Shuffle, Eye, Film,
+  Play, Sparkles, ArrowRight, Flame, Trophy, Aperture, Search, Plus, Shuffle, Eye, Film, X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -440,7 +440,7 @@ export default function Lobby() {
                   <h3 className="font-display text-[24px] font-semibold tracking-tight text-foreground">
                     Results<span className="ml-3 align-middle text-[12.5px] font-normal text-muted-foreground">{filtered.length} match{filtered.length === 1 ? "" : "es"} for “{query.trim()}”</span>
                   </h3>
-                  <button type="button" onClick={() => setQuery("")} className="shrink-0 rounded-full bg-white/[0.04] px-3 py-1.5 text-[11px] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground">Clear</button>
+                  <button type="button" onClick={() => setQuery("")} className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground"><X className="h-3 w-3" strokeWidth={1.6} /> Clear</button>
                 </div>
                 {filtered.length === 0 ? (
                   <p className="py-16 text-center text-[14px] text-muted-foreground">No films match “{query.trim()}”. {hasMore && "Try Load more, or "}adjust your search.</p>
@@ -473,8 +473,8 @@ export default function Lobby() {
             {!isEmpty && feed.length > 0 && hasMore && (
               <div className="mt-12 flex justify-center">
                 <button type="button" onClick={() => void loadMore()} disabled={loadingMore}
-                  className="inline-flex items-center gap-2 rounded-full bg-white/[0.06] px-6 py-3 text-[13px] font-medium text-foreground backdrop-blur-sm transition-all hover:bg-white/[0.12] disabled:opacity-50">
-                  {loadingMore ? "Loading…" : "Load more films"}
+                  className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-[13px] font-medium text-foreground transition-colors hover:bg-white/[0.06] disabled:opacity-50">
+                  <Plus className="h-4 w-4" strokeWidth={1.6} /> {loadingMore ? "Loading…" : "Load more films"}
                 </button>
               </div>
             )}
@@ -578,7 +578,7 @@ function WorldChip({ label, glyph, accent, active, onClick }: { label: string; g
     <button type="button" onClick={onClick}
       className={cn(
         "relative inline-flex shrink-0 items-center gap-2 rounded-full px-3.5 py-2 text-[13px] transition-colors",
-        active ? "bg-white/[0.08] text-foreground" : "text-muted-foreground/70 hover:text-foreground",
+        active ? "text-foreground" : "text-muted-foreground/70 hover:bg-white/[0.06] hover:text-foreground",
       )}>
       {glyph && <span style={accentStyle(accent ?? null)}>{glyph}</span>}
       {label}

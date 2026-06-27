@@ -107,12 +107,13 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
           <Button
             onClick={handleSave}
             disabled={isSaving}
-            className="bg-white text-black hover:bg-white/90"
+            variant="ghost"
+            className="text-foreground hover:bg-white/[0.06]"
           >
             {isSaving ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             ) : (
-              <Save className="w-4 h-4 mr-2" />
+              <Save className="w-4 h-4 mr-2 text-[hsl(215,100%,72%)]" />
             )}
             Save Changes
           </Button>
@@ -160,7 +161,7 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 rounded-xl bg-glass border border-white/[0.06]">
+          <div className="flex items-center justify-between p-4 rounded-xl">
             <div className="flex items-center gap-3">
               <CheckCircle2 className="w-5 h-5 text-emerald-400" />
               <div>
@@ -174,7 +175,7 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
             />
           </div>
 
-          <div className="flex items-center justify-between p-4 rounded-xl bg-glass border border-white/[0.06]">
+          <div className="flex items-center justify-between p-4 rounded-xl">
             <div className="flex items-center gap-3">
               <AlertCircle className="w-5 h-5 text-rose-400" />
               <div>
@@ -206,7 +207,7 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 rounded-xl bg-glass border border-white/[0.06]">
+          <div className="flex items-center justify-between p-4 rounded-xl">
             <div className="flex items-center gap-3">
               <Coins className="w-5 h-5 text-amber-400" />
               <div>
@@ -231,10 +232,10 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
                     key={threshold}
                     onClick={() => updatePreference('lowCreditsThreshold', threshold)}
                     className={cn(
-                      "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                      "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
                       preferences.lowCreditsThreshold === threshold
-                        ? "bg-white text-black"
-                        : "bg-glass-hover text-white/60 hover:text-white hover:bg-white/10"
+                        ? "bg-white/[0.06] text-[hsl(215,100%,72%)]"
+                        : "text-white/60 hover:text-white hover:bg-white/[0.06]"
                     )}
                   >
                     {threshold}
@@ -261,7 +262,7 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
           <h3 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>Periodic updates about your activity.</h3>
         </div>
 
-        <div className="flex items-center justify-between p-4 rounded-xl bg-glass border border-white/[0.06]">
+        <div className="flex items-center justify-between p-4 rounded-xl">
           <div className="flex items-center gap-3">
             <TrendingUp className="w-5 h-5 text-[hsl(215,100%,72%)]" />
             <div>
@@ -292,7 +293,7 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 rounded-xl bg-glass border border-white/[0.06]">
+          <div className="flex items-center justify-between p-4 rounded-xl">
             <div className="flex items-center gap-3">
               <Sparkles className="w-5 h-5 text-cyan-400" />
               <div>
@@ -306,7 +307,7 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
             />
           </div>
 
-          <div className="flex items-center justify-between p-4 rounded-xl bg-glass border border-white/[0.06]">
+          <div className="flex items-center justify-between p-4 rounded-xl">
             <div className="flex items-center gap-3">
               <Bell className="w-5 h-5 text-blue-400" />
               <div>
@@ -320,7 +321,7 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
             />
           </div>
 
-          <div className="flex items-center justify-between p-4 rounded-xl bg-glass border border-white/[0.06]">
+          <div className="flex items-center justify-between p-4 rounded-xl">
             <div className="flex items-center gap-3">
               <Mail className="w-5 h-5 text-white/40" />
               <div>

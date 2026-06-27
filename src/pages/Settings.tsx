@@ -181,13 +181,10 @@ const SettingsContent = memo(function SettingsContent() {
               transition={{ delay: 0.1, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
               className="sticky top-24 relative rounded-3xl p-2.5 overflow-hidden"
               style={{
-                background:
-                  'linear-gradient(180deg, hsla(0,0%,100%,0.025) 0%, hsla(0,0%,100%,0.005) 100%)',
-                border: '1px solid hsla(0,0%,100%,0.06)',
                 backdropFilter: 'blur(48px) saturate(180%)',
                 WebkitBackdropFilter: 'blur(48px) saturate(180%)',
                 boxShadow:
-                  '0 30px 80px -30px rgba(0,0,0,0.8), inset 0 1px 0 hsla(0,0%,100%,0.05)',
+                  '0 30px 80px -30px rgba(0,0,0,0.8)',
               }}
             >
               {/* sliding aurora indicator */}
@@ -223,8 +220,8 @@ const SettingsContent = memo(function SettingsContent() {
                         className={cn(
                           'w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-500 shrink-0',
                           isActive
-                            ? 'bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.25)]'
-                            : 'bg-glass border border-white/[0.06]'
+                            ? 'bg-[hsla(215,100%,60%,0.12)]'
+                            : ''
                         )}
                       >
                         <Icon
@@ -274,11 +271,11 @@ const SettingsContent = memo(function SettingsContent() {
           <div className="lg:hidden">
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="w-full flex items-center justify-between px-5 py-4 rounded-2xl bg-white/[0.025] border border-white/[0.07] backdrop-blur-2xl transition-all hover:bg-glass-hover"
+              className="w-full flex items-center justify-between px-5 py-4 rounded-2xl backdrop-blur-2xl transition-colors hover:bg-white/[0.06]"
             >
               <div className="flex items-center gap-3.5">
                 {currentSection && (
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.25)]">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-[hsla(215,100%,60%,0.12)]">
                     <currentSection.icon className="w-4 h-4 text-[hsl(215,100%,75%)]" strokeWidth={1.5} />
                   </div>
                 )}
@@ -302,7 +299,7 @@ const SettingsContent = memo(function SettingsContent() {
                   transition={{ duration: 0.2 }}
                   className="overflow-hidden"
                 >
-                  <nav className="mt-2 space-y-1 p-2.5 rounded-2xl bg-glass border border-white/[0.06] backdrop-blur-2xl">
+                  <nav className="mt-2 space-y-1 p-2.5 rounded-2xl backdrop-blur-2xl">
                     {SECTIONS.map((section) => {
                       const isActive = activeSection === section.id;
                       return (
@@ -310,15 +307,15 @@ const SettingsContent = memo(function SettingsContent() {
                           key={section.id}
                           onClick={() => handleSectionChange(section.id)}
                           className={cn(
-                            "w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-left transition-all",
+                            "w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-left transition-colors",
                             isActive
-                              ? "bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.22)] text-foreground"
-                              : "text-muted-foreground hover:text-foreground/85 hover:bg-glass border border-transparent"
+                              ? "bg-[hsla(215,100%,60%,0.12)] text-foreground"
+                              : "text-muted-foreground hover:text-foreground/85 hover:bg-white/[0.06]"
                           )}
                         >
                           <div className={cn(
                             "w-8 h-8 rounded-lg flex items-center justify-center",
-                            isActive ? 'bg-[hsla(215,100%,60%,0.14)] border border-[hsla(215,100%,60%,0.22)]' : 'bg-glass-hover'
+                            isActive ? 'bg-[hsla(215,100%,60%,0.14)]' : ''
                           )}>
                             <section.icon className={cn('w-4 h-4', isActive ? 'text-[hsl(215,100%,75%)]' : 'text-muted-foreground')} strokeWidth={1.5} />
                           </div>

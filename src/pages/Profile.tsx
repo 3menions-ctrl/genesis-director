@@ -413,7 +413,7 @@ export default function Profile() {
           <Sparkles className="w-7 h-7 mx-auto mb-4 text-white/45" />
           <h2 className="font-display font-medium text-[24px] text-white mb-2">Profile not found</h2>
           <p className="text-[12px] text-white/45 mb-6">This account doesn't exist or has been removed.</p>
-          <Link to="/lobby" className="pill bg-white text-black hover:bg-white/90">
+          <Link to="/lobby" className="pill hover:bg-white/[0.06] text-white">
             Back to Lobby <ArrowRight className="w-3 h-3" />
           </Link>
         </div>
@@ -461,7 +461,7 @@ export default function Profile() {
             <>
               <button
                 onClick={() => coverInputRef.current?.click()}
-                className="absolute top-5 right-5 inline-flex items-center gap-2 h-9 px-3.5 rounded-full bg-black/55 backdrop-blur-md border border-white/[0.10] hover:border-white/30 text-white/85 hover:text-white text-[10px] font-mono uppercase tracking-[0.28em] transition-colors"
+                className="absolute top-5 right-5 inline-flex items-center gap-2 h-9 px-3.5 rounded-full bg-black/55 backdrop-blur-md text-white/85 hover:text-white text-[10px] font-mono uppercase tracking-[0.28em] transition-colors"
               >
                 {uploading === "cover" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImagePlus className="w-3.5 h-3.5" />}
                 {p?.cover_url ? "Change cover" : "Add cover"}
@@ -582,13 +582,13 @@ export default function Profile() {
             <div className="flex flex-col gap-2 shrink-0">
               {isOwner ? (
                 <>
-                  <Link to="/settings" className="pill bg-white text-black hover:bg-white/90">
+                  <Link to="/settings" className="pill hover:bg-white/[0.06] text-white">
                     <SettingsIcon className="w-3 h-3" /> Settings
                   </Link>
-                  <Link to="/search?tab=people" className="pill border-accent/40 bg-accent/10 hover:bg-accent/20 text-accent border">
+                  <Link to="/search?tab=people" className="pill hover:bg-white/[0.06] text-accent">
                     <UserIcon className="w-3 h-3" /> Find friends
                   </Link>
-                  <button onClick={sharePage} className="pill border-white/[0.08] hover:border-white/30 text-white/75 hover:text-white border">
+                  <button onClick={sharePage} className="pill hover:bg-white/[0.06] text-white/75 hover:text-white">
                     <Share2 className="w-3 h-3" /> Share profile
                   </button>
                 </>
@@ -598,10 +598,10 @@ export default function Profile() {
                     onClick={toggleFollow}
                     disabled={followBusy}
                     className={cn(
-                      "pill",
+                      "pill hover:bg-white/[0.06]",
                       payload.viewer_following
-                        ? "border border-white/15 text-white/75 hover:border-rose-300/40 hover:text-rose-200"
-                        : "bg-white text-black hover:bg-white/90",
+                        ? "text-white/75 hover:text-rose-200"
+                        : "text-accent",
                     )}
                   >
                     {followBusy ? <Loader2 className="w-3 h-3 animate-spin" />
@@ -609,10 +609,10 @@ export default function Profile() {
                       : <UserPlus className="w-3 h-3" />}
                     {payload.viewer_following ? "Following" : "Follow"}
                   </button>
-                  <Link to="/search?tab=people" className="pill border-accent/40 bg-accent/10 hover:bg-accent/20 text-accent border">
+                  <Link to="/search?tab=people" className="pill hover:bg-white/[0.06] text-accent">
                     <UserIcon className="w-3 h-3" /> Find friends
                   </Link>
-                  <button onClick={sharePage} className="pill border-white/[0.08] hover:border-white/30 text-white/75 hover:text-white border">
+                  <button onClick={sharePage} className="pill hover:bg-white/[0.06] text-white/75 hover:text-white">
                     <Share2 className="w-3 h-3" /> Share
                   </button>
                 </>
@@ -709,13 +709,13 @@ export default function Profile() {
                       <SmallStat icon={Wand2} label="Remixes" value={payload.stats.remixes} />
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Link to={`/c/${viewedId}`} className="pill bg-white text-black hover:bg-white/90">
+                      <Link to={`/c/${viewedId}`} className="pill hover:bg-white/[0.06] text-white">
                         Public channel <ArrowRight className="w-3 h-3" />
                       </Link>
-                      {isOwner && <Link to="/me/year" className="pill border-white/[0.08] hover:border-white/30 text-white/75 hover:text-white border">
+                      {isOwner && <Link to="/me/year" className="pill hover:bg-white/[0.06] text-white/75 hover:text-white">
                         Year in review <Crown className="w-3 h-3" />
                       </Link>}
-                      <Link to="/lobby" className="pill border-white/[0.08] hover:border-white/30 text-white/75 hover:text-white border">Lobby</Link>
+                      <Link to="/lobby" className="pill hover:bg-white/[0.06] text-white/75 hover:text-white"><Sparkles className="w-3 h-3" /> Lobby</Link>
                     </div>
                   </Card>
 
@@ -847,7 +847,7 @@ export default function Profile() {
                     {isOwner && (
                       <button
                         onClick={() => setUploadOpen(true)}
-                        className="pill bg-white text-black hover:bg-white/90 shrink-0"
+                        className="pill hover:bg-white/[0.06] text-white shrink-0"
                       >
                         <ImagePlus className="w-3.5 h-3.5" /> Upload a reel
                       </button>
@@ -912,7 +912,7 @@ export default function Profile() {
                   <SectionLabel icon={Link2} label="Links" />
                   {Object.keys(p?.external_links ?? {}).length === 0 ? (
                     isOwner ? (
-                      <button onClick={startLinksEdit} className="pill border-white/[0.08] hover:border-white/30 text-white/75 hover:text-white border">
+                      <button onClick={startLinksEdit} className="pill hover:bg-white/[0.06] text-white/75 hover:text-white">
                         <Plus className="w-3 h-3" /> Add links
                       </button>
                     ) : (
@@ -926,7 +926,7 @@ export default function Profile() {
                           href={safeHref(value)}
                           target="_blank"
                           rel="noreferrer noopener"
-                          className="group flex items-center gap-3 w-full px-3 py-2.5 rounded-xl border border-white/[0.04] hover:border-white/15 hover:bg-glass transition-colors"
+                          className="group flex items-center gap-3 w-full px-3 py-2.5 rounded-xl hover:bg-white/[0.06] transition-colors"
                         >
                           <SocialIcon platform={key} />
                           <div className="min-w-0 flex-1">
@@ -937,7 +937,7 @@ export default function Profile() {
                         </a>
                       ))}
                       {isOwner && (
-                        <button onClick={startLinksEdit} className="pill border-white/[0.08] hover:border-white/30 text-white/75 hover:text-white border mt-3">
+                        <button onClick={startLinksEdit} className="pill hover:bg-white/[0.06] text-white/75 hover:text-white mt-3">
                           <Edit2 className="w-3 h-3" /> Edit links
                         </button>
                       )}
@@ -971,9 +971,9 @@ export default function Profile() {
                     <BigStat label="Plan" textValue={accountType === "admin" ? "Admin" : accountType[0].toUpperCase() + accountType.slice(1)} />
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <button onClick={() => setBuyOpen(true)} className="pill bg-amber-300/90 hover:bg-amber-300 text-black"><Plus className="w-3.5 h-3.5" /> Buy credits</button>
-                    <Link to="/credits"  className="pill border-white/[0.08] hover:border-white/30 text-white/75 hover:text-white border">History</Link>
-                    <Link to="/pricing"  className="pill border-white/[0.08] hover:border-white/30 text-white/75 hover:text-white border">View plans</Link>
+                    <button onClick={() => setBuyOpen(true)} className="pill hover:bg-white/[0.06] text-amber-300"><Plus className="w-3.5 h-3.5" /> Buy credits</button>
+                    <Link to="/credits"  className="pill hover:bg-white/[0.06] text-white/75 hover:text-white"><Calendar className="w-3 h-3" /> History</Link>
+                    <Link to="/pricing"  className="pill hover:bg-white/[0.06] text-white/75 hover:text-white"><Crown className="w-3 h-3" /> View plans</Link>
                   </div>
                 </Card>
 
@@ -996,14 +996,14 @@ export default function Profile() {
                           toast.error(e instanceof Error ? e.message : "Couldn't send reset email");
                         }
                       }}
-                      className="pill border-white/[0.08] hover:border-white/30 text-white/75 hover:text-white border"
+                      className="pill hover:bg-white/[0.06] text-white/75 hover:text-white"
                     >
                       <KeyRound className="w-3.5 h-3.5" /> Reset password
                     </button>
                   </div>
                 </Card>
 
-                <div className="rounded-3xl border border-rose-400/15 bg-rose-400/[0.02] p-6 lg:p-8">
+                <div className="rounded-3xl p-6 lg:p-8">
                   <SectionLabel icon={AlertTriangle} label="Danger zone" tone="rose" />
                   <p className="text-[12px] text-white/55 leading-relaxed mb-5 max-w-xl">
                     These actions are permanent or session-altering. Deactivation has a 30-day
@@ -1012,10 +1012,10 @@ export default function Profile() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <button
                       onClick={async () => { await signOut(); navigate("/auth"); }}
-                      className="flex items-center justify-between gap-3 p-4 rounded-2xl border border-white/[0.06] hover:border-white/20 bg-white/[0.015] text-left transition-colors"
+                      className="flex items-center justify-between gap-3 p-4 rounded-2xl hover:bg-white/[0.06] text-left transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl border border-white/[0.06] flex items-center justify-center text-white/65">
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white/65">
                           <LogOut className="w-4 h-4" />
                         </div>
                         <div>
@@ -1027,10 +1027,10 @@ export default function Profile() {
                     </button>
                     <Link
                       to="/settings/deactivate"
-                      className="flex items-center justify-between gap-3 p-4 rounded-2xl border border-rose-400/20 hover:border-rose-400/40 bg-rose-400/[0.02] text-left transition-colors"
+                      className="flex items-center justify-between gap-3 p-4 rounded-2xl hover:bg-rose-400/[0.06] text-left transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl border border-rose-400/20 flex items-center justify-center text-rose-300">
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-rose-300">
                           <AlertTriangle className="w-4 h-4" />
                         </div>
                         <div>
@@ -1104,8 +1104,8 @@ export default function Profile() {
               ))}
             </div>
             <div className="mt-6 flex items-center justify-end gap-2">
-              <button onClick={() => setEditingLinks(false)} className="pill border-white/[0.08] hover:border-white/30 text-white/65 border">Cancel</button>
-              <button onClick={saveLinks} disabled={savingLinks} className="pill bg-white text-black hover:bg-white/90">
+              <button onClick={() => setEditingLinks(false)} className="pill hover:bg-white/[0.06] text-white/65"><X className="w-3 h-3" /> Cancel</button>
+              <button onClick={saveLinks} disabled={savingLinks} className="pill hover:bg-white/[0.06] text-white">
                 {savingLinks ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />} Save
               </button>
             </div>
@@ -1122,7 +1122,7 @@ export default function Profile() {
 
 function Card({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn("relative rounded-3xl border border-white/[0.06] bg-white/[0.015] p-6 lg:p-8 overflow-hidden", className)}>
+    <div className={cn("relative rounded-3xl p-6 lg:p-8 overflow-hidden", className)}>
       {children}
     </div>
   );
@@ -1171,8 +1171,8 @@ function HeroStat({
       onClick={onClick}
       disabled={!onClick}
       className={cn(
-        "group text-left rounded-2xl border border-white/[0.06] bg-glass p-4 transition-colors disabled:cursor-default",
-        onClick && "hover:border-white/15",
+        "group text-left rounded-2xl p-4 transition-colors disabled:cursor-default",
+        onClick && "hover:bg-white/[0.06]",
       )}
     >
       <div className="flex items-center gap-2 mb-2 text-[9px] font-mono uppercase tracking-[0.32em] text-white/45">
@@ -1204,7 +1204,7 @@ function BigStat({
 
 function SmallStat({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: number | null }) {
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-glass p-3">
+    <div className="rounded-2xl p-3">
       <div className="flex items-center gap-2 mb-2 text-[9px] font-mono uppercase tracking-[0.32em] text-white/45">
         <Icon className="w-3 h-3" />
         {label}
@@ -1302,8 +1302,8 @@ function DiscoverabilityCard({
 
 function ActionRow({ to, icon: Icon, label, hint }: { to: string; icon: React.ElementType; label: string; hint?: string }) {
   return (
-    <Link to={to} className="group flex items-center gap-3 w-full px-3 py-3 rounded-xl border border-white/[0.04] hover:border-white/15 hover:bg-glass transition-colors">
-      <div className="w-8 h-8 rounded-lg border border-white/[0.06] flex items-center justify-center text-white/65 group-hover:text-white">
+    <Link to={to} className="group flex items-center gap-3 w-full px-3 py-3 rounded-xl hover:bg-white/[0.06] transition-colors">
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white/65 group-hover:text-white">
         <Icon className="w-3.5 h-3.5" />
       </div>
       <div className="min-w-0 flex-1">
@@ -1338,7 +1338,7 @@ function ReelCard({
   reel, isOwner, pinned, onTogglePin,
 }: { reel: ReelLite; isOwner: boolean; pinned?: boolean; onTogglePin: (id: string) => void }) {
   return (
-    <div className="group relative rounded-2xl border border-white/[0.06] bg-white/[0.015] overflow-hidden hover:border-white/15 transition-colors">
+    <div className="group relative rounded-2xl overflow-hidden transition-colors">
       <Link to={`/watch/${reel.id}`} className="block">
         <div className="relative aspect-video bg-black/40">
           {reel.thumbnail_url ? (
@@ -1387,11 +1387,11 @@ function EmptyHint({ title, sub, cta }: { title: string; sub: string; cta?: { to
       <h3 className="font-display font-medium text-[18px] text-white mb-1.5">{title}</h3>
       <p className="text-[12px] text-white/45 mb-5 leading-relaxed">{sub}</p>
       {cta && ("onClick" in cta ? (
-        <button onClick={cta.onClick} className="pill bg-white text-black hover:bg-white/90">
+        <button onClick={cta.onClick} className="pill hover:bg-white/[0.06] text-white">
           {cta.label} <ArrowRight className="w-3 h-3" />
         </button>
       ) : (
-        <Link to={cta.to} className="pill bg-white text-black hover:bg-white/90">
+        <Link to={cta.to} className="pill hover:bg-white/[0.06] text-white">
           {cta.label} <ArrowRight className="w-3 h-3" />
         </Link>
       ))}
@@ -1416,7 +1416,7 @@ function SocialLinks({
       {isOwner && (
         <button
           onClick={onEdit}
-          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-glass-hover border border-white/[0.06] hover:border-white/30 text-white/65 hover:text-white text-[10px] font-mono uppercase tracking-[0.22em] transition-colors"
+          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full hover:bg-white/[0.06] text-white/65 hover:text-white text-[10px] font-mono uppercase tracking-[0.22em] transition-colors"
         >
           {entries.length === 0 ? <><Plus className="w-3 h-3" /> Add links</> : <><Edit2 className="w-3 h-3" /> Edit</>}
         </button>
@@ -1464,10 +1464,8 @@ function AchievementsPreview({ userId: _userId, stats }: { userId: string; stats
             <div
               key={b.key}
               className={cn(
-                "rounded-2xl border p-4 text-center transition-colors",
-                b.done
-                  ? "border-primary/30 bg-primary/[0.05]"
-                  : "border-white/[0.06] bg-white/[0.015] opacity-50 grayscale",
+                "rounded-2xl p-4 text-center transition-colors",
+                b.done ? "" : "opacity-50 grayscale",
               )}
             >
               <div className={cn(
@@ -1523,7 +1521,7 @@ function InlineEdit({
     <div className={cn("flex gap-2", multiline ? "flex-col" : "items-center")}>
       {multiline ? <textarea {...sharedProps} rows={4} /> : <input {...sharedProps} />}
       <div className="flex items-center gap-1.5">
-        <button onClick={onSave} disabled={saving} className="pill bg-white text-black hover:bg-white/90 disabled:opacity-50">
+        <button onClick={onSave} disabled={saving} className="pill hover:bg-white/[0.06] text-white disabled:opacity-50">
           {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />} Save
         </button>
         <button onClick={onCancel} disabled={saving} className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-white/[0.08] hover:border-white/30 text-white/65 hover:text-white" aria-label="Cancel">

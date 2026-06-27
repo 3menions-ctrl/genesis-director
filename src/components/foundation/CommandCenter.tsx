@@ -481,7 +481,7 @@ export const CommandCenter = memo(function CommandCenter() {
             exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.985 }}
             transition={{ duration: 0.28, ease: EASE_PREMIUM }}
             className={cn(
-              "relative w-full max-w-[640px] overflow-hidden rounded-[28px] border border-border/40",
+              "relative w-full max-w-[640px] overflow-hidden rounded-[28px]",
               CANVAS_FILL,
               "backdrop-blur-2xl",
               SHADOW_CANVAS,
@@ -556,8 +556,8 @@ export const CommandCenter = memo(function CommandCenter() {
                               className={cn(
                                 "group/cmd relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors",
                                 active
-                                  ? "bg-[hsl(var(--accent)/0.10)] ring-1 ring-inset ring-accent/30"
-                                  : "hover:bg-[hsl(var(--foreground)/0.03)]",
+                                  ? "bg-white/[0.06]"
+                                  : "hover:bg-white/[0.04]",
                               )}
                             >
                               <div

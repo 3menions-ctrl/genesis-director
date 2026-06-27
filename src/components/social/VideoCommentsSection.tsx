@@ -4,7 +4,7 @@
  */
 
 import { useState, memo, useRef, useEffect } from 'react';
-import { MessageCircle, Send, Loader2, Reply, Trash2, Pencil } from 'lucide-react';
+import { MessageCircle, Send, Loader2, Reply, Trash2, Pencil, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -53,8 +53,8 @@ const CommentReactions = memo(function CommentReactions({ commentId }: { comment
             "flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs",
             "transition-all hover:scale-105",
             hasReacted
-              ? "bg-primary/20 text-primary"
-              : "bg-white/5 text-zinc-400 hover:bg-white/10"
+              ? "text-primary"
+              : "text-zinc-400 hover:bg-white/[0.06]"
           )}
         >
           <span>{emoji}</span>
@@ -155,20 +155,22 @@ const CommentItem = memo(function CommentItem({
             />
             <div className="flex items-center gap-2 mt-2">
               <Button
+                variant="ghost"
                 size="sm"
                 onClick={saveEdit}
                 disabled={savingEdit || !draft.trim() || draft.trim() === comment.content}
-                className="h-7 px-3 text-xs bg-primary hover:bg-primary/90"
+                className="h-7 px-3 text-xs text-primary hover:bg-white/[0.06]"
               >
-                {savingEdit ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Save'}
+                {savingEdit ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Check className="w-3 h-3 mr-1" />Save</>}
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={cancelEdit}
                 disabled={savingEdit}
-                className="h-7 px-3 text-xs text-zinc-400 hover:text-white"
+                className="h-7 px-3 text-xs text-zinc-400 hover:text-white hover:bg-white/[0.06]"
               >
+                <X className="w-3 h-3 mr-1" />
                 Cancel
               </Button>
             </div>
@@ -379,9 +381,10 @@ export function VideoCommentsSection({ projectId, className }: VideoCommentsSect
           </div>
           <div className="flex justify-end">
             <Button
+              variant="ghost"
               onClick={handleSend}
               disabled={!inputValue.trim() || addComment.isPending}
-              className="bg-primary hover:bg-primary/90"
+              className="text-primary hover:bg-white/[0.06]"
             >
               {addComment.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -393,7 +396,7 @@ export function VideoCommentsSection({ projectId, className }: VideoCommentsSect
           </div>
         </div>
       ) : (
-        <div className="text-center py-4 text-zinc-500 text-sm bg-zinc-800/30 rounded-xl">
+        <div className="text-center py-4 text-zinc-500 text-sm rounded-xl">
           Sign in to leave a comment
         </div>
       )}

@@ -25,7 +25,7 @@ import { createPortal } from 'react-dom';
 import {
   Bell, Check, Heart, MessageCircle, UserPlus, Zap, Gift,
   Video, Star, Play, AlertTriangle, Coins, ArrowUpRight, Trash2,
-  Sparkles, X as CloseIcon, Trophy, Settings as SettingsIcon,
+  Sparkles, X as CloseIcon, Trophy, Settings as SettingsIcon, ChevronDown,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -337,7 +337,6 @@ export const NotificationBell = memo(forwardRef<HTMLButtonElement, Record<string
                     exit={{ y: 24, opacity: 0 }}
                     transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
                     className="relative mt-auto h-[88vh] rounded-t-3xl overflow-hidden
-                                border-t border-white/[0.08]
                                 bg-[hsl(220_30%_5%)]
                                 shadow-[0_-30px_80px_-20px_rgba(0,0,0,0.85)]"
                   >
@@ -358,7 +357,7 @@ export const NotificationBell = memo(forwardRef<HTMLButtonElement, Record<string
         <PopoverContent
           align="end"
           sideOffset={10}
-          className="w-[400px] p-0 border-white/[0.06] bg-[hsl(220_30%_4%)]/95 backdrop-blur-2xl
+          className="w-[400px] p-0 bg-[hsl(220_30%_4%)]/95 backdrop-blur-2xl
                      shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] rounded-2xl overflow-hidden text-white"
         >
           {body}
@@ -545,11 +544,12 @@ function BellPanel({
                 type="button"
                 onClick={onLoadMore}
                 className={cn(
-                  'w-full px-5 py-3 text-center transition-colors',
-                  'text-[11.5px] font-mono uppercase tracking-[0.28em] text-white/45 hover:text-white hover:bg-white/[0.03]',
+                  'w-full px-5 py-3 inline-flex items-center justify-center gap-1.5 transition-colors',
+                  'text-[11.5px] font-mono uppercase tracking-[0.28em] text-white/45 hover:text-white hover:bg-white/[0.06]',
                   'border-t border-white/[0.04]',
                 )}
               >
+                <ChevronDown className="w-3 h-3" strokeWidth={1.5} />
                 Load more
               </button>
             )}
@@ -636,9 +636,8 @@ function EmptyState({ onClose }: { onClose: () => void }) {
         type="button"
         onClick={() => { onClose(); navigate('/studio'); }}
         className="mt-5 inline-flex items-center gap-1.5 px-3 h-8 rounded-full
-                    border border-accent/40 bg-[hsl(var(--accent)/0.06)]
                     text-[11px] font-mono uppercase tracking-[0.22em] text-accent
-                    hover:bg-[hsl(var(--accent)/0.12)] transition-colors"
+                    hover:bg-white/[0.06] transition-colors"
       >
         <Sparkles className="w-3 h-3" strokeWidth={1.5} />
         Open Studio

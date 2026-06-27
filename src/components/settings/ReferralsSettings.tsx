@@ -106,12 +106,12 @@ export const ReferralsSettings = memo(forwardRef<HTMLDivElement, Record<string, 
                   value={link}
                   className="flex-1 min-w-[220px] bg-black/30 border border-white/[0.08] rounded-lg px-3 py-2 text-[13px] text-white/85 font-mono"
                 />
-                <Button onClick={() => copy(link, 'Invite link')} variant="outline"
-                  className="border-white/[0.08] bg-glass hover:bg-glass-active text-white">
+                <Button onClick={() => copy(link, 'Invite link')} variant="ghost"
+                  className="text-white hover:bg-white/[0.06]">
                   <Copy className="w-4 h-4 mr-2" /> Copy
                 </Button>
-                <Button onClick={share} className="bg-primary hover:bg-primary/90 text-white">
-                  <Share2 className="w-4 h-4 mr-2" /> Share
+                <Button onClick={share} variant="ghost" className="text-foreground hover:bg-white/[0.06]">
+                  <Share2 className="w-4 h-4 mr-2 text-[hsl(215,100%,72%)]" /> Share
                 </Button>
               </div>
             </section>

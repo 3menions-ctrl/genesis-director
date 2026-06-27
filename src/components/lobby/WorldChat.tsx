@@ -9,7 +9,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Send, MessagesSquare, Loader2 } from "lucide-react";
+import { Send, MessagesSquare, Loader2, LogIn } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorldChat, type WorldChatMessage } from "@/hooks/useWorldChat";
 import { cn } from "@/lib/utils";
@@ -136,7 +136,6 @@ export function WorldChat({ className }: { className?: string }) {
         "flex h-[460px] flex-col overflow-hidden rounded-[18px] shadow-[0_20px_48px_-28px_rgba(0,0,0,0.7)]",
         className
       )}
-      style={{ background: "linear-gradient(180deg, hsl(0 0% 100% / .04), hsl(0 0% 100% / .012))" }}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-4 pb-3">
@@ -205,8 +204,9 @@ export function WorldChat({ className }: { className?: string }) {
           <button
             type="button"
             onClick={() => navigate("/auth?next=/lobby")}
-            className="w-full rounded-2xl bg-white/[0.04] px-4 py-3 text-[12.5px] font-medium text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[12.5px] font-medium text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground"
           >
+            <LogIn className="h-3.5 w-3.5" />
             Sign in to join the conversation →
           </button>
         )}

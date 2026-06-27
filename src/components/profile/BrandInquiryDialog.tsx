@@ -4,7 +4,7 @@
  * notification and the row shows up in their Inbox → Brand lane.
  */
 import { useState } from "react";
-import { Briefcase, Loader2, Send } from "lucide-react";
+import { Briefcase, Loader2, Send, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -100,7 +100,7 @@ export function BrandInquiryDialog({ open, onClose, recipientId, recipientName }
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose} disabled={busy}>Cancel</Button>
+          <Button variant="ghost" onClick={onClose} disabled={busy}><X className="h-3.5 w-3.5 mr-2" />Cancel</Button>
           <Button onClick={() => void submit()} disabled={busy}>
             {busy ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-2" />}
             Send pitch

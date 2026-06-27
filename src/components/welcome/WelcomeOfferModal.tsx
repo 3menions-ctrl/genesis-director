@@ -12,9 +12,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSafeNavigation } from '@/lib/navigation';
 import { toast } from 'sonner';
-import { Sparkles, Film, Zap, ArrowRight, Loader2, X, Check, Percent } from 'lucide-react';
+import { Sparkles, Film, Zap, ArrowRight, Loader2, X, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { SafeComponent } from '@/components/ui/error-boundary';
+import { CREDIT_PACKAGES, approxClips } from '@/lib/payments/creditPackages';
+
+// Single source of truth — the welcome offer is the "mini" pack. Display the
+// ACTUAL price/credits the checkout charges; there is no discount mechanism in
+// the provider interface, so advertising a discounted price would overcharge
+// vs. what is shown (see audit: welcome-offer false 30% discount).
+const MINI = CREDIT_PACKAGES.find((p) => p.id === 'mini')!;
 
 function WelcomeOfferModalInner() {
   const { user, profile, refreshProfile } = useAuth();
@@ -127,8 +134,8 @@ function WelcomeOfferModalInner() {
             className="flex justify-center mb-6"
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-              <Percent className="w-4 h-4 text-emerald-400" />
-              <span className="text-sm font-medium text-emerald-300">New Creator — 30% Off</span>
+              <Sparkles className="w-4 h-4 text-emerald-400" />
+              <span className="text-sm font-medium text-emerald-300">New Creator Welcome</span>
             </div>
           </motion.div>
 
@@ -143,7 +150,7 @@ function WelcomeOfferModalInner() {
               Your first film starts here
             </h2>
             <p className="text-white/50 text-sm leading-relaxed max-w-sm mx-auto">
-              As a new creator, enjoy <span className="text-emerald-400 font-semibold">30% off</span> your first credit pack. One prompt is all it takes.
+              Kick off with the <span className="text-emerald-400 font-semibold">Mini pack</span> — {MINI.credits} credits, enough for about {approxClips(MINI.credits)} cinematic clips. One prompt is all it takes.
             </p>
           </motion.div>
 
@@ -165,10 +172,9 @@ function WelcomeOfferModalInner() {
                 </div>
                 <div className="text-right">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-lg text-white/30 line-through">$9</span>
-                    <span className="text-3xl font-bold text-white">$6.30</span>
+                    <span className="text-3xl font-bold text-white">${MINI.price}</span>
                   </div>
-                  <div className="text-xs text-emerald-400 font-medium">90 credits • 30% off</div>
+                  <div className="text-xs text-emerald-400 font-medium">{MINI.credits} credits • ~{approxClips(MINI.credits)} clips</div>
                 </div>
               </div>
 
@@ -198,7 +204,7 @@ function WelcomeOfferModalInner() {
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <>
-                    Get 90 Credits for $6.30
+                    Get {MINI.credits} Credits for ${MINI.price}
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </>
                 )}

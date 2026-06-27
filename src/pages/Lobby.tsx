@@ -387,7 +387,7 @@ export default function Lobby() {
 
             <Panel title="This week's directors">
               {directors.map((d, i) => (
-                <button key={d.id} type="button" onClick={() => navigate(`/u/${d.id}`)}
+                <button key={d.id} type="button" onClick={() => navigate(`/c/${d.id}`)}
                   className="flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-white/[0.03]">
                   <span className="w-5 shrink-0 font-display text-[20px] font-semibold text-muted-foreground/50">{i + 1}</span>
                   <span className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-gradient-to-br from-[#2a2e3a] to-[#15171f]">

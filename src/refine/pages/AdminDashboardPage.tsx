@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { AdminPageShell } from "../components/AdminPageShell";
 import { PurchaseInsights } from "../components/PurchaseInsights";
+import { CogsRevenue } from "../components/CogsRevenue";
 import {
   StatOrb, FloatSection, FloatRow, DeckButton, AttentionCard, ORB_AURAS,
   ACCENT_HSL, accent, CYAN, VIOLET, ROSE, AMBER,
@@ -225,6 +226,9 @@ export default function AdminDashboardPage() {
 
         {/* Revenue & purchase analytics */}
         <PurchaseInsights />
+
+        {/* COGS vs revenue (unit economics + margin guardrail) */}
+        <CogsRevenue />
 
         {/* Attention queue + hubs */}
         <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-[1.5fr_1fr]">

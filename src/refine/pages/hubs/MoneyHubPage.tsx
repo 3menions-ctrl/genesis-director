@@ -10,6 +10,7 @@ import { Spinner } from "@/components/ui/Spinner";
 
 const Overview      = lazy(() => import("./decks/MoneyOverview"));
 const Finance       = lazy(() => import("../AdminFinancePage"));
+const Pricing       = lazy(() => import("../ops/AdminPricingPage"));
 const Pnl           = lazy(() => import("../ops/AdminPnlPage"));
 const StorageBilling = lazy(() => import("../ops/AdminStorageBillingPage"));
 const Credits       = lazy(() => import("../AdminCreditsPage"));
@@ -35,6 +36,7 @@ export default function MoneyHubPage() {
     { id: "overview",      label: "Overview",      suggested: true, render: () => wrap(Overview) },
     { id: "finance",       label: "Treasury",      render: () => wrap(Finance) },
     { id: "pnl",           label: "P&L",           render: () => wrap(Pnl) },
+    { id: "pricing",       label: "Pricing",       render: () => wrap(Pricing) },
     { id: "storage",       label: "Storage",       render: () => wrap(StorageBilling) },
     { id: "credits",       label: "Ledger",        render: () => wrap(Credits) },
     { id: "subscriptions", label: "Subscriptions", render: () => wrap(Subscriptions) },

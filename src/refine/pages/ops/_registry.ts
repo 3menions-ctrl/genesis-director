@@ -123,6 +123,13 @@ export const OPS_PAGES = [
     "code": "SUB"
   },
   {
+    "file": "AdminPricingPage",
+    "path": "/admin/pricing",
+    "section": "Money",
+    "label": "Pricing",
+    "code": "PRC"
+  },
+  {
     "file": "AdminRefundsPage",
     "path": "/admin/refunds",
     "section": "Money",

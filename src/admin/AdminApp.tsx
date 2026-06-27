@@ -43,6 +43,7 @@ const AdminInsightsPage = lazy(() => import("../refine/pages/ops/AdminInsightsPa
 const AdminTrafficPage = lazy(() => import("../refine/pages/ops/AdminTrafficPage"));
 const AdminPnlPage = lazy(() => import("../refine/pages/ops/AdminPnlPage"));
 const AdminStorageBillingPage = lazy(() => import("../refine/pages/ops/AdminStorageBillingPage"));
+const AdminPricingPage = lazy(() => import("../refine/pages/ops/AdminPricingPage"));
 const AdminDbDiagnosticsPage = lazy(() => import("../refine/pages/ops/AdminDbDiagnosticsPage"));
 const AdminPackagesPage = lazy(() => import("../refine/pages/AdminPackagesPage"));
 
@@ -157,6 +158,7 @@ export default function AdminApp() {
         <Route path="traffic" element={<AdminTrafficPage />} />
         <Route path="pnl" element={<AdminPnlPage />} />
         <Route path="storage-billing" element={<AdminStorageBillingPage />} />
+        <Route path="pricing" element={<AdminPricingPage />} />
         <Route path="db-diagnostics" element={<AdminDbDiagnosticsPage />} />
         <Route path="analytics" element={<AdminAnalyticsPage />} />
         <Route path="projections" element={<AdminProjectionsPage />} />

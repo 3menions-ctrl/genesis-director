@@ -1128,6 +1128,19 @@ serve(async (req) => {
       throw new Error("projectId and prompt are required");
     }
 
+    // ═══ SECURITY: credit reservation required for end-user calls ═══
+    // Billing here happens solely via consumeHold(holdId), which is a no-op
+    // when holdId is absent. An end-user (non-service-role) invocation without
+    // a hold would therefore run a paid Replicate/Kling render for FREE.
+    // Internal/service-role callers (hollywood-pipeline / continue-production)
+    // manage credits upstream and may proceed without a per-clip hold.
+    if (!auth.isServiceRole && !holdId) {
+      return new Response(
+        JSON.stringify({ success: false, error: "CREDIT_RESERVATION_REQUIRED" }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     // ── Continuity payload (server-side ordering enforcement) ────────────
     // The client may mark a scene as "Independent" (chainFromPrevious=false)
     // — in which case we render it as a standalone shot, no predecessor

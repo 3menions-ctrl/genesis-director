@@ -429,7 +429,12 @@ serve(async (req) => {
     const cameraFixed = request.isBreakout ? true : (request.cameraFixed ?? false);
     const includeVoice = request.includeVoice ?? false;
     const includeMusic = request.includeMusic ?? true;
-    const isResuming = !!request.resumeFrom;
+    // SECURITY: resumeFrom and skipCreditDeduction are internal pipeline
+    // continuation flags. Honoring them for an end-user JWT would let any
+    // caller skip the entire credit hold/charge block (free generation).
+    // Only the service role (internal recalls / resume) may set them.
+    const isResuming = !!request.resumeFrom && auth.isServiceRole;
+    const skipCreditDeduction = !!request.skipCreditDeduction && auth.isServiceRole;
 
     if (!isResuming && !request.concept && !request.manualPrompts && !request.approvedScript) {
       return new Response(
@@ -444,7 +449,7 @@ serve(async (req) => {
     console.log(`[Seedance] params: ${clipCount} clips × ${clipDuration}s, AR=${aspectRatio}, credits=${totalCredits}`);
 
     // ═══ CREDIT CHECK + DEDUCT ═══
-    if (!request.skipCreditDeduction && !isResuming) {
+    if (!skipCreditDeduction && !isResuming) {
       const { data: creditState, error: creditStateError } = await supabase.rpc("get_credit_state", { p_user_id: request.userId });
       const creditPayload = (creditState || {}) as any;
       const availableCredits = Number(creditPayload.available || 0);

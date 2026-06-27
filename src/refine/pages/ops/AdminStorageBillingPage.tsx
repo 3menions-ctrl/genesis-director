@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { HardDrive, Users, Cpu, Percent, DollarSign, RefreshCw, Play } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/global-confirm";
 import { AdminPageShell } from "../../components/AdminPageShell";
 import { StatOrb, FloatSection, FloatTable, DeckButton, ORB_AURAS, ACCENT_HSL } from "@/admin/ui/primitives";
 
@@ -19,6 +20,11 @@ export default function AdminStorageBillingPage() {
   const [d, setD] = useState<Overview | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  // Guard against the documented double-charge: the busy flag only blocks
+  // concurrent runs, so a second click AFTER completion re-invokes bill_storage.
+  // Disable the action for the rest of the session once it has succeeded.
+  // (True month-idempotency must also live in the bill_storage RPC.)
+  const [billedThisSession, setBilledThisSession] = useState(false);
 
   const load = useCallback(async () => {
     const { data } = await supabase.rpc("storage_overview" as never, {} as never);
@@ -27,7 +33,21 @@ export default function AdminStorageBillingPage() {
   useEffect(() => { void load(); }, [load]);
 
   const recompute = async () => { setBusy("compute"); const { data, error } = await supabase.rpc("compute_storage_usage" as never, {} as never); if (error) toast.error(error.message); else toast.success(`Snapshotted ${data ?? 0} users`); await load(); setBusy(null); };
-  const runBilling = async () => { setBusy("bill"); const { data, error } = await supabase.rpc("bill_storage" as never, {} as never); if (error) toast.error(error.message); else { const r = data as { users_billed: number; revenue_usd: number }; toast.success(`Billed ${r?.users_billed ?? 0} users · ${usd(r?.revenue_usd ?? 0)}`); } await load(); setBusy(null); };
+  const runBilling = async () => {
+    const ok = await confirmAsync({
+      title: "Run storage billing?",
+      description: "This posts real credit charges to every attributed user's ledger for this month. Only run once per month — re-running double-charges unless bill_storage is month-idempotent.",
+      confirmLabel: "Charge users",
+      destructive: true,
+    });
+    if (!ok) return;
+    setBusy("bill");
+    const { data, error } = await supabase.rpc("bill_storage" as never, {} as never);
+    if (error) toast.error(error.message);
+    else { const r = data as { users_billed: number; revenue_usd: number }; toast.success(`Billed ${r?.users_billed ?? 0} users · ${usd(r?.revenue_usd ?? 0)}`); setBilledThisSession(true); }
+    await load();
+    setBusy(null);
+  };
 
   const projRevenue = useMemo(() => (d?.users ?? []).reduce((a, r) => a + r.est_charge_credits, 0) * 0.10, [d]);
   const margin = useMemo(() => { const cogs = d?.monthly_cogs_usd ?? 0; return projRevenue > 0 ? Math.round(((projRevenue - cogs) / projRevenue) * 100) : 0; }, [projRevenue, d]);
@@ -42,7 +62,7 @@ export default function AdminStorageBillingPage() {
       actions={
         <>
           <DeckButton onClick={recompute} disabled={!!busy}><RefreshCw className={busy === "compute" ? "h-3 w-3 animate-spin" : "h-3 w-3"} /> Recompute</DeckButton>
-          <DeckButton primary onClick={runBilling} disabled={!!busy}><Play className="h-3 w-3" /> {busy === "bill" ? "Billing…" : "Run billing"}</DeckButton>
+          <DeckButton primary onClick={runBilling} disabled={!!busy || billedThisSession}><Play className="h-3 w-3" /> {busy === "bill" ? "Billing…" : billedThisSession ? "Billed ✓" : "Run billing"}</DeckButton>
         </>
       }
     >

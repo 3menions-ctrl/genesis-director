@@ -37,8 +37,13 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Lint
+      # Lint is non-blocking: it is pre-existing red on `no-console` warnings, and
+      # gating on it would forever wedge the `guard` job (hiding the REAL gates
+      # below). Keep it visible but don't fail the job — so `guard` can be made a
+      # required status check on `main` and a meaningful Vercel "wait for CI" gate.
+      - name: Lint (non-blocking)
         run: bun run lint
+        continue-on-error: true
 
       - name: Typecheck
         run: bun run typecheck

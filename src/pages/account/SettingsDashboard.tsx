@@ -79,6 +79,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserPreferences } from "@/contexts/UserPreferencesContext";
 import { cn } from "@/lib/utils";
+import { csvRow } from "@/lib/csvSafe";
 import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import { TYPE_META } from "@/lib/design-system";
 import { Input } from "@/components/ui/input";
@@ -92,6 +93,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
+import { confirmAsync } from "@/components/ui/global-confirm";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { CenterLine } from "@/components/ui/CenterLine";
 
@@ -1285,30 +1287,49 @@ function PrivacyModule({
   // on every load, so query the table directly.)
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
+      // Two-step fetch: user_blocks.blocked_id has a FK to auth.users (not
+      // public.profiles), so PostgREST can't embed profiles directly — the
+      // old `profiles!user_blocks_blocked_id_fkey` embed 400'd (PGRST200).
+      // Fetch the rows, then resolve display info from profiles_public.
+      const { data: rows } = await supabase
         .from("user_blocks" as never)
-        .select("blocked_id, created_at, blocked:profiles!user_blocks_blocked_id_fkey(id, display_name, username, avatar_url)")
+        .select("blocked_id, created_at")
         .eq("blocker_id", profile.id);
-      if (Array.isArray(data)) {
-        setBlocked(data.map((r: any) => ({
-          id: r.blocked_id,
-          display_name: r.blocked?.display_name ?? null,
-          username: r.blocked?.username ?? null,
-          avatar_url: r.blocked?.avatar_url ?? null,
-          created_at: r.created_at,
-        })));
+      if (Array.isArray(rows) && rows.length > 0) {
+        const ids = [...new Set(rows.map((r: any) => r.blocked_id))];
+        const { data: profs } = await supabase
+          .from("profiles_public")
+          .select("id, display_name, username, avatar_url")
+          .in("id", ids);
+        const pmap = new Map((profs || []).map((p: any) => [p.id, p]));
+        setBlocked(rows.map((r: any) => {
+          const prof = pmap.get(r.blocked_id);
+          return {
+            id: r.blocked_id,
+            display_name: prof?.display_name ?? null,
+            username: prof?.username ?? null,
+            avatar_url: prof?.avatar_url ?? null,
+            created_at: r.created_at,
+          };
+        }));
+      } else {
+        setBlocked([]);
       }
       setLoadingBlocked(false);
     })();
   }, [profile.id]);
 
   const unblock = async (target: string) => {
-    setBlocked((prev) => prev.filter((b) => b.id !== target));
-    try {
-      await supabase.rpc("toggle_block" as never, { p_target: target } as never);
-      toast.success("Unblocked.");
-    } catch {
+    const prev = blocked;
+    setBlocked((p) => p.filter((b) => b.id !== target));
+    // supabase.rpc resolves with { error } rather than throwing, so the old
+    // try/catch was dead code and always toasted success (audit D33).
+    const { error } = await supabase.rpc("toggle_block" as never, { p_target: target } as never);
+    if (error) {
+      setBlocked(prev); // rollback the optimistic removal
       toast.error("Could not unblock.");
+    } else {
+      toast.success("Unblocked.");
     }
   };
 
@@ -1407,13 +1428,17 @@ function FollowRequestsCard({ userId }: { userId: string }) {
   }, []);
   useEffect(() => { void load(); void userId; }, [load, userId]);
   const accept = async (id: string) => {
+    const prev = reqs;
     setReqs((p) => p.filter((r) => r.id !== id));
-    await supabase.rpc("accept_follow_request" as never, { p_id: id } as never);
-    toast.success("Request accepted.");
+    const { error } = await supabase.rpc("accept_follow_request" as never, { p_id: id } as never);
+    if (error) { setReqs(prev); toast.error("Could not accept the request."); }
+    else { toast.success("Request accepted."); }
   };
   const reject = async (id: string) => {
+    const prev = reqs;
     setReqs((p) => p.filter((r) => r.id !== id));
-    await supabase.rpc("reject_follow_request" as never, { p_id: id } as never);
+    const { error } = await supabase.rpc("reject_follow_request" as never, { p_id: id } as never);
+    if (error) { setReqs(prev); toast.error("Could not decline the request."); }
   };
   if (loading) return null;
   if (reqs.length === 0) return null;
@@ -1852,7 +1877,7 @@ function BillingModule({
 
   const exportCsv = () => {
     const rows = [["date", "type", "amount", "description"], ...transactions.map((t) => [t.created_at, t.type, String(t.amount), t.description ?? ""])];
-    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const csv = rows.map((r) => csvRow(r)).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -1942,6 +1967,51 @@ function SecurityModule({ profile }: { profile: ProfileRow }) {
   const [factors, setFactors] = useState<Array<{ id: string; factor_type: string; status: string; friendly_name?: string | null; created_at: string }>>([]);
   const [identities, setIdentities] = useState<Array<{ id: string; identity_id?: string; provider: string; created_at?: string; last_sign_in_at?: string | null }>>([]);
   const [session, setSession] = useState<{ created_at?: string; expires_at?: number | null } | null>(null);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [emailPassword, setEmailPassword] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [changingEmail, setChangingEmail] = useState(false);
+
+  const submitEmailChange = async () => {
+    const trimmed = newEmail.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setEmailError("Enter a valid email address.");
+      return;
+    }
+    if (trimmed.toLowerCase() === (profile.email ?? "").toLowerCase()) {
+      setEmailError("New email must be different from your current email.");
+      return;
+    }
+    if (!emailPassword) {
+      setEmailError("Confirm your password to change your email.");
+      return;
+    }
+    setEmailError("");
+    setChangingEmail(true);
+    try {
+      const { data: { session: s } } = await supabase.auth.getSession();
+      if (!s) { toast.error("Please sign in again."); return; }
+      // The update-user-email function re-checks the password (anti-ATO), so
+      // both the new address and the current password are required.
+      const { data, error } = await supabase.functions.invoke("update-user-email", {
+        body: { newEmail: trimmed, password: emailPassword },
+        headers: { Authorization: `Bearer ${s.access_token}` },
+      });
+      if (error || (data as { error?: string })?.error) {
+        setEmailError((data as { error?: string })?.error || "Couldn't change email. Check your password and try again.");
+        return;
+      }
+      toast.success("Confirmation email sent to your new address.");
+      setShowEmailDialog(false);
+      setNewEmail("");
+      setEmailPassword("");
+    } catch (e) {
+      setEmailError(safeErrorMessage(e, "Couldn't change email. Please try again."));
+    } finally {
+      setChangingEmail(false);
+    }
+  };
 
   const loadSecurity = useCallback(async () => {
     const [factorsRes, userRes, sessionRes] = await Promise.all([
@@ -1970,7 +2040,7 @@ function SecurityModule({ profile }: { profile: ProfileRow }) {
 
   const unenrollTotp = async () => {
     if (!verifiedFactor) return;
-    if (!confirm("Disable 2FA? You'll go back to password-only sign-in.")) return;
+    if (!(await confirmAsync({ title: "Disable 2FA?", description: "You'll go back to password-only sign-in.", destructive: true }))) return;
     const { error } = await supabase.auth.mfa.unenroll({ factorId: verifiedFactor.id });
     if (error) { toast.error(safeErrorMessage(error, "Could not disable 2FA.")); return; }
     toast.success("2FA disabled.");
@@ -1982,7 +2052,7 @@ function SecurityModule({ profile }: { profile: ProfileRow }) {
       toast.error("Add another sign-in method before unlinking your last social account.");
       return;
     }
-    if (!confirm(`Unlink your ${identity.provider} sign-in?`)) return;
+    if (!(await confirmAsync({ title: `Unlink ${identity.provider}?`, description: `Remove your ${identity.provider} sign-in method from this account?`, destructive: true }))) return;
     const { data: userRes } = await supabase.auth.getUser();
     const fullIdentity = userRes?.user?.identities?.find((i: any) => i.identity_id === identity.identity_id);
     if (!fullIdentity) { toast.error("Could not find identity."); return; }
@@ -2011,6 +2081,49 @@ function SecurityModule({ profile }: { profile: ProfileRow }) {
           <Button variant="ghost" className={SOFT_BUTTON} onClick={() => setShowPasswordDialog(true)}><KeyRound className="h-3.5 w-3.5 mr-2" />Change password</Button>
         </div>
       </Card>
+
+      <Card>
+        <h3 className="font-mono text-[11px] uppercase tracking-[0.30em] text-muted-foreground/75 mb-3">Login email</h3>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="text-[13px] font-medium text-foreground/90">{profile.email ?? "—"}</div>
+            <p className="mt-1 text-[12px] text-muted-foreground/65 leading-snug">Used to sign in and receive critical alerts. We'll send a confirmation link to the new address.</p>
+          </div>
+          <Button variant="ghost" className={SOFT_BUTTON} onClick={() => { setNewEmail(""); setEmailPassword(""); setEmailError(""); setShowEmailDialog(true); }}><KeyRound className="h-3.5 w-3.5 mr-2" />Change email</Button>
+        </div>
+      </Card>
+
+      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change login email</DialogTitle>
+            <DialogDescription>Enter your new email address and confirm your password. You'll receive a confirmation link there — your email changes only after you click it.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Input
+              type="email"
+              placeholder="new@email.com"
+              autoComplete="email"
+              value={newEmail}
+              onChange={(e) => { setNewEmail(e.target.value); setEmailError(""); }}
+            />
+            <Input
+              type="password"
+              placeholder="Current password"
+              autoComplete="current-password"
+              value={emailPassword}
+              onChange={(e) => { setEmailPassword(e.target.value); setEmailError(""); }}
+            />
+            {emailError && <p className="text-[12px] text-red-400">{emailError}</p>}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowEmailDialog(false)} disabled={changingEmail}>Cancel</Button>
+            <Button onClick={() => void submitEmailChange()} disabled={changingEmail || !newEmail.trim() || !emailPassword}>
+              {changingEmail ? "Sending…" : "Send confirmation"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Card>
         <h3 className="font-mono text-[11px] uppercase tracking-[0.30em] text-muted-foreground/75 mb-3">Two-factor authentication</h3>
@@ -2059,7 +2172,10 @@ function SecurityModule({ profile }: { profile: ProfileRow }) {
             variant="ghost"
             className={SOFT_BUTTON}
             onClick={async () => {
-              await supabase.auth.signOut({ scope: "others" });
+              // signOut resolves with { error } — don't claim success blindly
+              // (this is a security action; a false confirmation is dangerous).
+              const { error } = await supabase.auth.signOut({ scope: "others" });
+              if (error) { toast.error("Could not sign out other sessions."); return; }
               toast.success("Signed out of all other sessions.");
               await loadSecurity();
             }}
@@ -2070,7 +2186,8 @@ function SecurityModule({ profile }: { profile: ProfileRow }) {
             variant="ghost"
             className={SOFT_BUTTON}
             onClick={async () => {
-              await supabase.auth.signOut({ scope: "global" });
+              const { error } = await supabase.auth.signOut({ scope: "global" });
+              if (error) { toast.error("Could not sign out everywhere."); return; }
               toast.success("Signed out everywhere.");
               window.location.href = "/auth";
             }}

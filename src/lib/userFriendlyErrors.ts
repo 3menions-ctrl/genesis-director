@@ -424,7 +424,11 @@ export async function handleEdgeFunctionError(
   navigate?: (path: string) => void
 ): Promise<{ handled: boolean; parsed: ParsedApiError | null }> {
   // First check: Is this a non-fatal error we should suppress entirely?
-  if (isNonFatalError(error) && !data?.existingProjectId) {
+  // Only suppress genuine transient/abort errors (e.g. the user navigated away
+  // mid-request). NEVER suppress when the edge function returned an explicit
+  // error payload (`data.error`) — that is a real failure the user acted on and
+  // must be told about, otherwise generation fails completely silently.
+  if (isNonFatalError(error) && !data?.existingProjectId && !data?.error) {
     console.debug('[UserFriendlyErrors] Edge function error suppressed (non-fatal):', error);
     return { handled: true, parsed: null };
   }
@@ -494,12 +498,28 @@ export async function handleEdgeFunctionError(
     return { handled: true, parsed };
   }
   
-  // Handle general errors - showUserFriendlyError will filter non-fatal
+  // Handle general errors. Genuine transient/abort errors were already filtered
+  // out above, so anything reaching here is a real failure of an explicit user
+  // action (a generation attempt) — force it to surface so the pipeline can
+  // never fail silently. The server's "non-2xx" wrapper otherwise hides errors
+  // like "Failed to fetch user credit state" behind the /failed to fetch/
+  // non-fatal pattern.
   if (error) {
-    const parsed = showUserFriendlyError(error, { navigate });
+    const parsed = showUserFriendlyError(error, { navigate, forceFatal: true });
     return { handled: true, parsed };
   }
-  
+
+  // No `error` object but we still got here with a non-OK payload — surface a
+  // clear failure rather than returning unhandled (which would leave the
+  // caller's loading state to resolve with no user feedback).
+  if (errorData?.error) {
+    const parsed = showUserFriendlyError(
+      typeof errorData.error === 'string' ? errorData.error : 'Generation failed',
+      { navigate, forceFatal: true },
+    );
+    return { handled: true, parsed };
+  }
+
   return { handled: false, parsed: null };
 }
 

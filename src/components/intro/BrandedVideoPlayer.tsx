@@ -725,7 +725,7 @@ export const BrandedVideoPlayer = memo(
         {onDownload && (
           <button
             onClick={(e) => { e.stopPropagation(); onDownload(); }}
-            className="w-10 h-10 rounded-full bg-black/45 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/85 hover:text-white hover:border-white/30 transition-colors"
+            className="w-10 h-10 rounded-full bg-transparent ring-1 ring-inset ring-transparent hover:bg-white/[0.10] hover:backdrop-blur-md hover:ring-white/[0.18] flex items-center justify-center text-white/80 hover:text-white transition-all duration-200 hover:scale-[1.08] active:scale-95 [&>svg]:drop-shadow-[0_1px_4px_rgba(0,0,0,0.55)]"
             aria-label="Download"
           >
             <Download className="w-4 h-4" />
@@ -734,7 +734,7 @@ export const BrandedVideoPlayer = memo(
         {onClose && (
           <button
             onClick={(e) => { e.stopPropagation(); onClose(); }}
-            className="w-10 h-10 rounded-full bg-black/45 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/85 hover:text-white hover:border-white/30 transition-colors"
+            className="w-10 h-10 rounded-full bg-transparent ring-1 ring-inset ring-transparent hover:bg-white/[0.10] hover:backdrop-blur-md hover:ring-white/[0.18] flex items-center justify-center text-white/80 hover:text-white transition-all duration-200 hover:scale-[1.08] active:scale-95 [&>svg]:drop-shadow-[0_1px_4px_rgba(0,0,0,0.55)]"
             aria-label="Close"
           >
             <X className="w-4 h-4" />

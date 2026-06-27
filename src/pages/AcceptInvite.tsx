@@ -76,7 +76,7 @@ export default function AcceptInvite() {
             recipients.map((email) =>
               supabase.functions.invoke('send-transactional-email', {
                 body: {
-                  template: 'org_member_joined',
+                  templateName: 'org_member_joined',
                   recipientEmail: email,
                   templateData: {
                     orgName: org.name,

@@ -99,7 +99,7 @@ export function UploadReelDialog({ open, onClose, onProjectReady }: Props) {
       //    the Editor's battle-tested ingest validator.
       setStage("Reading video…");
       const validated = await validateUploadFile(file).catch((e) => {
-        throw new Error(describeIngestError(e));
+        throw new Error(describeIngestError(e).message);
       });
 
       const id = crypto.randomUUID();

@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import fs from "fs";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 
@@ -21,6 +22,22 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
+    // The admin build only emits `admin.html`, but static hosts (Cloudflare
+    // Pages, Vercel, etc.) serve `index.html` by default and the SPA `_redirects`
+    // fallback points at `/index.html`. Without an index.html the admin host
+    // serves a non-existent path → BLANK SCREEN. Mirror admin.html → index.html
+    // (and point the SPA fallback at it) so every host resolves the entry.
+    IS_ADMIN_BUILD && {
+      name: "admin-index-html-fallback",
+      closeBundle() {
+        const dir = path.resolve(__dirname, "dist-admin");
+        const adminHtml = path.join(dir, "admin.html");
+        if (fs.existsSync(adminHtml)) {
+          fs.copyFileSync(adminHtml, path.join(dir, "index.html"));
+          fs.writeFileSync(path.join(dir, "_redirects"), "/*    /index.html    200\n");
+        }
+      },
+    },
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",

@@ -27,52 +27,6 @@ const Footer = lazy(() => import('@/components/cinema/Footer').then((m) => ({ de
 const MASTHEAD = 'The Cutting Room';
 
 /**
- * Article → visual theme map (slug → theme). Real, royalty-free stock photos
- * (Pexels License — free for commercial use, no attribution) are self-hosted
- * under /public/blog as `{theme}-hero.jpg` (the single post hero image).
- */
-const ARTICLE_THEME: Record<string, string> = {
-  // cinema
-  'best-ai-video-prompts-cinematic': 'cinema',
-  'multi-scene-films-character-consistency': 'cinema',
-  'what-can-you-do-with-video-ai': 'cinema',
-  // presenter
-  'ai-avatar-video-generation-complete-guide': 'presenter',
-  'ai-video-for-course-creators': 'presenter',
-  'ai-video-for-language-learning': 'presenter',
-  // music
-  'ai-music-video-generator': 'music',
-  // tech
-  'ai-video-creation-getting-better': 'tech',
-  'text-to-video-vs-image-to-video': 'tech',
-  'seedance-2-hyperreal-motion': 'tech',
-  // realestate
-  'ai-video-for-real-estate-listings': 'realestate',
-  // product
-  'ai-video-for-ecommerce-product-ads': 'product',
-  'product-demo-videos-with-ai': 'product',
-  // creator
-  'faceless-youtube-channel-ai-video': 'creator',
-  'how-to-create-ugc-ads-without-filming': 'creator',
-  'tiktok-creators-post-daily-with-ai': 'creator',
-  // business
-  'ai-video-pricing-explained': 'business',
-  'small-bridges-small-business-solution': 'business',
-  'small-bridges-vs-heygen-comparison': 'business',
-  'small-bridges-vs-runway': 'business',
-  'small-bridges-vs-synthesia': 'business',
-};
-
-const THEME_IMG = (theme: string) => ({
-  hero: `/blog/${theme}-hero.jpg`,
-});
-
-/** Images for a slug — defaults to the `cinema` theme for any unmapped slug. */
-function imagesFor(slug: string) {
-  return THEME_IMG(ARTICLE_THEME[slug] ?? 'cinema');
-}
-
-/**
  * Derive the "issue" framing from the most-recent article's date string — never
  * from Date.now(). Issue number counts months since the Jan 2026 launch; the
  * cover line reads e.g. "ISSUE 06 · June 2026 · 21 stories".
@@ -130,17 +84,6 @@ const NOISE =
 function BlogBackdrop() {
   return (
     <div aria-hidden className="fixed inset-0 z-0 bg-[#08130c]">
-      {/* shared Hoppy-park backdrop (avatar removed) — pinned to the top band */}
-      <div
-        className="absolute inset-x-0 top-0 h-[78vh]"
-        style={{
-          backgroundImage: 'url("/cinema-assets/footer-park.jpg")',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center 42%',
-          maskImage: 'linear-gradient(#000 58%, transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(#000 58%, transparent 100%)',
-        }}
-      />
       {/* 60% dark blind */}
       <div className="absolute inset-0 bg-black/60" />
       {/* light-green → dark-green shade */}
@@ -232,16 +175,6 @@ function ArticleDetail({ article }: { article: BlogArticle }) {
               </div>
               <div className="mt-8 h-px w-full bg-gradient-to-r from-white/15 via-white/5 to-transparent" />
             </header>
-
-            {/* Hero image — real royalty-free stock (Pexels), self-hosted */}
-            <figure className="mb-12 -mt-2">
-              <img
-                src={imagesFor(article.slug).hero}
-                alt={`${article.title} — editorial hero image`}
-                loading="lazy"
-                className="w-full max-h-[60vh] object-cover rounded-2xl border border-white/10"
-              />
-            </figure>
 
             <style>{ARTICLE_BODY_CSS}</style>
             <div className="prose prose-invert prose-lg max-w-none">
@@ -376,14 +309,6 @@ function BlogIndex() {
                   <span className="text-white/25 mx-2">·</span>
                   {featured.category}
                 </div>
-                <div className="mb-7 overflow-hidden rounded-2xl border border-white/12">
-                  <img
-                    src={imagesFor(featured.slug).hero}
-                    alt={`${featured.title} — cover image`}
-                    loading="lazy"
-                    className="w-full aspect-[16/9] md:aspect-[21/9] object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-                  />
-                </div>
                 <h2 className="font-display font-semibold text-white tracking-[-0.025em] leading-[0.96] max-w-4xl text-[clamp(2.2rem,6vw,5rem)]">
                   <span className="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-no-repeat bg-left-bottom transition-[background-size] duration-500 group-hover:bg-[length:100%_2px]">
                     {featured.title}
@@ -440,14 +365,6 @@ function BlogIndex() {
               <Link to={`/blog/${lead.slug}`} className="group grid md:grid-cols-[auto,1fr] gap-x-8 gap-y-4">
                 <span className="font-mono text-xs text-white/35 tabular-nums pt-2">01</span>
                 <div>
-                  <div className="mb-5 overflow-hidden rounded-xl border border-white/10">
-                    <img
-                      src={imagesFor(lead.slug).hero}
-                      alt={`${lead.title} — lead image`}
-                      loading="lazy"
-                      className="w-full aspect-[16/9] object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                    />
-                  </div>
                   <div className="text-[10px] font-mono uppercase tracking-[0.32em] text-white/45 mb-3">{lead.category}</div>
                   <h3 className="font-display font-semibold text-white tracking-[-0.02em] leading-[1.02] max-w-3xl text-[clamp(1.8rem,4.2vw,3.2rem)]">
                     <span className="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_1.5px] bg-no-repeat bg-left-bottom transition-[background-size] duration-500 group-hover:bg-[length:100%_1.5px]">
@@ -478,12 +395,6 @@ function BlogIndex() {
                   <span className="font-mono text-xs text-white/35 tabular-nums pt-1.5 w-7 shrink-0">
                     {String(i + 2).padStart(2, '0')}
                   </span>
-                  <img
-                    src={imagesFor(article.slug).hero}
-                    alt={`${article.title} — thumbnail`}
-                    loading="lazy"
-                    className="hidden sm:block w-20 h-20 shrink-0 rounded-lg border border-white/10 object-cover"
-                  />
                   <div className="min-w-0">
                     <div className="text-[10px] font-mono uppercase tracking-[0.3em] text-white/40 mb-2.5">{article.category}</div>
                     <h3 className="font-display font-semibold text-white tracking-[-0.01em] leading-[1.1] text-[clamp(1.25rem,2.4vw,1.7rem)]">
@@ -514,20 +425,24 @@ function BlogIndex() {
   );
 }
 
+function ArticleNotFound() {
+  // Unknown slug — show a graceful not-found within the SPA (no hard 404).
+  usePageMeta({ title: 'Article not found — Small Bridges', description: 'This article could not be found.' });
+  return (
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center text-center px-6">
+      <h1 className="text-2xl font-bold text-white mb-3">Article not found</h1>
+      <p className="text-white/55 mb-6">It may have moved or been retired.</p>
+      <Link to="/blog" className="h-10 px-5 inline-flex items-center rounded-full bg-white text-black text-sm font-medium">Back to Blog</Link>
+    </div>
+  );
+}
+
 export default function Blog() {
   const { slug } = useParams();
   const article = slug ? BLOG_ARTICLES.find((a) => a.slug === slug) : null;
 
   if (slug && !article) {
-    // Unknown slug — show a graceful not-found within the SPA (no hard 404).
-    usePageMeta({ title: 'Article not found — Small Bridges', description: 'This article could not be found.' });
-    return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center text-center px-6">
-        <h1 className="text-2xl font-bold text-white mb-3">Article not found</h1>
-        <p className="text-white/55 mb-6">It may have moved or been retired.</p>
-        <Link to="/blog" className="h-10 px-5 inline-flex items-center rounded-full bg-white text-black text-sm font-medium">Back to Blog</Link>
-      </div>
-    );
+    return <ArticleNotFound />;
   }
 
   return article ? <ArticleDetail article={article} /> : <BlogIndex />;

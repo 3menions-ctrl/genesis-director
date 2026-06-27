@@ -369,12 +369,19 @@ function ProductionContentInner() {
       setProjectStatus(project.status);
       setProjectMode(project.mode || 'text-to-video');
       
-      // Load pipeline state for specialized modes
+      // Load pipeline state for specialized modes. Guard the parse (audit
+      // S201): a malformed pipeline_state string would otherwise throw out of
+      // loadProject (no outer catch here) and strand the page on the loading
+      // spinner. A bad value just means no specialized-mode state.
       if (project.pipeline_state) {
-        const state = typeof project.pipeline_state === 'string' 
-          ? JSON.parse(project.pipeline_state) 
-          : project.pipeline_state;
-        setPipelineState(state);
+        try {
+          const state = typeof project.pipeline_state === 'string'
+            ? JSON.parse(project.pipeline_state)
+            : project.pipeline_state;
+          setPipelineState(state);
+        } catch (e) {
+          console.warn('[Production] ignoring malformed pipeline_state', e);
+        }
       }
       
       // PRIORITY: Use manifest URL from pending_video_tasks if available (permanent storage)
@@ -1003,7 +1010,9 @@ function ProductionContentInner() {
 
 
   const handleRetryClip = async (clipIndex: number) => {
-    if (!projectId || !user) return;
+    // Guard against double-submit: a clip retry submits a billable regeneration,
+    // and a second click while one is in flight would charge/render twice.
+    if (!projectId || !user || retryingClipIndex !== null) return;
     setRetryingClipIndex(clipIndex);
     
     try {
@@ -1243,16 +1252,18 @@ function ProductionContentInner() {
   };
 
   const handleRegenerateScript = async () => {
-    if (!projectId || !user) return;
-    
+    // Reuse the script-busy flag (the regenerate/approve buttons watch it) so a
+    // second click can't fire a second billable regenerate_script job.
+    if (!projectId || !user || isApprovingScript) return;
+    setIsApprovingScript(true);
     try {
       addLog('Regenerating script...', 'info');
       toast.info('Regenerating script...');
-      
+
       const { data, error } = await supabase.functions.invoke('hollywood-pipeline', {
             body: { projectId, action: 'regenerate_script' },
       });
-      
+
       if (error) throw error;
       if (data?.success) {
         setScriptShots(null);
@@ -1260,6 +1271,8 @@ function ProductionContentInner() {
       }
     } catch (err) {
       toast.error(getErrorMessage(err, 'Failed to regenerate script'));
+    } finally {
+      setIsApprovingScript(false);
     }
   };
 
@@ -1431,8 +1444,13 @@ const transitionsData = useMemo(() =>
   }, [scriptShots, clipResults, projectStatus, completedClips, expectedClipCount, realTimeProgress]);
 
   const showScriptApproval = isStandardMode && !!scriptShots && scriptShots.length > 0 && pipelineStage === 'awaiting_approval';
+  // The Continuity Engine is the monitor for EVERY non-terminal standard-mode
+  // state — initializing / queued / assets / preproduction and the active
+  // build — not just while clips are rendering. Terminal states keep their own
+  // views: completed → final video, failed → error, cancelled → exit. Awaiting
+  // approval shows the ScriptApproval takeover above.
   const showBridge = isStandardMode && !isComplete && !isError && pipelineStage !== 'awaiting_approval'
-    && ['generating', 'producing', 'rendering', 'stitching'].includes(projectStatus || '');
+    && !['cancelled', 'completed'].includes(projectStatus || '');
 
   if (gatekeeper.isLoading) {
     return (
@@ -1467,7 +1485,7 @@ const transitionsData = useMemo(() =>
           progress={realTimeProgress}
           pipeline={livePipeline}
           prompt={scriptShots?.[0]?.description || projectTitle}
-          onCancel={() => navigate('/projects')}
+          onCancel={() => { void handleCancelPipeline(); }}
         />
       )}
 

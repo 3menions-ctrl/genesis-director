@@ -272,7 +272,7 @@ export default function Reel() {
         }
 
         if (!data) {
-          if (!cancelled) setError("not_found");
+          if (!cancelled) { setError("not_found"); setLoading(false); }
           return;
         }
         // Fallback resolution — same pattern usePaginatedProjects uses
@@ -290,7 +290,7 @@ export default function Reel() {
         // which is itself the public signal (publishing doesn't flip
         // movie_projects.is_public).
         if (!viaPublishedReel && !data.is_public && data.user_id !== user?.id) {
-          if (!cancelled) setError("private");
+          if (!cancelled) { setError("private"); setLoading(false); }
           return;
         }
         // Fetch creator + the matched published_reel (for Commentary +
@@ -648,7 +648,6 @@ export default function Reel() {
                 src={reel.video_url}
                 poster={reel.thumbnail_url ?? undefined}
                 autoPlay={false}
-                controls
                 className="h-full w-full"
               />
             ) : (

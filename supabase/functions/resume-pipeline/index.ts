@@ -94,6 +94,12 @@ serve(async (req) => {
       throw new Error(`Project not found: ${fetchError?.message}`);
     }
 
+    // Ownership guard: an end-user JWT may only act on their OWN project.
+    // Service-role (internal orchestration) may act on any project.
+    if (!auth.isServiceRole && project.user_id !== auth.userId) {
+      return forbiddenResponse(corsHeaders, 'Forbidden: you do not own this project');
+    }
+
     const pendingTasks = project.pending_video_tasks || {};
     const currentStage = pendingTasks.stage;
     const lastCompletedStage = pendingTasks.lastCompletedStage;
@@ -251,13 +257,18 @@ serve(async (req) => {
     
     console.log(`[ResumePipeline] Found ${completedClips.length} completed clips, resuming from clip ${resumeFromClipIndex + 1}`);
 
-    // Verify credits were actually charged before skipping deduction
+    // Verify credits were actually charged before skipping deduction.
+    // The charge is written by consume_credit_hold / deduct_credits with
+    // transaction_type='usage' (verified live) — NOT 'generation', which
+    // nothing writes. The old 'generation' filter never matched, so
+    // creditsAlreadyCharged was always false and every resume re-entered the
+    // charge block (double-charge, or a 402 lock on an already-consumed hold).
     const { data: creditTx } = await supabase
       .from('credit_transactions')
       .select('id')
       .eq('user_id', request.userId)
       .eq('project_id', request.projectId)
-      .eq('transaction_type', 'generation')
+      .eq('transaction_type', 'usage')
       .limit(1);
     
     const creditsAlreadyCharged = (creditTx && creditTx.length > 0);

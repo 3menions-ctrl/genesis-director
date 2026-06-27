@@ -111,11 +111,11 @@ export default function SearchHub() {
     let cancelled = false;
     (async () => {
       const { data } = await supabase
-        .from("user_follows")
-        .select("following_id")
+        .from("follows")
+        .select("followed_id")
         .eq("follower_id", user.id);
       if (cancelled) return;
-      setFollowingIds(new Set((data ?? []).map((r: { following_id: string }) => r.following_id)));
+      setFollowingIds(new Set((data ?? []).map((r: { followed_id: string }) => r.followed_id)));
     })();
     return () => { cancelled = true; };
   }, [user]);

@@ -657,7 +657,10 @@ function FullBleedCard({
             editor (owner only — Library page is per-user so always
             owner). Share copies the public reel URL. */}
         <div className={cn(
-          "flex items-center gap-1.5 transition-opacity pt-1.5",
+          // relative z-20 keeps Edit/Share ABOVE the full-card click target
+          // (absolute inset-0 z-0 below) — otherwise the card-open target
+          // covers these buttons and clicks fall through to it.
+          "relative z-20 flex items-center gap-1.5 transition-opacity pt-1.5",
           "opacity-0 group-hover/card:opacity-100 focus-within:opacity-100",
         )}>
           <CardActionButton

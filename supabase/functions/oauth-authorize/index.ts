@@ -85,18 +85,17 @@ serve(async (req) => {
     }
     if (!organizationId) throw new Error("organizationId required");
 
-    // Verify user is a member of the org before issuing an authorize URL.
+    // Verify user is at least an admin of the org before issuing an authorize URL.
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
-    const { data: membership } = await supabase
-      .from("organization_members")
-      .select("user_id")
-      .eq("organization_id", organizationId)
-      .eq("user_id", auth.userId)
-      .maybeSingle();
-    if (!membership) throw new Error("Not a member of this workspace");
+    const { data: isAdmin } = await supabase.rpc("fn_org_has_min_role", {
+      _org_id: organizationId,
+      _user_id: auth.userId,
+      _min: "admin",
+    });
+    if (!isAdmin) throw new Error("Admin access required");
 
     const cfg = PROVIDERS[provider];
     const clientId = Deno.env.get(cfg.clientIdEnv);

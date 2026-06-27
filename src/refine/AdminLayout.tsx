@@ -119,7 +119,7 @@ function RefineAdminLayoutInner() {
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 z-[60] opacity-[0.03] mix-blend-overlay"
-        style={{ backgroundImage: "url('https://grainy-gradients.vercel.app/noise.svg')" }}
+        style={{ backgroundImage: "url('/noise.svg')" }}
       />
       {/* Deep aurora atmosphere — figures float over it (Horizon direction). */}
       <Aurora />

@@ -49,13 +49,13 @@ export function usePublicProfile(userId?: string) {
 
       // Fetch followers count
       const { count: followersCount } = await supabase
-        .from('user_follows')
+        .from('follows')
         .select('*', { count: 'exact', head: true })
-        .eq('following_id', userId);
+        .eq('followed_id', userId);
 
       // Fetch following count
       const { count: followingCount } = await supabase
-        .from('user_follows')
+        .from('follows')
         .select('*', { count: 'exact', head: true })
         .eq('follower_id', userId);
 
@@ -70,10 +70,10 @@ export function usePublicProfile(userId?: string) {
       let isFollowing = false;
       if (user && user.id !== userId) {
         const { data: followData } = await supabase
-          .from('user_follows')
-          .select('id')
+          .from('follows')
+          .select('follower_id')
           .eq('follower_id', user.id)
-          .eq('following_id', userId)
+          .eq('followed_id', userId)
           .maybeSingle();
         isFollowing = !!followData;
       }
@@ -145,31 +145,12 @@ export function usePublicProfile(userId?: string) {
     mutationFn: async () => {
       if (!user || !userId) throw new Error('Not authenticated');
 
-      const { error } = await supabase
-        .from('user_follows')
-        .insert({
-          follower_id: user.id,
-          following_id: userId,
-        });
-
+      // Gated canonical write (WS-B / #24,#26): toggle_follow enforces block +
+      // private-account approval and writes the single source of truth `follows`.
+      // Button is state-gated, so this only adds a follow; trg_notify_eh_follow
+      // creates the notification server-side.
+      const { error } = await supabase.rpc('toggle_follow', { p_target: userId });
       if (error) throw error;
-
-      // Create notification — best-effort. A failure here (e.g. RLS) must NOT
-      // reject the whole mutation, or onSuccess wouldn't fire and the UI would
-      // show "not following" while the follow row actually exists in the DB.
-      try {
-        await supabase
-          .from('notifications')
-          .insert({
-            user_id: userId,
-            type: 'follow',
-            title: 'New Follower!',
-            body: 'Someone started following you',
-            data: { follower_id: user.id },
-          });
-      } catch (notifyErr) {
-        console.warn('[usePublicProfile] follow notification failed:', notifyErr);
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['public-profile', userId] });
@@ -186,12 +167,8 @@ export function usePublicProfile(userId?: string) {
     mutationFn: async () => {
       if (!user || !userId) throw new Error('Not authenticated');
 
-      const { error } = await supabase
-        .from('user_follows')
-        .delete()
-        .eq('follower_id', user.id)
-        .eq('following_id', userId);
-
+      // toggle_follow removes the existing follow (WS-B); only called when following.
+      const { error } = await supabase.rpc('toggle_follow', { p_target: userId });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -283,15 +260,15 @@ export function useFollowingFeed() {
 
       // Get list of users we follow
       const { data: follows, error: followsError } = await supabase
-        .from('user_follows')
-        .select('following_id')
+        .from('follows')
+        .select('followed_id')
         .eq('follower_id', user.id);
 
       if (followsError || !follows?.length) {
         return [];
       }
 
-      const followingIds = follows.map(f => f.following_id);
+      const followingIds = follows.map(f => f.followed_id);
 
       // Get public videos from followed users
       const { data: videos, error: videosError } = await supabase

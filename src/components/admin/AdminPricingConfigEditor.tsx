@@ -149,7 +149,7 @@ export function AdminPricingConfigEditor() {
     const cost = API_COSTS.veo_per_clip;
 
     const profit = revenue - cost;
-    const margin = (profit / revenue) * 100;
+    const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
 
     return {
       revenue: revenue.toFixed(1),

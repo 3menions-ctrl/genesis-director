@@ -274,6 +274,11 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
   
   const handleTouchEnd = useCallback(() => {}, []);
 
+  const handleCardClick = useCallback(() => {
+    if (hasVideo) onPlay();
+    else onEdit();
+  }, [hasVideo, onPlay, onEdit]);
+
   const isProcessing = ['generating', 'rendering', 'stitching', 'pending', 'awaiting_approval'].includes(status);
   const isFailed = status === 'stitching_failed' || status === 'failed';
   const visualStatus = hasVideo ? 'ready' : isProcessing ? 'rendering' : isFailed ? 'archived' : 'draft';
@@ -336,12 +341,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
 
   // ============= GRID VIEW — GALLERY PREMIUM =============
   const showContentOverlay = isTouchDevice || isHovered;
-  
-  const handleCardClick = useCallback(() => {
-    if (hasVideo) onPlay();
-    else onEdit();
-  }, [hasVideo, onPlay, onEdit]);
-  
+
   // Compute metadata for overlay
   const clipCount = project.video_clips?.length || 0;
   const formattedDate = new Date(project.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });

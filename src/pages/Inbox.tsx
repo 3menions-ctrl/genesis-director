@@ -1340,7 +1340,9 @@ function NotificationsLane({
   }, [rows]);
 
   const unread = rows.filter((r) => !r.read).length;
-  const laneMeta = LANES.find((l) => l.id === lane)!;
+  // A malformed ?lane= URL param (cast to LaneId at read time) could miss every
+  // lane and make this non-null assertion throw on laneMeta.Icon (audit S206).
+  const laneMeta = LANES.find((l) => l.id === lane) ?? LANES[0];
   const Icon = laneMeta.Icon;
 
   return (

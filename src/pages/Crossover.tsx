@@ -177,13 +177,19 @@ const CrossoverCard = memo(function CrossoverCard({
   const [hover, setHover] = useState(false);
   const engine = ENGINES[bp.engine];
   const aspectDims = ASPECT_RATIOS[bp.aspectRatio];
+  // Guard against a blueprint referencing an engine/tier not in the maps
+  // (e.g. a renamed/removed engine) — an unguarded TIER_HUE[engine.tier].replace
+  // or engine.tier deref would crash the whole card (audit S35).
+  const tierHue = TIER_HUE[engine?.tier] ?? "hsl(0 0% 65%)";
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onClick={onOpen}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
       className="group relative block text-left cursor-pointer animate-fade-in w-full"
       style={{ animationDelay: `${Math.min(index * 25, 300)}ms` }}
     >
@@ -277,12 +283,12 @@ const CrossoverCard = memo(function CrossoverCard({
             <span
               className="inline-flex items-center gap-1 h-4 px-1.5 rounded-md"
               style={{
-                color: TIER_HUE[engine.tier],
-                background: `${TIER_HUE[engine.tier].replace(")", " / 0.12)").replace("hsl(", "hsla(")}`,
+                color: tierHue,
+                background: `${tierHue.replace(")", " / 0.12)").replace("hsl(", "hsla(")}`,
               }}
             >
               <Cpu className="w-2.5 h-2.5" />
-              {engine.shortLabel}
+              {engine?.shortLabel ?? bp.engine}
             </span>
             <span className="text-foreground/55 tabular-nums">{bp.estimatedDurationSec}s · {bp.estimatedCreditCost === 0 ? "free" : `${bp.estimatedCreditCost}c`}</span>
           </div>
@@ -298,7 +304,7 @@ const CrossoverCard = memo(function CrossoverCard({
           </div>
         )}
       </div>
-    </button>
+    </div>
   );
 });
 CrossoverCard.displayName = "CrossoverCard";

@@ -89,21 +89,45 @@ export function useScriptDocument(projectId: string | undefined): UseScriptDocum
               .eq("project_id", projectId)
               .order("shot_index", { ascending: true })
               .order("take_number", { ascending: false }),
+            // project_characters is a link table (project_id, character_id,
+            // role). The descriptive fields (name/description/appearance/voice)
+            // live on `characters`, so embed it via the FK — selecting them off
+            // project_characters directly 400s (column does not exist).
             supabase
               .from("project_characters")
               .select(
-                "id, name, role, description, identity_dna, wardrobe, physical_description, reference_image_url, avatar_id, voice_profile_id",
+                "id, role, character:characters!project_characters_character_id_fkey(name, description, appearance, voice_id)",
               )
               .eq("project_id", projectId),
           ]);
         if (cancelled || !project) return;
+
+        const characterRows: CharacterRow[] = (
+          (charsRes.data ?? []) as Array<{
+            id: string;
+            role: string | null;
+            character: {
+              name?: string | null;
+              description?: string | null;
+              appearance?: string | null;
+              voice_id?: string | null;
+            } | null;
+          }>
+        ).map((r) => ({
+          id: r.id,
+          name: r.character?.name ?? "Unnamed",
+          role: r.role,
+          description: r.character?.description ?? null,
+          physical_description: r.character?.appearance ?? null,
+          voice_profile_id: r.character?.voice_id ?? null,
+        }));
 
         const doc = hydrateScriptDocument({
           project: project as unknown as MovieProjectRow,
           scenes: [] as SceneRow[],
           clips: (clipsRes.data ?? []) as ClipRow[],
           takes: (takesRes.data ?? []) as TakeRow[],
-          characters: (charsRes.data ?? []) as CharacterRow[],
+          characters: characterRows,
         });
         setDocument(doc);
       } catch (e) {

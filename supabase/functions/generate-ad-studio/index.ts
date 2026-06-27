@@ -9,6 +9,7 @@ import {
   checkMultipleContent,
   parseJsonWithRecovery,
 } from "../_shared/script-utils.ts";
+import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
 
 /**
  * generate-ad-studio — the Generative Ad Studio backend.
@@ -90,13 +91,54 @@ serve(async (req) => {
 
   try {
     // ═══ AUTH GUARD ═══
-    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const { validateAuth, unauthorizedResponse, forbiddenResponse } = await import("../_shared/auth-guard.ts");
     const auth = await validateAuth(req);
     if (!auth.authenticated) {
       return unauthorizedResponse(corsHeaders, auth.error);
     }
 
     const body: AdStudioRequest = await req.json();
+
+    // ═══ AUTHORIZATION GATE ═══
+    // Route guards (RequireAccountType / org-scoped UI) do NOT protect this
+    // function from direct invocation. Enforce the same rules server-side for
+    // end-user JWTs. Service-role (internal function-to-function) calls bypass.
+    if (!auth.isServiceRole && auth.userId) {
+      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.4");
+      const admin = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+        { auth: { autoRefreshToken: false, persistSession: false } },
+      );
+
+      // (1) Business-tier account required — Ad Studio is a business feature.
+      const { data: profile } = await admin
+        .from("profiles")
+        .select("account_type")
+        .eq("id", auth.userId)
+        .maybeSingle();
+      const accountType = profile?.account_type;
+      if (accountType !== "business" && accountType !== "enterprise" && accountType !== "admin") {
+        return forbiddenResponse(corsHeaders, "A business account is required to use Ad Studio.");
+      }
+
+      // (2) Organization membership required when an org is targeted. Never rely
+      // on RLS alone to silently drop the brand kit while still generating.
+      if (body.organizationId && typeof body.organizationId === "string") {
+        const { data: membership, error: membershipErr } = await admin
+          .from("organization_members")
+          .select("user_id")
+          .eq("organization_id", body.organizationId)
+          .eq("user_id", auth.userId)
+          .maybeSingle();
+        if (membershipErr) {
+          return errorResponse("Couldn't verify workspace membership. Please retry.", 500);
+        }
+        if (!membership) {
+          return forbiddenResponse(corsHeaders, "You are not a member of this organization.");
+        }
+      }
+    }
 
     // ═══ CONTENT SAFETY ═══
     const safety = checkMultipleContent([
@@ -222,6 +264,28 @@ Return JSON with this exact shape:
 }
 Generate ${conceptCount} concept${conceptCount > 1 ? "s" : ""} now.`;
 
+    // ═══ CREDIT + RATE-LIMIT GATE ═══
+    // Org-scoped when organizationId is present (charges the org pool); otherwise
+    // personal. Service-role/internal callers are exempt (handled by the helper).
+    const orgId = (body.organizationId && typeof body.organizationId === "string") ? body.organizationId : undefined;
+    const { createClient: createGateClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.4");
+    const gateClient = createGateClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    );
+    const gateCtx = {
+      supabase: gateClient,
+      fnName: "generate-ad-studio",
+      userId: auth.userId,
+      isServiceRole: auth.isServiceRole,
+      orgId,
+      cost: 3,
+      dailyCap: 60,
+      corsHeaders,
+    };
+    const gateBlocked = await preflightAiGate(gateCtx);
+    if (gateBlocked) return gateBlocked;
+
     const response = await fetchWithRetry(
       "https://api.openai.com/v1/chat/completions",
       {
@@ -289,6 +353,9 @@ Generate ${conceptCount} concept${conceptCount > 1 ? "s" : ""} now.`;
 
     const generationTimeMs = Date.now() - startTime;
     console.log(`[generate-ad-studio] Success in ${generationTimeMs}ms — ${concepts.length} concept(s), platform=${platform}, objective=${objective}`);
+
+    // ═══ CHARGE ON SUCCESS — exactly once, after a usable result ═══
+    await chargeAiGate(gateCtx);
 
     return successResponse({
       concepts,

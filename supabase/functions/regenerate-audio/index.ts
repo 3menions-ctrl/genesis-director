@@ -25,7 +25,7 @@ serve(async (req) => {
 
   try {
     // ═══ AUTH GUARD: Prevent unauthorized API credit consumption ═══
-    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const { validateAuth, unauthorizedResponse, forbiddenResponse } = await import("../_shared/auth-guard.ts");
     const auth = await validateAuth(req);
     if (!auth.authenticated) {
       return unauthorizedResponse(corsHeaders, auth.error);
@@ -46,12 +46,18 @@ serve(async (req) => {
     // Fetch project with script
     const { data: project, error: fetchError } = await supabase
       .from('movie_projects')
-      .select('id, title, generated_script, pending_video_tasks, mood, genre')
+      .select('id, user_id, title, generated_script, pending_video_tasks, mood, genre')
       .eq('id', projectId)
       .maybeSingle();
 
     if (fetchError || !project) {
       throw new Error(`Project not found: ${fetchError?.message}`);
+    }
+
+    // Ownership guard: an end-user JWT may only act on their OWN project.
+    // Service-role (internal orchestration) may act on any project.
+    if (!auth.isServiceRole && project.user_id !== auth.userId) {
+      return forbiddenResponse(corsHeaders, 'Forbidden: you do not own this project');
     }
 
     // Extract shots from script

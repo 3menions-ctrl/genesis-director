@@ -141,29 +141,52 @@ serve(async (req) => {
       console.log(`[FinalAssembly] Clip ${i + 1}: ${clip.video_url?.substring(0, 60)}... (${clip.duration_seconds}s)`);
     });
 
-    // Step 1.5: Dedup guard. If another final-assembly call already
-    // stamped pipeline_stage='stitching' in the last ~2 minutes, treat
-    // this as a duplicate (rapid double-click, double-tab, retry) and
-    // return 409. Without this, two parallel calls each invoke
-    // seamless-stitcher and Replicate bills the project twice for
-    // the same hash.
+    // Step 1.5 + 2 (MERGED): ATOMIC stitch claim. A single conditional UPDATE
+    // is the race guard — only ONE concurrent invocation can flip a
+    // non-stitching, non-completed project to 'stitching'. Losers update zero
+    // rows and bail BEFORE seamless-stitcher (a billable Replicate render)
+    // runs, so a re-delivered webhook / continue-production retry / parallel
+    // call can no longer bill the project twice for the same film. (The old
+    // read-then-check dedup raced: continue-production stamps 'generating'
+    // before calling, so concurrent calls both read a non-'stitching' status
+    // and both proceeded.)
     //
-    // forceReconcile bypasses this guard — the reconciliation flow
-    // explicitly wants to re-run on a stuck-in-stitching project.
-    if (!forceReconcile) {
-      const tasksObj = tasks ?? {};
-      const startedAtIso = (tasksObj as { assemblyStartedAt?: string }).assemblyStartedAt;
-      const inFlight =
-        project.status === "stitching" &&
-        startedAtIso &&
-        Date.now() - Date.parse(startedAtIso) < 2 * 60 * 1000;
-      if (inFlight) {
-        console.warn(`[FinalAssembly] dedup: stitching already in flight (started ${startedAtIso})`);
+    // Composes with the retry-on-failure path: a failed stitch resets status
+    // to 'error' in the catch below, so a legitimate retry re-claims cleanly;
+    // an already-'completed' project is never re-stitched. forceReconcile (the
+    // reconciliation flow) intentionally bypasses the guard to re-run a
+    // stuck-in-stitching project.
+    {
+      let claimQuery = supabase
+        .from('movie_projects')
+        .update({
+          pipeline_stage: 'stitching',
+          status: 'stitching',
+          pending_video_tasks: {
+            ...(tasks || {}),
+            stage: 'stitching',
+            progress: 92,
+            assemblyStartedAt: new Date().toISOString(),
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', projectId);
+
+      if (!forceReconcile) {
+        claimQuery = claimQuery.neq('status', 'stitching').neq('status', 'completed');
+      }
+
+      const { data: claimed, error: claimErr } = await claimQuery.select('id');
+      if (claimErr) {
+        throw new Error(`stitch claim failed: ${claimErr.message}`);
+      }
+      if (!forceReconcile && (!claimed || claimed.length === 0)) {
+        console.warn(`[FinalAssembly] dedup: stitch already claimed by a concurrent invocation for ${projectId}`);
         return new Response(
           JSON.stringify({
             success: true,
             mode: "deduped",
-            note: "stitching already in flight for this project; ignoring duplicate request",
+            note: "stitch already claimed by a concurrent invocation; ignoring duplicate request",
           }),
           {
             status: 409,
@@ -172,22 +195,6 @@ serve(async (req) => {
         );
       }
     }
-
-    // Step 2: Update status to stitching
-    await supabase
-      .from('movie_projects')
-      .update({
-        pipeline_stage: 'stitching',
-        status: 'stitching',
-        pending_video_tasks: {
-          ...(tasks || {}),
-          stage: 'stitching',
-          progress: 92,
-          assemblyStartedAt: new Date().toISOString(),
-        },
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', projectId);
 
     // Step 3: Call seamless-stitcher for manifest creation
     console.log(`[FinalAssembly] Invoking seamless-stitcher for manifest creation...`);

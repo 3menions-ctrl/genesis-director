@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
 import {
   corsHeaders,
   validateInput,
@@ -943,6 +945,25 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
 
     console.log(`[SmartScript] 🎬 Calling GPT-4o for ${generationTargetLabel} (${enginePersona}) scene breakdown...`);
 
+    // ═══ AI CREDIT GATE: rate-limit + credit pre-check BEFORE the paid OpenAI call ═══
+    const gateSupabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const gateProjectId = (request as any).projectId ?? null;
+    const gateCtx = {
+      supabase: gateSupabase,
+      fnName: "smart-script-generator",
+      userId: auth.userId,
+      isServiceRole: auth.isServiceRole,
+      projectId: gateProjectId,
+      cost: 2,
+      dailyCap: 100,
+      corsHeaders,
+    };
+    const gateBlocked = await preflightAiGate(gateCtx);
+    if (gateBlocked) return gateBlocked;
+
     // GPT-4o for maximum cinematographic intelligence and creative richness
     const response = await fetchWithRetry(
       "https://api.openai.com/v1/chat/completions",
@@ -1237,6 +1258,9 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
     const generationTimeMs = Date.now() - startTime;
 
     console.log(`[SmartScript] 🎬 COMPLETE — ${normalizedClips.length} clips in ${generationTimeMs}ms. Continuity: ${continuityScore}. Audit: ${auditReport.averageQuality}`);
+
+    // ═══ AI CREDIT GATE: charge once for the successful generation ═══
+    await chargeAiGate(gateCtx);
 
     return successResponse({
       shots: normalizedClips, // Keep 'shots' for backwards compatibility

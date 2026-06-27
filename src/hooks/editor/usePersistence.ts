@@ -65,6 +65,8 @@ export function usePersistence(projectId: string | undefined) {
   const { project } = useEditor();
   /** Tracks whether the restore for this projectId has already run. */
   const restoredFor = useRef<string | null>(null);
+  /** Latest pending debounced save, flushed on unmount (audit D36). */
+  const pendingWriteRef = useRef<(() => void) | null>(null);
 
   // ── Restore ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -97,7 +99,10 @@ export function usePersistence(projectId: string | undefined) {
     if (projectId === "demo") return; // demo is read-only by design
     if (restoredFor.current !== projectId) return; // wait until after restore
 
-    const t = window.setTimeout(() => {
+    // Build the writer once per change and stash it so an unmount / project
+    // switch INSIDE the 600ms debounce window can still flush it (audit D36 —
+    // a trim or take-swap made just before navigating away was being lost).
+    const doWrite = () => {
       const allClips = project.scenes.flatMap((s) => s.clips);
       const clipOrder = allClips.map((c) => c.id);
       const sceneOrder = project.scenes.map((s) => s.id);
@@ -117,10 +122,19 @@ export function usePersistence(projectId: string | undefined) {
         activeTakes,
       };
       write(projectId, snap);
-    }, 600);
+      pendingWriteRef.current = null;
+    };
+    pendingWriteRef.current = doWrite;
+    const t = window.setTimeout(doWrite, 600);
 
     return () => window.clearTimeout(t);
   }, [projectId, project]);
+
+  // Flush any pending debounced save on unmount ONLY (empty deps) so the last
+  // edit before leaving the editor isn't dropped.
+  useEffect(() => {
+    return () => { pendingWriteRef.current?.(); };
+  }, []);
 
   // Reset restored ref when the projectId changes so a switch to a
   // different project triggers a fresh restore.

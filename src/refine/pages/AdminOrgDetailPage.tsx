@@ -12,6 +12,7 @@
  * organizations + organization_members + organization_invites.
  */
 import { useCallback, useEffect, useState } from "react";
+import { safeHref } from "@/lib/safeHref";
 import { useParams, Link } from "react-router-dom";
 import {
   AlertCircle, ArrowLeft, Building2, Crown, Globe, Mail,
@@ -223,7 +224,7 @@ export default function AdminOrgDetailPage() {
               <div className="flex flex-wrap items-center gap-3 mt-3 text-[11px] text-white/55 font-mono">
                 {detail.org.industry && <span>{detail.org.industry}</span>}
                 {detail.org.website && (
-                  <a href={detail.org.website} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 hover:text-white">
+                  <a href={safeHref(detail.org.website)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 hover:text-white">
                     <Globe className="w-3 h-3" /> {detail.org.website.replace(/^https?:\/\//, "")}
                   </a>
                 )}
@@ -370,7 +371,7 @@ function MetadataTab({ org }: { org: OrgDetail["org"] }) {
     ["ID", <span className="font-mono text-white/75">{org.id}</span>],
     ["Slug", <span className="font-mono text-white/75">/{org.slug}</span>],
     ["Industry", org.industry ?? "—"],
-    ["Website", org.website ? <a href={org.website} target="_blank" rel="noreferrer" className="text-primary/80 hover:underline">{org.website}</a> : "—"],
+    ["Website", org.website ? <a href={safeHref(org.website)} target="_blank" rel="noreferrer" className="text-primary/80 hover:underline">{org.website}</a> : "—"],
     ["Created by", <span className="font-mono text-white/75">{org.created_by.slice(0, 8)}…</span>],
     ["Created", new Date(org.created_at).toLocaleString()],
     ["Updated", new Date(org.updated_at).toLocaleString()],

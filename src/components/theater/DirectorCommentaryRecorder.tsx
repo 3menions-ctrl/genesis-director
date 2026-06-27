@@ -45,6 +45,10 @@ export function DirectorCommentaryRecorder({
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // `finalize` runs from `rec.onstop`, a closure bound at start() time when
+  // elapsed===0. Mirror the tick into a ref so finalize reads the true
+  // recorded length instead of the stale captured state (was always 0).
+  const elapsedRef = useRef(0);
 
   useEffect(() => () => {
     if (mediaRef.current && mediaRef.current.state !== "inactive") {
@@ -70,12 +74,15 @@ export function DirectorCommentaryRecorder({
       rec.start();
       setRecording(true);
       setElapsed(0);
+      elapsedRef.current = 0;
       timerRef.current = setInterval(() => {
         setElapsed((s) => {
-          if (s + 1 >= durationSecondsLimit) {
+          const next = s + 1;
+          elapsedRef.current = next;
+          if (next >= durationSecondsLimit) {
             void stop();
           }
-          return s + 1;
+          return next;
         });
       }, 1000);
     } catch (e) {
@@ -110,7 +117,7 @@ export function DirectorCommentaryRecorder({
             reel_id: reelId,
             director_id: user.id,
             audio_url: audioUrl,
-            duration_seconds: elapsed,
+            duration_seconds: elapsedRef.current,
           },
           { onConflict: "reel_id,director_id" },
         );

@@ -77,6 +77,7 @@ import {
   Save as SaveIcon,
 } from "lucide-react";
 import { BrandInquiryDialog } from "@/components/profile/BrandInquiryDialog";
+import { safeHref } from "@/lib/safeHref";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -851,7 +852,7 @@ export default function ProfileDashboard() {
     // rows so the rail can render thumbnails just like Recent Films.
     try {
       const { data: prof } = await supabase
-        .from("profiles")
+        .from("profiles_public" as never)
         .select("pinned_reel_ids")
         .eq("id", viewedUserId)
         .maybeSingle();
@@ -898,7 +899,7 @@ export default function ProfileDashboard() {
       next.followerCount = followerCount ?? 0;
       // Joined date from profiles (anon-safe via "Public profile read" policy).
       const { data: prof } = await supabase
-        .from("profiles")
+        .from("profiles_public" as never)
         .select("created_at")
         .eq("id", viewedUserId)
         .maybeSingle();
@@ -5451,7 +5452,7 @@ function SocialLinksRow({ links }: { links: Record<string, string> }) {
         {entries.map((e) => (
           <a
             key={e.key}
-            href={e.url}
+            href={safeHref(e.url)}
             target="_blank"
             rel="noopener noreferrer"
             className="group inline-flex items-baseline gap-2 text-[13px] text-foreground/80 hover:text-accent transition-colors"
@@ -5791,6 +5792,18 @@ function HighlightReelPicker({
   const [pending, setPending] = useState<string[]>(() => pinned.map((p) => p.id));
   useEffect(() => { setPending(pinned.map((p) => p.id)); }, [pinned]);
 
+  const merged = useMemo(() => {
+    const byId = new Map<string, { id: string; title: string; thumbnail_url: string | null; play_count?: number }>();
+    pinned.forEach((p) => byId.set(p.id, { id: p.id, title: p.title, thumbnail_url: p.thumbnail_url }));
+    candidates.forEach((c) => { if (!byId.has(c.id)) byId.set(c.id, c); });
+    return Array.from(byId.values());
+  }, [pinned, candidates]);
+  const dirty = useMemo(() => {
+    const a = pending.slice().sort().join(",");
+    const b = pinned.map((p) => p.id).slice().sort().join(",");
+    return a !== b;
+  }, [pending, pinned]);
+
   // Non-owner view, or owner not in settings mode: render the strip.
   if (!isOwner || !settingsMode) {
     if (pinned.length === 0) return null;
@@ -5844,12 +5857,6 @@ function HighlightReelPicker({
   }
 
   // Owner + settings mode: multi-select picker. Up to MAX_HIGHLIGHTS.
-  const merged = useMemo(() => {
-    const byId = new Map<string, { id: string; title: string; thumbnail_url: string | null; play_count?: number }>();
-    pinned.forEach((p) => byId.set(p.id, { id: p.id, title: p.title, thumbnail_url: p.thumbnail_url }));
-    candidates.forEach((c) => { if (!byId.has(c.id)) byId.set(c.id, c); });
-    return Array.from(byId.values());
-  }, [pinned, candidates]);
   const toggle = (id: string) => {
     setPending((prev) => {
       if (prev.includes(id)) return prev.filter((x) => x !== id);
@@ -5860,11 +5867,6 @@ function HighlightReelPicker({
       return [...prev, id];
     });
   };
-  const dirty = useMemo(() => {
-    const a = pending.slice().sort().join(",");
-    const b = pinned.map((p) => p.id).slice().sort().join(",");
-    return a !== b;
-  }, [pending, pinned]);
   const save = async () => {
     if (!dirty) return;
     await onChange(pending);

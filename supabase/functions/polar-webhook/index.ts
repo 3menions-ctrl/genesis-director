@@ -62,6 +62,16 @@ async function grantCredits(order: any) {
   const md = order?.metadata ?? {};
   const userId = String(md.user_id || md.userId || "");
   const credits = parseInt(String(md.credits ?? "0"), 10);
+  // ORG subscriptions fund the ORG POOL (organizations.credits_balance) via
+  // monthly_org_credit_refill on subscription.active/updated — NOT the owner's
+  // personal profile. Crediting the owner here would (a) put credits in the wrong
+  // bucket (org generations consume the pool, not owner credits) and (b)
+  // double-grant against the refill. So skip org orders entirely; the refill path
+  // owns org funding. Personal orders (one-time packs, personal subs) fall through.
+  if (/^[0-9a-f-]{36}$/i.test(String(md.org_id || ""))) {
+    log("order.paid for org subscription — pool funded by refill path, skipping owner grant", { orgId: md.org_id });
+    return;
+  }
   if (!/^[0-9a-f-]{36}$/i.test(userId)) { log("order.paid: no/invalid user_id", { userId }); return; }
   if (!Number.isFinite(credits) || credits <= 0 || credits > 1000000) { log("order.paid: no creditable amount", { credits: md.credits }); return; }
   const packageId = String(md.package_id ?? "pack");
@@ -103,6 +113,14 @@ async function reverseCredits(order: any) {
   const md = order?.metadata ?? {};
   const userId = String(md.user_id || md.userId || "");
   const credits = parseInt(String(md.credits ?? "0"), 10);
+  // Symmetry with grantCredits: org orders never credited the owner's personal
+  // profile (they fund the org pool), so there is nothing to reverse here for an
+  // org order. Reversing would wrongly drive the owner's personal balance down.
+  // Org-pool clawback on refund is a separate, deliberate concern (not done here).
+  if (/^[0-9a-f-]{36}$/i.test(String(md.org_id || ""))) {
+    log("order.refunded for org subscription — owner was not credited, skipping reversal", { orgId: md.org_id });
+    return;
+  }
   if (!/^[0-9a-f-]{36}$/i.test(userId)) { log("order.refunded: no/invalid user_id", { userId }); return; }
   if (!Number.isFinite(credits) || credits <= 0) { log("order.refunded: nothing to reverse", { credits: md.credits }); return; }
   const ref = `polar_${order.id}`;
@@ -130,7 +148,14 @@ async function reverseCredits(order: any) {
 async function upsertSubscription(sub: any, statusOverride?: string) {
   const md = sub?.metadata ?? {};
   const userId = String(md.user_id || md.userId || sub?.customer?.external_id || "");
-  if (!/^[0-9a-f-]{36}$/i.test(userId)) { log("sub upsert: no user_id", { subId: sub?.id }); return; }
+  // THROW (not return) so the handler returns HTTP 500 and Polar RETRIES, then
+  // surfaces persistently-failing events in its dashboard. A silent return → 200
+  // → Polar marks delivery successful and never retries → the paid subscription
+  // row is never written → account_tier stays 'free' with no automatic recovery.
+  if (!/^[0-9a-f-]{36}$/i.test(userId)) {
+    log("sub upsert: no/invalid user_id", { subId: sub?.id });
+    throw new Error(`sub upsert: missing/invalid user_id for subscription ${sub?.id}`);
+  }
   const customerId = String(sub?.customer_id || sub?.customer?.id || "");
   const productId = String(sub?.product_id || sub?.product?.id || "");
   const priceId = String(md.price_id || sub?.price_id || sub?.prices?.[0]?.id || productId || "unknown");
@@ -150,8 +175,33 @@ async function upsertSubscription(sub: any, statusOverride?: string) {
     environment: ENV_TAG,
     metadata: md,
   }, { onConflict: "stripe_subscription_id,environment" });
-  if (error) log("sub upsert error", { error: error.message, subId: sub?.id });
-  else log("sub upserted", { subId: sub?.id, status: statusOverride || sub?.status });
+  // THROW (not return) on DB failure so Polar retries — see note above. A
+  // charged customer must never be stranded on 'free' by a swallowed upsert error.
+  if (error) {
+    log("sub upsert error", { error: error.message, subId: sub?.id });
+    throw new Error(`sub upsert failed for subscription ${sub?.id}: ${error.message}`);
+  }
+  log("sub upserted", { subId: sub?.id, status: statusOverride || sub?.status });
+
+  // Fund the org credit pool on activation (audit #2). The webhook previously
+  // upserted the org subscription but never funded organizations.credits_balance,
+  // so business generation failed insufficient_credits until (and unless) the
+  // monthly cron ran. monthly_org_credit_refill() is idempotent per period
+  // (NOT EXISTS guard), so calling it here funds the just-activated org's
+  // current period without double-funding a re-delivered webhook or the monthly
+  // cron. STRICTLY non-fatal — a refill hiccup must never fail the payment
+  // webhook (Polar would retry the whole event); the monthly cron is the
+  // backstop.
+  const status = statusOverride || String(sub?.status || "active");
+  if (md.org_id && (status === "active" || status === "trialing")) {
+    try {
+      const { error: refillErr } = await sb().rpc("monthly_org_credit_refill");
+      if (refillErr) log("org pool refill non-fatal error", { error: refillErr.message, orgId: md.org_id });
+      else log("org pool funded on activation", { orgId: md.org_id });
+    } catch (e) {
+      log("org pool refill threw (non-fatal)", { error: String(e), orgId: md.org_id });
+    }
+  }
 }
 
 Deno.serve(async (req) => {

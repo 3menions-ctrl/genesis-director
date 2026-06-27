@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { checkMultipleContent } from "../_shared/content-safety.ts";
+import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -463,6 +465,24 @@ CONTINUE FROM: ${request.previousSceneSummary}
 
 Write the scene now with [CLIP 1] through [CLIP ${clipCount}] labels:`;
 
+    // ═══ CREDIT GATE: rate-limit + balance pre-check BEFORE spending the provider call ═══
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const gateCtx = {
+      supabase: supabaseAdmin,
+      fnName: "generate-story",
+      userId: auth.userId,
+      isServiceRole: auth.isServiceRole,
+      projectId: (request as { projectId?: string }).projectId ?? null,
+      cost: 2,
+      dailyCap: 100,
+      corsHeaders,
+    };
+    const gateBlock = await preflightAiGate(gateCtx);
+    if (gateBlock) return gateBlock;
+
     console.log("[GenerateStory] Calling OpenAI API for scene-based generation...");
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -581,6 +601,9 @@ Write the scene now with [CLIP 1] through [CLIP ${clipCount}] labels:`;
         nextTeaser: actionProgression[clipCount - 1] || 'To be continued...',
       };
     }
+
+    // ═══ CREDIT GATE: charge once now that the scene generated successfully ═══
+    await chargeAiGate(gateCtx);
 
     return new Response(
       JSON.stringify({

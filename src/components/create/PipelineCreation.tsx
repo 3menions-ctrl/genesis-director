@@ -17,6 +17,7 @@
  * No fake timers — the parent drives it from the live status model.
  */
 import { useMemo } from "react";
+import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { Check, AlertTriangle, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -155,7 +156,11 @@ export function PipelineCreation({
     [],
   );
 
-  return (
+  // Portal to <body> so this full-screen takeover escapes FoundationShell's
+  // stacking context — otherwise the always-on LeftRail (z-40, a sibling)
+  // renders OVER the engine's left edge (shot titles / "YOUR IDEA" / project
+  // title got overlapped by the rail in-app).
+  return createPortal(
     <div className="fixed inset-0 z-[120] overflow-hidden bg-[#04050b] font-sans text-white">
       {/* ── Scene: the bridge builds left→right ─────────────────────────── */}
       <div className="absolute inset-0">
@@ -301,7 +306,8 @@ export function PipelineCreation({
           Small Bridges · seamless continuity · audited frame by frame
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

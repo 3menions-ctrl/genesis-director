@@ -288,9 +288,9 @@ export default function BusinessStart() {
 
   // After auth: consume intent (sets account_type=business + creates org), then
   // write the full brand kit / firmographics onto the org and fire invites.
-  const provisionWorkspace = useCallback(async () => {
+  const provisionWorkspace = useCallback(async (): Promise<string | null> => {
     const token = intentToken.current;
-    if (!token) return;
+    if (!token) return null;
     let orgId: string | null = null;
     try {
       const { data } = await supabase.rpc("consume_onboarding_intent", { p_intent_token: token });
@@ -350,6 +350,7 @@ export default function BusinessStart() {
     }
     try { sessionStorage.removeItem("smallbridges.intent_token"); } catch {}
     await refreshProfile();
+    return orgId;
   }, [form, plan.id, refreshProfile]);
 
   /* ── Navigation ───────────────────────────────────────────────────────── */
@@ -411,8 +412,16 @@ export default function BusinessStart() {
 
   // The provision step runs its work then routes into the business module.
   const runProvision = useCallback(async () => {
-    await provisionWorkspace();
-    navigate("/business", { replace: true });
+    // Only enter the business module if a workspace was actually provisioned
+    // (audit S15) — provisionWorkspace swallows its errors, so the old
+    // unconditional navigate landed the user in an org-less /business on
+    // failure. On failure, surface it so they can retry instead.
+    const orgId = await provisionWorkspace();
+    if (orgId) {
+      navigate("/business", { replace: true });
+    } else {
+      toast.error("We couldn't finish setting up your workspace. Please try again.");
+    }
   }, [provisionWorkspace, navigate]);
 
   const back = () => {

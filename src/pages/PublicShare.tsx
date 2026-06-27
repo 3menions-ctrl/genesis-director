@@ -91,7 +91,7 @@ export default function PublicShare() {
           .eq('id', shareRow.project_id)
           .maybeSingle<ProjectRow>(),
         supabase
-          .from('profiles')
+          .from('profiles_public' as never)
           .select('display_name, avatar_url')
           .eq('id', shareRow.user_id)
           .maybeSingle<{ display_name: string | null; avatar_url: string | null }>(),

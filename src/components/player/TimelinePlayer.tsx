@@ -220,7 +220,7 @@ export function TimelinePlayer({ clips, poster, className, autoPlay = false }: P
           aria-label={ended ? "Replay" : "Play"}
           className="absolute inset-0 z-20 flex items-center justify-center"
         >
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-black/55 backdrop-blur-md border border-white/20">
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/[0.07] backdrop-blur-2xl ring-1 ring-inset ring-white/20 [&>svg]:drop-shadow-[0_1px_4px_rgba(0,0,0,0.55)] transition-transform group-hover/tp:scale-105">
             {ended ? <RotateCcw className="w-6 h-6 text-white" /> : <Play className="w-6 h-6 text-white translate-x-0.5" fill="currentColor" />}
           </span>
         </button>
@@ -240,10 +240,10 @@ export function TimelinePlayer({ clips, poster, className, autoPlay = false }: P
           <div className="h-full rounded-full bg-accent" style={{ width: `${total > 0 ? (globalTime / total) * 100 : 0}%` }} />
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={togglePlay} aria-label={playing ? "Pause" : "Play"} className="text-white/90 hover:text-white">
+          <button onClick={togglePlay} aria-label={playing ? "Pause" : "Play"} className="inline-flex items-center justify-center w-9 h-9 rounded-full text-white/80 hover:text-white bg-transparent hover:bg-white/[0.10] hover:backdrop-blur-md ring-1 ring-inset ring-transparent hover:ring-white/[0.18] transition-all duration-200 hover:scale-[1.08] active:scale-95 [&>svg]:drop-shadow-[0_1px_4px_rgba(0,0,0,0.55)]">
             {playing ? <Pause className="w-4 h-4" fill="currentColor" /> : <Play className="w-4 h-4" fill="currentColor" />}
           </button>
-          <button onClick={() => setMuted((m) => !m)} aria-label={muted ? "Unmute" : "Mute"} className="text-white/90 hover:text-white">
+          <button onClick={() => setMuted((m) => !m)} aria-label={muted ? "Unmute" : "Mute"} className="inline-flex items-center justify-center w-9 h-9 rounded-full text-white/80 hover:text-white bg-transparent hover:bg-white/[0.10] hover:backdrop-blur-md ring-1 ring-inset ring-transparent hover:ring-white/[0.18] transition-all duration-200 hover:scale-[1.08] active:scale-95 [&>svg]:drop-shadow-[0_1px_4px_rgba(0,0,0,0.55)]">
             {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
           <span className="text-[11px] font-mono tabular-nums text-white/80">{fmt(globalTime)} / {fmt(total)}</span>

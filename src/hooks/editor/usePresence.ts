@@ -69,7 +69,10 @@ export function usePresence(projectId: string | undefined): Presence {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [projectId, user, profile?.display_name, profile?.avatar_url]);
+    // Depend on user?.id, not the `user` object — a token refresh swaps in a
+    // new User object with the same id and would otherwise tear down and
+    // re-track the presence channel, blipping this viewer out/in for others.
+  }, [projectId, user?.id, profile?.display_name, profile?.avatar_url]);
 
   return state;
 }

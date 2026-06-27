@@ -28,6 +28,7 @@ import {
 import {
   cancelJob,
   getJobForShot,
+  isRunnerInstalled,
 } from "@/lib/editor/generation/orchestrator";
 import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
@@ -299,6 +300,30 @@ function ApprovalGateCta({
       i === "engine-duration-too-long" ||
       i === "engine-duration-too-short",
   );
+
+  // The generation runner isn't wired yet (installJobRunner is never called),
+  // so approving here can't actually render. Show a disabled CTA instead of
+  // sending the shot into a dead "No render engine connected" failure. Keeps
+  // the in-flight branch so a stuck job can still be aborted; re-enables
+  // automatically once a runner ships.
+  if (!isRunnerInstalled() && !inFlight) {
+    return (
+      <button
+        type="button"
+        disabled
+        title="Rendering from the editor is coming soon"
+        className={cn(
+          "w-full inline-flex items-center justify-center gap-2 h-10 rounded-full",
+          "text-[12.5px] font-mono uppercase tracking-[0.22em]",
+          "bg-white/[0.03] text-foreground/40 ring-1 ring-inset ring-white/[0.06]",
+          "cursor-not-allowed",
+        )}
+      >
+        <Film className="h-3.5 w-3.5" strokeWidth={1.5} />
+        <span>Rendering coming soon</span>
+      </button>
+    );
+  }
 
   // Status === completed → "Re-render" (the safe path)
   if (shot.approval.state === "completed" && !inFlight) {

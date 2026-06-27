@@ -170,7 +170,11 @@ export function derivePipelineFromCounts(opts: {
       status,
       attempt: 0,
       maxAttempts: 3,
-      composite: i < completed ? 92 : undefined,
+      // This adapter only has coarse completed/generating counts — no real
+      // per-clip continuity scores — so we do NOT fabricate a composite.
+      // Leaving it undefined makes the Continuity Index render as "—"
+      // rather than a misleading hardcoded measurement.
+      composite: undefined,
     };
   });
 
@@ -179,6 +183,7 @@ export function derivePipelineFromCounts(opts: {
     phases: phasesUpTo(phaseId, overall),
     overall,
     clips,
+    // No real composites available from coarse counts → no measured index.
     continuityIndex: continuityIndexFromClips(clips),
     message: opts.message,
   };

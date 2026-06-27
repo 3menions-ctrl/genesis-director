@@ -64,7 +64,8 @@ export default function EnterpriseComingSoon() {
         company_size: form.company_size,
         primary_use_case: form.primary_use_case?.trim() || null,
         role: form.contact_name.trim(), // store contact name in role field
-        status: 'new',
+        // Do NOT trust a client-supplied lead status — let the DB default
+        // ('new') apply so an anonymous submitter can't set arbitrary states.
       });
       if (error) {
         console.warn('[enterprise-lead]', error);

@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { safeFetch, SSRFError } from '../_shared/ssrf-guard.ts';
 
 /**
  * Sends a workspace event to the configured Slack or Zapier webhook.
@@ -57,14 +58,26 @@ Deno.serve(async (req) => {
       ? { text: `*Small Bridges · ${(org as any)?.name}* — ${event}\n${message}` }
       : { event, organization: (org as any)?.name, message, ...(body?.payload || {}) };
 
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+    // SSRF guard: the webhook URL is org-admin-configured but still
+    // server-fetched, so route it through safeFetch (rejects private/loopback/
+    // metadata IPs incl. DNS-rebinding, enforces http(s)). We also no longer
+    // echo the webhook's response body back to the caller — that body could
+    // leak details of whatever internal host an attacker pointed the hook at.
+    let res: Response;
+    try {
+      res = await safeFetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    } catch (e) {
+      if (e instanceof SSRFError) {
+        return json({ error: 'webhook URL is not allowed' }, 400);
+      }
+      throw e;
+    }
     if (!res.ok) {
-      const text = await res.text();
-      return json({ error: `Webhook responded ${res.status}: ${text.slice(0, 200)}` }, 502);
+      return json({ error: `Webhook responded ${res.status}` }, 502);
     }
     return json({ ok: true });
   } catch (e) {

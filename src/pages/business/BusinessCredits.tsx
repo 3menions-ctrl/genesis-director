@@ -60,13 +60,16 @@ export default function BusinessCredits() {
   const { currentOrg, hasPermission } = useWorkspace();
   const canEdit = hasPermission("admin");
   const balance = currentOrg?.credits_balance ?? 0;
-  const low = balance < 500;
 
   const orgId = currentOrg?.id ?? null;
 
   // ── Auto-recharge / spend-alert config (preserved exactly) ─────────────────
   const [enabled, setEnabled] = useState(false);
   const [threshold, setThreshold] = useState<number>(500);
+  // Low-balance is judged against the org's configured auto-recharge
+  // threshold (real, loaded from the organizations row) rather than a
+  // fabricated fixed number.
+  const low = balance < threshold;
   const [amount, setAmount] = useState<number>(2000);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -277,10 +280,10 @@ export default function BusinessCredits() {
     <BusinessPage
       eyebrow={<><span className="text-[hsl(215,100%,72%)]">Optimize</span><span className="text-white/20">·</span><span>Pool &amp; top-ups</span></>}
       title="Credits."
-      subtitle="Pooled credit balance shared by every workspace member. Track burn, watch the runway, and set spend thresholds. Top up through billing when the pool runs low."
+      subtitle="Pooled credit balance shared by every workspace member. Track burn, watch the runway, and set spend thresholds. Request more credits through billing when the pool runs low."
       actions={
-        <Link to="/workspace/billing" className="inline-flex items-center gap-2 rounded-full px-5 h-11 bg-[hsl(215,90%,55%)] text-white text-[13px] font-medium hover:bg-[hsl(215,90%,60%)] transition-colors">
-          <Coins className="w-4 h-4" strokeWidth={1.8} /> Top up
+        <Link to="/business/billing" className="inline-flex items-center gap-2 rounded-full px-5 h-11 bg-[hsl(215,90%,55%)] text-white text-[13px] font-medium hover:bg-[hsl(215,90%,60%)] transition-colors">
+          <Coins className="w-4 h-4" strokeWidth={1.8} /> Request credits
         </Link>
       }
     >
@@ -380,8 +383,13 @@ export default function BusinessCredits() {
       {/* ── Pool status cards ────────────────────────────────────────────────── */}
       <SectionHead label="Pool status" />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <StatCard label="Refill cadence" value="Monthly" hint="On plan renewal" />
-        <StatCard label="Low-balance alert" value={low ? "Active" : "OK"} hint="Threshold: 500 credits" accent={low} />
+        <StatCard
+          label="Auto-recharge"
+          value={enabled ? "On" : "Off"}
+          hint={enabled ? `Buys ${amount.toLocaleString()} below ${threshold.toLocaleString()}` : "Not configured"}
+          accent={enabled}
+        />
+        <StatCard label="Low-balance alert" value={low ? "Low" : "OK"} hint={`Threshold: ${threshold.toLocaleString()} credits`} accent={low} />
         <StatCard label="Avg daily burn · 14d" value={loading ? "—" : Math.round(a.avgDailyBurn).toLocaleString()} hint="credits / day" />
       </div>
 

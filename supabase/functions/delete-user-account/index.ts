@@ -31,11 +31,16 @@ Deno.serve(async (req) => {
     }
     const userId = auth.userId;
 
-    // Re-authentication gate: deleting an account is irreversible. The
-    // attacker's bar is now session-theft + password-knowledge, not
-    // session-theft alone. Body must include { password } (or { confirm:
-    // 'DELETE MY ACCOUNT' } if the user verified via passkey/SSO with no
-    // password — we accept either, server-side enforced).
+    // Re-authentication gate: deleting an account is irreversible. The bar
+    // must be session-theft + a REAL re-auth, never a guessable public
+    // constant. We branch on whether the account actually has a password:
+    //   * Password account (has an 'email' identity) → password is REQUIRED
+    //     and verified via signInWithPassword. The 'DELETE MY ACCOUNT'
+    //     constant is NOT accepted (it was previously a bypass).
+    //   * Passwordless account (OAuth / passkey / SSO only, no email
+    //     identity) → there is no password to verify, so we fall back to the
+    //     typed confirmation phrase (the strongest signal available, on top
+    //     of the already-validated live session).
     let body: any = {}
     try { body = await req.json() } catch { /* allow empty body for legacy */ }
     const reauthClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -49,7 +54,19 @@ Deno.serve(async (req) => {
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
-    if (body?.password && typeof body.password === 'string') {
+
+    // Does this account have a password? An 'email' identity means yes.
+    const identities = (userData?.user?.identities ?? []) as Array<{ provider?: string }>
+    const hasPasswordIdentity = identities.some((i) => i?.provider === 'email')
+
+    if (hasPasswordIdentity) {
+      // Password account: a real password is the ONLY acceptable confirmation.
+      if (!body?.password || typeof body.password !== 'string') {
+        return new Response(
+          JSON.stringify({ error: 'Enter your password to confirm account deletion' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
       const { error: reauthErr } = await reauthClient.auth.signInWithPassword({
         email: currentEmail,
         password: body.password,
@@ -60,13 +77,15 @@ Deno.serve(async (req) => {
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
-    } else if (body?.confirm !== 'DELETE MY ACCOUNT') {
-      // No password and no typed confirmation phrase — refuse. The client
-      // must collect one of the two.
-      return new Response(
-        JSON.stringify({ error: 'Confirm by entering your password or type "DELETE MY ACCOUNT"' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    } else {
+      // Passwordless account (OAuth/passkey/SSO): no password exists to verify.
+      // Require the typed confirmation phrase on top of the live session.
+      if (body?.confirm !== 'DELETE MY ACCOUNT') {
+        return new Response(
+          JSON.stringify({ error: 'Type "DELETE MY ACCOUNT" to confirm deletion' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
     }
 
     // Create admin client for deletions

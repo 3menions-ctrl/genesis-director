@@ -282,10 +282,14 @@ export default function SettingsDashboard() {
     if (!user?.id) return;
     setLoading(true);
     try {
+      // `profiles` has column-level SELECT revoked from `authenticated`
+      // (email, credits_balance, role, suspension_*, … — cross-tenant
+      // containment), so a direct select('*') now 403s and the whole
+      // Settings page fails to load. get_my_profile() is a SECURITY DEFINER
+      // RPC that returns the caller's OWN full row scoped to auth.uid()
+      // (same pattern AuthContext uses for the live profile).
       const { data, error } = await supabase
-        .from("profiles" as never)
-        .select("*")
-        .eq("id", user.id)
+        .rpc("get_my_profile" as never)
         .maybeSingle();
       if (error) throw error;
       setProfile((data as ProfileRow | null) ?? null);
@@ -1520,7 +1524,12 @@ function CreatorModule({ profile, onSaved }: { profile: ProfileRow; onSaved?: ()
     if (!error) onSaved?.();
   };
   const removeTier = async (id: string) => {
-    if (!confirm("Delete this tier? Active patrons keep their pledges; the tier just disappears from new visitors.")) return;
+    if (!(await confirmAsync({
+      title: "Delete this tier?",
+      description: "Active patrons keep their pledges; the tier just disappears from new visitors.",
+      confirmLabel: "Delete tier",
+      destructive: true,
+    }))) return;
     setTiers((p) => p.filter((t) => t.id !== id));
     await supabase.from("patron_tiers" as never).delete().eq("id", id);
     onSaved?.();
@@ -2407,7 +2416,12 @@ function DataModule({ profile }: { profile: ProfileRow }) {
   };
 
   const deactivate = async () => {
-    if (!confirm("Deactivate your account? Your profile will be hidden but your data stays. You can sign back in to reactivate.")) return;
+    if (!(await confirmAsync({
+      title: "Deactivate your account?",
+      description: "Your profile will be hidden but your data stays. You can sign back in to reactivate.",
+      confirmLabel: "Deactivate",
+      destructive: true,
+    }))) return;
     setDeactivating(true);
     const { error } = await supabase.from("profiles" as never).update({ deactivated_at: new Date().toISOString() } as never).eq("id", profile.id);
     setDeactivating(false);

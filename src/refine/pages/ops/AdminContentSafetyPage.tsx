@@ -92,6 +92,7 @@ function CreateRule({ onClose }: { onClose: () => void }) {
     setBusy(false);
     if (error) return toast.error(error.message);
     toast.success("Rule added");
+    window.dispatchEvent(new Event("admin-console-refresh"));
     onClose();
   };
 

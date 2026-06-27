@@ -36,6 +36,13 @@ export interface AiGateCtx {
   cost: number;
   /** per-user requests allowed per 24h */
   dailyCap: number;
+  /**
+   * Optional stable idempotency key. When set, the personal/project charge
+   * (deduct_credits) passes it as p_idempotency_key so a client retry of the
+   * SAME logical request collapses onto one charge instead of double-charging.
+   * Org-pool charges (consume_org_credits) don't take a key and ignore this.
+   */
+  idempotencyKey?: string | null;
   corsHeaders: Record<string, string>;
 }
 
@@ -127,12 +134,16 @@ export async function chargeAiGate(ctx: AiGateCtx): Promise<number> {
         return 0;
       }
     } else {
-      const { data, error } = await ctx.supabase.rpc("deduct_credits", {
+      const deductArgs: Record<string, unknown> = {
         p_user_id: ctx.userId,
         p_amount: ctx.cost,
         p_description: `${ctx.fnName} generation`,
         p_project_id: ctx.projectId ?? null,
-      });
+      };
+      // Only pass the idempotency key when supplied so callers that don't set
+      // one keep the prior behaviour exactly.
+      if (ctx.idempotencyKey) deductArgs.p_idempotency_key = ctx.idempotencyKey;
+      const { data, error } = await ctx.supabase.rpc("deduct_credits", deductArgs);
       // deduct_credits returns boolean false (or {success:false}) on insufficient.
       if (error || data === false || data?.success === false) {
         console.error(`[ai-credit-gate] deduct_credits failed for ${ctx.fnName}:`, error || data);

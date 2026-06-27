@@ -65,6 +65,8 @@ describe("derivePipelineFromCounts", () => {
     const p = derivePipelineFromCounts({ completed: 3, generating: 0, expected: 3, overall: 88, phaseId: "assembly" });
     expect(p.overall).toBe(88);
     expect(p.phaseId).toBe("assembly");
-    expect(p.continuityIndex).toBeGreaterThan(0);
+    // Coarse counts carry no real continuity scores, so the index is not
+    // fabricated — it stays undefined rather than a measured-looking number.
+    expect(p.continuityIndex).toBeUndefined();
   });
 });

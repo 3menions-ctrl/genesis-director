@@ -5,6 +5,7 @@ import { AdminPageShell } from "../../components/AdminPageShell";
 import { AdminConsoleV2, type AdminRow } from "../../components/AdminConsoleV2";
 import { AdminDialog, AdminField, inputClass } from "../../components/AdminFormPrimitives";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 interface RoleRow extends AdminRow {
@@ -17,6 +18,7 @@ interface RoleRow extends AdminRow {
 
 export default function AdminTeamPage() {
   const [promoting, setPromoting] = useState(false);
+  const { user } = useAuth();
   return (
     <AdminPageShell
       eyebrow="07 // ACCESS"
@@ -26,7 +28,7 @@ export default function AdminTeamPage() {
       description="Operators with admin role — promote new admins, demote when responsibilities shift."
     >
       <AdminConsoleV2<RoleRow>
-        intro="Every account holding the admin role. Promotion writes a row to user_roles; demotion deletes it."
+        intro="Every account holding a role in user_roles. Note: console access is currently gated by the is_admin check (super-admin), NOT by these rows — promoting here records the role but does not by itself grant console access until per-role gating ships. Promotion writes a row to user_roles; demotion deletes it."
         query={{
           table: "user_roles",
           select: "id, user_id, role, granted_at, profiles(email, display_name, avatar_url)",
@@ -61,8 +63,13 @@ export default function AdminTeamPage() {
         ]}
         actions={[
           { label: "Demote", icon: UserMinus, variant: "destructive",
-            confirm: "Remove this role assignment? They keep their account, but lose admin powers.",
+            confirm: "Remove this role assignment? They keep their account, but lose this role.",
             onRun: async (r) => {
+              // Guard self-demotion: deleting your own role row risks locking
+              // yourself out (recoverable only via direct DB access).
+              if (user && r.user_id === user.id) {
+                throw new Error("You cannot demote your own account — ask another operator or use the database.");
+              }
               const { error } = await supabase.from("user_roles").delete().eq("id", r.id);
               if (error) throw error;
             }},
@@ -103,7 +110,8 @@ function PromoteDialog({ onClose }: { onClose: () => void }) {
     });
     setBusy(false);
     if (error) return toast.error(error.message);
-    toast.success(`${email} promoted to ${role}`);
+    toast.success(`${email} recorded as ${role} — note: console access is gated by is_admin, not this role yet.`);
+    window.dispatchEvent(new Event("admin-console-refresh"));
     onClose();
   };
 

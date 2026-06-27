@@ -131,6 +131,7 @@ function CreateShowcase({ onClose }: { onClose: () => void }) {
     setBusy(false);
     if (error) return toast.error(error.message);
     toast.success("Gallery entry added");
+    window.dispatchEvent(new Event("admin-console-refresh"));
     onClose();
   };
 

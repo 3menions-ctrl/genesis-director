@@ -312,15 +312,34 @@ export function VideoCommentsSection({ projectId, className }: VideoCommentsSect
     }
   };
 
-  // Organize comments into threads
-  const topLevelComments = commentsWithProfiles.filter(c => !c.reply_to_id);
+  // Organize comments into threads. Replies-to-replies previously got bucketed
+  // under their parent *reply* (which is never iterated for sub-replies), so
+  // they silently vanished from the UI while still counting toward the total —
+  // inflating the count. We now resolve every reply to its ROOT top-level
+  // ancestor so nested replies render (one indent level) and the count matches
+  // what's actually shown. Orphaned replies (parent missing) render top-level.
+  const commentById = new Map(commentsWithProfiles.map(c => [c.id, c]));
+  const topLevelComments = commentsWithProfiles.filter(
+    c => !c.reply_to_id || !commentById.has(c.reply_to_id)
+  );
+  const resolveRoot = (c: (typeof commentsWithProfiles)[number]) => {
+    let cur = c;
+    const seen = new Set<string>();
+    while (cur.reply_to_id && commentById.has(cur.reply_to_id) && !seen.has(cur.id)) {
+      seen.add(cur.id);
+      cur = commentById.get(cur.reply_to_id)!;
+    }
+    return cur;
+  };
   const repliesMap = new Map<string, typeof commentsWithProfiles>();
   commentsWithProfiles
-    .filter(c => c.reply_to_id)
+    .filter(c => c.reply_to_id && commentById.has(c.reply_to_id))
     .forEach(c => {
-      const existing = repliesMap.get(c.reply_to_id!) || [];
+      const root = resolveRoot(c);
+      if (root.id === c.id) return;
+      const existing = repliesMap.get(root.id) || [];
       existing.push(c);
-      repliesMap.set(c.reply_to_id!, existing);
+      repliesMap.set(root.id, existing);
     });
 
   return (

@@ -670,10 +670,16 @@ function DmThread({ userId, partnerId, onClose, reducedMotion }: { userId: strin
 
   const load = useCallback(async () => {
     setLoading(true);
+    // partnerId comes from the URL and is interpolated raw into the .or()
+    // PostgREST filter string below, so apply the same sanitization used for
+    // the search box (NewDmButton) — strip the reserved comma/paren/backslash
+    // and ilike '%' chars so a crafted ?dm= value can't inject extra filters.
+    // The .eq() calls are parameterized and need no escaping.
+    const safePartner = partnerId.replace(/[,()\\]/g, "").replace(/%/g, "");
     const [partnerRes, messagesRes, reactionsRes] = await Promise.all([
       supabase.from("profiles_public" as never).select("id, display_name, username, avatar_url, tagline").eq("id", partnerId).maybeSingle(),
       supabase.from("direct_messages" as never).select("*")
-        .or(`and(sender_id.eq.${userId},recipient_id.eq.${partnerId}),and(sender_id.eq.${partnerId},recipient_id.eq.${userId})`)
+        .or(`and(sender_id.eq.${userId},recipient_id.eq.${safePartner}),and(sender_id.eq.${safePartner},recipient_id.eq.${userId})`)
         .is("deleted_at", null)
         .order("created_at", { ascending: true })
         .limit(200),

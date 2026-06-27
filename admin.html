@@ -8,7 +8,8 @@
     <meta name="description" content="Small Bridges internal admin console." />
     <!-- Internal tool — never index, never follow. -->
     <meta name="robots" content="noindex, nofollow, noarchive" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: https: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.replicate.com; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self';" />
+    <!-- 'unsafe-eval' removed to match index.html (the app builds/runs without it). Do not add it back on this high-privilege admin surface. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: https: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.replicate.com; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self';" />
     <link rel="icon" href="/favicon.ico" />
   </head>
   <body>

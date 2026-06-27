@@ -213,7 +213,10 @@ export function buildSeamlessCommand({
     bold?: boolean;
   }>;
   overlays?: Array<{ timelineStartSec: number; durationSec: number }>;
-  auxAudio?: Array<{ timelineStartSec: number; durationSec: number }>;
+  /** Extra audio tracks. `kind:"voice"` (A1 voiceover) mixes into the master at
+   *  FULL level — it IS the narration. `kind:"music"` (A2+, the default) is
+   *  amixed and, with autoDuck, sidechain-ducked under the voice+master. */
+  auxAudio?: Array<{ timelineStartSec: number; durationSec: number; kind?: "music" | "voice" }>;
 }): { command: string } {
   const n = inputs.length;
   if (n < 1) {
@@ -417,11 +420,14 @@ export function buildSeamlessCommand({
     finalVideoLabel = lastLabel;
   }
 
-  // ── A2+ aux audio mix ─────────────────────────────────────────────
+  // ── A1 voiceover + A2+ aux audio mix ──────────────────────────────
+  // Voice (A1) is part of the master narration → mixed at FULL level.
+  // Music (A2+) is amixed and, with autoDuck, ducked under the voice+master.
   const auxChain: string[] = [];
   if (auxAudio && auxAudio.length > 0) {
     const overlayCount = overlays?.length ?? 0;
-    const auxNormLabels: string[] = [];
+    const voiceLabels: string[] = [];
+    const musicLabels: string[] = [];
     for (let i = 0; i < auxAudio.length; i++) {
       const aux = auxAudio[i];
       const slotIdx = inputs.length + overlayCount + i;
@@ -432,39 +438,46 @@ export function buildSeamlessCommand({
           `aformat=sample_fmts=fltp:channel_layouts=${TARGET_CHANNELS},` +
           `adelay=delays=${delayMs}:all=1[${normLabel}]`,
       );
-      auxNormLabels.push(normLabel);
+      (aux.kind === "voice" ? voiceLabels : musicLabels).push(normLabel);
     }
-    if (autoDuck && auxNormLabels.length > 0) {
-      const sidechainLabels: string[] = [];
-      const splitOuts: string[] = ["aMainKeep"];
-      for (let i = 0; i < auxNormLabels.length; i++) {
-        const sl = `aSc${i}`;
-        sidechainLabels.push(sl);
-        splitOuts.push(sl);
-      }
+
+    // 1) Fold A1 voiceover into the master at full level.
+    if (voiceLabels.length > 0) {
+      const n = 1 + voiceLabels.length;
       auxChain.push(
-        `[${finalAudioLabel}]asplit=${splitOuts.length}${splitOuts.map((l) => `[${l}]`).join("")}`,
+        `[${finalAudioLabel}]${voiceLabels.map((l) => `[${l}]`).join("")}amix=inputs=${n}:duration=longest:dropout_transition=0:normalize=0[aWithVoice]`,
       );
-      const duckedLabels: string[] = [];
-      for (let i = 0; i < auxNormLabels.length; i++) {
-        const out = `auxD${i}`;
-        duckedLabels.push(out);
+      finalAudioLabel = "aWithVoice";
+    }
+
+    // 2) Music: duck under the voice+master (autoDuck) or amix at full level.
+    if (musicLabels.length > 0) {
+      if (autoDuck) {
+        const splitOuts: string[] = ["aMainKeep", ...musicLabels.map((_, i) => `aSc${i}`)];
         auxChain.push(
-          `[${auxNormLabels[i]}][${sidechainLabels[i]}]` +
-            `sidechaincompress=threshold=0.05:ratio=8:attack=20:release=300:level_sc=1.0[${out}]`,
+          `[${finalAudioLabel}]asplit=${splitOuts.length}${splitOuts.map((l) => `[${l}]`).join("")}`,
+        );
+        const duckedLabels: string[] = [];
+        for (let i = 0; i < musicLabels.length; i++) {
+          const out = `auxD${i}`;
+          duckedLabels.push(out);
+          auxChain.push(
+            `[${musicLabels[i]}][aSc${i}]` +
+              `sidechaincompress=threshold=0.05:ratio=8:attack=20:release=300:level_sc=1.0[${out}]`,
+          );
+        }
+        const n = 1 + duckedLabels.length;
+        auxChain.push(
+          `[aMainKeep]${duckedLabels.map((l) => `[${l}]`).join("")}amix=inputs=${n}:duration=longest:dropout_transition=0:normalize=0[aWithAux]`,
+        );
+      } else {
+        const n = 1 + musicLabels.length;
+        auxChain.push(
+          `[${finalAudioLabel}]${musicLabels.map((l) => `[${l}]`).join("")}amix=inputs=${n}:duration=longest:dropout_transition=0:normalize=0[aWithAux]`,
         );
       }
-      const inputCount = 1 + duckedLabels.length;
-      auxChain.push(
-        `[aMainKeep]${duckedLabels.map((l) => `[${l}]`).join("")}amix=inputs=${inputCount}:duration=longest:dropout_transition=0:normalize=0[aWithAux]`,
-      );
-    } else {
-      const inputCount = 1 + auxNormLabels.length;
-      auxChain.push(
-        `[${finalAudioLabel}]${auxNormLabels.map((l) => `[${l}]`).join("")}amix=inputs=${inputCount}:duration=longest:dropout_transition=0:normalize=0[aWithAux]`,
-      );
+      finalAudioLabel = "aWithAux";
     }
-    finalAudioLabel = "aWithAux";
   }
 
   // ── Master loudnorm ───────────────────────────────────────────────

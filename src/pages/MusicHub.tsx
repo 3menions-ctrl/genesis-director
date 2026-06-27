@@ -264,11 +264,19 @@ function MyTracksPanel({
   signedIn, onUpload, onSignIn,
 }: { signedIn: boolean; onUpload: () => void; onSignIn: () => void }) {
   const { assets, loading, remove } = useMediaLibrary({ mediaType: "audio", limit: 60 });
+  // The audio library is SHARED with voice/TTS (per-scene narration, avatar
+  // lines, etc. all save here). "My Tracks" on the music page should show only
+  // music + user uploads — not generated voice clips — so filter those out.
+  const tracks = assets.filter(
+    (a) =>
+      a.generation_mode !== "voice" &&
+      !["generate-voice", "editor-tts", "regenerate-audio"].includes(a.source ?? ""),
+  );
 
   return (
     <section className="mb-12">
       <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
-        <SectionLabel label="My tracks" icon={FileMusic} meta={signedIn ? `${assets.length} saved` : undefined} />
+        <SectionLabel label="My tracks" icon={FileMusic} meta={signedIn ? `${tracks.length} saved` : undefined} />
         <button
           onClick={onUpload}
           className="inline-flex items-center gap-2 h-9 px-4 rounded-full bg-accent/90 hover:bg-accent text-black text-[11px] font-mono uppercase tracking-[0.22em] shrink-0"
@@ -290,7 +298,7 @@ function MyTracksPanel({
           <Spinner size="md" tone="muted" />
           <span className="text-[12px] font-mono uppercase tracking-[0.22em]">Loading your tracks…</span>
         </div>
-      ) : assets.length === 0 ? (
+      ) : tracks.length === 0 ? (
         <div className="text-center py-12 max-w-md mx-auto rounded-2xl bg-white/[0.03]">
           <FileMusic className="w-6 h-6 mx-auto mb-3 text-muted-foreground" />
           <h3 className="font-display italic text-[20px] font-light text-foreground mb-2" style={{ fontFamily: "'Fraunces', serif" }}>No tracks yet.</h3>
@@ -301,7 +309,7 @@ function MyTracksPanel({
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {assets.map((a) => <TrackRow key={a.id} asset={a} onRemove={remove} />)}
+          {tracks.map((a) => <TrackRow key={a.id} asset={a} onRemove={remove} />)}
         </div>
       )}
     </section>

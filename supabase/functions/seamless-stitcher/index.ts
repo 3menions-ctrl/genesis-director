@@ -560,7 +560,11 @@ serve(async (req) => {
       });
       const auxAudioClips = visibleRows.filter((c) => {
         const t = c.properties?.trackId;
-        return typeof t === "string" && t.startsWith("sys:A") && t !== "sys:A1";
+        // A1 voiceover + A2+ music. A1 audio-only clips were previously DROPPED
+        // (they match no routing bucket — not V1, not a V2 overlay, and were
+        // excluded here), silently losing separately-added narration from the
+        // final render. Now included and tagged as "voice" below.
+        return typeof t === "string" && t.startsWith("sys:A");
       });
       // Log routing for observability — small projects will see a
       // one-line summary in the function logs after each invocation.
@@ -989,6 +993,8 @@ serve(async (req) => {
         .map((d) => ({
           timelineStartSec: d.timelineStartSec,
           durationSec: d.durationSec,
+          // A1 = narration (full level); A2+ = music (ducked under voice).
+          kind: (d.row.properties?.trackId === "sys:A1" ? "voice" : "music") as "voice" | "music",
         })),
     });
     const inputArgs: Record<string, string> = {};

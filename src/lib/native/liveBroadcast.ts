@@ -15,10 +15,28 @@
  *   rtc-ice    { to, from, candidate }       either direction, targeted
  */
 
+// STUN alone cannot traverse symmetric NAT / strict cellular CGNAT — the
+// dominant network for a mobile app — so Live frequently failed to connect.
+// Add a TURN relay (env-provisioned) as fallback. Set these at build time:
+//   VITE_TURN_URLS       comma-separated, e.g. "turn:turn.example.com:3478,turns:turn.example.com:5349"
+//   VITE_TURN_USERNAME   TURN credential username (or ephemeral token)
+//   VITE_TURN_CREDENTIAL TURN credential / password
+// Without them we fall back to STUN-only (previous behavior). Provision a TURN
+// provider (Twilio NTS, Cloudflare Calls, metered.ca, or self-hosted coturn).
+const TURN_URLS = (import.meta.env.VITE_TURN_URLS ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+const TURN_USERNAME = import.meta.env.VITE_TURN_USERNAME as string | undefined;
+const TURN_CREDENTIAL = import.meta.env.VITE_TURN_CREDENTIAL as string | undefined;
+
 const ICE: RTCConfiguration = {
   iceServers: [
     { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
+    ...(TURN_URLS.length > 0 && TURN_USERNAME && TURN_CREDENTIAL
+      ? [{ urls: TURN_URLS, username: TURN_USERNAME, credential: TURN_CREDENTIAL }]
+      : []),
   ],
+  // Prefer relay reliability once a TURN server is configured; 'all' keeps the
+  // direct/STUN path too. (Switch to 'relay' to force TURN for debugging.)
+  iceTransportPolicy: 'all',
 };
 
 type Send = (event: string, payload: Record<string, unknown>) => void;

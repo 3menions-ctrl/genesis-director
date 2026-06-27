@@ -325,6 +325,28 @@ serve(async (req) => {
     let projectUserId: string | null = null;
     let projectVideoEngine: string | null = null;
     let projectQualityOptions: QualityPostOpts = { upscale4k: false, fps60: false };
+    // Hoisted to outer scope: the shared stitch-input loop (and track-hash
+    // below) reference these AFTER the `if (isProjectMode)` block. Declaring
+    // them as `const` inside the block left them undefined downstream
+    // ("isTrackMuted is not defined") — which crashed EVERY stitch.
+    let projectTracks: Array<{
+      id: string;
+      kind: "video" | "audio";
+      muted?: boolean;
+      soloed?: boolean;
+    }> = [];
+    let isTrackMuted: (trackId: string | null | undefined) => boolean = () => false;
+    let titleClips: Array<{
+      text: string;
+      color: string;
+      startSec: number;
+      durationSec: number;
+      x?: number;
+      y?: number;
+      sizePct?: number;
+      fontFamily?: string;
+      bold?: boolean;
+    }> = [];
 
     if (isProjectMode) {
       const { data: project, error: projectErr } = await supabase
@@ -379,12 +401,7 @@ serve(async (req) => {
       if (!auth.isServiceRole && projectUserId && projectUserId !== auth.userId) {
         return forbiddenResponse(corsHeaders, "Forbidden: you do not own this project");
       }
-      const projectTracks: Array<{
-        id: string;
-        kind: "video" | "audio";
-        muted?: boolean;
-        soloed?: boolean;
-      }> = Array.isArray(editorState.tracks)
+      projectTracks = Array.isArray(editorState.tracks)
         ? (editorState.tracks as Array<{
             id: string;
             kind: "video" | "audio";
@@ -396,17 +413,7 @@ serve(async (req) => {
       // editor_state, NOT video_clips (no video_url). Collect them
       // with their absolute time windows so we can emit drawtext
       // overlays in the final video chain.
-      const titleClips: Array<{
-        text: string;
-        color: string;
-        startSec: number;
-        durationSec: number;
-        x?: number;
-        y?: number;
-        sizePct?: number;
-        fontFamily?: string;
-        bold?: boolean;
-      }> =
+      titleClips =
         (editorState.scenes ?? [])
           .flatMap((s) => s.clips ?? [])
           .filter((c) => c.kind === "title" && typeof c.titleText === "string" && c.titleText.trim() !== "")
@@ -469,7 +476,7 @@ serve(async (req) => {
           )
           .map((t) => t.id),
       );
-      const isTrackMuted = (trackId: string | null | undefined): boolean => {
+      isTrackMuted = (trackId: string | null | undefined): boolean => {
         const id = trackId ?? "sys:V1";
         return mutedTrackIds.has(id);
       };
@@ -1263,6 +1270,24 @@ async function runFfmpeg(args: {
       "REPLICATE_API_KEY not configured — set it in Supabase → Edge Functions → Secrets so renders can run.",
     );
   }
+  // ── Adapt our command to the magpai-app/cog-ffmpeg convention ──────────
+  // The cog's predict.py:
+  //   • downloads each `fileN` (a Path input) and ALSO copyfile()s it to the
+  //     fixed local path `/tmp/fileN` — so input references MUST be `/tmp/fileN`,
+  //     not the bare `fileN` our builders emit (bare `fileN` resolves to a
+  //     nonexistent file in the cwd → "fileN: No such file or directory").
+  //   • returns the result as `Path(output1)` relative to the cwd — so the
+  //     command MUST write its output to a file literally named `output1value`
+  //     (our builders emit a trailing `output1` token), and we pass that same
+  //     name as the `output1` param.
+  //   • runs the command through Python `command.format(file1=…, …)`, which
+  //     throws on any stray literal `{`/`}`. We escape them (round-trips: the
+  //     cog's .format turns `{{`/`}}` back into `{`/`}`).
+  let cogCommand = args.command
+    .replace(/\bfile([1-9])\b/g, "/tmp/file$1")
+    .replace(/\boutput([1-2])\b/g, args.outputName);
+  cogCommand = cogCommand.replace(/\{/g, "{{").replace(/\}/g, "}}");
+
   const submit = await fetch("https://api.replicate.com/v1/predictions", {
     method: "POST",
     headers: {
@@ -1272,7 +1297,7 @@ async function runFfmpeg(args: {
     body: JSON.stringify({
       version: FFMPEG_MODEL_VERSION,
       input: {
-        command: args.command,
+        command: cogCommand,
         output1: args.outputName,
         ...args.inputs,
       },

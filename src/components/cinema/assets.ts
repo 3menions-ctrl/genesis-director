@@ -13,12 +13,15 @@
 export const HERO_VIDEO =
   "https://ywcwaumozoejierlfkgj.supabase.co/storage/v1/object/public/final-videos/8be6d9c9-776e-46af-9ad8-23ad41f0f99c/preserved/landing-hoppy-immersive-park-clear.mp4";
 
-// Glossy editor / product-UI reveal.
+// Glossy editor / product-UI reveal. Re-pointed off the dead apex-studio.ai
+// domain to a live clip in the current project bucket (apex host is gone).
 export const EDITOR_VIDEO =
-  "https://apex-studio.ai/__l5e/assets-v1/2d6f0d1d-4ec0-4d3f-8819-fbb60f4cbaf2/landing-immersive-hero.mp4";
+  "https://ywcwaumozoejierlfkgj.supabase.co/storage/v1/object/public/final-videos/8be6d9c9-776e-46af-9ad8-23ad41f0f99c/preserved/landing-hoppy-immersive-park-web.mp4";
 
+// Avatar wave/hello. Re-pointed off the dead apex-studio.ai domain to the live
+// Hoppy intro clip in the current project bucket.
 export const AVATAR_VIDEO =
-  "https://apex-studio.ai/__l5e/assets-v1/ae9bd02b-cca0-4763-8fe7-39e9cbd2d56c/landing-avatar-wave-hello.mp4";
+  "https://ywcwaumozoejierlfkgj.supabase.co/storage/v1/object/public/final-videos/8be6d9c9-776e-46af-9ad8-23ad41f0f99c/preserved/landing-hoppy-intro-web.mp4";
 
 const GALLERY_BASE =
   "https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos";

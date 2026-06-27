@@ -51,3 +51,7 @@ build/icon.iconset/
 # Playwright test artifacts
 test-results/
 playwright-report/
+qa/.testuser.json
+qa/.auth.json
+qa/.bizuser.json
+qa/.bizauth.json

@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Play, X, ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import { FILMS } from "@/data/filmsLibrary";
+import { PLAYABLE_FILMS as FILMS } from "@/data/filmsLibrary";
 import { Button, Eyebrow, ACCENT, EASE } from "@/components/cinema/ui";
 import { BrandTile } from "@/components/cinema/Logo";
 
@@ -22,7 +22,7 @@ function FilmTile({ title, clips, onOpen }: { title: string; clips: string[]; on
       onMouseLeave={() => ref.current?.pause()}
       className="group relative block aspect-video w-full overflow-hidden rounded-xl transition-transform duration-300 hover:-translate-y-1"
     >
-      <video ref={ref} src={clips[0]} muted loop playsInline preload="metadata" className="h-full w-full object-cover" />
+      <video ref={ref} src={clips[0]} muted loop playsInline preload="metadata" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
       <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent transition-opacity duration-300 group-hover:from-black/70" />
       <span aria-hidden className="absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/12 opacity-0 backdrop-blur-md transition-opacity duration-300 group-hover:opacity-100">
         <Play className="ml-0.5 h-4 w-4 fill-white text-white" />
@@ -60,6 +60,7 @@ function Lightbox({ index, onClose, onPrev, onNext }: { index: number; onClose: 
           controls
           className="w-full rounded-xl bg-black shadow-[0_60px_160px_-40px_rgba(0,0,0,0.95)]"
           onEnded={() => setClip((c) => (c + 1 < film.clips.length ? c + 1 : c))}
+          onError={() => setClip((c) => (c + 1 < film.clips.length ? c + 1 : c))}
         />
         <div className="mt-4 flex items-center justify-between">
           <div>

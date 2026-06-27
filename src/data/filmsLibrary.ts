@@ -338,7 +338,7 @@ const BROKEN_CLIPS = new Set<string>([
 ]);
 
 /** Films with their dead clips removed; films left with no playable clip are dropped. */
-const PLAYABLE_FILMS: Film[] = FILMS
+export const PLAYABLE_FILMS: Film[] = FILMS
   .map((f) => ({ ...f, clips: f.clips.filter((c) => !BROKEN_CLIPS.has(c)) }))
   .filter((f) => f.clips.length > 0);
 

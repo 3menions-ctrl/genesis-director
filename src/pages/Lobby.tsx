@@ -21,9 +21,9 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
-  Play, Sparkles, ArrowRight, Flame, Trophy, Aperture, Search, Plus, Shuffle, Eye,
+  Play, Sparkles, ArrowRight, Flame, Trophy, Aperture, Search, Plus, Shuffle, Eye, Film,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -32,6 +32,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { usePageTone, TONE_PRESETS } from "@/lib/page-tone";
 import { FoundationShell } from "@/components/foundation/FoundationShell";
 import { ImmersiveTheater, type TheaterReel } from "@/components/social/ImmersiveTheater";
+import { ImmersiveFeed, type FeedReel } from "@/components/social/ImmersiveFeed";
 import { CenterLine } from "@/components/ui/CenterLine";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -143,6 +144,9 @@ export default function Lobby() {
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  // Immersive autoplay feed
+  const [feedOpen, setFeedOpen] = useState(false);
+  const [feedStart, setFeedStart] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -377,6 +381,10 @@ export default function Lobby() {
                       className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-[13px] font-semibold text-[#08090d] transition-transform hover:-translate-y-px">
                       <Play className="h-4 w-4 fill-current" /> Watch now
                     </button>
+                    <button type="button" onClick={() => { setFeedStart(0); setFeedOpen(true); }}
+                      className="inline-flex items-center gap-2 rounded-full bg-white/[0.05] px-4 py-2.5 text-[13px] font-medium text-foreground backdrop-blur-sm transition-colors hover:bg-white/10">
+                      <Film className="h-3.5 w-3.5" /> Immersive feed
+                    </button>
                     <button type="button" onClick={() => startWithSeed(heroReel.synopsis || heroReel.title)}
                       className="inline-flex items-center gap-2 rounded-full bg-white/[0.05] px-4 py-2.5 text-[13px] font-medium text-foreground backdrop-blur-sm transition-colors hover:bg-white/10">
                       <Shuffle className="h-3.5 w-3.5" /> Remix this look
@@ -548,6 +556,22 @@ export default function Lobby() {
         }))}
         onSwitch={(next) => setTheaterReel(next)}
       />
+
+      {/* Immersive autoplay feed — full-screen vertical scroll-to-next mode. */}
+      <AnimatePresence>
+        {feedOpen && filtered.length > 0 && (
+          <ImmersiveFeed
+            reels={filtered.map((r): FeedReel => ({
+              id: r.id, title: r.title, video_url: r.video_url, thumbnail_url: r.thumbnail_url,
+              like_count: r.like_count, play_count: r.play_count,
+              creator_id: r.creator_id, creator_name: r.creator_name,
+              world_name: r.world_name, world_accent: r.world_accent,
+            }))}
+            startIndex={feedStart}
+            onClose={() => setFeedOpen(false)}
+          />
+        )}
+      </AnimatePresence>
     </FoundationShell>
   );
 }

@@ -1,9 +1,22 @@
-name: Deploy to Cloudflare Pages
+name: Deploy to Cloudflare Pages (DISABLED — prod is Vercel)
 
-# Deploys the production build to Cloudflare Pages on every push to main.
-# Preview deploys on PRs get a unique URL. Cloudflare Pages is OSS-friendly:
-# Workers runtime is open source, free tier is generous, no vendor lock-in
-# (you can move the same build to any static host).
+# ⚠️ DISABLED 2026-06-27. PRODUCTION IS SERVED BY VERCEL, NOT CLOUDFLARE.
+# Verified live: smallbridges.co / www.smallbridges.co return `server: Vercel`
+# (x-vercel-id). Vercel deploys via its GitHub integration on push to main.
+# This Cloudflare Pages pipeline is NOT attached to the domain — leaving it on
+# `push: main` caused redundant double-builds and confusion about "what's live".
+# Triggers are now manual-only (workflow_dispatch). Do NOT re-enable the push
+# trigger unless you are intentionally cutting the domain over to Cloudflare
+# (then also re-point DNS and disable the Vercel project). See CLAUDE.md.
+#
+# NOTE: the typecheck/edge-auth/test deploy gate this workflow added (audit #20)
+# only protected THIS now-disabled pipeline — it does NOT gate the live Vercel
+# deploys. Re-implement that gate on the Vercel path (required CI status on the
+# production branch, or a Vercel "Ignored Build Step" / buildCommand) to truly
+# close that blocker.
+#
+# Deploys the production build to Cloudflare Pages. Kept for reference / manual
+# fallback only.
 #
 # Required repo secrets:
 #   CLOUDFLARE_API_TOKEN     — token with `Cloudflare Pages: Edit`
@@ -16,11 +29,9 @@ name: Deploy to Cloudflare Pages
 #   VITE_POSTHOG_HOST        — analytics host (optional)
 #   VITE_TURNSTILE_SITE_KEY  — Cloudflare Turnstile site key (optional)
 
+# Manual-only. Push/PR auto-triggers removed so this no longer double-builds
+# alongside Vercel. Run via Actions → "Run workflow" if you ever need it.
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 jobs:

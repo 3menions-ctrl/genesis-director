@@ -134,7 +134,7 @@ function MessageRow({
 export function WorldChat({ className }: { className?: string }) {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { messages, loading, sending, send, uploadImage, canSend } = useWorldChat();
+  const { messages, loading, sending, send, uploadImage, canSend, onlineCount } = useWorldChat();
   const [draft, setDraft] = useState("");
   const [pendingImage, setPendingImage] = useState<{ url: string; name: string } | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -237,8 +237,8 @@ export function WorldChat({ className }: { className?: string }) {
           </div>
         </div>
         <span className="flex items-center gap-1.5 rounded-full bg-[hsl(160_60%_50%/0.1)] px-2 py-1 font-mono text-[9px] uppercase tracking-[0.2em] text-[hsl(160_60%_55%)]">
-          <span className="h-1.5 w-1.5 rounded-full bg-[hsl(160_60%_50%)] shadow-[0_0_8px_hsl(160_60%_50%)]" />
-          live
+          <span className="h-1.5 w-1.5 rounded-full bg-[hsl(160_60%_50%)] shadow-[0_0_8px_hsl(160_60%_50%)] animate-pulse" />
+          {onlineCount > 0 ? `${onlineCount} online` : "live"}
         </span>
       </div>
 

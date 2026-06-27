@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { CheckCircle2, Loader2, MailX, ShieldAlert } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { GlassPanel, GlassButton } from '@/components/foundation/Floating';
 import { supabase } from '@/integrations/supabase/client';
 
 import { usePageMeta } from '@/hooks/usePageMeta';
@@ -77,7 +77,7 @@ export default function Unsubscribe() {
         <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-primary/[0.06] blur-[120px]" />
       </div>
 
-      <div className="relative z-10 w-full max-w-md rounded-3xl border border-white/[0.06] bg-[hsl(220,14%,4%)]/80 backdrop-blur-xl p-8 sm:p-10 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)]">
+      <GlassPanel className="relative z-10 w-full max-w-md p-8 sm:p-10">
         <div className="text-[10px] uppercase tracking-[0.32em] text-primary/60 font-medium mb-3 inline-flex items-center gap-2">
           <MailX className="w-3 h-3" /> Email preferences
         </div>
@@ -111,23 +111,24 @@ export default function Unsubscribe() {
               We'll stop sending non-essential emails to this address. You may still receive
               security and billing notifications required for your account.
             </p>
-            <Button
+            <GlassButton
               onClick={confirm}
               disabled={state.kind === 'submitting'}
-              className="w-full mt-6 bg-primary hover:bg-primary/90 text-white"
+              tone="accent"
+              className="mt-6 w-full"
             >
               {state.kind === 'submitting' ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Confirming…</>
+                <><Loader2 className="w-4 h-4 animate-spin" /> Confirming…</>
               ) : (
                 'Confirm unsubscribe'
               )}
-            </Button>
+            </GlassButton>
           </>
         )}
 
         {state.kind === 'done' && (
           <div className="text-center">
-            <div className="w-12 h-12 mx-auto rounded-2xl bg-emerald-500/[0.10] border border-emerald-400/30 flex items-center justify-center">
+            <div className="w-12 h-12 mx-auto rounded-2xl bg-emerald-500/[0.10] flex items-center justify-center">
               <CheckCircle2 className="w-6 h-6 text-emerald-300" />
             </div>
             <h1 className="font-display text-[26px] font-light leading-tight mt-4">You're unsubscribed</h1>
@@ -137,14 +138,14 @@ export default function Unsubscribe() {
 
         {state.kind === 'error' && (
           <div className="text-center">
-            <div className="w-12 h-12 mx-auto rounded-2xl bg-rose-500/[0.10] border border-rose-400/30 flex items-center justify-center">
+            <div className="w-12 h-12 mx-auto rounded-2xl bg-rose-500/[0.10] flex items-center justify-center">
               <ShieldAlert className="w-6 h-6 text-rose-300" />
             </div>
             <h1 className="font-display text-[26px] font-light leading-tight mt-4">Something went wrong</h1>
             <p className="text-white/55 text-sm mt-2">{state.message}</p>
           </div>
         )}
-      </div>
+      </GlassPanel>
     </div>
   );
 }

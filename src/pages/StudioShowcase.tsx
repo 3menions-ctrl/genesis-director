@@ -642,7 +642,7 @@ export default function StudioShowcase() {
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {EDITOR_CAPS.map((c, i) => (
             <Reveal key={c.label} delay={i * 0.05}>
-              <div className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+              <div className="flex items-start gap-3 p-4">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-1 ring-white/12" style={{ background: `hsl(${ACCENT} / 0.14)` }}>
                   <c.Icon className="h-4 w-4" style={{ color: `hsl(${ACCENT})` }} strokeWidth={1.7} />
                 </span>
@@ -658,7 +658,7 @@ export default function StudioShowcase() {
         <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
           {STEPS.map((s, i) => (
             <Reveal key={s.label} delay={i * 0.07}>
-              <div className="relative h-full rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-center">
+              <div className="relative h-full p-5 text-center">
                 <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full ring-1 ring-white/15" style={{ background: `hsl(${ACCENT} / 0.16)` }}>
                   <s.Icon className="h-5 w-5" style={{ color: `hsl(${ACCENT})` }} strokeWidth={1.7} />
                 </span>

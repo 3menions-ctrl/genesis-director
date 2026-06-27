@@ -6,6 +6,7 @@ import { PageHero } from "@/components/page/PageHero";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { PhotoBand } from "@/components/marketing/PhotoBand";
 import { Footer } from "@/components/cinema/Footer";
+import { SectionLabel } from "@/components/foundation/Floating";
 import { usePageMeta } from "@/hooks/usePageMeta";
 
 const AbstractBackground = lazy(() => import("@/components/landing/AbstractBackground"));
@@ -498,14 +499,10 @@ const Terms = () => {
             className="mb-14 px-0 sm:px-0"
           />
 
-          {/* Table of contents */}
-          <nav
-            aria-label="Table of contents"
-            className="mb-14 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6"
-          >
-            <div className="text-[11px] font-mono uppercase tracking-[0.28em] text-white/40 mb-4">
-              On this page
-            </div>
+          {/* Table of contents — borderless, floats between hairlines */}
+          <nav aria-label="Table of contents" className="mb-14">
+            <div aria-hidden className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+            <SectionLabel className="my-6">On this page</SectionLabel>
             <ol className="grid sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
               {sections.map((s, i) => (
                 <li key={s.id}>
@@ -521,6 +518,7 @@ const Terms = () => {
                 </li>
               ))}
             </ol>
+            <div aria-hidden className="mt-6 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
           </nav>
 
           {/* Sections */}

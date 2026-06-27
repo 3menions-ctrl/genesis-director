@@ -53,7 +53,7 @@ import { HeroGalleryBackdrop } from "@/components/foundation/HeroGalleryBackdrop
 import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { GlassButton, SectionLabel } from "@/components/foundation/Floating";
 import { TemplateDetailDrawer } from "@/components/templates/TemplateDetailDrawer";
 
 import {
@@ -179,7 +179,7 @@ const TemplateCard = memo(function TemplateCard({
       <div
         className={cn(
           "relative aspect-[3/4] rounded-2xl overflow-hidden",
-          "bg-white/[0.03] backdrop-blur shadow-[0_18px_50px_-24px_rgba(0,0,0,0.75)]",
+          "shadow-[0_18px_50px_-24px_rgba(0,0,0,0.75)]",
           "transition-all duration-500",
           hover && "-translate-y-0.5 shadow-[0_30px_80px_-20px_hsla(215,100%,60%,0.45)]",
         )}
@@ -469,9 +469,9 @@ function TemplatesContent() {
           {/* Filter tiles — engine + aspect rows, icon over a small label */}
           <div className="mt-6 space-y-4">
             <div className="flex items-center gap-3">
-              <span className="hidden sm:inline-block font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/45 w-16 shrink-0">
+              <SectionLabel className="hidden sm:inline-block w-16 shrink-0">
                 Engine
-              </span>
+              </SectionLabel>
               <div className="flex flex-wrap gap-2">
                 {ENGINE_FILTERS.map((opt) => (
                   <IconFilterTile
@@ -485,9 +485,9 @@ function TemplatesContent() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className="hidden sm:inline-block font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/45 w-16 shrink-0">
+              <SectionLabel className="hidden sm:inline-block w-16 shrink-0">
                 Aspect
-              </span>
+              </SectionLabel>
               <div className="flex flex-wrap gap-2">
                 {ASPECT_FILTERS.map((opt) => (
                   <IconFilterTile
@@ -722,21 +722,17 @@ function CategoryRail({
 function EmptyState({ onReset }: { onReset: () => void }) {
   return (
     <div className="text-center py-20">
-      <div className="mx-auto mb-5 inline-flex items-center justify-center w-14 h-14 rounded-full bg-white/[0.04] backdrop-blur shadow-[0_18px_50px_-24px_rgba(0,0,0,0.75)]">
-        <Search className="w-6 h-6 text-foreground/55" />
+      <div className="mx-auto mb-5 inline-flex items-center justify-center w-14 h-14">
+        <Search className="w-6 h-6 text-foreground/45" />
       </div>
       <h3 className="text-xl font-display italic text-foreground/95 mb-2">No blueprints matched</h3>
       <p className="text-[13px] text-foreground/55 mb-5 max-w-sm mx-auto">
         Try clearing a filter or two — your category + engine + aspect combination might be too narrow.
       </p>
-      <Button
-        variant="ghost"
-        className="border-transparent bg-white/[0.05] backdrop-blur text-foreground hover:bg-white/[0.1] rounded-full shadow-[0_14px_40px_-24px_rgba(0,0,0,0.8)]"
-        onClick={onReset}
-      >
+      <GlassButton onClick={onReset}>
         Clear filters
         <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-      </Button>
+      </GlassButton>
     </div>
   );
 }

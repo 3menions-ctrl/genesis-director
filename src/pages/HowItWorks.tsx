@@ -1,13 +1,12 @@
 import { memo, useRef } from 'react';
 import { motion, useScroll, useTransform, useInView } from 'framer-motion';
-import { Link } from 'react-router-dom';
 import {
   ArrowRight, Shield, Layers, Film, Music,
   Eye, Zap, Brain, Camera, Palette, Lock,
   Sparkles, ChevronDown, Image as ImageIcon, Users, LayoutTemplate,
   Globe, AudioLines, Type, Wand2, Cpu, Share2, Code2, Scissors
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { GlassButton } from '@/components/foundation/Floating';
 import { MarketingHeader } from '@/components/marketing/MarketingHeader';
 import { VioletBackdrop } from '@/components/marketing/VioletBackdrop';
 import { Footer as SiteFooter } from '@/components/cinema/Footer';
@@ -209,27 +208,25 @@ const LayerCard = memo(function LayerCard({ layer, index }: { layer: typeof PIPE
       >
         {/* Ambient glow */}
         <div 
-          className="absolute -inset-4 rounded-[2rem] opacity-0 group-hover:opacity-100 blur-3xl transition-opacity duration-700 pointer-events-none"
+          className="absolute -inset-4 rounded-[2rem] opacity-50 blur-3xl pointer-events-none"
           style={{ background: `radial-gradient(ellipse at center, hsl(${layer.accentHsl} / 0.15), transparent 70%)` }}
         />
 
-        <div className="group relative rounded-2xl md:rounded-3xl overflow-hidden">
-          {/* Glass border */}
-          <div className="absolute inset-0 rounded-2xl md:rounded-3xl p-px">
-            <div className={`absolute inset-0 rounded-2xl md:rounded-3xl bg-gradient-to-br ${layer.gradient} opacity-50 group-hover:opacity-100 transition-opacity duration-500`} />
-          </div>
-          
-          <div className="relative bg-glass backdrop-blur-xl border border-white/[0.06] rounded-2xl md:rounded-3xl p-6 md:p-10 group-hover:border-white/[0.12] transition-all duration-500">
+        <div className="group relative">
+          <div className="relative p-2 md:p-4">
             {/* Layer number */}
             <div className="flex items-start justify-between mb-6">
               <div className="flex items-center gap-4">
-                <div 
-                  className="w-12 h-12 rounded-2xl flex items-center justify-center border border-white/[0.1] bg-glass group-hover:bg-glass-active transition-all"
-                  style={{ boxShadow: `0 0 30px hsl(${layer.accentHsl} / 0.1)` }}
+                <div
+                  className="relative w-12 h-12 rounded-full flex items-center justify-center text-white/80 transition-colors group-hover:text-white"
+                  style={{ filter: `drop-shadow(0 0 14px hsl(${layer.accentHsl} / 0.45))` }}
                 >
-                  <div className="text-white/70 group-hover:text-white transition-colors">
-                    {layer.icon}
-                  </div>
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0 rounded-full blur-xl opacity-50 transition-opacity duration-500 group-hover:opacity-90"
+                    style={{ background: `radial-gradient(circle, hsl(${layer.accentHsl} / 0.35), transparent 70%)` }}
+                  />
+                  {layer.icon}
                 </div>
                 <div>
                   <span className="text-xs font-mono text-white/65 tracking-widest">LAYER {layer.number}</span>
@@ -293,7 +290,7 @@ export default function HowItWorks() {
           transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
           className="text-center max-w-4xl mx-auto"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-glass border border-white/[0.08] backdrop-blur-xl mb-8">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.04] backdrop-blur-xl mb-8">
             <Sparkles className="w-3.5 h-3.5 text-white/50" />
             <span className="text-xs text-white/50 tracking-widest uppercase">Under the Hood</span>
           </div>
@@ -374,9 +371,9 @@ export default function HowItWorks() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-60px' }}
                 transition={{ delay: (i % 3) * 0.06, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-                className="group flex items-start gap-4 rounded-2xl bg-glass backdrop-blur-xl border border-[rgba(216,180,254,0.12)] p-5 transition-colors hover:border-[rgba(216,180,254,0.28)]"
+                className="group flex items-start gap-4 rounded-2xl p-5 transition-colors"
               >
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[rgba(216,180,254,0.18)] bg-violet-400/[0.06] text-violet-300 transition-colors group-hover:text-violet-200">
+                <div className="relative flex h-11 w-11 shrink-0 items-center justify-center text-violet-300 [filter:drop-shadow(0_0_14px_rgba(216,180,254,0.4))] transition-colors group-hover:text-violet-200">
                   {tile.icon}
                 </div>
                 <div>
@@ -405,11 +402,11 @@ export default function HowItWorks() {
             className="relative"
           >
             <div className="absolute -inset-6 rounded-[2.5rem] bg-[radial-gradient(ellipse_at_center,_rgba(168,85,247,0.22),_transparent_70%)] blur-2xl pointer-events-none" />
-            <div className="relative rounded-3xl border border-[rgba(216,180,254,0.16)] bg-glass backdrop-blur-xl p-2 md:p-3">
+            <div className="relative">
               <img
                 src="/cinema-assets/editor-annotated.jpg"
                 alt="The Small Bridges editor — four views, a frame-accurate timeline, the cast/voice inspector and per-clip audio mixing, with callouts"
-                className="w-full rounded-2xl border border-white/10"
+                className="w-full rounded-2xl"
               />
             </div>
           </motion.figure>
@@ -450,9 +447,9 @@ export default function HowItWorks() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-60px' }}
               transition={{ duration: 0.6 }}
-              className="rounded-3xl bg-glass backdrop-blur-xl border border-[rgba(216,180,254,0.14)] p-7 md:p-8"
+              className="relativep-7 md:p-8"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[rgba(216,180,254,0.18)] bg-violet-400/[0.06] text-violet-300 mb-5">
+              <div className="relative mb-5 flex h-12 w-12 items-center justify-center text-violet-300 [filter:drop-shadow(0_0_14px_rgba(216,180,254,0.4))]">
                 <ImageIcon className="w-6 h-6" />
               </div>
               <h3 className="text-xl font-semibold text-white mb-3">Generate</h3>
@@ -465,9 +462,9 @@ export default function HowItWorks() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-60px' }}
               transition={{ duration: 0.6, delay: 0.08 }}
-              className="rounded-3xl bg-glass backdrop-blur-xl border border-[rgba(216,180,254,0.14)] p-7 md:p-8"
+              className="relativep-7 md:p-8"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[rgba(216,180,254,0.18)] bg-violet-400/[0.06] text-violet-300 mb-5">
+              <div className="relative mb-5 flex h-12 w-12 items-center justify-center text-violet-300 [filter:drop-shadow(0_0_14px_rgba(216,180,254,0.4))]">
                 <Wand2 className="w-6 h-6" />
               </div>
               <h3 className="text-xl font-semibold text-white mb-3">Refine</h3>
@@ -496,11 +493,11 @@ export default function HowItWorks() {
               className="relative"
             >
               <div className="absolute -inset-6 rounded-[2.5rem] bg-[radial-gradient(ellipse_at_center,_rgba(168,85,247,0.22),_transparent_70%)] blur-2xl pointer-events-none" />
-              <div className="relative rounded-3xl border border-[rgba(216,180,254,0.16)] bg-glass backdrop-blur-xl p-2 md:p-3">
+              <div className="relative">
                 <img
                   src="/cinema-assets/surface-avatars.jpg"
                   alt="The Small Bridges avatar library — characters across categories, each with multi-angle reference images"
-                  className="w-full rounded-2xl border border-white/10"
+                  className="w-full rounded-2xl"
                 />
               </div>
             </motion.figure>
@@ -534,9 +531,9 @@ export default function HowItWorks() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-60px' }}
             transition={{ duration: 0.6 }}
-            className="rounded-3xl bg-glass backdrop-blur-xl border border-[rgba(216,180,254,0.14)] p-7 md:p-9"
+            className="relativep-7 md:p-9"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[rgba(216,180,254,0.18)] bg-violet-400/[0.06] text-violet-300 mb-5">
+            <div className="relative mb-5 flex h-12 w-12 items-center justify-center text-violet-300 [filter:drop-shadow(0_0_14px_rgba(216,180,254,0.4))]">
               <LayoutTemplate className="w-6 h-6" />
             </div>
             <p className="text-lg text-white/70 leading-relaxed max-w-3xl">
@@ -580,11 +577,11 @@ export default function HowItWorks() {
               className="relative order-1 lg:order-2"
             >
               <div className="absolute -inset-6 rounded-[2.5rem] bg-[radial-gradient(ellipse_at_center,_rgba(168,85,247,0.22),_transparent_70%)] blur-2xl pointer-events-none" />
-              <div className="relative rounded-3xl border border-[rgba(216,180,254,0.16)] bg-glass backdrop-blur-xl p-2 md:p-3">
+              <div className="relative">
                 <img
                   src="/cinema-assets/surface-environments.jpg"
                   alt="The Small Bridges environment library — worlds with their own lighting and color palettes"
-                  className="w-full rounded-2xl border border-white/10"
+                  className="w-full rounded-2xl"
                 />
               </div>
             </motion.figure>
@@ -612,9 +609,9 @@ export default function HowItWorks() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-60px' }}
                 transition={{ duration: 0.55, delay: i * 0.07 }}
-                className="rounded-3xl bg-glass backdrop-blur-xl border border-[rgba(216,180,254,0.14)] p-7"
+                className="relativep-7"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[rgba(216,180,254,0.18)] bg-violet-400/[0.06] text-violet-300 mb-5">
+                <div className="relative mb-5 flex h-12 w-12 items-center justify-center text-violet-300 [filter:drop-shadow(0_0_14px_rgba(216,180,254,0.4))]">
                   {c.icon}
                 </div>
                 <h3 className="text-lg font-semibold text-white mb-2.5">{c.title}</h3>
@@ -645,9 +642,9 @@ export default function HowItWorks() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-60px' }}
                 transition={{ duration: 0.55, delay: i * 0.07 }}
-                className="rounded-3xl bg-glass backdrop-blur-xl border border-[rgba(216,180,254,0.14)] p-7"
+                className="relativep-7"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[rgba(216,180,254,0.18)] bg-violet-400/[0.06] text-violet-300 mb-5">
+                <div className="relative mb-5 flex h-12 w-12 items-center justify-center text-violet-300 [filter:drop-shadow(0_0_14px_rgba(216,180,254,0.4))]">
                   {c.icon}
                 </div>
                 <h3 className="text-lg font-semibold text-white mb-2.5">{c.title}</h3>
@@ -674,9 +671,9 @@ export default function HowItWorks() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-60px' }}
                 transition={{ duration: 0.5, delay: (i % 3) * 0.06 }}
-                className="group flex items-center gap-4 rounded-2xl bg-glass backdrop-blur-xl border border-[rgba(216,180,254,0.12)] p-5 transition-colors hover:border-[rgba(216,180,254,0.28)]"
+                className="group flex items-center gap-4 rounded-2xl p-5 transition-colors"
               >
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[rgba(216,180,254,0.18)] bg-violet-400/[0.06] text-violet-300">
+                <div className="relative flex h-11 w-11 shrink-0 items-center justify-center text-violet-300 [filter:drop-shadow(0_0_14px_rgba(216,180,254,0.4))]">
                   <Cpu className="w-5 h-5" />
                 </div>
                 <div>
@@ -712,9 +709,9 @@ export default function HowItWorks() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-60px' }}
               transition={{ duration: 0.6 }}
-              className="rounded-3xl bg-glass backdrop-blur-xl border border-[rgba(216,180,254,0.14)] p-7 md:p-8"
+              className="relativep-7 md:p-8"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[rgba(216,180,254,0.18)] bg-violet-400/[0.06] text-violet-300 mb-5">
+              <div className="relative mb-5 flex h-12 w-12 items-center justify-center text-violet-300 [filter:drop-shadow(0_0_14px_rgba(216,180,254,0.4))]">
                 <Share2 className="w-6 h-6" />
               </div>
               <h3 className="text-xl font-semibold text-white mb-3">Export</h3>
@@ -727,9 +724,9 @@ export default function HowItWorks() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-60px' }}
               transition={{ duration: 0.6, delay: 0.08 }}
-              className="rounded-3xl bg-glass backdrop-blur-xl border border-[rgba(216,180,254,0.14)] p-7 md:p-8"
+              className="relativep-7 md:p-8"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[rgba(216,180,254,0.18)] bg-violet-400/[0.06] text-violet-300 mb-5">
+              <div className="relative mb-5 flex h-12 w-12 items-center justify-center text-violet-300 [filter:drop-shadow(0_0_14px_rgba(216,180,254,0.4))]">
                 <Users className="w-6 h-6" />
               </div>
               <h3 className="text-xl font-semibold text-white mb-3">Collaborate</h3>
@@ -749,7 +746,7 @@ export default function HowItWorks() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-80px' }}
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            className="relative overflow-hidden rounded-3xl border border-[rgba(216,180,254,0.16)] bg-glass backdrop-blur-xl p-8 md:p-12"
+            className="relative overflow-hidden rounded-3xl p-8 md:p-12"
           >
             <div className="absolute -right-10 -top-10 h-48 w-48 rounded-full bg-[radial-gradient(circle,_rgba(168,85,247,0.25),_transparent_70%)] blur-2xl pointer-events-none" />
             <span className="font-mono text-[11px] uppercase tracking-[0.34em] text-violet-300">For builders</span>
@@ -757,12 +754,10 @@ export default function HowItWorks() {
             <p className="mt-4 max-w-2xl text-base md:text-lg text-white/60 leading-relaxed">
               Programmatic access via <span className="text-violet-300">API keys and webhooks</span> from your account's Developer settings — automate generation and wire Small Bridges into your own pipeline.
             </p>
-            <Button asChild size="lg" className="mt-8 h-12 px-8 text-base font-medium rounded-full bg-white text-black hover:bg-white/90">
-              <Link to="/auth?mode=signup">
-                Get an API key
-                <ArrowRight className="w-4 h-4 ml-2.5" />
-              </Link>
-            </Button>
+            <GlassButton to="/auth?mode=signup" tone="solid" size="lg" className="mt-8">
+              Get an API key
+              <ArrowRight className="w-4 h-4" />
+            </GlassButton>
           </motion.div>
         </div>
       </section>
@@ -784,7 +779,7 @@ export default function HowItWorks() {
             </p>
           </motion.div>
 
-          <div className="space-y-3">
+          <div className="divide-y divide-white/[0.06]">
             {COMPARISON_POINTS.map((point, i) => (
               <motion.div
                 key={i}
@@ -792,7 +787,7 @@ export default function HowItWorks() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.06 }}
-                className="group grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-3 md:gap-6 items-center p-4 md:p-5 rounded-2xl bg-glass border border-white/[0.05] hover:border-white/[0.1] transition-all"
+                className="group grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-3 md:gap-6 items-center p-4 md:p-5 transition-all"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-2 h-2 rounded-full bg-white/10 shrink-0" />
@@ -823,12 +818,10 @@ export default function HowItWorks() {
           <p className="text-lg text-white/35 mb-10">
             Stop prompting. Start producing.
           </p>
-          <Button asChild size="lg" className="h-14 px-10 text-base font-medium rounded-full bg-white text-black hover:bg-white/90 btn-star-blink shadow-[0_0_60px_rgba(255,255,255,0.15)]">
-            <Link to="/auth?mode=signup">
-              Get Started
-              <ArrowRight className="w-5 h-5 ml-3" />
-            </Link>
-          </Button>
+          <GlassButton to="/auth?mode=signup" tone="solid" size="lg" className="btn-star-blink">
+            Get Started
+            <ArrowRight className="w-5 h-5" />
+          </GlassButton>
           <p className="mt-5 text-sm text-white/55">Credit packs start at $9 · No subscription required</p>
         </motion.div>
       </section>

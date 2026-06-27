@@ -48,7 +48,7 @@ import { EditorialCanvas, EditorialEyebrow, EditorialHeadline } from "@/componen
 import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { GlassButton } from "@/components/foundation/Floating";
 import { AnimatePresence } from "framer-motion";
 
 import {
@@ -196,7 +196,7 @@ const CrossoverCard = memo(function CrossoverCard({
       <div
         className={cn(
           "relative rounded-2xl overflow-hidden",
-          "bg-white/[0.03] backdrop-blur shadow-[0_12px_44px_-22px_hsla(220,45%,2%,0.85)]",
+          "shadow-[0_12px_44px_-22px_hsla(220,45%,2%,0.85)]",
           "transition-all duration-500",
           hover && "-translate-y-0.5 shadow-[0_30px_80px_-20px_hsla(215,100%,60%,0.45)]",
         )}
@@ -791,21 +791,17 @@ function FloatingStat({
 function EmptyState({ onReset }: { onReset: () => void }) {
   return (
     <div className="text-center py-20">
-      <div className="mx-auto mb-5 inline-flex items-center justify-center w-14 h-14 rounded-full bg-white/[0.04] backdrop-blur shadow-[0_10px_34px_-14px_hsla(220,45%,2%,0.85)]">
+      <div className="mx-auto mb-5 inline-flex items-center justify-center w-14 h-14">
         <Sparkles className="w-6 h-6 text-foreground/55" />
       </div>
       <h3 className="text-xl font-display italic text-foreground/95 mb-2">No crossovers matched</h3>
       <p className="text-[13px] text-foreground/55 mb-5 max-w-sm mx-auto">
         Try clearing a filter — your category + engine + aspect combination might be too narrow.
       </p>
-      <Button
-        variant="ghost"
-        className="border-transparent bg-white/[0.04] backdrop-blur text-foreground hover:bg-white/[0.08] rounded-full"
-        onClick={onReset}
-      >
+      <GlassButton onClick={onReset}>
         Clear filters
-        <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-      </Button>
+        <ArrowRight className="w-3.5 h-3.5" />
+      </GlassButton>
     </div>
   );
 }

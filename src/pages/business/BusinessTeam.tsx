@@ -17,6 +17,7 @@ import { ListPagination, usePagination } from "@/components/ui/list-pagination";
 import { confirmAsync } from "@/components/ui/global-confirm";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { BusinessPage, StatCard, SectionHead, EmptyState, SkeletonRows } from "@/components/business/BusinessPage";
+import { GlassButton } from "@/components/foundation/Floating";
 import { toast } from "sonner";
 import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import { cn } from "@/lib/utils";
@@ -204,7 +205,7 @@ export function TeamContent() {
       {canManage && (
         <>
           <SectionHead label="Dispatch invite" />
-          <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.015] p-4 grid grid-cols-1 sm:grid-cols-[1fr_180px_auto] gap-2.5">
+          <div className="rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-[1fr_180px_auto] gap-2.5">
             <input type="email" placeholder="teammate@company.com" value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void handleInvite(); }} className={inputCls} />
             <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as OrgRole)}>
@@ -215,10 +216,9 @@ export function TeamContent() {
                 ))}
               </SelectContent>
             </Select>
-            <button type="button" onClick={() => void handleInvite()} disabled={inviting || !inviteEmail.trim()}
-              className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl bg-[hsl(215,90%,55%)] text-white text-[13px] font-medium hover:bg-[hsl(215,90%,60%)] disabled:opacity-50 transition-colors">
+            <GlassButton tone="accent" onClick={() => void handleInvite()} disabled={inviting || !inviteEmail.trim()}>
               {inviting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Dispatch
-            </button>
+            </GlassButton>
           </div>
         </>
       )}
@@ -291,12 +291,12 @@ export function TeamContent() {
                     <SelectContent>{ASSIGNABLE_ROLES.map((r) => <SelectItem key={r} value={r}>{ROLE_META[r].label}</SelectItem>)}</SelectContent>
                   </Select>
                 ) : (
-                  <span className={cn("inline-flex items-center gap-1.5 px-2.5 h-7 rounded-full text-[11px] ring-1", m.role === "owner" ? "text-amber-200/90 ring-amber-400/30 bg-amber-400/10" : "text-white/70 ring-white/10 bg-white/[0.03]")}>
+                  <span className={cn("inline-flex items-center gap-1.5 px-2.5 h-7 rounded-full text-[11px]", m.role === "owner" ? "text-amber-200/90 bg-amber-400/12" : "text-white/70 bg-white/[0.06]")}>
                     <RoleIcon className="w-3 h-3" />{roleMeta(m.role).label}
                   </span>
                 )}
                 <button onClick={() => canEdit && setLimit(m)} disabled={!canEdit} title={canEdit ? "Set monthly credit cap" : "Admin only"}
-                  className="hidden lg:inline font-mono text-[10px] uppercase tracking-[0.12em] text-white/50 hover:text-[hsl(215,100%,72%)] disabled:opacity-40 disabled:cursor-not-allowed px-2.5 h-7 rounded-full ring-1 ring-white/[0.08]">
+                  className="hidden lg:inline font-mono text-[10px] uppercase tracking-[0.12em] text-white/50 hover:text-[hsl(215,100%,72%)] disabled:opacity-40 disabled:cursor-not-allowed px-2.5 h-7 rounded-full bg-white/[0.04] hover:bg-white/[0.07] transition-colors">
                   {m.monthly_credit_limit == null ? "∞ credits" : `${(m.credits_used_this_month ?? 0).toLocaleString()} / ${m.monthly_credit_limit.toLocaleString()}`}
                 </button>
                 {canEdit && (
@@ -325,7 +325,7 @@ export function TeamContent() {
               <div className="text-[14px] text-white/90 truncate">{inv.email}</div>
               <div className="font-mono text-[10px] text-white/40 uppercase tracking-[0.16em]">Expires · {new Date(inv.expires_at).toLocaleDateString()}</div>
             </div>
-            <span className="inline-flex items-center px-2.5 h-7 rounded-full text-[11px] text-white/70 ring-1 ring-white/10 bg-white/[0.03]">{roleMeta(inv.role).label}</span>
+            <span className="inline-flex items-center px-2.5 h-7 rounded-full text-[11px] text-white/70 bg-white/[0.06]">{roleMeta(inv.role).label}</span>
             <button onClick={() => copyInviteLink(inv.token, inv.id)} className="p-2 rounded-full hover:bg-white/[0.06] text-white/55 hover:text-white" title="Copy invite link">
               {copiedId === inv.id ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
             </button>
@@ -344,7 +344,7 @@ export function TeamContent() {
         {(Object.keys(ROLE_META) as OrgRole[]).map((r) => {
           const meta = ROLE_META[r]; const Icon = meta.icon;
           return (
-            <div key={r} className={cn("rounded-2xl p-4", r === "owner" && "ring-1 ring-amber-400/25 bg-amber-400/[0.04]")}>
+            <div key={r} className="rounded-2xl p-4">
               <div className="flex items-center gap-2 mb-2"><Icon className="w-4 h-4 text-[hsl(215,100%,72%)]" strokeWidth={1.5} /><span className="text-[12px] font-mono uppercase tracking-[0.18em] text-white/90">{meta.label}</span></div>
               <p className="text-[12.5px] text-white/55 font-light leading-snug">{meta.description}</p>
             </div>

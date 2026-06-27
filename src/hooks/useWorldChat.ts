@@ -46,6 +46,7 @@ export function useWorldChat() {
   const [messages, setMessages] = useState<WorldChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [onlineCount, setOnlineCount] = useState(0);
   const seen = useRef<Set<number>>(new Set());
 
   // Initial load — newest PAGE rows, oldest-first for display.
@@ -68,10 +69,12 @@ export function useWorldChat() {
     };
   }, []);
 
-  // Realtime — append new messages (deduped; sender sees their own this way too).
+  // Realtime — append new messages (deduped; sender sees their own this way too)
+  // AND track presence so the room shows a live "online now" count.
   useEffect(() => {
+    const presenceKey = user?.id ?? `guest-${Math.random().toString(36).slice(2)}`;
     const ch = supabase
-      .channel("world-chat")
+      .channel("world-chat", { config: { presence: { key: presenceKey } } })
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "world_chat" },
@@ -82,11 +85,19 @@ export function useWorldChat() {
           setMessages((prev) => [...prev, m].slice(-MAX_KEPT));
         }
       )
-      .subscribe();
+      .on("presence", { event: "sync" }, () => {
+        const state = ch.presenceState() as Record<string, unknown[]>;
+        setOnlineCount(Object.keys(state).length);
+      })
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          void ch.track({ online_at: new Date().toISOString() });
+        }
+      });
     return () => {
       supabase.removeChannel(ch);
     };
-  }, []);
+  }, [user?.id]);
 
   /** Upload an image to the public chat bucket; returns its public URL. */
   const uploadImage = useCallback(
@@ -125,5 +136,5 @@ export function useWorldChat() {
     [user]
   );
 
-  return { messages, loading, sending, send, uploadImage, canSend: !!user };
+  return { messages, loading, sending, send, uploadImage, canSend: !!user, onlineCount };
 }

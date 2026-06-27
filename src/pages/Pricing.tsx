@@ -22,6 +22,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { ACCENT, EASE, Eyebrow } from '@/components/cinema/ui';
+import { GlassButton } from '@/components/foundation/Floating';
 import { MarketingHeader } from '@/components/marketing/MarketingHeader';
 import { VioletBackdrop } from '@/components/marketing/VioletBackdrop';
 import { Footer } from '@/components/cinema/Footer';
@@ -422,7 +423,7 @@ function PricingOrb({ pkg, index, onPurchase }: { pkg: CreditPackage; index: num
               onClick={() => onPurchase(pkg)}
               className={cn(
                 'mt-4 inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-[13px] font-semibold transition-colors',
-                popular ? 'bg-white text-[#160a33] hover:bg-white/90' : 'bg-white/[0.08] text-white ring-1 ring-inset ring-white/15 hover:bg-white/[0.14]',
+                popular ? 'bg-white text-[#160a33] hover:bg-white/90' : 'bg-white/[0.08] text-white shadow-[inset_0_1px_0_hsl(0_0%_100%/0.12)] hover:bg-white/[0.14]',
               )}
               style={popular ? { boxShadow: `0 14px 40px -14px hsl(${ACCENT} / 0.9)` } : undefined}
             >
@@ -451,7 +452,7 @@ function FaqItem({ q, a, defaultOpen = false }: { q: string; a: string; defaultO
     <button
       type="button"
       onClick={() => setOpen((v) => !v)}
-      className="w-full rounded-2xl bg-white/[0.03] px-5 py-4 text-left transition-colors hover:bg-white/[0.055]"
+      className="w-full px-1 py-5 text-left transition-colors"
     >
       <div className="flex items-center justify-between gap-4">
         <span className="text-[14px] font-medium text-white/90">{q}</span>
@@ -580,8 +581,9 @@ export default function Pricing() {
 
       {/* Trust */}
       <section className="relative z-10 px-5 py-10 sm:px-8">
-        <div className="mx-auto max-w-4xl rounded-2xl bg-white/[0.03] px-6 py-5 backdrop-blur-md">
-          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+        <div className="mx-auto max-w-4xl">
+          <div aria-hidden className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 py-6">
             {TRUST_POINTS.map((p, i) => (
               <div key={i} className="flex items-center gap-2 text-white/55">
                 <span style={{ color: `hsl(${ACCENT})` }}>{p.icon}</span>
@@ -589,6 +591,7 @@ export default function Pricing() {
               </div>
             ))}
           </div>
+          <div aria-hidden className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
         </div>
       </section>
 
@@ -601,14 +604,15 @@ export default function Pricing() {
             <p className="mt-3 text-[14px] text-white/55">Find the track that fits — switch anytime.</p>
           </div>
 
-          <div className="overflow-hidden rounded-3xl bg-white/[0.03] backdrop-blur-md">
-            <div className="grid grid-cols-4 bg-white/[0.04] px-5 py-4 text-[11px] uppercase tracking-[0.18em] text-white/45">
+          <div className="relative">
+            <div className="grid grid-cols-4 px-5 py-4 text-[11px] uppercase tracking-[0.18em] text-white/45">
               <div className="font-medium">Feature</div>
               {segmentKeys.map((seg) => (
                 <div key={seg} className="text-center font-medium">{SEGMENT_META[seg].label}</div>
               ))}
             </div>
-            <div className="divide-y divide-white/[0.04]">
+            <div aria-hidden className="h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+            <div className="divide-y divide-white/[0.06]">
               {MATRIX_ROWS.map((row) => (
                 <div key={row.label} className="grid grid-cols-4 items-center px-5 py-3.5 transition-colors hover:bg-white/[0.025]">
                   <div className="text-[13px] font-medium text-white/60">{row.label}</div>
@@ -629,7 +633,7 @@ export default function Pricing() {
             <Eyebrow>FAQ</Eyebrow>
             <h2 className="mt-3 font-display text-[clamp(2rem,5vw,2.8rem)] font-semibold leading-tight tracking-[-0.03em]">Questions, answered.</h2>
           </div>
-          <div className="space-y-3">
+          <div className="divide-y divide-white/[0.06]">
             {FAQS.map((f, i) => (
               <FaqItem key={f.q} q={f.q} a={f.a} defaultOpen={i === 0} />
             ))}
@@ -642,9 +646,9 @@ export default function Pricing() {
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, ease: EASE }} className="mx-auto max-w-2xl text-center">
           <h2 className="mb-4 font-display text-[clamp(2rem,5vw,2.8rem)] font-semibold leading-tight tracking-[-0.03em]">Pick a pack. Start <span className="italic">rendering</span>.</h2>
           <p className="mb-8 text-[14px] text-white/55">Credits don't expire. Pay only for what you generate.</p>
-          <button type="button" onClick={() => navigate('/auth?mode=signup')} className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-white px-8 text-[13px] font-semibold text-[#0a0b0e] transition-colors hover:bg-white/90" style={{ boxShadow: `0 18px 50px -16px hsl(${ACCENT} / 0.9)` }}>
+          <GlassButton onClick={() => navigate('/auth?mode=signup')} tone="solid" size="lg" className="px-8">
             <Sparkles className="h-4 w-4" /> Get started free
-          </button>
+          </GlassButton>
         </motion.div>
       </section>
 

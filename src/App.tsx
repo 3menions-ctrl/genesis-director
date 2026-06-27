@@ -16,6 +16,7 @@ import { CreditsProvider } from "@/contexts/CreditsContext";
 import { PageToneProvider } from "@/lib/page-tone";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { GatedRoutes } from "@/components/auth/GatedRoutes";
 import { ADMIN_ENABLED } from "./admin/adminEnabled";
 import { AdminBounce } from "./admin/AdminBounce";
 import { AnalyticsTracker } from "./components/analytics/AnalyticsTracker";
@@ -283,6 +284,11 @@ const App = () => {
                     wander into the consumer-account app surfaces. */}
                 <BusinessWorldIsolation />
                 <AnalyticsTracker />
+                {/* Gated by default: every route is behind login except the
+                    public allowlist in src/lib/publicRoutes.ts (landing +
+                    marketing/legal/auth). Any non-public path is bounced to
+                    /auth before its page mounts. */}
+                <GatedRoutes>
                 <Routes>
                 {/* Public routes - each wrapped for isolation */}
                 {/* Immersive cinema landing is the single home page. */}
@@ -811,9 +817,9 @@ const App = () => {
                     LegacyParamRedirect resolves :id / :userId / :videoId. */}
                 <Route path="/video/:videoId" element={<LegacyParamRedirect to="/r" />} />
 
-                {/* ── Entertainment Hub — the public watch experience ── */}
-                {/* These are reachable without auth (you should be able
-                    to browse + watch reels signed out, like YouTube). */}
+                {/* ── Entertainment Hub — the watch experience ── */}
+                {/* Login required: the app is gated by default (see
+                    <GatedRoutes>), so these are NOT browsable signed out. */}
                 <Route path="/lobby" element={
                   <RouteContainer fallbackMessage="Reading the room…">
                     <Lobby />
@@ -854,13 +860,15 @@ const App = () => {
                     <WidgetLanding />
                   </RouteContainer>
                 } />
-                {/* Viral public share — unauthenticated. RLS-gated by project_shares.is_public. */}
+                {/* Public share — now login-gated (app is gated by default).
+                    Still RLS-gated by project_shares.is_public at the DB. */}
                 <Route path="/p/:slug" element={
                   <RouteContainer fallbackMessage="Loading…">
                     <PublicShare />
                   </RouteContainer>
                 } />
-                {/* Minimal iframe-friendly player. No shell, no auth. */}
+                {/* Minimal iframe-friendly player. No shell. Now login-gated
+                    (app is gated by default) — embeds require a signed-in viewer. */}
                 <Route path="/embed/:slug" element={
                   <RouteContainer fallbackMessage="">
                     <EmbedPlayer />
@@ -901,6 +909,7 @@ const App = () => {
                   </RouteContainer>
                 } />
                 </Routes>
+                </GatedRoutes>
                 {/* Lazy-loaded global widgets — Suspense fallback is
                     null because none of these are needed for initial
                     paint. Each component reads from context internally;

@@ -16,6 +16,7 @@ import { ListPagination, usePagination } from "@/components/ui/list-pagination";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { BusinessPage, SectionHead, EmptyState, SkeletonRows, Badge } from "@/components/business/BusinessPage";
+import { GlassButton } from "@/components/foundation/Floating";
 import {
   ChartCard, AreaTrend, DonutChart, ChartLegend, TrendStat, DataTable,
   bucketByDay, periodDelta, CHART_BLUE, CHART_SERIES, type Column,
@@ -180,10 +181,9 @@ export default function BusinessAudit() {
       title="Audit log."
       subtitle="An immutable record of every workspace action — credit movement, member changes and content events."
       actions={
-        <button type="button" onClick={exportCsv} disabled={loading || visible.length === 0}
-          className="inline-flex items-center gap-2 rounded-full px-4 h-11 ring-1 ring-white/[0.1] text-white/80 hover:text-white hover:ring-white/20 text-[13px] transition-colors disabled:opacity-40">
+        <GlassButton tone="neutral" onClick={exportCsv} disabled={loading || visible.length === 0}>
           <Download className="w-4 h-4" strokeWidth={1.8} /> Export CSV
-        </button>
+        </GlassButton>
       }
     >
       {/* KPIs */}
@@ -230,7 +230,7 @@ export default function BusinessAudit() {
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search…"
               className="h-8 w-36 sm:w-44 pl-8 pr-3 rounded-full bg-white/[0.04] ring-1 ring-white/[0.08] focus:ring-white/20 text-[12px] text-white placeholder:text-white/35 outline-none transition" />
           </div>
-          <div className="flex items-center gap-1 rounded-full ring-1 ring-white/[0.08] bg-white/[0.015] p-0.5">
+          <div className="flex items-center gap-1 rounded-full bg-white/[0.04] p-0.5">
             {(["all", "workspace", "credit"] as const).map((f) => (
               <button key={f} onClick={() => setFilter(f)}
                 className={cn("px-3 h-7 rounded-full font-mono text-[10px] uppercase tracking-[0.18em] transition", filter === f ? "bg-[hsl(215,100%,45%)]/25 text-[hsl(215,100%,82%)]" : "text-white/45 hover:text-white/80")}>
@@ -283,13 +283,13 @@ export default function BusinessAudit() {
               {!!selected.metadata && (
                 <div>
                   <div className={cn(TYPE_META, "text-white/40 mb-1.5")}>Metadata</div>
-                  <pre className="text-[11px] font-mono text-white/70 bg-black/40 rounded-xl ring-1 ring-white/[0.06] p-3 overflow-x-auto max-h-48">{JSON.stringify(selected.metadata, null, 2)}</pre>
+                  <pre className="text-[11px] font-mono text-white/70 bg-black/40 rounded-xl p-3 overflow-x-auto max-h-48">{JSON.stringify(selected.metadata, null, 2)}</pre>
                 </div>
               )}
               <div className="flex justify-end">
-                <button type="button" onClick={() => setSelected(null)} className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl ring-1 ring-white/[0.08] bg-white/[0.03] text-white/80 text-[13px] hover:ring-white/20 transition-colors">
+                <GlassButton tone="neutral" size="sm" onClick={() => setSelected(null)}>
                   <X className="w-3.5 h-3.5" /> Close
-                </button>
+                </GlassButton>
               </div>
             </div>
           )}

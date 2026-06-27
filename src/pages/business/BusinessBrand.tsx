@@ -181,7 +181,7 @@ export default function BusinessBrand() {
             )}
 
             {colors.length > 0 ? (
-              <div className="mt-5 pt-5 border-t border-white/[0.06] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              <div className="relative mt-5 pt-5 before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent before:content-[''] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                 {colors.map((c, i) => (
                   <div key={`sel-${c}`} className="flex items-center gap-3 rounded-xl p-2.5">
                     <span className="w-12 h-12 rounded-lg ring-1 ring-white/10 flex items-center justify-center shrink-0" style={{ background: c }}>
@@ -200,7 +200,7 @@ export default function BusinessBrand() {
                 ))}
               </div>
             ) : (
-              <div className="mt-5 pt-5 border-t border-white/[0.06] text-[13px] text-white/40 font-light">No palette yet — pick swatches above to define your brand colors.</div>
+              <div className="relative mt-5 pt-5 before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent before:content-[''] text-[13px] text-white/40 font-light">No palette yet — pick swatches above to define your brand colors.</div>
             )}
           </>
         )}
@@ -218,7 +218,7 @@ export default function BusinessBrand() {
                 className={cn("text-left p-4 rounded-xl ring-1 transition-all", active ? "ring-[hsl(215_90%_60%/0.4)] bg-[hsl(215_90%_55%/0.10)]" : "ring-white/[0.07] bg-white/[0.02] hover:ring-white/15", !canEdit && "opacity-60 cursor-not-allowed")}>
                 <div className={cn("font-mono text-[11px] uppercase tracking-[0.20em]", active ? "text-[hsl(215,100%,72%)]" : "text-white/90")}>{v.label}</div>
                 <div className="text-[11px] text-white/45 mt-1.5 font-light">{v.desc}</div>
-                <div className="mt-3 pt-3 border-t border-white/[0.06] text-[12.5px] text-white/70 font-light italic leading-snug">"{v.headline}"</div>
+                <div className="relative mt-3 pt-3 before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent before:content-[''] text-[12.5px] text-white/70 font-light italic leading-snug">"{v.headline}"</div>
               </button>
             );
           })}
@@ -293,18 +293,18 @@ function BrandPreview({ colors, logoUrl, voice, orgName, loading }: {
       </div>
 
       {/* Type + button proofs */}
-      <div className="rounded-2xl ring-1 ring-white/[0.08] bg-white/[0.015] p-5 flex flex-col">
+      <div className="rounded-2xl p-5 flex flex-col">
         <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/45 mb-3">In product</div>
         <div className="space-y-3 flex-1">
           <div>
             <div className="font-display italic text-[26px] text-white leading-none tracking-[-0.02em]">Aa</div>
             <div className="text-[12px] text-white/40 mt-1">Display · headlines & titles</div>
           </div>
-          <div className="pt-3 border-t border-white/[0.06] flex flex-wrap gap-2">
+          <div className="relative pt-3 before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent before:content-[''] flex flex-wrap gap-2">
             <span className="inline-flex items-center px-3.5 h-9 rounded-full text-[13px] font-medium" style={{ background: primary, color: onPrimary }}>Primary CTA</span>
             <span className="inline-flex items-center px-3.5 h-9 rounded-full text-[13px] ring-1" style={{ color: accent, borderColor: accent, boxShadow: `inset 0 0 0 1px ${accent}55` }}>Secondary</span>
           </div>
-          <div className="pt-3 border-t border-white/[0.06]">
+          <div className="relative pt-3 before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent before:content-['']">
             <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/40 mb-2">Voice</div>
             <div className="text-[13px] text-white/75 font-light italic leading-snug">"{sample.sub}"</div>
           </div>

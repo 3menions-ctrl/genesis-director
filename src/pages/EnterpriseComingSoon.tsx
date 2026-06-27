@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Building2, Sparkles, ArrowRight, Mail, Shield, Zap, Loader2, CheckCircle2 } from 'lucide-react';
 import { z } from 'zod';
 import { SpineBackdrop } from '@/components/foundation/SpineBackdrop';
+import { GlassButton } from '@/components/foundation/Floating';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { BrandTile } from '@/components/cinema/Logo';
@@ -109,9 +110,8 @@ export default function EnterpriseComingSoon() {
           </Link>
 
           <div
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border mb-6"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-6"
             style={{
-              borderColor: 'hsla(215,100%,60%,0.28)',
               background: 'linear-gradient(135deg, hsla(215,100%,55%,0.12), hsla(215,100%,55%,0.04))',
               boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.06)',
             }}
@@ -142,13 +142,7 @@ export default function EnterpriseComingSoon() {
             ].map(({ icon: Icon, label, sub }) => (
               <div
                 key={label}
-                className="rounded-2xl p-4 border border-white/[0.06]"
-                style={{
-                  background: 'linear-gradient(180deg, hsla(220,18%,7%,0.6), hsla(220,16%,4%,0.6))',
-                  backdropFilter: 'blur(20px) saturate(160%)',
-                  WebkitBackdropFilter: 'blur(20px) saturate(160%)',
-                  boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.05)',
-                }}
+                className="rounded-2xl p-4"
               >
                 <Icon className="w-4 h-4 text-[hsl(215,100%,72%)]" strokeWidth={1.5} />
                 <div className="mt-3 text-[13px] font-display text-white/90">{label}</div>
@@ -169,12 +163,9 @@ export default function EnterpriseComingSoon() {
         {/* ───────── Right: contact form ───────── */}
         <form
           onSubmit={handleSubmit}
-          className="rounded-3xl p-8 border border-white/[0.07] relative overflow-hidden"
+          className="rounded-[22px] p-8 relative overflow-hidden backdrop-blur-2xl shadow-[0_30px_80px_-40px_hsl(0_0%_0%/0.75),inset_0_1px_0_hsl(0_0%_100%/0.07)]"
           style={{
-            background: 'linear-gradient(180deg, hsla(220,18%,7%,0.85), hsla(220,16%,3%,0.85))',
-            backdropFilter: 'blur(24px) saturate(160%)',
-            WebkitBackdropFilter: 'blur(24px) saturate(160%)',
-            boxShadow: '0 30px 80px -20px rgba(0,0,0,0.85), inset 0 1px 0 hsla(0,0%,100%,0.06)',
+            background: 'linear-gradient(180deg, hsl(0 0% 100%/0.05), hsl(0 0% 100%/0.012))',
           }}
         >
           {submitted ? (
@@ -190,13 +181,10 @@ export default function EnterpriseComingSoon() {
                 Our enterprise team will reach out within one business day.
                 In the meantime, feel free to explore the consumer studio.
               </p>
-              <Link
-                to="/"
-                className="mt-8 inline-flex items-center gap-2 rounded-full px-5 h-11 text-[13px] font-light text-white/70 hover:text-white border border-white/[0.08] hover:border-white/[0.16] transition-colors"
-              >
+              <GlassButton to="/" className="mt-8">
                 <Building2 className="w-4 h-4" strokeWidth={1.5} />
                 Back to home
-              </Link>
+              </GlassButton>
             </div>
           ) : (
             <>
@@ -251,10 +239,10 @@ export default function EnterpriseComingSoon() {
                         key={s.id}
                         type="button"
                         onClick={() => setForm(f => ({ ...f, company_size: s.id }))}
-                        className={`h-10 rounded-lg text-[11px] font-medium transition-all border ${
+                        className={`h-10 rounded-lg text-[11px] font-medium transition-all ${
                           form.company_size === s.id
-                            ? 'border-[hsl(215,100%,60%)]/50 bg-[hsl(215,100%,55%)]/[0.12] text-white shadow-[0_0_20px_hsla(215,100%,55%,0.2)]'
-                            : 'border-white/[0.06] bg-glass text-white/55 hover:border-white/[0.12] hover:text-white/80'
+                            ? 'bg-[hsl(215,100%,55%)]/[0.16] text-white shadow-[0_0_0_1px_hsla(215,100%,60%,0.5),0_8px_24px_-8px_hsla(215,100%,55%,0.4)]'
+                            : 'bg-white/[0.04] text-white/55 hover:bg-white/[0.08] hover:text-white/80'
                         }`}
                       >
                         {s.label}
@@ -276,20 +264,17 @@ export default function EnterpriseComingSoon() {
                     rows={3}
                     maxLength={500}
                     placeholder="Brand films, performance ads, sales videos at scale…"
-                    className="w-full rounded-xl bg-glass border border-white/[0.06] px-4 py-3 text-[13px] text-white/90 placeholder:text-white/25 focus:outline-none focus:border-[hsl(215,100%,60%)]/40 focus:bg-glass-hover transition-all resize-none"
+                    className="w-full rounded-xl bg-white/[0.05] px-4 py-3 text-[13px] text-white/90 placeholder:text-white/25 focus:outline-none focus:bg-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] focus:shadow-[0_0_0_1px_hsla(215,100%,60%,0.5)] transition-all resize-none"
                   />
                 </div>
               </div>
 
-              <button
+              <GlassButton
                 type="submit"
+                tone="accent"
+                size="lg"
                 disabled={submitting}
-                className="group mt-7 w-full inline-flex items-center justify-center gap-2 rounded-full px-6 h-12 text-[13px] font-medium tracking-[-0.005em] transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
-                style={{
-                  background: 'linear-gradient(180deg, hsla(215,100%,60%,0.95), hsla(215,100%,48%,0.95))',
-                  color: 'white',
-                  boxShadow: '0 12px 36px -10px hsla(215,100%,55%,0.65), inset 0 1px 0 hsla(0,0%,100%,0.18)',
-                }}
+                className="group mt-7 w-full"
               >
                 {submitting ? (
                   <>
@@ -302,7 +287,7 @@ export default function EnterpriseComingSoon() {
                     <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" strokeWidth={1.75} />
                   </>
                 )}
-              </button>
+              </GlassButton>
 
               <p className="mt-4 text-center text-[11px] text-white/65 font-light">
                 By submitting you agree to be contacted by our enterprise team.
@@ -338,10 +323,10 @@ function Field({
         placeholder={placeholder}
         autoComplete={autoComplete}
         maxLength={255}
-        className={`w-full h-12 rounded-xl bg-glass border px-4 text-[13px] text-white/90 placeholder:text-white/25 focus:outline-none focus:bg-glass-hover transition-all ${
+        className={`w-full h-12 rounded-xl bg-white/[0.05] px-4 text-[13px] text-white/90 placeholder:text-white/25 focus:outline-none focus:bg-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-all ${
           error
-            ? 'border-rose-400/40 focus:border-rose-400/60'
-            : 'border-white/[0.06] focus:border-[hsl(215,100%,60%)]/40'
+            ? 'shadow-[0_0_0_1px_hsla(0,84%,60%,0.45)]'
+            : 'focus:shadow-[0_0_0_1px_hsla(215,100%,60%,0.5)]'
         }`}
       />
       {error && <p className="mt-1.5 text-[11px] text-rose-400/90 font-light">{error}</p>}

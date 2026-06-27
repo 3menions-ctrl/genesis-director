@@ -73,6 +73,7 @@ import {
   TYPE_META,
   RADIUS,
 } from "@/lib/design-system";
+import { GlassButton, GlassPanel } from "@/components/foundation/Floating";
 
 interface ReelData {
   id: string;
@@ -550,18 +551,10 @@ export default function Reel() {
               ? "Only the director can view it."
               : "It may have been removed or the link is wrong."}
           </p>
-          <button
-            onClick={() => navigate("/library")}
-            className={cn(
-              "mt-8 inline-flex items-center gap-2 px-5 py-3",
-              RADIUS.chip,
-              "bg-white/[0.03] text-foreground/85",
-              "transition-colors hover:bg-white/[0.06]",
-            )}
-          >
+          <GlassButton onClick={() => navigate("/library")} className="mt-8" ariaLabel="Back to Library">
             <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
-            <span className="text-[13px]">Back to Library</span>
-          </button>
+            <span>Back to Library</span>
+          </GlassButton>
         </div>
       </FoundationShell>
     );
@@ -846,32 +839,26 @@ export default function Reel() {
             </SheetDescription>
           </SheetHeader>
           <div className="mt-6 flex flex-col gap-3">
-            <div
-              className={cn(
-                "flex items-center justify-between gap-3 rounded-xl",
-                "bg-white/[0.03] px-4 py-3",
-              )}
-            >
+            <GlassPanel className="flex items-center justify-between gap-3 px-4 py-3">
               <code className="truncate text-[13px] text-foreground/85">
                 {`${window.location.origin}/r/${reel.id}?party=${partyId ?? ""}`}
               </code>
-              <button
+              <GlassButton
+                size="sm"
+                tone="accent"
+                className="shrink-0"
+                ariaLabel="Copy watch-party link"
                 onClick={async () => {
                   await navigator.clipboard.writeText(
                     `${window.location.origin}/r/${reel.id}?party=${partyId ?? ""}`,
                   );
                   toast.success("Link copied");
                 }}
-                className={cn(
-                  "shrink-0 rounded-full bg-[hsl(var(--accent)/0.12)]",
-                  "px-3 py-1.5 text-[12px] text-foreground",
-                  "transition-colors hover:bg-[hsl(var(--accent)/0.2)]",
-                )}
               >
-                <Sparkles className="mr-1 inline h-3 w-3 text-accent" />
+                <Sparkles className="h-3 w-3 text-accent" />
                 Copy
-              </button>
-            </div>
+              </GlassButton>
+            </GlassPanel>
             <p className={cn(TYPE_META, "text-muted-foreground/55")}>
               The chat lives in the sidebar. Your playback is broadcast every
               second to everyone in the room.
@@ -898,21 +885,17 @@ function ActionPill({
   tone?: "default" | "accent";
 }) {
   return (
-    <button
+    <GlassButton
       onClick={onClick}
-      className={cn(
-        "inline-flex items-center gap-2 rounded-full px-4 py-2.5",
-        "backdrop-blur-md transition-all",
-        tone === "accent"
-          ? "bg-[hsl(var(--accent)/0.12)] hover:bg-[hsl(var(--accent)/0.2)]"
-          : "bg-[hsl(var(--foreground)/0.03)] hover:bg-[hsl(var(--foreground)/0.06)]",
-      )}
+      size="sm"
+      tone={tone === "accent" ? "accent" : "neutral"}
+      ariaLabel={label}
     >
       <Icon
         className={cn("h-3.5 w-3.5", tone === "accent" ? "text-accent" : "text-muted-foreground/75")}
         strokeWidth={1.5}
       />
-      <span className="text-[13px] text-foreground">{label}</span>
-    </button>
+      <span>{label}</span>
+    </GlassButton>
   );
 }

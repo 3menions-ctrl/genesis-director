@@ -213,8 +213,8 @@ export default function HelpDoc() {
             <span>{doc.eyebrow}</span>
           </div>
           <div className="mt-6 flex items-start gap-5">
-            <div className="hidden sm:inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.04] border border-white/[0.07] shrink-0 mt-2">
-              <Icon className="h-5 w-5 text-foreground/85" strokeWidth={1.6} />
+            <div className="hidden sm:inline-flex h-12 w-12 items-center justify-center text-foreground/85 shrink-0 mt-2 [filter:drop-shadow(0_0_14px_hsl(var(--accent)/0.35))]">
+              <Icon className="h-5 w-5" strokeWidth={1.6} />
             </div>
             <h1
               className="font-display italic leading-[0.95] tracking-[-0.025em] text-[40px] md:text-[56px]"
@@ -230,19 +230,14 @@ export default function HelpDoc() {
           </p>
         </motion.header>
 
-        <div className="space-y-3">
+        <div className="divide-y divide-white/[0.06]">
           {doc.sections.map((s, i) => (
             <motion.section
               key={s.heading}
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, ease: EASE_PREMIUM, delay: 0.05 + i * 0.05 }}
-              className={cn(
-                "rounded-[20px] p-6 sm:p-7",
-                "bg-[hsl(220_30%_6%/0.4)] backdrop-blur-2xl",
-                "border border-white/[0.05]",
-                "shadow-[inset_0_1px_0_hsl(0_0%_100%/0.04)]",
-              )}
+              className="py-7 sm:py-8"
             >
               <div className="flex items-center gap-3">
                 <span className={cn(TYPE_META, "text-muted-foreground/50 tabular-nums tracking-[0.32em]")}>
@@ -259,7 +254,8 @@ export default function HelpDoc() {
           ))}
         </div>
 
-        <div className="mt-16 rounded-[20px] border border-white/[0.05] bg-[hsl(220_30%_6%/0.35)] backdrop-blur-2xl p-7 text-center">
+        <div aria-hidden className="mt-16 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+        <div className="mt-10 p-2 text-center">
           <p className="text-[14px] text-muted-foreground/75 font-light">
             Still missing something?
           </p>

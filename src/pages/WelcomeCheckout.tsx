@@ -52,6 +52,7 @@ export default function WelcomeCheckout() {
         className="w-full max-w-xl"
       >
         <BetaHero
+          className="!border-0 !bg-none"
           eyebrow="No card · no checkout"
           title={<>Welcome to Small Bridges.</>}
           body={

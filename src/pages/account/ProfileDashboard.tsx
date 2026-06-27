@@ -1422,31 +1422,10 @@ function AtAGlanceCard({
             below the verified tab: "I've claimed this profile, now what do
             I want to do?". Visitors never see this. */}
         {isOwner && (
-          <div className={cn("pt-4 mt-4 flex flex-col gap-3", verifiedKind ? "" : "pt-0 mt-0")}>
-            <Link
-              to="/inbox"
-              className="group/setlink flex items-center gap-2.5 text-[11px] font-mono uppercase tracking-[0.22em] text-muted-foreground/75 hover:text-foreground transition-colors"
-            >
-              <MailIcon className="h-3.5 w-3.5 text-muted-foreground/65 group-hover/setlink:text-accent transition-colors" strokeWidth={1.6} />
-              <span>Inbox</span>
-              <ChevronRight className="ml-auto h-3 w-3 opacity-50 group-hover/setlink:opacity-100 group-hover/setlink:translate-x-0.5 transition-all" />
-            </Link>
-            <Link
-              to="/account?tab=credits"
-              className="group/setlink flex items-center gap-2.5 text-[11px] font-mono uppercase tracking-[0.22em] text-muted-foreground/75 hover:text-foreground transition-colors"
-            >
-              <CreditCard className="h-3.5 w-3.5 text-muted-foreground/65 group-hover/setlink:text-accent transition-colors" strokeWidth={1.6} />
-              <span>Credits</span>
-              <ChevronRight className="ml-auto h-3 w-3 opacity-50 group-hover/setlink:opacity-100 group-hover/setlink:translate-x-0.5 transition-all" />
-            </Link>
-            <Link
-              to="/account?tab=settings"
-              className="group/setlink flex items-center gap-2.5 text-[11px] font-mono uppercase tracking-[0.22em] text-muted-foreground/75 hover:text-foreground transition-colors"
-            >
-              <SettingsIcon className="h-3.5 w-3.5 text-muted-foreground/65 group-hover/setlink:text-accent transition-colors" strokeWidth={1.6} />
-              <span>Profile settings</span>
-              <ChevronRight className="ml-auto h-3 w-3 opacity-50 group-hover/setlink:opacity-100 group-hover/setlink:translate-x-0.5 transition-all" />
-            </Link>
+          <div className={cn("pt-4 mt-4 flex flex-wrap items-start gap-6", verifiedKind ? "" : "pt-0 mt-0")}>
+            <ToolTile to="/inbox" icon={<MailIcon className="h-5 w-5" strokeWidth={1.6} />} label="Inbox" />
+            <ToolTile to="/account?tab=credits" icon={<CreditCard className="h-5 w-5" strokeWidth={1.6} />} label="Credits" />
+            <ToolTile to="/account?tab=settings" icon={<SettingsIcon className="h-5 w-5" strokeWidth={1.6} />} label="Settings" />
           </div>
         )}
       </div>
@@ -2541,7 +2520,7 @@ function CoverHero({
             visitor = Follow + Message + Share. Container-less typography. */}
         {/* Sits below the global fixed top-right cluster (credits · search ·
             inbox · bell) so the two control groups never overlap. */}
-        <div className="absolute top-[4.25rem] right-4 sm:right-8 lg:right-12 flex items-center gap-6">
+        <div className="absolute top-[4.25rem] right-4 sm:right-8 lg:right-12 flex items-end gap-5 sm:gap-7">
           {isOwner ? (
             <>
               <PatronButton
@@ -2555,76 +2534,49 @@ function CoverHero({
                   mode where every text renderer swaps to an input in-place.
                   "Done" returns to viewing. */}
               {onToggleSettings && (
-                <button
-                  type="button"
+                <ToolTile
                   onClick={onToggleSettings}
-                  className={cn(
-                    "group/edit inline-flex items-center gap-2 transition-colors",
-                    "text-[11px] font-mono uppercase tracking-[0.32em]",
-                    settingsMode
-                      ? "text-accent hover:text-accent/85"
-                      : "text-foreground/85 hover:text-foreground",
-                  )}
-                >
-                  {settingsMode ? (
-                    <Check className="h-3.5 w-3.5" strokeWidth={1.6} />
-                  ) : (
-                    <Pencil className="h-3.5 w-3.5" strokeWidth={1.5} />
-                  )}
-                  {settingsMode ? "Done" : "Edit profile"}
-                </button>
+                  active={settingsMode}
+                  icon={settingsMode
+                    ? <Check className="h-5 w-5" strokeWidth={1.6} />
+                    : <Pencil className="h-5 w-5" strokeWidth={1.5} />}
+                  label={settingsMode ? "Done" : "Edit"}
+                />
               )}
               {/* Analytics sub-view toggle — swaps the public body for the
                   private "Yours alone" dashboard. */}
               {onToggleAnalytics && (
-                <button
-                  type="button"
+                <ToolTile
                   onClick={onToggleAnalytics}
-                  className={cn(
-                    "group/analytics inline-flex items-center gap-2 transition-colors",
-                    "text-[11px] font-mono uppercase tracking-[0.32em]",
-                    analyticsMode
-                      ? "text-accent hover:text-accent/85"
-                      : "text-foreground/85 hover:text-foreground",
-                  )}
-                >
-                  {analyticsMode ? (
-                    <Check className="h-3.5 w-3.5" strokeWidth={1.6} />
-                  ) : (
-                    <BarChart3 className="h-3.5 w-3.5" strokeWidth={1.5} />
-                  )}
-                  {analyticsMode ? "Done" : "Analytics"}
-                </button>
+                  active={analyticsMode}
+                  icon={analyticsMode
+                    ? <Check className="h-5 w-5" strokeWidth={1.6} />
+                    : <BarChart3 className="h-5 w-5" strokeWidth={1.5} />}
+                  label={analyticsMode ? "Done" : "Analytics"}
+                />
               )}
-              <FloatingLink to="/account?tab=settings" icon={<SettingsIcon className="h-3.5 w-3.5" strokeWidth={1.5} />}>
-                Account
-              </FloatingLink>
+              <ToolTile
+                to="/account?tab=settings"
+                icon={<SettingsIcon className="h-5 w-5" strokeWidth={1.5} />}
+                label="Account"
+              />
             </>
           ) : (
             <>
-              <button
-                type="button"
+              <ToolTile
                 onClick={onToggleFollow}
                 disabled={followBusy}
-                className={cn(
-                  "group inline-flex items-center gap-2 transition-colors",
-                  "text-[11px] font-mono uppercase tracking-[0.32em]",
-                  "disabled:opacity-50",
-                  following
-                    ? "text-emerald-200 hover:text-emerald-100"
-                    : "text-white/85 hover:text-white",
-                )}
-              >
-                {following ? (
-                  <UserCheck className="h-3.5 w-3.5" strokeWidth={1.5} />
-                ) : (
-                  <UserPlusIcon className="h-3.5 w-3.5" strokeWidth={1.5} />
-                )}
-                {following ? "Following" : "Follow"}
-              </button>
-              <FloatingLink to={`/inbox?lane=people&dm=${userId}`} icon={<MailIcon className="h-3.5 w-3.5" strokeWidth={1.5} />}>
-                Message
-              </FloatingLink>
+                active={following}
+                icon={following
+                  ? <UserCheck className="h-5 w-5" strokeWidth={1.5} />
+                  : <UserPlusIcon className="h-5 w-5" strokeWidth={1.5} />}
+                label={following ? "Following" : "Follow"}
+              />
+              <ToolTile
+                to={`/inbox?lane=people&dm=${userId}`}
+                icon={<MailIcon className="h-5 w-5" strokeWidth={1.5} />}
+                label="Message"
+              />
               <BrandInquiryLink recipientId={userId} recipientName={displayName} />
               <PatronButton
                 creatorId={userId}
@@ -2633,18 +2585,16 @@ function CoverHero({
                 goal={patronGoal}
                 handle={handle}
               />
-              <button
-                type="button"
+              <ToolTile
                 onClick={() => {
                   const slug = handle ? `@${handle}` : userId;
                   const url = `${window.location.origin}/c/${slug}`;
                   if (navigator.share) navigator.share({ url, title: displayName }).catch(() => {});
                   else { navigator.clipboard.writeText(url); toast.success("Link copied"); }
                 }}
-                className="inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.32em] text-white/70 hover:text-white transition-colors"
-              >
-                <Share2 className="h-3.5 w-3.5" strokeWidth={1.5} />Share
-              </button>
+                icon={<Share2 className="h-5 w-5" strokeWidth={1.5} />}
+                label="Share"
+              />
               <SafetyMenu targetId={userId} targetName={displayName} />
             </>
           )}
@@ -2840,6 +2790,80 @@ function CoverHero({
 // FloatingLink — container-less navigation. Just text + icon + arrow.
 // Underline reveals on hover from the left.
 // ─────────────────────────────────────────────────────────────────────────────
+// ToolTile — the canonical reg-user account action: a beautiful icon with its
+// label sitting underneath. No border, no fill, no card — it floats. A soft
+// accent aura blooms behind the icon on hover (or when active). Used for every
+// owner tool in the profile so the whole surface reads as floating controls.
+function ToolTile({
+  icon,
+  label,
+  to,
+  onClick,
+  active = false,
+  disabled = false,
+  tone = "default",
+}: {
+  icon: React.ReactNode;
+  label: string;
+  to?: string;
+  onClick?: () => void;
+  active?: boolean;
+  disabled?: boolean;
+  tone?: "default" | "accent";
+}) {
+  const inner = (
+    <>
+      <span
+        className={cn(
+          "relative grid place-items-center h-12 w-12 transition-all duration-300",
+          "group-hover/tool:-translate-y-0.5",
+          active || tone === "accent"
+            ? "text-accent"
+            : "text-foreground/85 group-hover/tool:text-accent",
+        )}
+      >
+        {/* Floating aura behind the icon — pure glow, no edges. */}
+        <span
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute inset-0 rounded-full blur-xl transition-all duration-300",
+            active ? "bg-accent/20" : "bg-accent/0 group-hover/tool:bg-accent/15",
+          )}
+        />
+        {icon}
+      </span>
+      <span
+        className={cn(
+          "text-[10px] font-mono uppercase tracking-[0.22em] transition-colors",
+          active
+            ? "text-accent"
+            : "text-muted-foreground/70 group-hover/tool:text-foreground",
+        )}
+      >
+        {label}
+      </span>
+    </>
+  );
+
+  const cls = cn(
+    "group/tool relative inline-flex flex-col items-center gap-2 text-center select-none",
+    disabled ? "opacity-50 pointer-events-none" : "cursor-pointer",
+  );
+
+  if (to) {
+    return (
+      <Link to={to} className={cls}>
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <button type="button" onClick={onClick} disabled={disabled} className={cls}>
+      {inner}
+    </button>
+  );
+}
+
 function FloatingLink({
   to,
   icon,

@@ -317,9 +317,23 @@ serve(async (req) => {
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const supabase = supabaseUrl && supabaseServiceKey 
-      ? createClient(supabaseUrl, supabaseServiceKey) 
+    const supabase = supabaseUrl && supabaseServiceKey
+      ? createClient(supabaseUrl, supabaseServiceKey)
       : null;
+
+    // IDOR GUARD (audit): if a projectId is supplied, the caller must own it —
+    // generate-voice mutates project-scoped character voice assignments
+    // (get_or_assign_character_voice) and writes audio against the project.
+    // validateAuth above only proves the caller is logged in. Service-role
+    // (internal pipeline) bypasses.
+    if (projectId && supabase && !auth.isServiceRole) {
+      const { data: ownerRow } = await supabase
+        .from('movie_projects').select('user_id').eq('id', projectId).maybeSingle();
+      if (!ownerRow || ownerRow.user_id !== auth.userId) {
+        const { forbiddenResponse } = await import("../_shared/auth-guard.ts");
+        return forbiddenResponse(corsHeaders, 'Forbidden: you do not own this project');
+      }
+    }
 
     // Voice resolution priority
     let resolvedVoice = 'bella';

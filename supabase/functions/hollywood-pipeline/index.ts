@@ -6617,6 +6617,21 @@ serve(async (req) => {
       throw new Error("userId is required - authenticate or provide userId");
     }
 
+    // IDOR GUARD (audit): if an existing projectId is supplied it must belong to
+    // the caller. End-user userId is pinned to the JWT above, but that does not
+    // stop passing a victim's existing projectId. Service-role internal calls
+    // (mode-router, watchdog, resume-pipeline) bypass.
+    if ((request as any).projectId && !isServiceRoleCall) {
+      const { data: ownerRow } = await supabase
+        .from('movie_projects').select('user_id').eq('id', (request as any).projectId).maybeSingle();
+      if (!ownerRow || ownerRow.user_id !== request.userId) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Forbidden: you do not own this project' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+    }
+
     // ═══ ENGINE LOCK — BULLETPROOF, DB IS SOURCE OF TRUTH ═══
     // For ANY existing project (i.e., projectId is set, including resumes,
     // watchdog re-invokes, and second-stage runs), the persisted

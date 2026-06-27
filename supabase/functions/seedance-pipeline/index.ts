@@ -366,6 +366,18 @@ serve(async (req) => {
     return unauthorizedResponse(corsHeaders, msg);
   }
 
+  // IDOR GUARD (audit): if an existing projectId is supplied it must belong to
+  // the caller (service-role bypasses). Pinning userId to the JWT above does
+  // not stop a user from passing a victim's existing projectId; the create
+  // path below is safe because it owns the new row to request.userId.
+  if (request.projectId && !auth.isServiceRole) {
+    const { data: ownerRow } = await supabase
+      .from("movie_projects").select("user_id").eq("id", request.projectId).maybeSingle();
+    if (!ownerRow || ownerRow.user_id !== auth.userId) {
+      return forbiddenResponse(corsHeaders, "Forbidden: you do not own this project");
+    }
+  }
+
   // ═══ DB ENGINE LOCK (mirror of Hollywood) ═══
   if (request.projectId) {
     try {

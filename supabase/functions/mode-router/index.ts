@@ -424,6 +424,20 @@ serve(async (req) => {
       projectId = project.id as string;
       console.log(`[ModeRouter] ✓ Created project ${projectId} (status: ${requiresLocalCreditDeduction ? 'pending_payment' : 'generating'})`);
     } else {
+      // IDOR GUARD (audit): updating an EXISTING project requires ownership. The
+      // create branch above is safe (it owns the new row to userId); this branch
+      // acts on a caller-supplied projectId, so verify it belongs to the caller.
+      // Service-role internal calls bypass.
+      if (!isServiceRoleCall) {
+        const { data: ownerRow } = await supabase
+          .from('movie_projects').select('user_id').eq('id', projectId).maybeSingle();
+        if (!ownerRow || ownerRow.user_id !== userId) {
+          return new Response(
+            JSON.stringify({ success: false, error: "Forbidden: you do not own this project" }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
       // Update existing project with mode data
       await supabase
         .from('movie_projects')

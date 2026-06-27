@@ -23,6 +23,7 @@ import { OpsRouteGuard } from "./rbac/OpsRouteGuard";
 import { scopeForPath } from "./rbac/scopes";
 import { AdminNotificationBell } from "./components/AdminNotificationBell";
 import { AdminPalette } from "./components/AdminPalette";
+import { LiveBuyAlert } from "./components/LiveBuyAlert";
 import { ACCENT_HSL, accent, Aurora } from "@/admin/ui/primitives";
 import "./admin-skin.css";
 
@@ -256,6 +257,9 @@ function RefineAdminLayoutInner() {
 
       {/* ⌘K admin command palette — global to every admin page */}
       <AdminPalette />
+
+      {/* Real-time celebratory alert whenever any user buys credits */}
+      <LiveBuyAlert />
     </div>
   );
 }

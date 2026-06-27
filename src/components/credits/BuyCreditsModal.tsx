@@ -10,8 +10,9 @@
  * Profile) keep working unchanged.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { trackEvent, EVENTS } from '@/lib/analytics/events';
 import { useSafeNavigation } from '@/lib/navigation';
 import {
   Dialog,
@@ -35,6 +36,11 @@ export function BuyCreditsModal({ open, onOpenChange }: BuyCreditsModalProps) {
   const { navigate } = useSafeNavigation();
   const [pending, setPending] = useState<CreditPackage['id'] | null>(null);
 
+  // Funnel: the buy-credits surface was opened.
+  useEffect(() => {
+    if (open) trackEvent(EVENTS.BUY_CREDITS_OPENED);
+  }, [open]);
+
   const buy = async (pkg: CreditPackage) => {
     if (!user) {
       onOpenChange(false);
@@ -43,6 +49,8 @@ export function BuyCreditsModal({ open, onOpenChange }: BuyCreditsModalProps) {
     }
     if (pending) return;
     setPending(pkg.id);
+    // Funnel: user committed to a pack and is being sent to Polar checkout.
+    trackEvent(EVENTS.CHECKOUT_STARTED, { pkg: pkg.id, usd: pkg.price, credits: pkg.credits });
     try {
       await startCreditCheckout(pkg.id); // redirects on success
     } catch (e) {

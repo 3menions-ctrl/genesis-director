@@ -1180,14 +1180,23 @@ serve(async (req: Request) => {
           // NON-TRANSIENT ERROR: Mark failed but still set watchdog flag for false-failure recovery
           console.log(`[ContinueProduction] ❌ NON-TRANSIENT ERROR: "${errorMsg.substring(0, 100)}" — marking failed with recovery flag`);
           
+          // AUDIT FIX (charge-without-refund): this branch previously referenced
+          // userId, totalClips and currentPipelineState — all declared in the
+          // main try / the transient if-branch and therefore OUT OF SCOPE here.
+          // Evaluating the update object threw a ReferenceError that the outer
+          // catch swallowed, so the project was never marked failed and the
+          // refund never ran. Derive everything locally from the DB + request.
           const { data: currentProject } = await supabase
             .from('movie_projects')
-            .select('pending_video_tasks')
+            .select('pending_video_tasks, pipeline_state, user_id')
             .eq('id', request.projectId)
             .maybeSingle();
-          
+
           const currentTasks = (currentProject?.pending_video_tasks || {}) as Record<string, any>;
-          
+          const currentPipelineState = (currentProject?.pipeline_state || {}) as Record<string, any>;
+          const projectUserId = currentProject?.user_id as string | undefined;
+          const expectedClips = Number(request?.totalClips ?? currentPipelineState.totalClips ?? 0);
+
           await supabase
             .from('movie_projects')
             .update({
@@ -1210,20 +1219,22 @@ serve(async (req: Request) => {
             })
             .eq('id', request.projectId);
 
-          try {
-            const { markProjectFailedAndRefund } = await import("../_shared/pipeline-failure.ts");
-            await markProjectFailedAndRefund(supabase, {
-              projectId: request.projectId,
-              userId,
-              stage: 'continue-production',
-              reason: errorMsg,
-              totalCredits: Number(currentTasks.totalCredits || currentPipelineState.totalCredits || 0),
-              expectedClipCount: totalClips,
-              completedClipCount: Math.max(0, (request.completedClipIndex ?? -1) + 1),
-              source: 'continue-production',
-            });
-          } catch (refundErr) {
-            console.error('[ContinueProduction] failure handler error:', refundErr);
+          if (projectUserId) {
+            try {
+              const { markProjectFailedAndRefund } = await import("../_shared/pipeline-failure.ts");
+              await markProjectFailedAndRefund(supabase, {
+                projectId: request.projectId,
+                userId: projectUserId,
+                stage: 'continue-production',
+                reason: errorMsg,
+                totalCredits: Number(currentTasks.totalCredits || currentPipelineState.totalCredits || 0),
+                expectedClipCount: expectedClips,
+                completedClipCount: Math.max(0, (request.completedClipIndex ?? -1) + 1),
+                source: 'continue-production',
+              });
+            } catch (refundErr) {
+              console.error('[ContinueProduction] failure handler error:', refundErr);
+            }
           }
         }
       }

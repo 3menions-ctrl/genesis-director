@@ -32,11 +32,31 @@ import {
   type ScreenplaySegment,
   type AvatarCharacter,
 } from "../_shared/avatar-screenplay-generator.ts";
+import { assertSafeFetchUrl, SSRFError } from "../_shared/ssrf-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// SSRF allowlist for the user-supplied avatarImageUrl. This URL is fetched
+// server-side (validateImageUrl + scene compositing) and handed to Replicate
+// as a start_image, so a hostile value could otherwise coerce fetches against
+// cloud-metadata endpoints or RFC1918 networks. Mirrors edit-photo.
+const AVATAR_IMAGE_ALLOW_HOSTS = [
+  "*.supabase.co",
+  "*.supabase.in",
+  "*.replicate.delivery",
+  "replicate.delivery",
+  "*.cloudfront.net",
+  "*.amazonaws.com",
+  "images.unsplash.com",
+  "*.pexels.com",
+  "images.pexels.com",
+  "videos.pexels.com",
+  "cdn.midjourney.com",
+  "oaidalleapiprodscus.blob.core.windows.net",
+];
 
 /**
  * GENERATE-AVATAR-DIRECT - World-Class Avatar Pipeline v3.5
@@ -233,6 +253,23 @@ serve(async (req) => {
 
     if (!script || !avatarImageUrl) {
       throw new Error("Both 'script' and 'avatarImageUrl' are required");
+    }
+
+    // SSRF guard: validate the user-supplied avatarImageUrl before it is
+    // fetched server-side or forwarded to Replicate. Data URIs (inline base64)
+    // are not a fetch/SSRF vector, so they pass through untouched.
+    if (typeof avatarImageUrl === "string" && !avatarImageUrl.startsWith("data:")) {
+      try {
+        assertSafeFetchUrl(avatarImageUrl, { allowHosts: AVATAR_IMAGE_ALLOW_HOSTS });
+      } catch (e) {
+        if (e instanceof SSRFError) {
+          return new Response(
+            JSON.stringify({ success: false, error: `avatarImageUrl host is not allowed (${e.reason})` }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        throw e;
+      }
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

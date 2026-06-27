@@ -60,9 +60,14 @@ serve(async (req) => {
         .select("id", { count: "exact", head: true })
         .in("status", ["generating", "stitching", "rendering"]),
       supabase
+        // PRIVACY: only surface prompts/titles from projects the owner has
+        // explicitly made public. Previously this broadcast ANY user's raw
+        // last_user_prompt/title on the public homepage (PII leak) guarded by
+        // only a tiny profanity blocklist.
         .from("movie_projects")
         .select("title, last_user_prompt, prompt, updated_at, created_at")
         .eq("status", "completed")
+        .eq("is_public", true)
         .order("updated_at", { ascending: false })
         .limit(8),
     ]);

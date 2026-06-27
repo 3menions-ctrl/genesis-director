@@ -24,7 +24,7 @@ serve(async (req) => {
       });
     }
 
-    const { prompt, action, clipContext, projectId } = await req.json();
+    const { prompt, action, clipContext, projectId, idempotencyKey } = await req.json();
 
     if (!prompt || typeof prompt !== "string") {
       return new Response(JSON.stringify({ error: "prompt is required" }), {
@@ -43,6 +43,15 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+    // Idempotency key for the credit charge so a client retry (transient
+    // network error) doesn't double-charge. Mirrors editor-generate-clip:
+    // prefer a client-supplied key; otherwise fall back to a coarse per-user
+    // ~65s time bucket scoped to the request content, which collapses rapid
+    // retries without permanently blocking an intentional re-generation.
+    const idemKey = (idempotencyKey && typeof idempotencyKey === "string")
+      ? `editor-ai-scene:${idempotencyKey}`
+      : `editor-ai-scene:auto:${auth.userId}:${action || "generate-scene"}:${Date.now() >> 16}`;
+
     const gateCtx = {
       supabase,
       fnName: "editor-ai-scene",
@@ -51,6 +60,7 @@ serve(async (req) => {
       projectId: typeof projectId === "string" ? projectId : null,
       cost: 1,
       dailyCap: 300,
+      idempotencyKey: idemKey,
       corsHeaders,
     };
     const blocked = await preflightAiGate(gateCtx);

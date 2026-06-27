@@ -40,7 +40,7 @@ interface NavigationLoadingState {
 
 interface NavigationLoadingContextType {
   state: NavigationLoadingState;
-  startNavigation: (targetRoute: string) => void;
+  startNavigation: (targetRoute: string, opts?: { force?: boolean }) => void;
   completeNavigation: () => void;
   reportReady: (systemName: string) => void;
   isHeavyRoute: (route: string) => boolean;
@@ -80,9 +80,15 @@ export function NavigationLoadingProvider({ children }: { children: ReactNode })
   }, []);
 
   // Start navigation loading
-  const startNavigation = useCallback((targetRoute: string) => {
-    const config = getHeavyRouteConfig(targetRoute);
-    
+  const startNavigation = useCallback((targetRoute: string, opts?: { force?: boolean }) => {
+    // `force` lets a non-heavy destination (e.g. the post-login landing /library
+    // or /business) raise the cover too. Without it, the login redirect is the
+    // ONE entry into the authenticated app shell with no overlay — so its cold
+    // first paint shows and re-settles, which reads as the app "flashing" on
+    // every login. A forced cover hides that and auto-completes on arrival.
+    const config = getHeavyRouteConfig(targetRoute)
+      ?? (opts?.force ? { messages: ['Loading…'], minDuration: 0 } : null);
+
     if (!config) {
       // Not a heavy route, no loading needed
       return;

@@ -435,7 +435,7 @@ async function generateWithMusicGenMelody(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        version: "671ac645ce5e552cc63a54a2bbff63fcf798043ac92924f3aa87f5ae093e64c6", // musicgen-melody
+        version: "671ac645ce5e552cc63a54a2bbff63fcf798043055d2dac5fc9e36a837eedcfb", // meta/musicgen (current valid version; prior hash was corrupted → 404)
         input: {
           prompt: prompt,
           duration: Math.min(30, Math.max(5, duration)),

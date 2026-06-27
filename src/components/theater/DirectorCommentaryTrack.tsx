@@ -93,10 +93,10 @@ export function DirectorCommentaryTrack({ reelId, videoRef }: Props) {
       <Button
         type="button"
         size="sm"
-        variant={on ? "default" : "outline"}
+        variant="ghost"
         onClick={toggle}
         aria-pressed={on}
-        className="gap-2"
+        className={`gap-2 hover:bg-white/[0.06] ${on ? "text-accent" : "text-foreground/85"}`}
       >
         {on ? <HeadphoneOff className="w-3.5 h-3.5" /> : <Headphones className="w-3.5 h-3.5" />}
         {on ? "Director" : "Director's commentary"}

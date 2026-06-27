@@ -49,10 +49,7 @@ export const VideoReactionsBar = memo(function VideoReactionsBar({
           className={cn(
             "group relative flex items-center gap-1 px-2 py-1 rounded-full",
             "transition-all duration-200",
-            "hover:scale-110 active:scale-95",
-            hasReacted
-              ? "bg-primary/20 border border-primary/40"
-              : "bg-white/5 border border-white/10 hover:bg-white/10",
+            "hover:scale-110 active:scale-95 hover:bg-white/[0.06]",
             compact ? "text-sm" : "text-base"
           )}
         >

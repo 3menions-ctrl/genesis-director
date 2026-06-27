@@ -267,8 +267,8 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
         {!isEditing ? (
           <Button
             onClick={() => setIsEditing(true)}
-            variant="outline"
-            className="border-white/[0.08] text-white/70 hover:bg-glass-hover hover:text-white hover:border-white/[0.15] rounded-xl transition-all"
+            variant="ghost"
+            className="text-white/70 hover:bg-white/[0.06] hover:text-white rounded-xl transition-colors"
           >
             <Edit3 className="w-4 h-4 mr-2" />
             Edit Profile
@@ -296,12 +296,13 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             <Button
               onClick={handleSave}
               disabled={isSaving}
-              className="bg-[hsl(215,100%,55%)] hover:bg-[hsl(215,100%,62%)] text-white rounded-xl shadow-lg shadow-[hsl(215,100%,60%)]/22"
+              variant="ghost"
+              className="text-foreground hover:bg-white/[0.06] rounded-xl transition-colors"
             >
               {isSaving ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               ) : (
-                <Save className="w-4 h-4 mr-2" />
+                <Save className="w-4 h-4 mr-2 text-[hsl(215,100%,72%)]" />
               )}
               Save Changes
             </Button>
@@ -488,7 +489,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             { label: 'Account Tier', value: tierInfo.label, icon: <Crown className={cn("w-4 h-4", tierInfo.color)} />, valueColor: tierInfo.color },
             { label: 'Status', value: 'Active', icon: <CheckCircle2 className="w-4 h-4 text-emerald-400" />, valueColor: 'text-emerald-400' },
           ].map((item, i) => (
-            <div key={i} className="p-4 rounded-xl bg-glass border border-white/[0.05] hover:border-white/[0.1] transition-colors">
+            <div key={i} className="p-4 rounded-xl">
               <p className="text-[10px] text-white/30 uppercase tracking-wider font-medium">{item.label}</p>
               <div className="flex items-center gap-2 mt-1.5">
                 {item.icon}
@@ -516,7 +517,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 rounded-xl bg-glass border border-white/[0.05]">
+          <div className="flex items-center justify-between p-4 rounded-xl">
             <div className="pr-4">
               <p className="text-sm font-medium text-white">Opt out of activity tracking</p>
               <p className="text-xs text-white/35 mt-0.5">Stop usage-pattern analytics on your account. Your data stays private to you regardless.</p>
@@ -528,7 +529,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             />
           </div>
 
-          <div className="p-4 rounded-xl bg-glass border border-white/[0.05]">
+          <div className="p-4 rounded-xl">
             <p className="text-sm font-medium text-white">No public ranking</p>
             <p className="text-xs text-white/35 mt-0.5">
               Leaderboards, XP and ranking points have been removed. Your credits, usage and activity are visible only to you.
@@ -545,7 +546,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
         className="py-2"
       >
         <div className="flex items-start gap-4">
-          <div className="w-11 h-11 rounded-xl bg-red-500/10 border border-red-500/15 flex items-center justify-center shrink-0">
+          <div className="w-11 h-11 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
             <UserX className="w-5 h-5 text-red-400/80" />
           </div>
           <div className="flex-1">
@@ -556,8 +557,8 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             <div className="mt-4">
               <Button
                 onClick={() => navigate('/settings/deactivate')}
-                variant="outline"
-                className="border-red-500/20 text-red-400/80 hover:bg-red-500/10 hover:text-red-300 hover:border-red-500/30 rounded-xl"
+                variant="ghost"
+                className="text-red-400/80 hover:bg-red-500/10 hover:text-red-300 rounded-xl"
               >
                 <Power className="w-4 h-4 mr-2" />
                 Deactivate Account
@@ -583,7 +584,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            <div className="p-4 rounded-xl bg-glass border border-white/[0.06]">
+            <div className="p-4 rounded-xl">
               <p className="text-xs text-white/30 uppercase tracking-wider">Current email</p>
               <p className="text-white font-medium mt-1 text-sm">{user?.email}</p>
             </div>
@@ -624,12 +625,13 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             <Button
               onClick={handleEmailChange}
               disabled={!newEmail || isChangingEmail}
-              className="bg-[hsl(215,100%,55%)] hover:bg-[hsl(215,100%,62%)] text-white rounded-xl"
+              variant="ghost"
+              className="text-foreground hover:bg-white/[0.06] rounded-xl"
             >
               {isChangingEmail ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               ) : (
-                <Mail className="w-4 h-4 mr-2" />
+                <Mail className="w-4 h-4 mr-2 text-[hsl(215,100%,72%)]" />
               )}
               Send Confirmation
             </Button>

@@ -29,72 +29,59 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
+        // Borderless ghost by default — no resting fill. Every <Button> in
+        // the app inherits this, so it stays text-led with a subtle hover.
         default: [
-          "bg-foreground text-background",
-          "shadow-[0_2px_8px_hsl(0_0%_0%/0.12)]",
-          "hover:bg-foreground/90",
-          "hover:shadow-[0_4px_16px_hsl(0_0%_0%/0.16)]",
-          "hover:-translate-y-0.5",
+          "text-foreground",
+          "hover:bg-white/[0.06]",
         ].join(" "),
         destructive: [
-          "bg-destructive text-destructive-foreground",
-          "hover:bg-destructive/90",
-          "shadow-md",
+          "text-destructive",
+          "hover:bg-destructive/10",
         ].join(" "),
         outline: [
-          "border border-border",
           "bg-transparent",
           "text-foreground",
-          "hover:bg-muted",
-          "hover:border-foreground/20",
+          "hover:bg-white/[0.06]",
         ].join(" "),
         secondary: [
-          "bg-muted text-foreground",
-          "border border-border",
-          "hover:bg-muted/80",
-          "hover:border-foreground/20",
+          "text-foreground",
+          "hover:bg-white/[0.06]",
         ].join(" "),
         ghost: [
           "text-muted-foreground",
-          "hover:bg-muted",
+          "hover:bg-white/[0.06]",
           "hover:text-foreground",
         ].join(" "),
         link: "text-foreground underline-offset-4 hover:underline",
         glow: [
           "relative overflow-hidden",
-          "bg-foreground text-background",
-          "shadow-[0_4px_16px_hsl(0_0%_0%/0.15)]",
-          "hover:shadow-[0_8px_24px_hsl(0_0%_0%/0.2)]",
+          "text-foreground",
+          "hover:bg-white/[0.06]",
           "hover:-translate-y-0.5",
         ].join(" "),
         aurora: [
           "relative overflow-hidden",
-          "bg-foreground text-background",
-          "shadow-[0_4px_16px_hsl(0_0%_0%/0.15)]",
-          "hover:shadow-[0_8px_24px_hsl(0_0%_0%/0.2)]",
+          "text-foreground",
+          "hover:bg-white/[0.06]",
           "hover:-translate-y-0.5",
         ].join(" "),
         glass: [
-          "bg-background/60 backdrop-blur-xl",
-          "border border-background/80",
+          "backdrop-blur-xl",
           "text-foreground",
-          "shadow-glass",
-          "hover:bg-background/80",
-          "hover:border-foreground/10",
+          "hover:bg-white/[0.06]",
         ].join(" "),
         premium: [
           "relative overflow-hidden",
-          "bg-foreground text-background font-semibold",
-          "shadow-[0_4px_20px_hsl(0_0%_0%/0.15)]",
-          "hover:shadow-[0_8px_32px_hsl(0_0%_0%/0.2)]",
+          "text-foreground font-semibold",
+          "hover:bg-white/[0.06]",
           "hover:-translate-y-0.5",
         ].join(" "),
         pill: [
-          // Landing-page "Enter Studio" white pill — the canonical primary CTA.
+          // Landing-page "Enter Studio" CTA — borderless, text-led.
           "relative overflow-hidden rounded-full",
-          "bg-primary text-primary-foreground font-semibold tracking-tight",
-          "shadow-[0_10px_40px_-8px_hsla(0,0%,100%,0.35),0_0_0_1px_hsla(0,0%,100%,0.08)_inset]",
-          "hover:shadow-[0_14px_48px_-8px_hsla(0,0%,100%,0.45),0_0_0_1px_hsla(0,0%,100%,0.12)_inset]",
+          "text-foreground font-semibold tracking-tight",
+          "hover:bg-white/[0.06]",
           "hover:-translate-y-0.5",
         ].join(" "),
       },

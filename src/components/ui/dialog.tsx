@@ -51,7 +51,7 @@ const DialogContent = React.forwardRef<
         // zoom-in/out animation can't clobber the centring transform and pin
         // the modal to a corner.
         variant === "default" &&
-          "fixed inset-0 z-50 m-auto grid h-fit w-[calc(100vw-2rem)] max-w-lg gap-4 p-6 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 rounded-2xl bg-[#15171e]/95 border border-white/[0.14] ring-1 ring-white/[0.04] backdrop-blur-2xl max-h-[85vh] overflow-y-auto",
+          "fixed inset-0 z-50 m-auto grid h-fit w-[calc(100vw-2rem)] max-w-lg gap-4 p-6 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 rounded-2xl bg-[#15171e]/95 backdrop-blur-2xl max-h-[85vh] overflow-y-auto",
         className,
       )}
       style={variant === "fullscreen" ? { width: '100vw', height: '100dvh', minHeight: '100vh' } : 

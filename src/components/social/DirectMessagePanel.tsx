@@ -4,7 +4,7 @@
  */
 
 import { useState, useRef, useEffect, memo } from 'react';
-import { X, Send, Loader2, ArrowLeft } from 'lucide-react';
+import { X, Send, Loader2, ArrowLeft, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -123,8 +123,7 @@ export function DirectMessagePanel({
 
   return (
     <div className={cn(
-      "flex flex-col h-full bg-zinc-900/95 backdrop-blur-xl rounded-2xl",
-      "border border-white/[0.08] overflow-hidden",
+      "flex flex-col h-full backdrop-blur-xl rounded-2xl overflow-hidden",
       className
     )}>
       {/* Header */}
@@ -232,12 +231,13 @@ export function MessageUserButton({
     <>
       <Button
         onClick={() => setIsOpen(true)}
-        variant="outline"
+        variant="ghost"
         className={cn(
-          "border-white/20 text-white hover:bg-white/10 hover:text-white",
+          "gap-1.5 text-white hover:bg-white/[0.06] hover:text-white",
           className
         )}
       >
+        <MessageCircle className="w-4 h-4" />
         Message
       </Button>
 

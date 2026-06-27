@@ -253,7 +253,7 @@ export default function NotificationSettings() {
 
             {/* Quiet hours */}
             <Section eyebrow="◆ Quiet hours" title="When the bell stays silent">
-              <div className="px-1 py-2">
+              <div className="px-4 py-5 rounded-2xl">
                 <div className="flex items-start gap-3">
                   <Moon className="h-4 w-4 text-accent/80 mt-1" strokeWidth={1.5} />
                   <div className="flex-1">
@@ -303,9 +303,8 @@ export default function NotificationSettings() {
                 disabled={!dirty || saving}
                 className={cn(
                   'inline-flex items-center gap-2 px-5 h-10 rounded-full text-[13px]',
-                  'bg-gradient-to-br from-accent/25 to-accent/[0.08]',
-                  'text-foreground transition-all',
-                  'hover:from-accent/35 hover:to-accent/[0.12]',
+                  'text-foreground transition-colors',
+                  'hover:bg-white/[0.06]',
                   'disabled:opacity-40 disabled:cursor-not-allowed',
                 )}
               >
@@ -371,7 +370,7 @@ function ToggleRow({
         'shrink-0 flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
         on
           ? 'bg-[hsl(var(--accent)/0.12)] text-accent'
-          : 'bg-white/[0.03] text-muted-foreground/60',
+          : 'text-muted-foreground/60',
       )}>
         <Icon className="h-4 w-4" strokeWidth={1.5} />
       </div>

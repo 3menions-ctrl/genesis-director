@@ -211,9 +211,10 @@ export const BillingSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
         </div>
         <Button
           onClick={() => setShowBuyModal(true)}
-          className="bg-white text-black hover:bg-white/90"
+          variant="ghost"
+          className="text-foreground hover:bg-white/[0.06]"
         >
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="w-4 h-4 mr-2 text-[hsl(215,100%,72%)]" />
           Buy Credits
         </Button>
       </div>
@@ -295,7 +296,7 @@ export const BillingSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
-            className="relative rounded-xl overflow-hidden border border-white/[0.06] bg-glass p-4 group hover:bg-glass-hover transition-all"
+            className="relative rounded-xl overflow-hidden p-4 group transition-all"
           >
             <div className={cn("absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-br", stat.color)} />
             <div className="relative">
@@ -331,7 +332,7 @@ export const BillingSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
         </div>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-glass-hover flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center">
               <CreditCard className="w-5 h-5 text-white/40" />
             </div>
             <div>
@@ -352,7 +353,7 @@ export const BillingSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
         </div>
         
         {autoRecharge && (
-          <div className="mt-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+          <div className="mt-4 p-4 rounded-xl bg-amber-500/10">
             <p className="text-sm text-amber-400">
               When your balance drops below 100 credits (1 one-minute video), we'll automatically add 250 credits to your account.
             </p>

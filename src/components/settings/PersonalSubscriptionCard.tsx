@@ -12,7 +12,7 @@ export function PersonalSubscriptionCard() {
   const navigate = useNavigate();
 
   return (
-    <div className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-gradient-to-br from-[#0A84FF]/[0.06] to-white/[0.01] p-6">
+    <div className="relative rounded-2xl overflow-hidden p-6">
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#0A84FF]/40 to-transparent" />
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -30,7 +30,8 @@ export function PersonalSubscriptionCard() {
         <div className="flex gap-2">
           <Button
             onClick={() => navigate('/credits')}
-            className="bg-primary hover:bg-primary/90 text-white"
+            variant="ghost"
+            className="text-foreground hover:bg-white/[0.06]"
           >
             <Sparkles className="w-4 h-4 mr-2" /> Manage credits{' '}
             <ArrowRight className="w-3.5 h-3.5 ml-1" />

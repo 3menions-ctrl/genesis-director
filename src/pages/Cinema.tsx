@@ -27,7 +27,7 @@ import { ErrorBoundary } from "@/components/ui/error-boundary";
 function CoverFallback() {
   return (
     <div aria-hidden className="fixed inset-0 z-0 bg-[#08090c]">
-      <img src="/cinema-assets/cover-bridge.jpg" alt="" className="absolute inset-0 h-full w-full object-cover object-center" />
+      <img src="/cinema-assets/cover-park-bridge.jpg" alt="" className="absolute inset-0 h-full w-full object-cover object-center" />
       <div className="absolute inset-0 bg-[#06070a]/45" />
       <div className="absolute inset-0 bg-gradient-to-b from-[#06070a]/20 via-[#06070a]/35 to-[#06070a]/85" />
     </div>

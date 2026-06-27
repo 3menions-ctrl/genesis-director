@@ -27,7 +27,7 @@ import { ACCENT } from "./ui";
 const VIDEO_DESKTOP = "/cinema-assets/park-desktop.mp4"; // ~6.6MB, 1280×690
 const VIDEO_MOBILE = "/cinema-assets/park-mobile.mp4"; //  ~2.3MB, 768×414
 const POSTER = "/cinema-assets/park-poster.jpg";
-const COVER = "/cinema-assets/cover-bridge.jpg"; // renamed for cache-bust (images-cache is CacheFirst 30d)
+const COVER = "/cinema-assets/cover-park-bridge.jpg"; // entry-point still: video's bunny/park frame + bridge (fresh URL = cache-bust)
 
 export type Status = "cover" | "loading" | "playing" | "climax" | "takeover" | "rest" | "failed";
 

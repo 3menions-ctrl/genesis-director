@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
-import { validateAuth, unauthorizedResponse } from '../_shared/auth-guard.ts';
+import { validateAuth, unauthorizedResponse, resolveEffectiveUserId, forbiddenResponse } from '../_shared/auth-guard.ts';
 import { checkContentSafety } from '../_shared/content-safety.ts';
 import { assertSafeFetchUrl, safeFetch, SSRFError } from '../_shared/ssrf-guard.ts';
 
@@ -36,11 +36,21 @@ Deno.serve(async (req) => {
   try {
     // Authenticate
     const auth = await validateAuth(req);
-    if (!auth.authenticated || !auth.userId) {
+    if (!auth.authenticated) {
       return unauthorizedResponse(corsHeaders);
     }
 
-    const { imageUrl, instruction, templateId, editId } = await req.json();
+    const { imageUrl, instruction, templateId, editId, userId: bodyUserId } = await req.json();
+
+    // SECURITY: end-user JWT pins to the JWT; the service role (e.g. api-v1,
+    // which has already deducted credits and passes an explicit userId) is
+    // trusted for body.userId. Mutate auth.userId so the rest of the handler
+    // uses the resolved id uniformly.
+    try {
+      auth.userId = resolveEffectiveUserId(auth, bodyUserId ?? null);
+    } catch (e) {
+      return forbiddenResponse(corsHeaders, (e as Error).message);
+    }
 
     if (!imageUrl) {
       return new Response(
@@ -129,6 +139,11 @@ Deno.serve(async (req) => {
       // Use template cost if higher than base, otherwise 2 credit minimum
       creditsCost = Math.max(2, template.credits_cost || 2);
     }
+
+    // Service-role callers (api-v1) have already deducted credits upstream —
+    // zero the in-function cost so we never double-charge (and skip the
+    // per-failure refunds, which would then over-refund).
+    if (auth.isServiceRole) creditsCost = 0;
 
     // Charge credits for premium edits
     if (creditsCost > 0) {

@@ -193,6 +193,20 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: `Unknown endpoint: ${subPath}` }, 404);
     }
 
+    // /avatars has no prompt→avatar-image backend yet: generate-avatar-image
+    // needs a structured config + a session user (auth.userId, null under the
+    // service role), and generate-avatar-direct needs a script + an existing
+    // avatar image. Fail cleanly WITHOUT charging rather than charge-then-crash
+    // (the previous behavior TypeError'd downstream and refunded). Re-enable
+    // once a public prompt-based avatar endpoint exists.
+    if (subPath === '/avatars') {
+      await log(501, 0, 'avatars not available');
+      return jsonResponse(
+        { error: 'not_implemented', message: 'Avatar generation via the API is not yet available.' },
+        501,
+      );
+    }
+
     // Parse the body BEFORE charging so we can derive an idempotency key
     // and (optionally) the project context for the deduction.
     const body = await req.json().catch(() => ({}));
@@ -264,15 +278,21 @@ Deno.serve(async (req) => {
         await log(400, 0, 'missing prompt');
         return jsonResponse({ error: '`prompt` is required' }, 400);
       }
-      upstreamResp = await admin.functions.invoke('generate-single-clip', {
+      // Route to seedance-pipeline: it accepts a free-form concept, resolves
+      // userId via the service role (resolveEffectiveUserId), and CREATES its
+      // own project (generate-single-clip required a pre-existing projectId +
+      // camelCase userId, so the old wiring always failed). api-v1 already
+      // deducted credits, so skipCreditDeduction is honored (service-role only).
+      upstreamResp = await admin.functions.invoke('seedance-pipeline', {
         body: {
-          prompt,
-          duration: Number(body.duration) || 5,
-          aspect_ratio: body.aspect_ratio || '16:9',
-          start_image: body.start_image || null,
-          user_id: userId,
+          concept: prompt,
+          userId,
+          clipCount: 1,
+          clipDuration: Number(body.duration) || 5,
+          aspectRatio: body.aspect_ratio || '16:9',
+          videoEngine: 'seedance',
+          skipCreditDeduction: true,
           source: 'api-v1',
-          skip_credit_deduction: false, // already deducted here; downstream must respect this
         },
       }) as unknown as Response;
     } else if (subPath === '/avatars') {
@@ -297,8 +317,11 @@ Deno.serve(async (req) => {
           400
         );
       }
+      // edit-photo now resolves userId from the body under the service role and
+      // skips its own credit deduction when service-role (api-v1 already
+      // charged), so this no longer 401s or double-charges.
       upstreamResp = await admin.functions.invoke('edit-photo', {
-        body: { imageUrl, instruction, user_id: userId, source: 'api-v1' },
+        body: { imageUrl, instruction, userId, source: 'api-v1' },
       }) as unknown as Response;
     }
 

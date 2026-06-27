@@ -41,6 +41,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { AuthHeroStage } from "@/components/auth/AuthHeroStage";
 import { AuthOtpInput } from "@/components/auth/AuthOtpInput";
+import { OAuthProviders } from "@/components/auth/OAuthProviders";
 import { AuthErrorBanner, classifyAuthError, type AuthErrorCue } from "@/components/auth/AuthErrorBanner";
 import { sfx } from "@/lib/sound";
 import { celebrate } from "@/lib/celebrate";
@@ -253,6 +254,11 @@ export default function Auth() {
 
   return (
     <div className="relative min-h-[100dvh] w-full bg-[#0a0b0f] text-foreground overflow-hidden">
+      {/* Cinematic film backdrop — phone/mobile only (desktop keeps the 2-pane hero). */}
+      <div className="pointer-events-none absolute inset-0 z-0 lg:hidden [&>*]:h-full [&>*]:w-full">
+        <AuthHeroStage />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0b0f]/40 via-[#0a0b0f]/80 to-[#0a0b0f]/98" />
+      </div>
       <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] min-h-[100dvh]">
         {/* HERO — desktop only. */}
         <div className="hidden lg:block">
@@ -265,7 +271,7 @@ export default function Auth() {
             initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="relative w-full max-w-[400px]"
+            className="relative w-full max-w-[400px] rounded-[28px] bg-[#0b0d13]/55 p-6 shadow-[0_40px_120px_-50px_rgba(0,0,0,0.95)] ring-1 ring-white/10 backdrop-blur-2xl lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none lg:ring-0 lg:backdrop-blur-none"
           >
             {/* Mobile-only mini header */}
             <div className="lg:hidden mb-8">
@@ -384,7 +390,13 @@ export default function Auth() {
                     ))}
                   </div>
 
-                  <div className="mt-7" />
+                  {/* Social sign-in first — Apple (required on iOS) + Google */}
+                  <div className="mt-6">
+                    <OAuthProviders next={nextParam ?? undefined} />
+                  </div>
+                  <div className="my-5 flex items-center gap-3 text-[10px] uppercase tracking-[0.22em] text-white/40">
+                    <span className="h-px flex-1 bg-white/12" /> or with email <span className="h-px flex-1 bg-white/12" />
+                  </div>
 
                   <AuthErrorBanner cue={banner} />
 

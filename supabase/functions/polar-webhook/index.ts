@@ -204,6 +204,34 @@ async function upsertSubscription(sub: any, statusOverride?: string) {
   }
 }
 
+// Record a failed/expired hosted checkout into analytics_events so the admin
+// purchase funnel can show drop-off. Best-effort — never throws (a telemetry
+// failure must not 500 the webhook and trigger a Polar retry storm).
+async function recordCheckoutFailure(checkout: any) {
+  try {
+    const status = String(checkout?.status ?? "").toLowerCase();
+    if (status !== "expired" && status !== "failed") return; // 'open'/'succeeded'/'confirmed' aren't drop-offs
+    const md = checkout?.metadata ?? {};
+    const userId = /^[0-9a-f-]{36}$/i.test(String(md.user_id)) ? String(md.user_id) : null;
+    await sb().from("analytics_events").insert({
+      name: "checkout_failed",
+      user_id: userId,
+      occurred_at: new Date().toISOString(),
+      path: "/credits",
+      payload: {
+        status,
+        checkout_id: checkout?.id ?? null,
+        pkg: md.package_id ?? md.pkg ?? null,
+        amount: checkout?.total_amount ?? checkout?.amount ?? null,
+        currency: checkout?.currency ?? "usd",
+      },
+    });
+    log("checkout_failed recorded", { status, checkout: checkout?.id });
+  } catch (e) {
+    log("recordCheckoutFailure failed (ignored)", { error: e instanceof Error ? e.message : String(e) });
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
 
@@ -240,6 +268,9 @@ Deno.serve(async (req) => {
         break;
       case "subscription.revoked":
         await upsertSubscription(data, "canceled");
+        break;
+      case "checkout.updated":
+        await recordCheckoutFailure(data);
         break;
       default:
         log("ignored event", { type });

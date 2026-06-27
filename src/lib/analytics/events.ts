@@ -15,6 +15,12 @@ export const EVENTS = {
   PUBLISHED: "published",
   CREDITS_PURCHASED: "credits_purchased",
   CREDITS_SPENT: "credits_spent",
+  // Checkout funnel — pricing visit → buy opened → checkout started →
+  // (aborted | failed | purchased). Read by admin_purchase_insights.
+  BUY_CREDITS_OPENED: "buy_credits_opened",
+  CHECKOUT_STARTED: "checkout_started",
+  CHECKOUT_ABORTED: "checkout_aborted",
+  CHECKOUT_FAILED: "checkout_failed",
   AVATAR_SELECTED: "avatar_selected",
   TEMPLATE_USED: "template_used",
 } as const;

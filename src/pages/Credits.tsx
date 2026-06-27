@@ -18,6 +18,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Sparkles, History, ArrowUpRight, Wand2, Coins, Check, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { trackEvent, EVENTS } from '@/lib/analytics/events';
 import { useCredits } from '@/contexts/CreditsContext';
 import { supabase } from '@/integrations/supabase/client';
 import { usePageMeta } from '@/hooks/usePageMeta';
@@ -136,6 +137,7 @@ export default function Credits() {
       void credits.reconcile();
     } else if (payment === 'cancelled') {
       toast.info('Checkout cancelled — no charge was made.');
+      trackEvent(EVENTS.CHECKOUT_ABORTED);
     }
     params.delete('payment');
     params.delete('credits');

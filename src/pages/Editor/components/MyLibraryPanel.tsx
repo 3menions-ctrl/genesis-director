@@ -21,9 +21,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { safeErrorMessage } from "@/lib/safeErrorMessage";
-import { ingestRemoteUrl, insertWithNextShotIndex, validateUploadFile, describeIngestError } from "@/lib/editor/upload-ingest";
-import { appendPendingClip, resolvePendingClip } from "@/lib/editor/store";
-import { getDocumentState, flushNow } from "@/lib/editor/document-store";
+import { validateUploadFile, describeIngestError } from "@/lib/editor/upload-ingest";
+import { addRemoteClipToTimeline, MEDIA_DRAG_MIME, type MediaDragPayload } from "@/lib/editor/media-drag";
 import type { EditorProject } from "@/lib/editor/types";
 
 interface UploadAsset {
@@ -193,62 +192,36 @@ export function MyLibraryPanel({ project }: { project: EditorProject | null }) {
     if (!user) { toast.error("Sign in to add clips"); return; }
     setAddingId(u.id);
     try {
-      const durationSec = Math.max(0.5, Math.min(600, u.duration_seconds ?? 10));
-      const title = u.title ?? "Library clip";
-
-      // 1. Persist into video_clips FIRST. The seamless-stitcher reads
-      //    from this table, not the ScriptDocument — without this DB
-      //    insert the clip was visible on the timeline but invisible to
-      //    the renderer. Result was the user-reported "only clip 1 in
-      //    my saved video" bug: all the additional clips imported from
-      //    the rail's library panel never got persisted, and the export
-      //    only contained whatever was already in video_clips.
-      const clipId = await insertWithNextShotIndex({
+      // Shared persistence path (DB row → in-memory store → doc mirror).
+      // Same code the timeline's drag-drop dropzone runs, so click and
+      // drag stay in lockstep. See media-drag.ts for the rationale.
+      await addRemoteClipToTimeline({
         projectId:    project.id,
         userId:       user.id,
-        prompt:       `Imported: ${title}`,
-        durationSec,
-        videoUrl:     u.asset_url,
+        assetUrl:     u.asset_url,
         thumbnailUrl: u.thumbnail_url,
+        title:        u.title,
+        durationSec:  u.duration_seconds,
       });
-      if (!clipId) throw new Error("Couldn't persist clip to project");
-
-      // 2. Mirror into the in-memory store so the timeline shows it
-      //    INSTANTLY without waiting for a project reload.
-      appendPendingClip({
-        id:           clipId,
-        prompt:       `Imported: ${title}`,
-        durationSec,
-        thumbnailUrl: u.thumbnail_url,
-      });
-      resolvePendingClip(clipId, {
-        videoUrl:     u.asset_url,
-        thumbnailUrl: u.thumbnail_url,
-        durationSec,
-      });
-
-      // 3. Mirror into the ScriptDocument so doc-aware surfaces
-      //    (Storyboard, BudgetPanel) see the new shot too.
-      try {
-        const doc = getDocumentState().doc;
-        if (doc) {
-          ingestRemoteUrl({
-            videoUrl:     u.asset_url,
-            thumbnailUrl: u.thumbnail_url,
-            title:        u.title,
-            durationSec,
-            doc,
-          });
-          await flushNow();
-        }
-      } catch { /* doc mirror is best-effort */ }
-
-      toast.success(`Added: ${title}`);
+      toast.success(`Added: ${u.title ?? "Library clip"}`);
     } catch (e) {
       toast.error("Couldn't add clip", { description: e instanceof Error ? e.message : "" });
     } finally {
       setAddingId(null);
     }
+  };
+
+  // Stamp the asset onto the drag's dataTransfer so the timeline's
+  // dropzone can drop it as a clip (or replace a clip it's dropped on).
+  const handleDragStart = (u: UploadAsset) => (e: React.DragEvent) => {
+    const payload: MediaDragPayload = {
+      assetUrl:     u.asset_url,
+      thumbnailUrl: u.thumbnail_url,
+      title:        u.title,
+      durationSec:  u.duration_seconds,
+    };
+    e.dataTransfer.setData(MEDIA_DRAG_MIME, JSON.stringify(payload));
+    e.dataTransfer.effectAllowed = "copy";
   };
 
   // Optimistic toggle: flip the row's heart instantly + write to DB
@@ -329,6 +302,8 @@ export function MyLibraryPanel({ project }: { project: EditorProject | null }) {
                 title={u.title ?? "Untitled upload"}
                 meta={fmtDur(u.duration_seconds)}
                 disabled={!project || addingId === u.id}
+                draggable={!!project}
+                onDragStart={handleDragStart(u)}
                 cta="add"
                 ctaIcon={addingId === u.id
                   ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -387,7 +362,7 @@ export function MyLibraryPanel({ project }: { project: EditorProject | null }) {
 // ─────────────────────────────────────────────────────────────────────
 function Row({
   thumb, title, meta, onClick, disabled, cta, ctaIcon, muted,
-  isFavorite, isAiGenerated, onToggleFavorite,
+  isFavorite, isAiGenerated, onToggleFavorite, draggable, onDragStart,
 }: {
   thumb: string | null;
   title: string;
@@ -400,25 +375,30 @@ function Row({
   isFavorite?: boolean;
   isAiGenerated?: boolean;
   onToggleFavorite?: () => void;
+  draggable?: boolean;
+  onDragStart?: (e: React.DragEvent) => void;
 }) {
   return (
     <button
       type="button"
       onClick={() => { if (!disabled) onClick(); }}
       disabled={disabled}
+      draggable={draggable && !disabled}
+      onDragStart={onDragStart}
       className={cn(
         "group/row w-full flex items-center gap-2.5 p-1.5 rounded-lg transition-all",
         "ring-1 ring-inset",
         disabled
           ? "ring-white/[0.04] bg-white/[0.01] opacity-60 cursor-not-allowed"
           : "ring-white/[0.05] bg-white/[0.02] hover:ring-white/[0.18] hover:bg-white/[0.05]",
+        draggable && !disabled && "cursor-grab active:cursor-grabbing",
         muted && "opacity-75",
       )}
-      title={cta === "add" ? "Add to timeline" : "Open project"}
+      title={cta === "add" ? "Add to timeline — or drag onto a clip to replace it" : "Open project"}
     >
       <div className="relative shrink-0 w-14 h-9 rounded-md overflow-hidden bg-black ring-1 ring-inset ring-white/[0.05]">
         {thumb ? (
-          <img src={thumb} alt="" loading="lazy" className="w-full h-full object-cover" />
+          <img src={thumb} alt="" loading="lazy" draggable={false} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full grid place-items-center">
             <Film className="h-3.5 w-3.5 text-muted-foreground/35" strokeWidth={1.5} />

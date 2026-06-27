@@ -47,7 +47,11 @@ export default function PeopleOverview() {
           supabase.rpc("admin_dashboard_pulse" as never),
           supabase.from("organizations").select("id", { count: "exact", head: true }),
           supabase.from("user_roles").select("id", { count: "exact", head: true }).eq("role", "admin"),
-          supabase.from("profiles").select("*").order("created_at", { ascending: false }).limit(7),
+          // NOTE: profiles email/credits_balance/role columns are REVOKED from
+          // authenticated (20260705000200 column-lockdown), so select("*") 403s.
+          // Select only granted public columns; email/credits degrade gracefully
+          // in this overview (full values are on the RPC-backed detail pages).
+          supabase.from("profiles").select("id, display_name, full_name, username, account_tier, avatar_url, created_at").order("created_at", { ascending: false }).limit(7),
           supabase.from("organizations").select("*").order("created_at", { ascending: false }).limit(5),
           supabase.from("profiles").select("created_at").gte("created_at", since.toISOString()),
         ]);

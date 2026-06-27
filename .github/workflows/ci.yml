@@ -57,6 +57,11 @@ jobs:
       - name: Build (production mode)
         run: bun run build
 
+      # Build the admin bundle too — a broken admin.html / src/admin rollup input
+      # would otherwise merge green and ship to the admin host untested.
+      - name: Build admin bundle
+        run: bun run build:admin
+
   e2e:
     name: Playwright E2E
     runs-on: ubuntu-latest

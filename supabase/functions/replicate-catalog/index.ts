@@ -80,7 +80,18 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      return await replicate(`/v1/models/${owner}/${name}`);
+      // SECURITY: owner/name are caller-supplied. Without restriction they can be
+      // crafted to escape /v1/models/* and reach arbitrary Replicate endpoints
+      // (e.g. ../../predictions/<id> → other users' prediction PII). Restrict to
+      // the known FEATURED catalog and URL-encode both segments so no path
+      // separators or traversal sequences survive into the request URL.
+      const allowed = FEATURED.some((m) => m.owner === owner && m.name === name);
+      if (!allowed) {
+        return new Response(JSON.stringify({ error: 'model not allowed' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      return await replicate(`/v1/models/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`);
     }
     return new Response(JSON.stringify({ error: 'unknown action' }), {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },

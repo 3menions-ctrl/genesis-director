@@ -28,6 +28,18 @@ const corsHeaders = {
 
 const DEFAULT_INPAINT_PROMPT = 'clean plate, seamless natural background, remove the masked object';
 
+// Stable SHA-256 hex digest. Used to derive an idempotency key from the edit's
+// content when no editId is supplied, so a genuine retry of the same edit
+// (same user + image + instruction) collapses onto one charge instead of
+// double-charging on a time bucket.
+async function sha256Hex(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 // Decode a `data:<mime>;base64,<payload>` URI into raw bytes + mime type.
 function decodeDataUri(dataUri: string): { bytes: Uint8Array; contentType: string } {
   const match = /^data:([^;,]+)?(;base64)?,(.*)$/s.exec(dataUri);
@@ -174,10 +186,13 @@ Deno.serve(async (req) => {
 
     // Use editId as the idempotency anchor — every photo_edits row has a unique
     // id, so client retries with the same editId can't double-charge. If editId
-    // is absent we fall back to a millisecond bucket per user.
+    // is absent we derive a STABLE key from the edit's content (user + image +
+    // instruction). A time bucket would let a genuine retry of the same edit
+    // land in a new bucket and be charged twice; the content hash collapses
+    // identical retries onto a single charge.
     const idemKey = editId
       ? `inpaint-photo:${editId}`
-      : `inpaint-photo:auto:${auth.userId}:${Date.now() >> 16}`;
+      : `inpaint-photo:auto:${await sha256Hex(`${auth.userId} ${imageUrl} ${prompt ?? ''}`)}`;
     const { data: deductOk, error: deductErr } = await supabase.rpc('deduct_credits', {
       p_user_id: auth.userId,
       p_amount: creditsCost,

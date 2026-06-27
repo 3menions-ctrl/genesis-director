@@ -84,6 +84,40 @@ function fmtDur(s: number | null): string {
 }
 const accentStyle = (hsl: string | null) => (hsl ? { color: `hsl(${hsl})` } : undefined);
 
+const PAGE_SIZE = 24;
+
+// Fetch one page of published reels (ranked by plays) and decorate each with its
+// creator profile + world accent. Reused for the initial load and "load more"
+// so the wall can go arbitrarily deep without a bespoke query each time.
+async function fetchReelPage(offset: number, limit: number, worlds: ChannelWorld[]): Promise<FeedRow[]> {
+  const { data } = await supabase.from("published_reels" as never)
+    .select("id, title, synopsis, video_url, thumbnail_url, duration_sec, world_slug, tags, play_count, like_count, remix_count, is_featured, created_at, creator_id")
+    .eq("is_taken_down", false)
+    .order("play_count", { ascending: false })
+    .range(offset, offset + limit - 1);
+  const reels = (data ?? []) as Array<Omit<FeedRow, "creator_name" | "creator_avatar" | "world_name" | "world_accent" | "world_glyph">>;
+  if (reels.length === 0) return [];
+
+  const creatorIds = Array.from(new Set(reels.map((r) => r.creator_id))).filter(Boolean);
+  const profilesById = new Map<string, { display_name: string | null; avatar_url: string | null }>();
+  if (creatorIds.length > 0) {
+    const { data: profs } = await supabase.from("profiles_public" as never).select("id, display_name, avatar_url").in("id", creatorIds);
+    for (const p of ((profs ?? []) as Array<{ id: string; display_name: string | null; avatar_url: string | null }>)) profilesById.set(p.id, p);
+  }
+  const worldsBySlug = new Map<string, ChannelWorld>();
+  for (const w of worlds) worldsBySlug.set(w.slug, w);
+
+  return reels.map((r) => {
+    const p = profilesById.get(r.creator_id);
+    const w = r.world_slug ? worldsBySlug.get(r.world_slug) : undefined;
+    return {
+      ...r, tags: (r as FeedRow).tags ?? [],
+      creator_name: p?.display_name ?? null, creator_avatar: p?.avatar_url ?? null,
+      world_name: w?.name ?? null, world_accent: w?.accent_hsl ?? null, world_glyph: w?.glyph ?? null,
+    };
+  });
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 export default function Lobby() {
   const { user } = useAuth();
@@ -104,45 +138,27 @@ export default function Lobby() {
   const [prompt, setPrompt] = useState<DailyPrompt | null>(null);
   const [challenges, setChallenges] = useState<DailyChallengeRow[]>([]);
   const [theaterReel, setTheaterReel] = useState<TheaterReel | null>(null);
+  // Discovery: live search + deep pagination
+  const [query, setQuery] = useState("");
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [worldsRes, reelsRes] = await Promise.all([
-          supabase.from("channel_worlds" as never).select("*").order("name"),
-          supabase.from("published_reels" as never)
-            .select("id, title, synopsis, video_url, thumbnail_url, duration_sec, world_slug, tags, play_count, like_count, remix_count, is_featured, created_at, creator_id")
-            .eq("is_taken_down", false)
-            .order("play_count", { ascending: false })
-            .limit(30),
-        ]);
+        const { data: worldsData } = await supabase.from("channel_worlds" as never).select("*").order("name");
         if (cancelled) return;
-        if (worldsRes.data && (worldsRes.data as ChannelWorld[]).length > 0) setWorlds(worldsRes.data as ChannelWorld[]);
+        const worldsList = (worldsData && (worldsData as ChannelWorld[]).length > 0)
+          ? (worldsData as ChannelWorld[]) : WORLDS_FALLBACK;
+        if (worldsData && (worldsData as ChannelWorld[]).length > 0) setWorlds(worldsList);
 
-        const reels = (reelsRes.data ?? []) as Array<Omit<FeedRow, "creator_name" | "creator_avatar" | "world_name" | "world_accent" | "world_glyph">>;
-        if (reels.length === 0) { setFeedLoading(false); return; }
-
-        const creatorIds = Array.from(new Set(reels.map((r) => r.creator_id))).filter(Boolean);
-        const profilesById = new Map<string, { display_name: string | null; avatar_url: string | null }>();
-        if (creatorIds.length > 0) {
-          const { data: profs } = await supabase.from("profiles_public" as never).select("id, display_name, avatar_url").in("id", creatorIds);
-          for (const p of ((profs ?? []) as Array<{ id: string; display_name: string | null; avatar_url: string | null }>)) profilesById.set(p.id, p);
-        }
-        const worldsBySlug = new Map<string, ChannelWorld>();
-        for (const w of ((worldsRes.data ?? WORLDS_FALLBACK) as ChannelWorld[])) worldsBySlug.set(w.slug, w);
-
-        const decorated: FeedRow[] = reels.map((r) => {
-          const p = profilesById.get(r.creator_id);
-          const w = r.world_slug ? worldsBySlug.get(r.world_slug) : undefined;
-          return {
-            ...r, tags: (r as FeedRow).tags ?? [],
-            creator_name: p?.display_name ?? null, creator_avatar: p?.avatar_url ?? null,
-            world_name: w?.name ?? null, world_accent: w?.accent_hsl ?? null, world_glyph: w?.glyph ?? null,
-          };
-        });
+        const first = await fetchReelPage(0, PAGE_SIZE, worldsList);
         if (cancelled) return;
-        setFeed(decorated);
+        setFeed(first);
+        setOffset(first.length);
+        setHasMore(first.length === PAGE_SIZE);
         setFeedLoading(false);
       } catch (e) {
         // eslint-disable-next-line no-console
@@ -152,6 +168,22 @@ export default function Lobby() {
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // Deep pagination — append the next page of films, de-duped.
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const next = await fetchReelPage(offset, PAGE_SIZE, worlds);
+      setFeed((prev) => {
+        const seen = new Set(prev.map((r) => r.id));
+        return [...prev, ...next.filter((r) => !seen.has(r.id))];
+      });
+      setOffset((o) => o + next.length);
+      setHasMore(next.length === PAGE_SIZE);
+    } catch { /* keep current feed on failure */ }
+    finally { setLoadingMore(false); }
+  }, [loadingMore, hasMore, offset, worlds]);
 
   useEffect(() => {
     let cancelled = false;
@@ -187,10 +219,19 @@ export default function Lobby() {
   }, []);
 
   // ── Derived ──
-  const filtered = useMemo(
-    () => (activeWorld === "all" ? feed : feed.filter((r) => r.world_slug === activeWorld)),
-    [feed, activeWorld],
-  );
+  const filtered = useMemo(() => {
+    let base = activeWorld === "all" ? feed : feed.filter((r) => r.world_slug === activeWorld);
+    const q = query.trim().toLowerCase();
+    if (q) {
+      base = base.filter((r) =>
+        r.title.toLowerCase().includes(q) ||
+        (r.creator_name ?? "").toLowerCase().includes(q) ||
+        (r.synopsis ?? "").toLowerCase().includes(q) ||
+        (r.tags ?? []).some((t) => t.toLowerCase().includes(q)),
+      );
+    }
+    return base;
+  }, [feed, activeWorld, query]);
   const featured = useMemo(() => filtered.find((r) => r.is_featured) ?? filtered[0] ?? null, [filtered]);
 
   // Hero shuffle — the header film rotates through a small pool over time
@@ -246,6 +287,7 @@ export default function Lobby() {
 
   const filmsToday = feed.length;
   const isEmpty = !feedLoading && feed.length === 0;
+  const searching = query.trim().length > 0;
 
   return (
     <FoundationShell>
@@ -367,10 +409,19 @@ export default function Lobby() {
                   <WorldChip key={w.id} label={w.name} glyph={w.glyph} accent={w.accent_hsl}
                     active={activeWorld === w.slug} onClick={() => setActiveWorld(w.slug)} />
                 ))}
-                <button type="button" onClick={() => navigate("/search")}
-                  className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white/[0.04] px-3 py-2 font-mono text-[11px] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground">
-                  <Search className="h-3 w-3" /> Search
-                </button>
+                {/* Inline live search — filters the loaded feed instantly by
+                    title, director, synopsis or tag. */}
+                <div className="ml-auto flex shrink-0 items-center gap-1.5 rounded-full bg-white/[0.04] px-3 py-1.5 transition-colors focus-within:bg-white/[0.08]">
+                  <Search className="h-3.5 w-3.5 text-muted-foreground" />
+                  <input
+                    type="search"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search films…"
+                    aria-label="Search films"
+                    className="w-28 bg-transparent text-[12px] text-foreground placeholder:text-muted-foreground/70 focus:w-44 focus:outline-none sm:w-32 transition-[width] duration-200"
+                  />
+                </div>
               </div>
             </div>
           </section>
@@ -383,10 +434,27 @@ export default function Lobby() {
               <EmptyMarquee onCreate={() => navigate(user ? "/studio" : "/auth?next=/studio")} />
             ) : feed.length === 0 ? (
               null /* feed still loading — no rails, no fabricated cards */
+            ) : searching ? (
+              /* Live search results — a single wall of every match in the feed. */
+              <section>
+                <div className="mb-4 flex items-baseline justify-between gap-3">
+                  <h3 className="font-display text-[24px] font-semibold tracking-tight text-foreground">
+                    Results<span className="ml-3 align-middle text-[12.5px] font-normal text-muted-foreground">{filtered.length} match{filtered.length === 1 ? "" : "es"} for “{query.trim()}”</span>
+                  </h3>
+                  <button type="button" onClick={() => setQuery("")} className="shrink-0 rounded-full bg-white/[0.04] px-3 py-1.5 text-[11px] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground">Clear</button>
+                </div>
+                {filtered.length === 0 ? (
+                  <p className="py-16 text-center text-[14px] text-muted-foreground">No films match “{query.trim()}”. {hasMore && "Try Load more, or "}adjust your search.</p>
+                ) : (
+                  <div className="columns-2 gap-4 sm:columns-3 lg:gap-5">
+                    {filtered.map((r) => <VideoCard key={r.id} reel={r} onOpen={openTheater} reduced={!!reduced} />)}
+                  </div>
+                )}
+              </section>
             ) : (
               <>
-                <Rail title="Featured tonight" sub="hand-picked premieres" onSeeAll={() => navigate("/search")}>
-                  {featuredRail.map((r) => <VideoCard key={r.id} reel={r} onOpen={openTheater} reduced={!!reduced} />)}
+                <Rail title="Trending now" sub="ranked by plays" onSeeAll={() => navigate("/search")}>
+                  {featuredRail.map((r, i) => <VideoCard key={r.id} reel={r} onOpen={openTheater} reduced={!!reduced} rank={i + 1} />)}
                 </Rail>
 
                 {spotlightWorld && spotlightRail.length > 0 && (
@@ -400,6 +468,16 @@ export default function Lobby() {
                   {newThisWeek.map((r) => <VideoCard key={r.id} reel={r} onOpen={openTheater} reduced={!!reduced} />)}
                 </Rail>
               </>
+            )}
+
+            {/* Deep pagination — load the next page of films into the wall. */}
+            {!isEmpty && feed.length > 0 && hasMore && (
+              <div className="mt-12 flex justify-center">
+                <button type="button" onClick={() => void loadMore()} disabled={loadingMore}
+                  className="inline-flex items-center gap-2 rounded-full bg-white/[0.06] px-6 py-3 text-[13px] font-medium text-foreground backdrop-blur-sm transition-all hover:bg-white/[0.12] disabled:opacity-50">
+                  {loadingMore ? "Loading…" : "Load more films"}
+                </button>
+              </div>
             )}
           </main>
 
@@ -511,7 +589,7 @@ function Rail({ title, sub, onSeeAll, seeAllLabel = "See all →", last, childre
   );
 }
 
-function VideoCard({ reel, onOpen, reduced }: { reel: FeedRow; onOpen: (r: FeedRow) => void; reduced: boolean }) {
+function VideoCard({ reel, onOpen, reduced, rank }: { reel: FeedRow; onOpen: (r: FeedRow) => void; reduced: boolean; rank?: number }) {
   // The frame adopts the media's OWN aspect ratio (read from the thumbnail).
   // Until it loads we hold a 16:9 placeholder so the masonry doesn't jump.
   const [ratio, setRatio] = useState<number | null>(null);
@@ -536,6 +614,13 @@ function VideoCard({ reel, onOpen, reduced }: { reel: FeedRow; onOpen: (r: FeedR
               onLoad={(e) => { const im = e.currentTarget; if (im.naturalWidth && im.naturalHeight) setRatio(im.naturalWidth / im.naturalHeight); }}
               className={cn("h-full w-full object-cover", !reduced && "transition-transform duration-700 group-hover:scale-[1.05]")} />
           : <span className="flex h-full w-full items-center justify-center text-muted-foreground/40"><Eye className="h-6 w-6" /></span>}
+
+        {/* Trending rank — a numbered badge, top-left, for ranked rails. */}
+        {rank != null && (
+          <span className="absolute left-2.5 top-2.5 grid h-7 min-w-7 place-items-center rounded-lg bg-black/55 px-1.5 font-display text-[14px] font-semibold text-white backdrop-blur-sm">
+            {rank}
+          </span>
+        )}
 
         {/* Duration — always visible, top-right, so the resting wall still hints
             at length without a caption. */}

@@ -13,6 +13,9 @@
 -- auth.users) because the authenticated role has no SELECT on auth.users.
 -- Verified: login_attempts.email is text; the admin policies remain in force.
 
+-- Idempotent: drop first so a re-apply against prod (where this may already
+-- exist out-of-band) doesn't abort (42710).
+DROP POLICY IF EXISTS "Users view own login attempts" ON public.login_attempts;
 CREATE POLICY "Users view own login attempts"
   ON public.login_attempts FOR SELECT
   TO authenticated

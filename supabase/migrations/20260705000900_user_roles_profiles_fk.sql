@@ -6,6 +6,17 @@
 -- public.profiles through that. Every table that embeds profiles in this
 -- codebase has a FK to profiles; add the matching one here. profiles.id is a
 -- 1:1 mirror of auth.users.id, so this is additive (verified: 0 orphan rows).
-ALTER TABLE public.user_roles
-  ADD CONSTRAINT user_roles_user_id_profiles_fkey
-  FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+-- Idempotent: prod may already have this constraint (added out-of-band), and a
+-- bare ADD CONSTRAINT aborts (42710) on re-apply. Only add when missing.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'user_roles_user_id_profiles_fkey'
+      AND conrelid = 'public.user_roles'::regclass
+  ) THEN
+    ALTER TABLE public.user_roles
+      ADD CONSTRAINT user_roles_user_id_profiles_fkey
+      FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+  END IF;
+END $$;

@@ -6,9 +6,16 @@
  * WorkspaceTemplates, re-skinned in the cover-hero BusinessPage language with a
  * templates grid plus inline create + delete.
  */
-import { useCallback, useEffect, useState } from "react";
-import { LayoutTemplate, Plus, Trash2, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { LayoutTemplate, Plus, Trash2, X, Sparkles, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  getAllBreakthroughTemplates,
+  CONTAINER_LABELS,
+  BOUNDARY_VIOLATION_LABELS,
+  DESTINATION_LABELS,
+} from "@/lib/templates/breakthrough";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -86,6 +93,9 @@ export default function BusinessTemplates() {
 
   const totalUses = rows.reduce((sum, r) => sum + (r.use_count ?? 0), 0);
 
+  // Built-in Breakthrough Effects catalogue (container × violation × destination).
+  const effects = useMemo(() => getAllBreakthroughTemplates(), []);
+
   return (
     <BusinessPage
       eyebrow={<><span className="text-[hsl(215,100%,72%)]">Operate</span><span className="text-white/20">·</span><span>Reusable layouts</span></>}
@@ -109,6 +119,44 @@ export default function BusinessTemplates() {
         <StatCard label="Templates" value={loading ? "—" : rows.length} />
         <StatCard label="Total uses" value={loading ? "—" : totalUses} accent />
         <StatCard label="Categories" value={loading ? "—" : new Set(rows.map((r) => r.category).filter(Boolean)).size} />
+      </div>
+
+      {/* ── Built-in Breakthrough Effects (read-only, launchable) ── */}
+      <SectionHead label="Breakthrough effects" count={effects.length} />
+      <p className="-mt-2 mb-1 text-[12.5px] text-white/45 font-light">
+        Cinematic 4th-wall effects — a subject breaks out of a container into the scene. Open one in the studio to generate.
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {effects.map((def) => (
+          <Link
+            key={def.id}
+            to={`/create?template=${def.id}`}
+            className="group relative rounded-2xl overflow-hidden ring-1 ring-white/[0.06] hover:ring-[hsl(215,90%,55%)]/40 bg-white/[0.02] transition-all"
+          >
+            <div className="aspect-[4/3] overflow-hidden bg-black/40">
+              {def.thumbnailUrl && (
+                <img
+                  src={def.thumbnailUrl}
+                  alt=""
+                  className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-[1.03] transition-all duration-500"
+                />
+              )}
+            </div>
+            <div className="p-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-[hsl(215,100%,72%)] shrink-0" strokeWidth={1.6} />
+                <span className="text-[15px] text-white font-light tracking-[-0.01em] truncate">{def.name}</span>
+              </div>
+              <div className={cn(TYPE_META, "mt-1.5 text-[hsl(215,100%,72%)]")}>
+                {CONTAINER_LABELS[def.container.kind]} · {BOUNDARY_VIOLATION_LABELS[def.boundaryViolation]} · {DESTINATION_LABELS[def.destination]}
+              </div>
+              <p className="mt-2 text-[12px] text-white/55 font-light line-clamp-2">{def.description}</p>
+              <span className="mt-3 inline-flex items-center gap-1 text-[12px] text-white/60 group-hover:text-white transition-colors">
+                Open in studio <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+              </span>
+            </div>
+          </Link>
+        ))}
       </div>
 
       <SectionHead label="Library" count={loading ? undefined : rows.length} />

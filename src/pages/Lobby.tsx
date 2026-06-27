@@ -347,27 +347,17 @@ export default function Lobby() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: reduced ? 0 : 0.6, ease: "easeOut" }}
                 >
-                  {/* Trending / engagement chips above the title */}
-                  <div className="mb-3 flex flex-wrap items-center gap-2.5">
-                    {heroReel.is_featured ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(38_90%_60%/0.16)] px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[hsl(38_90%_64%)] ring-1 ring-[hsl(38_90%_60%/0.3)]">
-                        <Trophy className="h-3 w-3" /> Featured
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-foreground/70 ring-1 ring-white/10">
-                        <Flame className="h-3 w-3 text-[hsl(14_90%_62%)]" /> Trending
-                      </span>
-                    )}
-                    {heroReel.world_name && (
-                      <span className="font-mono text-[11px]" style={accentStyle(heroReel.world_accent)}>
-                        {heroReel.world_glyph ?? "◆"} {heroReel.world_name}
-                      </span>
-                    )}
-                    <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-foreground/55">
-                      <Play className="h-3 w-3" /> {heroReel.play_count.toLocaleString()}
+                  {/* Premium eyebrow — featured + world as clean type, no boxes,
+                      no engagement counts. Borderless/floating. */}
+                  <div className="mb-3.5 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground/70">
+                    <span className={heroReel.is_featured ? "text-[hsl(38_90%_64%)]" : "text-[hsl(14_90%_64%)]"}>
+                      {heroReel.is_featured ? "Featured" : "Trending"}
                     </span>
-                    {heroReel.like_count > 0 && (
-                      <span className="font-mono text-[11px] text-foreground/55">♥ {heroReel.like_count.toLocaleString()}</span>
+                    {heroReel.world_name && (
+                      <>
+                        <span className="text-muted-foreground/30">·</span>
+                        <span style={accentStyle(heroReel.world_accent)}>{heroReel.world_glyph ?? "◆"} {heroReel.world_name}</span>
+                      </>
                     )}
                   </div>
                   {/* No oversized headline — a restrained title + synopsis carry it. */}
@@ -379,7 +369,7 @@ export default function Lobby() {
                   )}
                   <div className="mt-5 flex flex-wrap items-center gap-2.5">
                     <button type="button" onClick={() => openTheater(heroReel)}
-                      className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-[13px] font-semibold text-[#08090d] transition-transform hover:-translate-y-px">
+                      className="inline-flex items-center gap-2 text-[14px] font-semibold text-foreground transition-colors hover:text-white">
                       <Play className="h-4 w-4 fill-current" /> Watch now
                     </button>
                     <button type="button" onClick={() => { setFeedStart(0); setFeedOpen(true); }}
@@ -510,8 +500,8 @@ export default function Lobby() {
               </p>
               <button type="button"
                 onClick={() => (prompt ? startWithSeed(prompt.prompt.prompt_text) : navigate(user ? "/studio" : "/auth?next=/studio"))}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-4 py-2.5 text-[13px] font-semibold text-[#08090d]">
-                {challenges[0] ? "Continue challenge" : "Take the prompt"} <ArrowRight className="h-4 w-4" />
+                className="group/cta inline-flex items-center gap-2 text-[13px] font-semibold text-foreground transition-colors hover:text-white">
+                {challenges[0] ? "Continue challenge" : "Take the prompt"} <ArrowRight className="h-4 w-4 transition-transform group-hover/cta:translate-x-0.5" />
               </button>
               {challenges[0] && (
                 <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/8">
@@ -642,6 +632,7 @@ function VideoCard({ reel, onOpen, reduced, rank }: { reel: FeedRow; onOpen: (r:
       >
         {reel.thumbnail_url
           ? <img src={reel.thumbnail_url} alt="" loading="lazy"
+              ref={(im) => { if (im?.complete && im.naturalWidth && im.naturalHeight) setRatio(im.naturalWidth / im.naturalHeight); }}
               onLoad={(e) => { const im = e.currentTarget; if (im.naturalWidth && im.naturalHeight) setRatio(im.naturalWidth / im.naturalHeight); }}
               className={cn("h-full w-full object-cover", !reduced && "transition-transform duration-700 group-hover:scale-[1.05]")} />
           : <span className="flex h-full w-full items-center justify-center text-muted-foreground/40"><Eye className="h-6 w-6" /></span>}
@@ -716,7 +707,7 @@ function EmptyMarquee({ onCreate }: { onCreate: () => void }) {
         No films have premiered yet. Be the first to light up the lobby — direct a short and it lands right here.
       </p>
       <button type="button" onClick={onCreate}
-        className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-[13px] font-semibold text-[#08090d] transition-transform hover:-translate-y-px">
+        className="mt-6 inline-flex items-center gap-2 text-[14px] font-semibold text-foreground transition-colors hover:text-white">
         <Plus className="h-4 w-4" /> Direct the first film
       </button>
     </div>

@@ -347,27 +347,17 @@ export default function Lobby() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: reduced ? 0 : 0.6, ease: "easeOut" }}
                 >
-                  {/* Trending / engagement chips above the title */}
-                  <div className="mb-3 flex flex-wrap items-center gap-2.5">
-                    {heroReel.is_featured ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(38_90%_60%/0.16)] px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[hsl(38_90%_64%)] ring-1 ring-[hsl(38_90%_60%/0.3)]">
-                        <Trophy className="h-3 w-3" /> Featured
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-foreground/70 ring-1 ring-white/10">
-                        <Flame className="h-3 w-3 text-[hsl(14_90%_62%)]" /> Trending
-                      </span>
-                    )}
-                    {heroReel.world_name && (
-                      <span className="font-mono text-[11px]" style={accentStyle(heroReel.world_accent)}>
-                        {heroReel.world_glyph ?? "◆"} {heroReel.world_name}
-                      </span>
-                    )}
-                    <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-foreground/55">
-                      <Play className="h-3 w-3" /> {heroReel.play_count.toLocaleString()}
+                  {/* Premium eyebrow — featured + world as clean type, no boxes,
+                      no engagement counts. Borderless/floating. */}
+                  <div className="mb-3.5 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground/70">
+                    <span className={heroReel.is_featured ? "text-[hsl(38_90%_64%)]" : "text-[hsl(14_90%_64%)]"}>
+                      {heroReel.is_featured ? "Featured" : "Trending"}
                     </span>
-                    {heroReel.like_count > 0 && (
-                      <span className="font-mono text-[11px] text-foreground/55">♥ {heroReel.like_count.toLocaleString()}</span>
+                    {heroReel.world_name && (
+                      <>
+                        <span className="text-muted-foreground/30">·</span>
+                        <span style={accentStyle(heroReel.world_accent)}>{heroReel.world_glyph ?? "◆"} {heroReel.world_name}</span>
+                      </>
                     )}
                   </div>
                   {/* No oversized headline — a restrained title + synopsis carry it. */}
@@ -379,16 +369,16 @@ export default function Lobby() {
                   )}
                   <div className="mt-5 flex flex-wrap items-center gap-2.5">
                     <button type="button" onClick={() => openTheater(heroReel)}
-                      className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-[13px] font-semibold text-[#08090d] transition-transform hover:-translate-y-px">
+                      className="inline-flex items-center gap-2 text-[14px] font-semibold text-foreground transition-colors hover:text-white">
                       <Play className="h-4 w-4 fill-current" /> Watch now
                     </button>
                     <button type="button" onClick={() => { setFeedStart(0); setFeedOpen(true); }}
-                      className="inline-flex items-center gap-2 rounded-full bg-white/[0.05] px-4 py-2.5 text-[13px] font-medium text-foreground backdrop-blur-sm transition-colors hover:bg-white/10">
-                      <Film className="h-3.5 w-3.5" /> Immersive feed
+                      className="inline-flex items-center gap-2 px-2 py-2.5 text-[13px] font-medium text-foreground/80 transition-colors hover:text-foreground">
+                      <Film className="h-4 w-4" strokeWidth={1.6} /> Immersive feed
                     </button>
                     <button type="button" onClick={() => startWithSeed(heroReel.synopsis || heroReel.title)}
-                      className="inline-flex items-center gap-2 rounded-full bg-white/[0.05] px-4 py-2.5 text-[13px] font-medium text-foreground backdrop-blur-sm transition-colors hover:bg-white/10">
-                      <Shuffle className="h-3.5 w-3.5" /> Remix this look
+                      className="inline-flex items-center gap-2 px-2 py-2.5 text-[13px] font-medium text-foreground/80 transition-colors hover:text-foreground">
+                      <Shuffle className="h-4 w-4" strokeWidth={1.6} /> Remix this look
                     </button>
                   </div>
                   {heroReel.creator_name && (
@@ -409,8 +399,8 @@ export default function Lobby() {
               </div>
             </div>
 
-            {/* Worlds quick-nav strip */}
-            <div className="bg-[hsl(220_30%_4%/0.5)]">
+            {/* Worlds quick-nav strip — floats over the backdrop, no panel */}
+            <div>
               <div className="scrollbar-hide mx-auto flex w-full max-w-[1440px] items-center gap-2 overflow-x-auto px-4 py-3 sm:px-8 lg:px-12">
                 <span className="mr-1 shrink-0 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60">Worlds</span>
                 <WorldChip label="All" active={activeWorld === "all"} onClick={() => setActiveWorld("all")} />
@@ -510,8 +500,8 @@ export default function Lobby() {
               </p>
               <button type="button"
                 onClick={() => (prompt ? startWithSeed(prompt.prompt.prompt_text) : navigate(user ? "/studio" : "/auth?next=/studio"))}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-4 py-2.5 text-[13px] font-semibold text-[#08090d]">
-                {challenges[0] ? "Continue challenge" : "Take the prompt"} <ArrowRight className="h-4 w-4" />
+                className="group/cta inline-flex items-center gap-2 text-[13px] font-semibold text-foreground transition-colors hover:text-white">
+                {challenges[0] ? "Continue challenge" : "Take the prompt"} <ArrowRight className="h-4 w-4 transition-transform group-hover/cta:translate-x-0.5" />
               </button>
               {challenges[0] && (
                 <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/8">
@@ -542,8 +532,9 @@ export default function Lobby() {
               <h4 className="font-display text-[19px] font-semibold text-foreground">{technique.title}</h4>
               <p className="mt-2 text-[12.5px] leading-relaxed text-muted-foreground">{technique.oneLiner}</p>
               <button type="button" onClick={() => startWithSeed(technique.seed)}
-                className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/[0.04] px-3.5 py-2 font-mono text-[11px] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground">
-                <Aperture className="h-3 w-3" /> Try this technique →
+                className="group/tq mt-3 inline-flex items-center gap-2 font-mono text-[11px] text-muted-foreground/70 transition-colors hover:text-foreground">
+                <Aperture className="h-3.5 w-3.5" strokeWidth={1.6} /> Try this technique
+                <ArrowRight className="h-3 w-3 transition-transform group-hover/tq:translate-x-0.5" />
               </button>
             </Panel>
           </aside>
@@ -587,7 +578,7 @@ function WorldChip({ label, glyph, accent, active, onClick }: { label: string; g
     <button type="button" onClick={onClick}
       className={cn(
         "relative inline-flex shrink-0 items-center gap-2 rounded-full px-3.5 py-2 text-[13px] transition-colors",
-        active ? "bg-white/10 text-foreground" : "bg-white/[0.03] text-muted-foreground hover:bg-white/[0.06] hover:text-foreground",
+        active ? "bg-white/[0.08] text-foreground" : "text-muted-foreground/70 hover:text-foreground",
       )}>
       {glyph && <span style={accentStyle(accent ?? null)}>{glyph}</span>}
       {label}
@@ -606,8 +597,9 @@ function Rail({ title, sub, onSeeAll, seeAllLabel = "See all →", last, childre
           {title}{sub && <span className="ml-3 align-middle text-[12.5px] font-normal text-muted-foreground">{sub}</span>}
         </h3>
         {onSeeAll && (
-          <button type="button" onClick={onSeeAll} className="shrink-0 rounded-full bg-white/[0.04] px-3 py-1.5 text-[11px] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground">
-            {seeAllLabel}
+          <button type="button" onClick={onSeeAll} className="group/sa inline-flex shrink-0 items-center gap-1 text-[11.5px] text-muted-foreground/70 transition-colors hover:text-foreground">
+            {seeAllLabel.replace(/\s*→\s*$/, "")}
+            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover/sa:translate-x-0.5" strokeWidth={1.6} />
           </button>
         )}
       </div>
@@ -640,6 +632,7 @@ function VideoCard({ reel, onOpen, reduced, rank }: { reel: FeedRow; onOpen: (r:
       >
         {reel.thumbnail_url
           ? <img src={reel.thumbnail_url} alt="" loading="lazy"
+              ref={(im) => { if (im?.complete && im.naturalWidth && im.naturalHeight) setRatio(im.naturalWidth / im.naturalHeight); }}
               onLoad={(e) => { const im = e.currentTarget; if (im.naturalWidth && im.naturalHeight) setRatio(im.naturalWidth / im.naturalHeight); }}
               className={cn("h-full w-full object-cover", !reduced && "transition-transform duration-700 group-hover:scale-[1.05]")} />
           : <span className="flex h-full w-full items-center justify-center text-muted-foreground/40"><Eye className="h-6 w-6" /></span>}
@@ -677,11 +670,12 @@ function VideoCard({ reel, onOpen, reduced, rank }: { reel: FeedRow; onOpen: (r:
   );
 }
 
-function Panel({ title, badge, tint, children }: { title: React.ReactNode; badge?: React.ReactNode; tint?: string; children: React.ReactNode }) {
+// Containerless panel — no box, no border, no shadow. Just a floating mono
+// eyebrow and content floating over the Aurora backdrop (borderless canon).
+function Panel({ title, badge, children }: { title: React.ReactNode; badge?: React.ReactNode; tint?: string; children: React.ReactNode }) {
   return (
-    <div className="mb-[18px] rounded-[18px] p-5 shadow-[0_20px_48px_-28px_rgba(0,0,0,0.7)]"
-      style={{ background: tint ?? "linear-gradient(180deg, hsl(0 0% 100% / .04), hsl(0 0% 100% / .012))" }}>
-      <div className="mb-[15px] flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+    <div className="mb-9">
+      <div className="mb-3.5 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground/70">
         <span>{title}</span>{badge}
       </div>
       {children}
@@ -702,9 +696,9 @@ function Stat({ label, value, valueClass }: { label: string; value: string; valu
 // no invented counts; just an invitation to make the first one.
 function EmptyMarquee({ onCreate }: { onCreate: () => void }) {
   return (
-    <div className="flex min-h-[40vh] flex-col items-center justify-center rounded-3xl bg-white/[0.02] px-6 py-20 text-center">
-      <span className="grid h-14 w-14 place-items-center rounded-full bg-white/[0.05] text-foreground/70">
-        <Sparkles className="h-6 w-6" />
+    <div className="flex min-h-[40vh] flex-col items-center justify-center px-6 py-20 text-center">
+      <span className="grid h-14 w-14 place-items-center text-foreground/70" style={{ filter: "drop-shadow(0 6px 24px hsl(var(--accent) / 0.35))" }}>
+        <Sparkles className="h-7 w-7" />
       </span>
       <h3 className="mt-5 font-display text-[22px] font-semibold tracking-tight text-foreground">
         The marquee is dark — for now
@@ -713,7 +707,7 @@ function EmptyMarquee({ onCreate }: { onCreate: () => void }) {
         No films have premiered yet. Be the first to light up the lobby — direct a short and it lands right here.
       </p>
       <button type="button" onClick={onCreate}
-        className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-[13px] font-semibold text-[#08090d] transition-transform hover:-translate-y-px">
+        className="mt-6 inline-flex items-center gap-2 text-[14px] font-semibold text-foreground transition-colors hover:text-white">
         <Plus className="h-4 w-4" /> Direct the first film
       </button>
     </div>

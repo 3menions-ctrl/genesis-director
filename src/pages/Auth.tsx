@@ -35,6 +35,7 @@ import { ADMIN_ENABLED } from "@/admin/adminEnabled";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSafeNavigation } from "@/lib/navigation";
+import { useNavigationLoading } from "@/contexts/NavigationLoadingContext";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -92,6 +93,7 @@ export default function Auth() {
 
   const { user, profile, loading: authLoading, isAdmin, adminChecked, signIn, signUp } = useAuth();
   const { navigate } = useSafeNavigation();
+  const { startNavigation } = useNavigationLoading();
   const reducedMotion = useReducedMotion();
   const [searchParams] = useSearchParams();
 
@@ -143,8 +145,14 @@ export default function Auth() {
     // Clear any stale fresh-sign-in marker; it no longer gates an intro.
     try { window.sessionStorage.removeItem(INTRO_FLAG); } catch { /* ignore */ }
 
+    // Raise the global cover BEFORE navigating so the authenticated app shell's
+    // cold first paint is hidden during the login transition. The post-login
+    // landings (/library, /business, /onboarding) aren't "heavy" routes, so we
+    // force the cover; it auto-completes ~100ms after arrival (6s hard cap), so
+    // it can never stick. This is what stops the app flashing on every login.
+    startNavigation(dest, { force: true });
     navigate(dest, { replace: true });
-  }, [authLoading, user, profile, isAdmin, adminChecked, nextParam, navigate]);
+  }, [authLoading, user, profile, isAdmin, adminChecked, nextParam, navigate, startNavigation]);
 
   // ── Submit ─────────────────────────────────────────────────────────
   const handleSubmit = useCallback(

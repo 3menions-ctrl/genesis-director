@@ -62,7 +62,10 @@ export function LiveBuyAlert() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "credit_transactions", filter: "transaction_type=eq.purchase" },
         async (payload) => {
-          const row = payload.new as { id: string; user_id: string; amount: number; description: string | null };
+          const row = payload.new as { id: string; user_id: string; amount: number; description: string | null; stripe_payment_id: string | null };
+          // Only celebrate REAL Polar purchases. Synthetic/seed/admin-grant rows
+          // (no polar_ order id) must not trigger the alert.
+          if (!row.stripe_payment_id?.startsWith("polar_")) return;
           const pkg = row.description?.match(/\(([a-z+]+) via/i)?.[1] ?? null;
           let name = "A customer";
           try {

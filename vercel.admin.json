@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm run build:admin",
+  "buildCommand": "npm run typecheck && npm run build:admin",
   "outputDirectory": "dist-admin",
   "framework": null,
   "rewrites": [

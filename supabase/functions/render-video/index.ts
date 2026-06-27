@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
 
 /**
  * RENDER-VIDEO Edge Function v2.0
@@ -248,6 +249,23 @@ serve(async (req) => {
 
     console.log(`[RenderVideo] Submitting concat job: ${validUrls.length} clips`);
 
+    // ═══ CREDIT GATE: rate-limit + balance pre-check BEFORE submitting the paid
+    // Replicate concat job. Only the "submit" action is gated (status polling is
+    // free). Editor sessions aren't project-scoped, so projectId is null.
+    // Service-role / internal callers (null userId) are auto-exempt. ═══
+    const gateCtx = {
+      supabase,
+      fnName: "render-video",
+      userId: auth.userId,
+      isServiceRole: auth.isServiceRole,
+      projectId: null,
+      cost: 15,
+      dailyCap: 50,
+      corsHeaders,
+    };
+    const gateBlock = await preflightAiGate(gateCtx);
+    if (gateBlock) return gateBlock;
+
     // Create Replicate prediction
     const predRes = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
@@ -285,6 +303,9 @@ serve(async (req) => {
         },
       })
       .eq("id", sessionId);
+
+    // ═══ CREDIT GATE: charge now that the render job was accepted (charge-on-success). ═══
+    await chargeAiGate(gateCtx);
 
     return new Response(
       JSON.stringify({

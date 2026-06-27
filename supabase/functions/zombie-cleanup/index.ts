@@ -447,15 +447,20 @@ serve(async (req) => {
       // Calculate refund amount based on incomplete clips
       let refundAmount = 0;
       if (eligibleForRefund) {
-        // Get clips that were charged but not completed
+        // AUDIT FIX (over-refund): only clips actually charged should be refunded.
+        // 'pending' clips are queued but not yet submitted/charged, and 'failed'
+        // clips were either never charged or already refunded elsewhere — counting
+        // them inflated the refund. A clip enters 'generating' only once its
+        // generation (and the credit deduction) has started, so 'generating' is
+        // the reliable "charged & mid-flight" signal. Count only those.
         const { data: incompleteClips } = await supabase
           .from('video_clips')
           .select('id, shot_index')
           .eq('project_id', project.id)
-          .in('status', ['generating', 'pending', 'failed'])
+          .eq('status', 'generating')
           .limit(100);
-        
-        // Each incomplete clip = 10 credits (or 15 for extended)
+
+        // Each charged in-flight clip = 10 credits (base rate).
         const incompleteCount = incompleteClips?.length || 0;
         refundAmount = incompleteCount * 10; // Base rate
       }

@@ -102,6 +102,7 @@ import {
   buildBreakthroughCommand,
   type BreakthroughCommandOpts,
 } from "../_shared/breakthrough-command.ts";
+import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
 
 // ── Constants ──────────────────────────────────────────────────────────
 const FFMPEG_MODEL_VERSION =
@@ -252,6 +253,23 @@ serve(async (req) => {
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       );
       const bt = body.breakthrough;
+      // ═══ CREDIT GATE: the breakthrough / manual (non-project) path runs a paid
+      // Replicate FFmpeg composite with NO project-mode credit hold. Gate it here
+      // ONLY — the project-mode path below has its own deduct_credits flow and
+      // must NOT be double-charged. Not project-scoped → projectId null.
+      // Service-role / internal callers (null userId) auto-exempt. ═══
+      const btGateCtx = {
+        supabase,
+        fnName: "seamless-stitcher",
+        userId: auth.userId,
+        isServiceRole: auth.isServiceRole,
+        projectId: null,
+        cost: 10,
+        dailyCap: 50,
+        corsHeaders,
+      };
+      const btBlock = await preflightAiGate(btGateCtx);
+      if (btBlock) return btBlock;
       const { command, inputs, outputName } = buildBreakthroughCommand({
         ...bt,
         aspectRatio: bt.aspectRatio ?? body.aspectRatio,
@@ -270,6 +288,8 @@ serve(async (req) => {
       const outputKey =
         `${bt.namespaceId ?? "breakthrough"}/${bt.templateId ?? "render"}_${hash}.${ext}`;
       const signed = await persistOutput(supabase, outputUrl, outputKey);
+      // ═══ CREDIT GATE: charge now that the composite rendered successfully. ═══
+      await chargeAiGate(btGateCtx);
       return new Response(JSON.stringify({ video_url: signed }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

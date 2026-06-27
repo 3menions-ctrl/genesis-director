@@ -227,12 +227,18 @@ serve(async (req) => {
       skipCreditCharge?: boolean;
     } = await req.json();
 
+    // SECURITY (audit): skipCreditCharge lets the paid GPT-4o extraction run for
+    // free. It is a legit internal/pipeline affordance ONLY — an end-user could
+    // otherwise pass skipCreditCharge=true to bypass the charge entirely. Honor
+    // it only for service-role callers; for everyone else it is forced false.
+    const effectiveSkip = skipCreditCharge && auth.isServiceRole;
+
     // For end-user JWTs we ALWAYS use auth.userId. For service-role calls (e.g. pipeline
     // chaining) we accept body.userId. Mismatch on end-user JWT → 403.
     let userId: string | undefined;
     try {
-      // skipCreditCharge=true without a userId is fine (vision-only call from internal services)
-      if (!skipCreditCharge || bodyUserId || auth.userId) {
+      // effectiveSkip=true without a userId is fine (vision-only call from internal services)
+      if (!effectiveSkip || bodyUserId || auth.userId) {
         userId = resolveEffectiveUserId(auth, bodyUserId ?? null);
       }
     } catch (err) {
@@ -268,7 +274,7 @@ serve(async (req) => {
 
     // === CREDIT CHARGE PHASE ===
     // Charge 5 credits for the deep identity extraction
-    if (!skipCreditCharge && userId && projectId) {
+    if (!effectiveSkip && userId && projectId) {
       console.log(`[extract-scene-identity] Charging ${IDENTITY_EXTRACTION_CREDITS} credits for identity extraction...`);
 
       // Check balance first

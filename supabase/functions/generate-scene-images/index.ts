@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -354,6 +355,24 @@ serve(async (req) => {
 
     const styleToUse = visualStyle || globalStyle;
 
+    // ═══ CREDIT GATE: rate-limit + balance pre-check BEFORE spending paid FLUX
+    // calls. Cost ~5 credits per scene image. Service-role / internal pipeline
+    // callers (null userId) are auto-exempt. Charged on success below for the
+    // images actually generated. ═══
+    const IMAGE_COST = 5;
+    const gateCtx = {
+      supabase,
+      fnName: "generate-scene-images",
+      userId: userId ?? null,
+      isServiceRole: auth.isServiceRole,
+      projectId: projectId ?? null,
+      cost: IMAGE_COST * scenes.length,
+      dailyCap: 100,
+      corsHeaders,
+    };
+    const gateBlock = await preflightAiGate(gateCtx);
+    if (gateBlock) return gateBlock;
+
     console.log(`[SceneImages] ═══ FLUX 1.1 Pro Ultra + Cinematographic Prompt Engine ═══`);
     console.log(`[SceneImages] Generating ${scenes.length} scene images for project ${effectiveProjectId}`);
 
@@ -429,6 +448,13 @@ serve(async (req) => {
     }
 
     console.log(`[SceneImages] Generated ${generatedImages.length}/${scenes.length} scene images`);
+
+    // ═══ CREDIT GATE: charge for the images actually generated (charge-on-success;
+    // a fully-failed batch charges nothing). ═══
+    if (generatedImages.length > 0) {
+      gateCtx.cost = IMAGE_COST * generatedImages.length;
+      await chargeAiGate(gateCtx);
+    }
 
     // MEDIA LIBRARY: record every generated scene image so users can browse them.
     if (userId && generatedImages.length > 0) {

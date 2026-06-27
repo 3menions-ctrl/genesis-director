@@ -170,8 +170,14 @@ serve(async (req) => {
 
     // Step 6: Save to avatar_templates if requested
     let avatarTemplateId: string | null = null;
-    
-    if (saveToLibrary) {
+
+    // SECURITY: avatar_templates is the GLOBAL, shared catalog (is_active rows are
+    // shown to every user). Allowing an end-user call to write an active row lets
+    // any authenticated caller pollute the shared library. Only trusted
+    // service-role callers may publish into the global catalog. End-user calls
+    // still get the generated character back in the response (used for the scene),
+    // they just don't write a global, active catalog entry.
+    if (saveToLibrary && auth.isServiceRole) {
       const { data: insertedAvatar, error: insertError } = await supabase
         .from('avatar_templates')
         .insert({

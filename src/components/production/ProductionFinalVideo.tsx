@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { CheckCircle2, Download, Sparkles, ExternalLink, Loader2, Film } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BrandedVideoPlayer } from '@/components/intro/BrandedVideoPlayer';
+import { FinishingStudio } from '@/components/production/FinishingStudio';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -183,6 +184,12 @@ export const ProductionFinalVideo = memo(forwardRef<HTMLDivElement, ProductionFi
         {/* Bottom gradient */}
         <div className="absolute bottom-0 inset-x-0 h-20 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
       </div>
+
+      {/* Finishing Studio — post-production grade + 4K + 60fps. Only for real
+          stitched films (a manifest can't be finished as a single file). */}
+      {projectId && !isManifest && (
+        <FinishingStudio projectId={projectId} masterUrl={videoUrl} />
+      )}
     </motion.div>
   );
 }));

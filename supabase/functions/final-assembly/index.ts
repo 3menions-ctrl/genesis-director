@@ -424,6 +424,10 @@ serve(async (req) => {
                 totalDuration,
                 needsStitch: true,          // upgradeable to a real stitch later
                 stitchError: errorMsg,      // preserved for ops/telemetry
+                // Flag the out-of-credit case so the UI can show a top-up
+                // banner. Footage still plays (clips), but the polished stitch
+                // is deferred until the provider account is funded.
+                billingBlocked: /\b402\b|insufficient credit|out of credit|payment required/i.test(errorMsg),
                 fallbackAt: new Date().toISOString(),
               },
               updated_at: new Date().toISOString(),

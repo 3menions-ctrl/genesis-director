@@ -188,6 +188,26 @@ export default function Library() {
     return () => { cancelled = true; };
   }, [user?.id]);
 
+  // Render-health banner: detect when a render was paused because the video
+  // provider account is out of credit (Replicate 402). The pipeline now flags
+  // this on the project instead of failing silently, so we can tell the user
+  // exactly what's wrong + how to fix it, rather than leaving blank cards.
+  const [billingBlocked, setBillingBlocked] = useState(false);
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("movie_projects")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("pending_video_tasks->>billingBlocked", "true")
+        .limit(1);
+      if (!cancelled) setBillingBlocked(!!(data && data.length > 0));
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
   // "Surprise me" — open a random playable film (fun + a quick way back in).
   const surpriseMe = () => {
     const playable = projects.filter((p) => !!p.video_url);
@@ -293,6 +313,19 @@ export default function Library() {
               <StatTile index={1} icon={CheckCircle2} label="Completed" value={stats.completed} aura="hsl(158 86% 52%)" />
               <StatTile index={2} icon={Loader2} label="Rendering" value={stats.rendering} aura="hsl(38 96% 62%)" pulse={stats.rendering > 0} />
               <StatTile index={3} icon={Sparkles} label="This week" value={stats.thisWeek} aura="hsl(256 88% 72%)" />
+            </div>
+          )}
+
+          {/* ── Render-paused banner: provider out of credit (402) */}
+          {billingBlocked && (
+            <div className="mt-8 flex items-start gap-3 rounded-2xl border border-amber-400/30 bg-amber-400/[0.08] px-5 py-4">
+              <Flame className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" strokeWidth={1.5} />
+              <div className="text-[13px] leading-relaxed text-amber-100/90">
+                <span className="font-semibold text-amber-200">Rendering is paused — out of render credit.</span>{" "}
+                Your already-generated clips still play below, but final stitching and new
+                renders need credit on the video provider account. Once it's topped up,
+                renders resume automatically.
+              </div>
             </div>
           )}
 

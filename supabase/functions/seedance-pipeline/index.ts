@@ -913,6 +913,40 @@ serve(async (req) => {
 
     console.log(`[Seedance] Dispatched ${dispatched.length}/${shots.length} clips. Failed: ${failed.length}`);
 
+    // ═══ HARD FAILURE GUARD ═══
+    // If NOT A SINGLE clip dispatched, the project has zero footage and can
+    // never complete. Previously the function still set status='production'
+    // and returned success:true — leaving a silent, foreverstuck 0-clip
+    // project (this is exactly how Seedance/avatar renders vanished). Mark it
+    // FAILED with the real reason so the user sees what happened, and detect
+    // the out-of-credit (402) case so the UI can show a top-up banner.
+    if (dispatched.length === 0) {
+      const firstErr = (failed[0] as { error?: string } | undefined)?.error || "All clip dispatches failed";
+      const billingBlocked = /\b402\b|insufficient credit|out of credit|payment required/i.test(firstErr);
+      const friendly = billingBlocked
+        ? "Rendering paused — the video provider account is out of credit. Add credit and retry."
+        : `Generation could not start: ${firstErr}`;
+      console.error(`[Seedance] ❌ 0/${shots.length} clips dispatched — marking failed. billingBlocked=${billingBlocked}. ${friendly}`);
+      await supabase
+        .from("movie_projects")
+        .update({
+          status: "failed",
+          last_error: friendly,
+          pending_video_tasks: {
+            stage: "dispatch_failed",
+            error: friendly,
+            billingBlocked,
+            failedDispatches: failed,
+            failedAt: new Date().toISOString(),
+          },
+        })
+        .eq("id", projectId);
+      return new Response(
+        JSON.stringify({ success: false, error: friendly, billingBlocked }),
+        { status: billingBlocked ? 402 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     // ═══ PERSIST PENDING STATE FOR WATCHDOG ═══
     await supabase
       .from("movie_projects")

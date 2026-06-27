@@ -312,11 +312,18 @@ if ("serviceWorker" in navigator) {
       window.location.reload();
     });
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/sw.js").then((reg) => {
+      // updateViaCache:"none" forces the browser to BYPASS the HTTP cache when
+      // fetching /sw.js on every update check. Without it the browser may reuse a
+      // cached sw.js (heuristically up to 24h) and never notice a new deploy —
+      // the root cause of the recurring "I still see the old version" symptom.
+      // With it, reg.update() reliably detects new deploys; skipWaiting +
+      // clientsClaim (in the generated SW) then activate it and the
+      // controllerchange handler above reloads the page onto the fresh bundle.
+      navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" }).then((reg) => {
         // Proactively pull a newer SW on load and every few minutes so a deploy
         // is picked up without waiting for the next cold start.
         reg.update().catch(() => {});
-        setInterval(() => reg.update().catch(() => {}), 5 * 60 * 1000);
+        setInterval(() => reg.update().catch(() => {}), 60 * 1000);
       }).catch(() => {
         // Service worker registration failed - app still works
       });

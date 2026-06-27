@@ -16,7 +16,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  Music2, Piano, Download, Trash2, FileMusic, UploadCloud, Sparkles, Disc3,
+  Music2, Piano, Download, Trash2, FileMusic, UploadCloud, Sparkles, Disc3, FolderPlus, ArrowRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -27,7 +27,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { Spinner } from "@/components/ui/Spinner";
 import { useMediaLibrary, type MediaAsset } from "@/hooks/useMediaLibrary";
 import { MUSIC_LIBRARY, MUSIC_CATEGORY_LABELS } from "@/lib/editor/music-library";
-import { validateUploadFile, describeIngestError } from "@/lib/editor/upload-ingest";
+import { validateUploadFile, describeIngestError, insertWithNextShotIndex } from "@/lib/editor/upload-ingest";
 import { FoundationShell } from "@/components/foundation/FoundationShell";
 import { UserHueBackdrop } from "@/components/foundation/UserHueBackdrop";
 import { EditorialCanvas } from "@/components/foundation/EditorialCanvas";
@@ -273,7 +273,27 @@ function MyTracksPanel({
       !["generate-voice", "editor-tts", "regenerate-audio"].includes(a.source ?? ""),
   );
 
+  const { user } = useAuth();
+  const { navigate } = useSafeNavigation();
+  const [projects, setProjects] = useState<{ id: string; title: string | null }[]>([]);
+  const [addTrack, setAddTrack] = useState<MediaAsset | null>(null);
+  useEffect(() => {
+    if (!user) { setProjects([]); return; }
+    let alive = true;
+    (async () => {
+      const { data } = await supabase
+        .from("movie_projects")
+        .select("id,title,updated_at")
+        .eq("user_id", user.id)
+        .order("updated_at", { ascending: false })
+        .limit(30);
+      if (alive) setProjects((data ?? []).map((p) => ({ id: p.id as string, title: (p.title as string | null) ?? null })));
+    })();
+    return () => { alive = false; };
+  }, [user]);
+
   return (
+    <>
     <section className="mb-12">
       <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
         <SectionLabel label="My tracks" icon={FileMusic} meta={signedIn ? `${tracks.length} saved` : undefined} />
@@ -309,10 +329,88 @@ function MyTracksPanel({
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {tracks.map((a) => <TrackRow key={a.id} asset={a} onRemove={remove} />)}
+          {tracks.map((a) => <TrackRow key={a.id} asset={a} onRemove={remove} onAdd={() => setAddTrack(a)} />)}
         </div>
       )}
     </section>
+    <AddToProjectDialog
+      track={addTrack}
+      projects={projects}
+      userId={user?.id}
+      onClose={() => setAddTrack(null)}
+      navigate={navigate}
+    />
+    </>
+  );
+}
+
+// Send a generated/library track straight onto a project's timeline — music
+// lands on A2, voice on A1 — so the editor picks it up on next open. No editor
+// session required: we write the durable video_clips row directly.
+function AddToProjectDialog({
+  track, projects, userId, onClose, navigate,
+}: {
+  track: MediaAsset | null;
+  projects: { id: string; title: string | null }[];
+  userId: string | undefined;
+  onClose: () => void;
+  navigate: (to: string) => void;
+}) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const isVoice = track?.generation_mode === "voice";
+  const add = async (projectId: string, projectTitle: string) => {
+    if (!track || !userId) return;
+    setBusy(projectId);
+    try {
+      const id = await insertWithNextShotIndex({
+        projectId,
+        userId,
+        prompt: `Audio: ${track.title || track.prompt || "Imported track"}`,
+        durationSec: Math.max(0.5, Math.min(600, track.duration_seconds ?? 30)),
+        videoUrl: track.asset_url,
+        thumbnailUrl: track.thumbnail_url ?? null,
+        trackId: isVoice ? "sys:A1" : "sys:A2",
+      });
+      if (!id) throw new Error("Couldn't write the clip");
+      toast.success(`Added to "${projectTitle || "project"}"`, {
+        description: isVoice ? "On the A1 (voice) track." : "On the A2 (music) track.",
+        action: { label: "Open editor", onClick: () => navigate(`/editor/${projectId}`) },
+      });
+      onClose();
+    } catch (e) {
+      toast.error("Couldn't add to project", { description: (e as Error).message });
+    } finally {
+      setBusy(null);
+    }
+  };
+  return (
+    <Dialog open={!!track} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Add to a project</DialogTitle>
+          <DialogDescription>
+            Drops this {isVoice ? "voiceover" : "track"} onto the {isVoice ? "voice (A1)" : "music (A2)"} track. Open the editor to position &amp; mix it.
+          </DialogDescription>
+        </DialogHeader>
+        {projects.length === 0 ? (
+          <p className="py-4 text-[13px] text-muted-foreground">No projects yet — create a film first, then add audio to it.</p>
+        ) : (
+          <div className="-mx-1 grid max-h-[50vh] gap-1.5 overflow-y-auto px-1">
+            {projects.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => add(p.id, p.title ?? "")}
+                disabled={!!busy}
+                className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.04] px-3.5 py-3 text-left transition-colors hover:bg-white/[0.08] disabled:opacity-50"
+              >
+                <span className="truncate text-[13px] text-foreground">{p.title || "Untitled project"}</span>
+                {busy === p.id ? <Spinner size="sm" tone="muted" /> : <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
+              </button>
+            ))}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -333,7 +431,7 @@ function coverGradient(seed: string): string {
   return `linear-gradient(135deg, hsl(${h} 68% 26%) 0%, hsl(${h2} 60% 13%) 100%)`;
 }
 
-function TrackRow({ asset, onRemove }: { asset: MediaAsset; onRemove: (id: string) => Promise<void> }) {
+function TrackRow({ asset, onRemove, onAdd }: { asset: MediaAsset; onRemove: (id: string) => Promise<void>; onAdd: () => void }) {
   const [removing, setRemoving] = useState(false);
   const title = asset.title || asset.prompt || "Untitled track";
   const isUpload = asset.source === "upload";
@@ -368,6 +466,14 @@ function TrackRow({ asset, onRemove }: { asset: MediaAsset; onRemove: (id: strin
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            onClick={onAdd}
+            aria-label="Add to a project"
+            title="Add to a project"
+            className="w-8 h-8 rounded-full bg-white/[0.05] hover:bg-accent/20 text-foreground/55 hover:text-foreground flex items-center justify-center transition-colors"
+          >
+            <FolderPlus className="w-3.5 h-3.5" />
+          </button>
           <a
             href={asset.asset_url}
             target="_blank"

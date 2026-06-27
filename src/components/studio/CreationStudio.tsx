@@ -186,6 +186,15 @@ function GenerateModule({ sel, setSel, onStartCreation, initialPrompt }: { sel: 
   const [mode, setMode] = useState<Mode>("text-to-video");
   const [engineId, setEngineId] = useState<EngineId>(DEFAULT_ENGINE_ID);
   const [prompt, setPrompt] = useState(initialPrompt ?? "");
+  // initialPrompt can arrive async (e.g. a ?template= concept resolved after
+  // mount). Sync it in until the user has typed their own prompt.
+  const initialPromptApplied = useRef(false);
+  useEffect(() => {
+    if (initialPrompt && !initialPromptApplied.current) {
+      initialPromptApplied.current = true;
+      setPrompt(initialPrompt);
+    }
+  }, [initialPrompt]);
   const [aspect, setAspect] = useState<"16:9" | "9:16" | "1:1">("16:9");
   const [profileId, setProfileId] = useState<string>("");
   const [duration, setDuration] = useState<number>(ENGINES[DEFAULT_ENGINE_ID].defaultDuration);

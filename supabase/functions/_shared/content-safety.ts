@@ -36,7 +36,10 @@ const EXPLICIT_SEXUAL_TERMS = [
   // Sexual acts
   'intercourse', 'copulation', 'copulating',
   'masturbate', 'masturbation', 'masturbating',
-  'orgasm', 'orgasmic', 'climax',
+  'orgasm', 'orgasmic',
+  // NOTE: 'climax' removed — overwhelmingly cinematic/narrative ("satisfying
+  // climax", "climax of the scene", "climax reaction"); false-positived legit
+  // template prompts (viral-hook, featured-3, science-demo). 'orgasm' stays.
   'ejaculate', 'ejaculation', 'cumshot', 'cumming',
   'blowjob', 'handjob', 'footjob',
   'penetration', 'penetrate', 'penetrating',

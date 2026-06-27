@@ -40,6 +40,7 @@ import { FoundationShell } from "@/components/foundation/FoundationShell";
 import { PageShell } from "@/components/shell";
 import { CreationHub } from "@/components/studio/CreationHub";
 import { CreationStudio } from "@/components/studio/CreationStudio";
+import { useTemplateEnvironment } from "@/hooks/useTemplateEnvironment";
 import { ProjectBackdrop } from "@/pages/Editor/components/ProjectBackdrop";
 import { PhotoEditorHub } from "@/components/photo-editor/PhotoEditorHub";
 import { ImageStudioHub } from "@/components/studio/ImageStudioHub";
@@ -281,7 +282,15 @@ function StudioContentInner() {
   }, [isCreating]);
 
   const [searchParams] = useSearchParams();
+  // Templates page → "Use this template" navigates to /studio?template=ID.
+  // The live creation surface is CreationStudio (CreationHub is legacy), so we
+  // resolve the applied template HERE and feed its concept prompt down as the
+  // initial prompt — otherwise ?template= was silently ignored.
+  const { appliedSettings: appliedTemplate } = useTemplateEnvironment();
   const initialPrompt =
+    (appliedTemplate?.concept && appliedTemplate.concept.trim().length > 0
+      ? appliedTemplate.concept
+      : undefined) ??
     searchParams.get("prompt") ??
     (typeof window !== "undefined" ? window.sessionStorage.getItem("smallbridges.tour_prompt") ?? undefined : undefined);
 

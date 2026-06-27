@@ -564,6 +564,31 @@ function StitchedVideo({
 }
 
 // ─────────────────────────────────────────────────────────────────────
+// POSTER FRAME — guarantees EVERY video shows a paused still frame even
+// when no thumbnail_url exists. Renders a muted, non-playing <video> and
+// seeks just past 0 on metadata load so the first decoded frame is painted
+// and held (paused). This is the universal fallback so a card is never blank.
+// ─────────────────────────────────────────────────────────────────────
+function PosterFrame({ src, className }: { src: string; className?: string }) {
+  return (
+    <video
+      src={src}
+      muted
+      playsInline
+      preload="metadata"
+      tabIndex={-1}
+      aria-hidden
+      onLoadedMetadata={(e) => {
+        const v = e.currentTarget;
+        // Nudge past 0 to force a frame to decode + paint, then stay paused.
+        try { v.currentTime = Math.min(0.1, (v.duration || 1) / 2); } catch { /* noop */ }
+      }}
+      className={className}
+    />
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // HERO PLAYER — full-bleed, autoplay muted, click-to-unmute, immersive.
 // ─────────────────────────────────────────────────────────────────────
 function HeroPlayer({
@@ -735,12 +760,23 @@ function FullBleedCard({
         "shadow-[0_18px_50px_-18px_hsla(0_0%_0%/0.75)] hover:shadow-[0_24px_60px_-18px_hsla(0_0%_0%/0.85)]",
       )}
     >
-      {/* THUMBNAIL (always visible until preview overlays it) */}
+      {/* THUMBNAIL (always visible until preview overlays it). Every video
+          gets a still frame: a real thumbnail_url if we have one, otherwise a
+          paused first frame painted from the video itself. Only truly
+          footage-less projects fall back to the icon. */}
       {project.thumbnail_url ? (
         <img
           src={project.thumbnail_url}
           alt=""
           loading="lazy"
+          className={cn(
+            "absolute inset-0 w-full h-full object-cover transition-transform duration-700",
+            "group-hover/card:scale-[1.04]",
+          )}
+        />
+      ) : project.video_url ? (
+        <PosterFrame
+          src={project.video_url}
           className={cn(
             "absolute inset-0 w-full h-full object-cover transition-transform duration-700",
             "group-hover/card:scale-[1.04]",

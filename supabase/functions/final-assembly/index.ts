@@ -369,33 +369,103 @@ serve(async (req) => {
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : "Unknown error";
     console.error("[FinalAssembly] Error:", errorMsg);
-    
-    // Try to update project with error state (reuse the pre-parsed body — the
-    // request stream is already consumed, so re-reading it here would throw).
+
+    // ────────────────────────────────────────────────────────────────────
+    // RESILIENCE INVARIANT: a failed stitch must NEVER lose or hide the
+    // user's generated footage. If the clips already exist (the expensive,
+    // billable work succeeded), fall back to a clip playlist so the Library
+    // ALWAYS plays the footage — regardless of why the stitch failed
+    // (Replicate out-of-credit / 402, rate-limit / 429, model error, crash,
+    // timeout). Only mark 'error' when there is genuinely nothing to show.
+    // The project stays upgradeable: pending_video_tasks.needsStitch=true lets
+    // a later forceReconcile produce the real crossfaded stitch when possible.
+    // ────────────────────────────────────────────────────────────────────
+    let degraded = false;
+    let fallbackClipCount = 0;
     try {
       const body = parsedBody;
       if (body.projectId) {
         const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
         const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
         const supabase = createClient(supabaseUrl, supabaseKey);
-        
-        await supabase
-          .from('movie_projects')
-          .update({
-            status: 'error',
-            pending_video_tasks: {
-              stage: 'assembly_error',
-              error: errorMsg,
-              errorAt: new Date().toISOString(),
-            },
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', body.projectId);
+
+        const { data: fbClips } = await supabase
+          .from('video_clips')
+          .select('shot_index, video_url, duration_seconds, thumbnail_url, last_frame_url')
+          .eq('project_id', body.projectId)
+          .not('video_url', 'is', null)
+          .order('shot_index', { ascending: true });
+        const clipUrls = (fbClips || []).map((c) => c.video_url).filter(Boolean) as string[];
+
+        if (clipUrls.length > 0) {
+          degraded = true;
+          fallbackClipCount = clipUrls.length;
+          const totalDuration = (fbClips || []).reduce((a, c) => a + (c.duration_seconds || 0), 0);
+          // Always carry a poster so the Library shows a paused-frame thumbnail.
+          const fbThumb = (fbClips || [])
+            .map((c) => c.thumbnail_url || c.last_frame_url)
+            .find(Boolean) || null;
+          await supabase
+            .from('movie_projects')
+            .update({
+              // Footage IS available → show it. The Library's StitchedVideo
+              // plays every clip in shot order via projectId; video_url just
+              // needs to be non-null for the card to render the player.
+              status: 'completed',
+              pipeline_stage: 'completed',
+              video_url: clipUrls[0],
+              thumbnail_url: fbThumb,
+              pending_video_tasks: {
+                stage: 'clips_fallback',
+                mode: 'clips_fallback',
+                progress: 100,
+                mseClipUrls: clipUrls,
+                clipCount: clipUrls.length,
+                totalDuration,
+                needsStitch: true,          // upgradeable to a real stitch later
+                stitchError: errorMsg,      // preserved for ops/telemetry
+                fallbackAt: new Date().toISOString(),
+              },
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', body.projectId);
+          console.log(`[FinalAssembly] ♻️ Stitch failed (${errorMsg}) — surfaced ${clipUrls.length} clip(s) as playable fallback so footage is never lost`);
+        } else {
+          // Nothing was rendered → genuine error.
+          await supabase
+            .from('movie_projects')
+            .update({
+              status: 'error',
+              pending_video_tasks: {
+                stage: 'assembly_error',
+                error: errorMsg,
+                errorAt: new Date().toISOString(),
+              },
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', body.projectId);
+        }
       }
     } catch (updateErr) {
-      console.error("[FinalAssembly] Failed to update error state:", updateErr);
+      console.error("[FinalAssembly] Failed to update fallback/error state:", updateErr);
     }
-    
+
+    // When footage was surfaced, report a degraded SUCCESS so callers stop
+    // retrying a stitch that can't currently run — the user already has a
+    // playable result. Otherwise surface the failure.
+    if (degraded) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          degraded: true,
+          mode: 'clips_fallback',
+          clipsProcessed: fallbackClipCount,
+          stitchError: errorMsg,
+          processingTimeMs: Date.now() - startTime,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     return new Response(
       JSON.stringify({
         success: false,

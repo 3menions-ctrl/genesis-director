@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
-  PieChart, Pie, Cell,
+  PieChart, Pie, Cell, RadialBarChart, RadialBar, PolarAngleAxis,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -70,23 +70,37 @@ const ACT: Record<string, { icon: LucideIcon; color: string }> = {
   live: { icon: Radio, color: "hsl(330 90% 68%)" },
 };
 
-function LiveStat({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: number }) {
+/** A containerless floating figure — icon + mono label + big Fraunces number. */
+function FloatFig({ icon: Icon, label, value, tone }: { icon: LucideIcon; label: string; value: string | number; tone?: "bad" }) {
   return (
-    <span className="inline-flex items-center gap-2.5">
-      <Icon className="h-4 w-4 text-white/45" strokeWidth={1.8} />
-      <span className="font-display text-[20px] font-semibold tabular-nums text-white" style={{ textShadow: `0 0 18px ${accent(0.4)}` }}>{compact(value)}</span>
-      <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-white/40">{label}</span>
-    </span>
+    <div className="min-w-0">
+      <div className="flex items-center gap-1.5">
+        <Icon className="h-3 w-3 shrink-0" strokeWidth={1.9} style={{ color: tone === "bad" ? ROSE : accent(0.85) }} />
+        <span className="truncate font-mono text-[9px] uppercase tracking-[0.16em] text-white/45">{label}</span>
+      </div>
+      <div className="mt-2 font-display text-[25px] font-semibold leading-none tabular-nums" style={{ color: tone === "bad" ? ROSE : "#fff", textShadow: tone === "bad" ? "0 0 20px hsl(350 90% 70% / 0.45)" : `0 0 22px ${accent(0.4)}` }}>{value}</div>
+    </div>
   );
 }
 
-function SlaChip({ label, value, bad }: { label: string; value: string | number; bad: boolean }) {
+/** Radial gauge for a 0-100% figure (pipeline health). */
+function Gauge({ pct, caption }: { pct: number; caption: string }) {
+  const data = [{ name: "v", value: Math.max(0, Math.min(100, pct)) }];
+  const good = pct >= 80;
   return (
-    <span className="inline-flex items-center gap-2 rounded-full px-3 py-1.5" style={{ background: bad ? "hsl(350 90% 60% / 0.14)" : "rgba(255,255,255,0.05)" }}>
-      <Clock className="h-3 w-3" style={{ color: bad ? "hsl(350 90% 72%)" : "rgba(255,255,255,0.35)" }} />
-      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/45">{label}</span>
-      <span className={cn("font-display text-[13px] font-semibold tabular-nums", bad ? "text-rose-300" : "text-white/80")}>{value}</span>
-    </span>
+    <div className="relative h-36 w-36 shrink-0">
+      <ResponsiveContainer width="100%" height="100%">
+        <RadialBarChart innerRadius="74%" outerRadius="100%" data={data} startAngle={220} endAngle={-40}>
+          <defs><linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor={good ? ACCENT_HSL : AMBER} /><stop offset="100%" stopColor={good ? CYAN : ROSE} /></linearGradient></defs>
+          <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+          <RadialBar dataKey="value" cornerRadius={9} background={{ fill: "rgba(255,255,255,0.06)" }} fill="url(#gaugeGrad)" isAnimationActive animationDuration={1100} />
+        </RadialBarChart>
+      </ResponsiveContainer>
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+        <span className="font-display text-[27px] font-semibold leading-none text-white" style={{ textShadow: `0 0 22px ${accent(0.5)}` }}>{Math.round(pct)}%</span>
+        <span className="mt-1 font-mono text-[8px] uppercase tracking-[0.18em] text-white/40">{caption}</span>
+      </div>
+    </div>
   );
 }
 
@@ -204,6 +218,13 @@ export default function AdminDashboardPage() {
     return { greet, text: s.join(" ") };
   }, [pulse, sla, liveOps, trending, economy]);
 
+  const successPct = useMemo(() => { const d = pulse.projects.completed, f = pulse.projects.failed; return (d + f) > 0 ? (d / (d + f)) * 100 : 100; }, [pulse]);
+  const ecoData = useMemo(() => economy ? [
+    { key: "purchased", name: "Purchased", value: economy.purchased, from: ACCENT_HSL, to: CYAN },
+    { key: "welcome", name: "Welcome", value: economy.welcome, from: VIOLET, to: ACCENT_HSL },
+    { key: "other", name: "Other grants", value: Math.max(0, economy.issued - economy.purchased - economy.welcome), from: AMBER, to: ROSE },
+  ].filter((d) => d.value > 0) : [], [economy]);
+
   return (
     <AdminPageShell
       eyebrow="01 // PULSE"
@@ -219,50 +240,72 @@ export default function AdminDashboardPage() {
       }
     >
       <div className="space-y-14">
-        {/* Smart daily briefing — synthesized exec summary */}
-        <div className="relative overflow-hidden rounded-[20px] px-6 py-5" style={{ background: `linear-gradient(120deg, ${accent(0.14)}, rgba(255,255,255,0.02) 60%)` }}>
-          <div className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full blur-3xl" style={{ background: accent(0.18) }} />
-          <div className="relative flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-[#9ab4ff]">
+        {/* Smart daily briefing — containerless, accent-edged narrative */}
+        <div className="relative pl-5">
+          <span aria-hidden className="absolute bottom-1 left-0 top-1 w-[3px] rounded-full" style={{ background: `linear-gradient(${ACCENT_HSL}, ${CYAN})`, boxShadow: `0 0 16px ${accent(0.5)}` }} />
+          <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-[#9ab4ff]">
             <Sparkles className="h-3.5 w-3.5" /> Daily briefing · {new Date().toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" })}
           </div>
-          <p className="relative mt-2.5 max-w-3xl text-[15.5px] font-light leading-relaxed text-white/85">
+          <p className="mt-3 max-w-3xl text-[16.5px] font-light leading-relaxed text-white/85">
             <span className="font-display font-semibold text-white">{briefing.greet}.</span> {briefing.text}
           </p>
         </div>
 
-        {/* Live-ops strip — the "right now", auto-refreshing every 20s */}
-        <div className="flex flex-wrap items-center gap-x-9 gap-y-4">
-          <span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-emerald-300/80">
-            <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" /><span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" /></span>
-            Live now
-          </span>
-          <LiveStat icon={Eye} label="visitors · 5m" value={liveOps?.active_visitors_5m ?? 0} />
-          <LiveStat icon={Radio} label="live rooms" value={liveOps?.live_rooms ?? 0} />
-          <LiveStat icon={Clapperboard} label="rendering" value={liveOps?.renders_in_flight ?? 0} />
-          <LiveStat icon={UserPlus} label="sign-ups · 1h" value={liveOps?.signups_1h ?? 0} />
-          <LiveStat icon={Film} label="published · 1h" value={liveOps?.published_1h ?? 0} />
+        {/* Containerless analytic deck — Live now · Pipeline health (gauge) · Economy (donut) */}
+        <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-3">
+          <FloatSection
+            title={<span className="inline-flex items-center gap-2.5">Live now <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" /><span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" /></span></span>}
+            meta="auto · 20s"
+          >
+            <div className="grid grid-cols-3 gap-x-5 gap-y-7">
+              <FloatFig icon={Eye} label="visitors · 5m" value={compact(liveOps?.active_visitors_5m ?? 0)} />
+              <FloatFig icon={Radio} label="live rooms" value={compact(liveOps?.live_rooms ?? 0)} />
+              <FloatFig icon={Clapperboard} label="rendering" value={compact(liveOps?.renders_in_flight ?? 0)} />
+              <FloatFig icon={UserPlus} label="sign-ups · 1h" value={compact(liveOps?.signups_1h ?? 0)} />
+              <FloatFig icon={Film} label="published · 1h" value={compact(liveOps?.published_1h ?? 0)} />
+            </div>
+          </FloatSection>
+
+          <FloatSection title="Pipeline health" meta="render success">
+            <div className="flex items-center gap-6">
+              <Gauge pct={successPct} caption={successPct >= 80 ? "healthy" : "watch"} />
+              <div className="flex-1 space-y-5">
+                <FloatFig icon={AlertTriangle} label="failed · 24h" value={`${sla?.failed_rate_24h ?? 0}%`} tone={(sla?.failed_rate_24h ?? 0) > 10 ? "bad" : undefined} />
+                <FloatFig icon={Clapperboard} label="stuck renders" value={sla?.stuck_renders ?? 0} tone={(sla?.stuck_renders ?? 0) > 0 ? "bad" : undefined} />
+                <FloatFig icon={Clock} label="oldest render" value={mins(sla?.oldest_render_min ?? null)} tone={(sla?.oldest_render_min ?? 0) > 60 ? "bad" : undefined} />
+              </div>
+            </div>
+          </FloatSection>
+
+          <FloatSection title={<span className="inline-flex items-center gap-2"><Coins className="h-3.5 w-3.5 text-amber-300" /> Economy</span>} meta="credits">
+            <div className="flex items-center gap-4">
+              <div className="relative h-36 w-36 shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <defs>{ecoData.map((d) => <linearGradient key={d.key} id={`eco-${d.key}`} x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor={d.from} /><stop offset="100%" stopColor={d.to} /></linearGradient>)}</defs>
+                    <Pie data={ecoData.length ? ecoData : [{ key: "none", name: "—", value: 1, from: "rgba(255,255,255,0.08)", to: "rgba(255,255,255,0.08)" }]} dataKey="value" nameKey="name" innerRadius={46} outerRadius={64} paddingAngle={4} cornerRadius={5} stroke="none" isAnimationActive animationDuration={1000}>
+                      {(ecoData.length ? ecoData : [{ key: "none", from: "rgba(255,255,255,0.08)" }]).map((d) => <Cell key={d.key} fill={ecoData.length ? `url(#eco-${d.key})` : "rgba(255,255,255,0.08)"} />)}
+                    </Pie>
+                    <Tooltip contentStyle={{ background: "#0a0d14", border: "none", borderRadius: 12, fontSize: 12 }} itemStyle={{ color: "#fff" }} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="font-display text-[20px] font-semibold leading-none text-white" style={{ textShadow: `0 0 18px ${accent(0.5)}` }}>{compact(economy?.issued ?? 0)}</span>
+                  <span className="mt-1 font-mono text-[7.5px] uppercase tracking-[0.18em] text-white/40">issued</span>
+                </div>
+              </div>
+              <div className="flex-1 space-y-2.5">
+                {ecoData.map((d) => (
+                  <div key={d.key} className="flex items-center justify-between">
+                    <span className="inline-flex items-center gap-2 text-[12px] text-white/70"><span className="h-2 w-2 rounded-full" style={{ background: `linear-gradient(135deg, ${d.from}, ${d.to})` }} />{d.name}</span>
+                    <span className="font-display text-[13px] font-semibold tabular-nums text-white">{compact(d.value)}</span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between pt-1.5 text-[12px] text-white/45"><span className="font-mono text-[10px] uppercase tracking-[0.16em]">ledger txns</span><span className="tabular-nums">{economy?.txns ?? 0}</span></div>
+              </div>
+            </div>
+          </FloatSection>
         </div>
-
-        {/* SLA / health chips */}
-        {sla && (
-          <div className="flex flex-wrap gap-3">
-            <SlaChip label="Failed · 24h" value={`${sla.failed_rate_24h ?? 0}%`} bad={(sla.failed_rate_24h ?? 0) > 10} />
-            <SlaChip label="Stuck renders" value={sla.stuck_renders} bad={sla.stuck_renders > 0} />
-            <SlaChip label="Oldest ticket" value={mins(sla.oldest_ticket_min)} bad={(sla.oldest_ticket_min ?? 0) > 1440} />
-            <SlaChip label="Oldest render" value={mins(sla.oldest_render_min)} bad={(sla.oldest_render_min ?? 0) > 60} />
-          </div>
-        )}
-
-        {/* Credit economy strip */}
-        {economy && (
-          <div className="flex flex-wrap items-center gap-x-9 gap-y-4">
-            <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-amber-300/70">Economy</span>
-            <LiveStat icon={Coins} label="credits issued" value={economy.issued} />
-            <LiveStat icon={Wallet} label="purchased" value={economy.purchased} />
-            <LiveStat icon={Flame} label="spent" value={economy.spent} />
-            <LiveStat icon={Activity} label="ledger txns" value={economy.txns} />
-          </div>
-        )}
 
         {/* KPI rail — floating figures */}
         <div className="grid grid-cols-2 gap-x-10 gap-y-12 md:grid-cols-3 xl:grid-cols-6">

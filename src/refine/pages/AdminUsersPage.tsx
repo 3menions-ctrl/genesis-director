@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { Search, Loader2, Coins, UserCog, Shield, Crown, Plus, Minus, ArrowRight, UserMinus, UserCheck, BarChart3 } from "lucide-react";
+import { Search, Loader2, Coins, UserCog, Shield, Crown, Plus, Minus, ArrowRight, UserMinus, UserCheck, BarChart3, Trash2 } from "lucide-react";
 import { UserAnalyticsSheet } from "../components/UserAnalyticsSheet";
 import { Link } from "react-router-dom";
 import { AdminPageShell, AdminEmptyState } from "../components/AdminPageShell";
@@ -93,6 +93,52 @@ export default function AdminUsersPage() {
       toast.success(`Admin role ${action === "grant" ? "granted" : "revoked"}`);
       fetchUsers();
     } catch { toast.error("Failed to manage role"); }
+  };
+
+  const deleteUser = async (u: UserRecord) => {
+    if (u.roles?.includes("admin")) { toast.error("Admins can't be deleted — demote first via the role toggle."); return; }
+    if (!window.confirm(`Permanently delete ${u.display_name || u.email}?\n\nThis wipes their auth, profile, projects, credits and every cascaded record. Cannot be undone.`)) return;
+    const reason = window.prompt("Reason (audited):", "manual_delete");
+    if (reason === null) return;
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-user-action", {
+        body: { action: "delete", userId: u.id, reason: reason || "manual_delete" },
+      });
+      if (error) throw error;
+      const payload = data as { ok?: boolean; error?: string };
+      if (!payload?.ok) throw new Error(payload?.error ?? "Delete failed");
+      toast.success(`${u.display_name || u.email} deleted`);
+      setUsers((prev) => prev.filter((x) => x.id !== u.id));
+      setSelected((prev) => { const n = new Set(prev); n.delete(u.id); return n; });
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Delete failed"); }
+  };
+
+  const suspendUser = async (u: UserRecord) => {
+    if (!window.confirm(`Suspend ${u.display_name || u.email}? They'll be blocked from signing in until restored.`)) return;
+    try {
+      const { error } = await supabase.rpc("admin_bulk_suspend" as never, { p_user_ids: [u.id], p_reason: "Suspended via admin console" } as never);
+      if (error) throw error;
+      toast.success(`${u.display_name || u.email} suspended`);
+      fetchUsers();
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Suspend failed"); }
+  };
+
+  const runBulkDelete = async () => {
+    const targets = users.filter((u) => selected.has(u.id) && !u.roles?.includes("admin"));
+    if (targets.length === 0) { toast.error("Nothing deletable selected (admins are skipped)."); return; }
+    if (!window.confirm(`Permanently delete ${targets.length} user(s)? Admins in the selection are skipped. This cannot be undone.`)) return;
+    setBulkBusy(true);
+    let ok = 0;
+    for (const u of targets) {
+      try {
+        const { data, error } = await supabase.functions.invoke("admin-user-action", { body: { action: "delete", userId: u.id, reason: "bulk delete via admin console" } });
+        if (!error && (data as { ok?: boolean })?.ok) ok++;
+      } catch { /* keep going */ }
+    }
+    toast.success(`Deleted ${ok} of ${targets.length} user(s)`);
+    clearSelection();
+    fetchUsers();
+    setBulkBusy(false);
   };
 
   const totalCredits = users.reduce((s, u) => s + (u.credits_balance || 0), 0);
@@ -316,8 +362,16 @@ export default function AdminUsersPage() {
                         onClick={() => setAnalyticsUser({ id: u.id, label: u.display_name || u.email })}>
                         <BarChart3 className="w-3.5 h-3.5" />
                       </Button>
-                      {/* Manage — opens the full user detail page where suspend / delete /
-                          force-verify / impersonation-link live with full guards. */}
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-amber-400/60 hover:text-amber-400 hover:bg-amber-400/10" title="Suspend user"
+                        onClick={() => suspendUser(u)}>
+                        <UserMinus className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-rose-400/60 hover:text-rose-400 hover:bg-rose-400/10 disabled:opacity-30" title={u.roles?.includes("admin") ? "Admins can't be deleted" : "Delete user"}
+                        disabled={u.roles?.includes("admin")} onClick={() => deleteUser(u)}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                      {/* Manage — opens the full user detail page where force-verify /
+                          impersonation-link / password-reset live with full guards. */}
                       <Link
                         to={`/admin/users/${u.id}`}
                         title="Manage user"
@@ -363,6 +417,13 @@ export default function AdminUsersPage() {
             icon={Plus}
             label="Export CSV"
             onClick={exportSelectedCsv}
+            disabled={bulkBusy}
+          />
+          <BulkActionButton
+            icon={Trash2}
+            label="Delete"
+            tone="rose"
+            onClick={runBulkDelete}
             disabled={bulkBusy}
           />
         </BulkActionBar>

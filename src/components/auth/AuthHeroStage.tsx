@@ -30,9 +30,11 @@ const BREAK_AT = 2.4;
 
 interface Props {
   className?: string;
+  /** Video + grade only — no editorial text. Used as a full-bleed backdrop. */
+  bare?: boolean;
 }
 
-export function AuthHeroStage({ className }: Props) {
+export function AuthHeroStage({ className, bare }: Props) {
   const reducedMotion = useReducedMotion();
   const [broken, setBroken] = useState(false);
 
@@ -148,7 +150,8 @@ export function AuthHeroStage({ className }: Props) {
         />
       )}
 
-      {/* ── 6. Editorial chrome ──────────────────────────────────── */}
+      {/* ── 6. Editorial chrome (suppressed in `bare` backdrop mode) ── */}
+      {!bare && (
       <div className="relative z-10 h-full w-full px-14 pt-12 pb-14 flex flex-col">
         {/* Top row: logo · index */}
         <motion.header
@@ -219,6 +222,7 @@ export function AuthHeroStage({ className }: Props) {
           <span title="This shot was generated in-app">every frame · generated</span>
         </motion.footer>
       </div>
+      )}
     </aside>
   );
 }

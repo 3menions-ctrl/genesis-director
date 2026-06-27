@@ -256,8 +256,8 @@ export default function Auth() {
     <div className="relative min-h-[100dvh] w-full bg-[#0a0b0f] text-foreground overflow-hidden">
       {/* Cinematic film backdrop — phone/mobile only (desktop keeps the 2-pane hero). */}
       <div className="pointer-events-none absolute inset-0 z-0 lg:hidden [&>*]:h-full [&>*]:w-full">
-        <AuthHeroStage />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0b0f]/40 via-[#0a0b0f]/80 to-[#0a0b0f]/98" />
+        <AuthHeroStage bare />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0b0f]/55 via-[#0a0b0f]/82 to-[#0a0b0f]/97" />
       </div>
       <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] min-h-[100dvh]">
         {/* HERO — desktop only. */}
@@ -271,7 +271,7 @@ export default function Auth() {
             initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="relative w-full max-w-[380px] rounded-[30px] bg-white/[0.045] p-5 shadow-[0_30px_90px_-44px_rgba(0,0,0,0.95)] backdrop-blur-2xl lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none lg:backdrop-blur-none"
+            className="relative w-full max-w-[380px]"
           >
             {/* Mobile-only brand chip — borderless floating glass + icon */}
             <div className="lg:hidden mb-5 flex items-center gap-2.5">

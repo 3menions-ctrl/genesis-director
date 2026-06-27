@@ -1,0 +1,9 @@
+# Minted auth sessions contain live access/refresh tokens — never commit.
+auth-*.json
+# Heavy generated artifacts (regenerate with `node audit.mjs`).
+node_modules/
+shots/
+shots-*/
+*.png
+capture*.json
+contact-sheet*.html

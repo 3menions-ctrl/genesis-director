@@ -1,0 +1,9 @@
+{
+  "name": "genesis-design-audit",
+  "private": true,
+  "type": "module",
+  "description": "Isolated design-audit tooling (read-only). Does not touch the app source.",
+  "devDependencies": {
+    "playwright": "^1.61.1"
+  }
+}

@@ -586,9 +586,10 @@ export default function Auth() {
                     </p>
                   </form>
 
-                  {/* Business account entry — only while creating an account */}
+                  {/* Business account entry — only while creating an account,
+                      and DESKTOP ONLY (hidden on phones per product). */}
                   {mode === "signup" && (
-                    <div className="mt-6">
+                    <div className="mt-6 hidden lg:block">
                       <div className="relative my-5" aria-hidden>
                         <div className="absolute inset-0 flex items-center">
                           <span className="w-full border-t border-white/[0.06]" />

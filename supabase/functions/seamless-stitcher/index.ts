@@ -1399,9 +1399,12 @@ async function getIntroMeta(
     const { data } = await supabase.storage.from(INTRO_BUCKET).list("intro", { limit: 25 });
     const found = data?.find((f) => f.name === "intro.mp4");
     if (!found) return null;
-    const { data: pub } = supabase.storage.from(INTRO_BUCKET).getPublicUrl(INTRO_PATH);
+    // brand-assets is a private bucket now — mint a signed URL (service-role)
+    // rather than a public URL, which would 403.
+    const { data: signed } = await supabase.storage.from(INTRO_BUCKET).createSignedUrl(INTRO_PATH, SIGNED_URL_TTL);
+    if (!signed?.signedUrl) return null;
     return {
-      url: pub.publicUrl,
+      url: signed.signedUrl,
       // intro.mp4 ships from the StudioIntro animation: ~7.5s real time
       // including the iris-out hand-off frame.
       duration: 7.5,

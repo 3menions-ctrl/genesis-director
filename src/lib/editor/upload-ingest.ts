@@ -360,8 +360,17 @@ export async function ingestUpload(args: {
       trackId: mediaKind === "audio" ? "sys:A2" : null,
     });
   } catch (e) {
+    // PERSISTENCE GUARANTEE (audit fix): if the video_clips insert fails the
+    // clip exists ONLY in storage + the in-memory doc — it vanishes on the next
+    // reload and never appears in the Library. Previously this was swallowed and
+    // the function still ran addShot + returned success, so the user got an
+    // "Uploaded" toast for a clip that was silently lost. Re-throw so the caller
+    // (Timeline upload handler) reports the failure instead of a false success.
     // eslint-disable-next-line no-console
-    console.warn("[upload] video_clips insert threw:", e);
+    console.error("[upload] video_clips insert failed — clip not persisted:", e);
+    throw new Error(
+      `Upload couldn't be saved to your library (${(e as Error)?.message ?? "database error"}). Please try again.`,
+    );
   }
 
   // 1.5 Mirror the FIRST upload's URLs onto movie_projects so the

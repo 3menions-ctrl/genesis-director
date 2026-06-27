@@ -205,6 +205,13 @@ you have it — the current icon is upscaled from the 512px web favicon.
 
 ## 8. App Store submission checklist — **`▶ YOU`**
 
+> **Privacy manifest (done):** `ios/App/App/PrivacyInfo.xcprivacy` is now wired
+> into the App target's *Copy Bundle Resources* phase (project.pbxproj) and
+> declares the data PostHog/Sentry collect (product interaction, crash data,
+> user id, email — none used for cross-app tracking). It ships in the .ipa; no
+> manual Xcode step needed. Keep the App Privacy nutrition labels in §b
+> consistent with it.
+
 ### a. Project / signing
 1. **App Store Connect** → create the app record with bundle ID
    `co.smallbridges.app`, name **Small Bridges**, primary category

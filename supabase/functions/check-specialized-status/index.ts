@@ -46,7 +46,7 @@ serve(async (req) => {
 
   try {
     // ═══ AUTH GUARD: Prevent unauthorized access ═══
-    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const { validateAuth, unauthorizedResponse, assertProjectOwnership } = await import("../_shared/auth-guard.ts");
     const auth = await validateAuth(req);
     if (!auth.authenticated) {
       return unauthorizedResponse(corsHeaders, auth.error);
@@ -59,6 +59,14 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // IDOR GUARD (audit): this builds a SERVICE_ROLE client and reads/writes
+    // movie_projects keyed on the body-supplied projectId. validateAuth only
+    // proves the caller is *some* user, so without this any logged-in user could
+    // poll/finalize a victim's project. Service-role (internal poller/webhook)
+    // bypasses via assertProjectOwnership.
+    const ownErr = await assertProjectOwnership(supabase, auth, projectId, corsHeaders);
+    if (ownErr) return ownErr;
 
     console.log(`[CheckSpecializedStatus] Checking prediction ${predictionId} for project ${projectId}`);
 

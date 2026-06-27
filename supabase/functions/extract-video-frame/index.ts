@@ -40,7 +40,7 @@ serve(async (req) => {
 
   try {
     // ═══ AUTH GUARD ═══
-    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const { validateAuth, unauthorizedResponse, assertProjectOwnership } = await import("../_shared/auth-guard.ts");
     const auth = await validateAuth(req);
     if (!auth.authenticated) {
       return unauthorizedResponse(corsHeaders, auth.error);
@@ -81,6 +81,15 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
     const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+
+    // IDOR GUARD (audit): this SERVICE_ROLE client writes extracted frames to a
+    // storage path under projectId and recovers reference images from that
+    // project's movie_projects row. Verify the caller owns the project so a
+    // logged-in user can't read/write another user's project assets via a
+    // supplied projectId. Service-role (internal validator pipeline) bypasses;
+    // null projectId is skipped.
+    const ownErr = await assertProjectOwnership(supabase, auth, projectId, corsHeaders);
+    if (ownErr) return ownErr;
 
     const ok = (frameUrl: string, method: string, retryCount = 0) =>
       new Response(JSON.stringify({ success: true, frameUrl, position: String(position), method, retryCount }),

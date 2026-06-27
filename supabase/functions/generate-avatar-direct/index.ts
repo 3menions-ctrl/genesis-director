@@ -214,6 +214,16 @@ serve(async (req) => {
       });
     }
 
+    // IDOR GUARD (audit): besides pinning userId to the JWT above, verify the
+    // body-supplied projectId actually belongs to the caller before this
+    // SERVICE_ROLE client reads/writes movie_projects under it. Service-role
+    // (internal pipeline) bypasses; null projectId is skipped.
+    {
+      const { assertProjectOwnership } = await import("../_shared/auth-guard.ts");
+      const ownErr = await assertProjectOwnership(supabase, __auth, projectId, corsHeaders);
+      if (ownErr) return ownErr;
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // DEFAULT SCENE DESCRIPTION: Always provide a background so avatars aren't
     // rendered floating on a blank canvas. This ensures scene compositing runs.

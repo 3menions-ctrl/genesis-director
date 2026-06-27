@@ -5,6 +5,7 @@ import {
   unauthorizedResponse,
   resolveEffectiveUserId,
   forbiddenResponse,
+  assertProjectOwnership,
 } from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
@@ -243,6 +244,16 @@ serve(async (req) => {
         });
       }
       return unauthorizedResponse(corsHeaders, msg);
+    }
+
+    // IDOR GUARD (audit): credits are charged against `userId` and results are
+    // persisted into movie_projects keyed on the body-supplied projectId via a
+    // SERVICE_ROLE client. Verify the caller owns that project so a logged-in
+    // user can't write identity data into (or trigger charges tied to) someone
+    // else's project. Service-role bypasses; null projectId is skipped.
+    {
+      const ownErr = await assertProjectOwnership(supabase, auth, projectId, corsHeaders);
+      if (ownErr) return ownErr;
     }
 
     if (!imageUrl) {

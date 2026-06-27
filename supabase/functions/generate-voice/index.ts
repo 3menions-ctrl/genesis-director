@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
 import {
   resilientFetch,
   calculateBackoff,
@@ -385,6 +386,20 @@ serve(async (req) => {
     const finalSpeed = speed || DEFAULT_SPEED;
     console.log(`[Voice] Generating: ${text.length} chars, voice: ${resolvedVoice}, speed: ${finalSpeed}, source: ${voiceSource}`);
 
+    // ═══ CREDIT GATE: rate-limit + balance pre-check BEFORE the paid TTS call ═══
+    const gateCtx = {
+      supabase,
+      fnName: "generate-voice",
+      userId: auth.userId,
+      isServiceRole: auth.isServiceRole,
+      projectId: projectId ?? null,
+      cost: 1,
+      dailyCap: 200,
+      corsHeaders,
+    };
+    const gateBlock = await preflightAiGate(gateCtx);
+    if (gateBlock) return gateBlock;
+
     // Generate with MiniMax (always warm, ~3s)
     const result = await generateWithMiniMax(text, resolvedVoice, finalSpeed);
     
@@ -438,8 +453,11 @@ serve(async (req) => {
       console.warn("[Voice] media library record failed (non-fatal):", (e as Error).message);
     }
 
+    // ═══ CREDIT GATE: charge once now that voice generated successfully ═══
+    await chargeAiGate(gateCtx);
+
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
         audioUrl: result.audioUrl,
         durationMs: result.duration,

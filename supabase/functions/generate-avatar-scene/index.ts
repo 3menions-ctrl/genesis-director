@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -74,6 +76,24 @@ serve(async (req) => {
       throw new Error("Both avatarImageUrl and sceneDescription are required");
     }
 
+    // ═══ CREDIT GATE: rate-limit + balance pre-check BEFORE the paid FLUX cascade ═══
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const gateCtx = {
+      supabase: supabaseAdmin,
+      fnName: "generate-avatar-scene",
+      userId: auth.userId,
+      isServiceRole: auth.isServiceRole,
+      projectId: null,
+      cost: 8,
+      dailyCap: 50,
+      corsHeaders,
+    };
+    const gateBlock = await preflightAiGate(gateCtx);
+    if (gateBlock) return gateBlock;
+
     console.log("[AvatarScene] ═══════════════════════════════════════════════════════════");
     console.log("[AvatarScene] Scene-First Compositing Pipeline");
     console.log(`[AvatarScene] Scene: "${sceneDescription}"`);
@@ -139,6 +159,9 @@ serve(async (req) => {
       sceneImageUrl,
       method,
     };
+
+    // ═══ CREDIT GATE: charge once now that the scene generated successfully ═══
+    await chargeAiGate(gateCtx);
 
     return new Response(
       JSON.stringify(response),

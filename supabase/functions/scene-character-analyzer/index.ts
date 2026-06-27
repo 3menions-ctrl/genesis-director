@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -117,6 +118,20 @@ serve(async (req) => {
       throw new Error("Either 'sceneDescription' or 'userPrompt' is required");
     }
 
+    // ═══ CREDIT GATE: rate-limit + balance pre-check BEFORE the paid vision call ═══
+    const gateCtx = {
+      supabase,
+      fnName: "scene-character-analyzer",
+      userId: auth.userId,
+      isServiceRole: auth.isServiceRole,
+      projectId: null,
+      cost: 2,
+      dailyCap: 200,
+      corsHeaders,
+    };
+    const gateBlock = await preflightAiGate(gateCtx);
+    if (gateBlock) return gateBlock;
+
     const combinedInput = [sceneDescription, userPrompt].filter(Boolean).join("\n\n");
     
     console.log("[SceneAnalyzer] ═══════════════════════════════════════════════════════");
@@ -165,6 +180,9 @@ serve(async (req) => {
     console.log(`[SceneAnalyzer]   Using existing: ${castingManifest.existingAvatarsUsed}`);
     console.log(`[SceneAnalyzer]   Need generation: ${castingManifest.avatarsToGenerate}`);
     console.log("[SceneAnalyzer] ═══════════════════════════════════════════════════════");
+
+    // ═══ CREDIT GATE: charge once now that the analysis succeeded ═══
+    await chargeAiGate(gateCtx);
 
     return new Response(
       JSON.stringify({

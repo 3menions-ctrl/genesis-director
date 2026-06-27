@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -49,6 +51,24 @@ serve(async (req) => {
     if (!REPLICATE_API_KEY) {
       throw new Error("REPLICATE_API_KEY is not configured");
     }
+
+    // ═══ CREDIT GATE: rate-limit + balance pre-check BEFORE any paid Replicate call ═══
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const gateCtx = {
+      supabase: supabaseAdmin,
+      fnName: "composite-character",
+      userId: auth.userId,
+      isServiceRole: auth.isServiceRole,
+      projectId: null,
+      cost: 5,
+      dailyCap: 100,
+      corsHeaders,
+    };
+    const gateBlock = await preflightAiGate(gateCtx);
+    if (gateBlock) return gateBlock;
 
     console.log("[composite-character] Starting character extraction and compositing...");
 
@@ -109,6 +129,11 @@ serve(async (req) => {
     if (!extractedCharacterUrl) {
       throw new Error("Background removal timed out");
     }
+
+    // ═══ CREDIT GATE: a paid generation has now succeeded. Charge once here so
+    // every success return below (full composite OR extraction-only fallback)
+    // is covered without double-charging. ═══
+    await chargeAiGate(gateCtx);
 
     // Step 2: Composite character onto background using FLUX Fill (inpainting)
     console.log("[composite-character] Step 2: Compositing onto background with FLUX Fill...");

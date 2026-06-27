@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -207,6 +208,20 @@ serve(async (req) => {
     const config: AvatarGenerationRequest = await req.json();
     console.log("[Avatar Gen] Generating avatar for:", config.name);
 
+    // ═══ CREDIT GATE: rate-limit + balance pre-check BEFORE the paid image call ═══
+    const gateCtx = {
+      supabase,
+      fnName: "generate-avatar-image",
+      userId: auth.userId,
+      isServiceRole: auth.isServiceRole,
+      projectId: null,
+      cost: 5,
+      dailyCap: 100,
+      corsHeaders,
+    };
+    const gateBlock = await preflightAiGate(gateCtx);
+    if (gateBlock) return gateBlock;
+
     // Generate front view (required)
     const frontPrompt = buildAvatarPrompt(config, "front");
     const frontBase64 = await generateImage(frontPrompt);
@@ -302,6 +317,9 @@ serve(async (req) => {
     } catch (e) {
       console.warn("[Avatar Gen] media library record failed (non-fatal):", (e as Error).message);
     }
+
+    // ═══ CREDIT GATE: charge once now that the avatar generated successfully ═══
+    await chargeAiGate(gateCtx);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

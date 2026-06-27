@@ -3,7 +3,9 @@
 //   • HQ or remix (reference image): black-forest-labs/flux-1.1-pro (image_prompt)
 // Auth-guarded so the shared Replicate key isn't abused anonymously.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { validateAuth, unauthorizedResponse } from "../_shared/auth-guard.ts";
+import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -97,6 +99,24 @@ serve(async (req) => {
     const styleSuffix = body.style && STYLE_PROMPTS[body.style] ? `. ${STYLE_PROMPTS[body.style]}` : "";
     const aspectSuffix = body.aspect && SIZE_HINTS[body.aspect] ? `. ${SIZE_HINTS[body.aspect]}` : "";
     const fullPrompt = `${prompt}${styleSuffix}${aspectSuffix}`;
+
+    // ═══ CREDIT GATE: rate-limit + balance pre-check BEFORE the paid Replicate call ═══
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const gateCtx = {
+      supabase: supabaseAdmin,
+      fnName: "studio-image",
+      userId: auth.userId,
+      isServiceRole: auth.isServiceRole,
+      projectId: null,
+      cost: 5,
+      dailyCap: 100,
+      corsHeaders,
+    };
+    const gateBlock = await preflightAiGate(gateCtx);
+    if (gateBlock) return gateBlock;
 
     const count = Math.max(1, Math.min(4, body.count ?? 1));
     const aspect = body.aspect && FLUX_ASPECTS.has(body.aspect) ? body.aspect : "1:1";
@@ -195,6 +215,9 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // ═══ CREDIT GATE: charge once now that at least one image generated ═══
+    await chargeAiGate(gateCtx);
 
     return new Response(
       JSON.stringify({ images, model, prompt: fullPrompt }),

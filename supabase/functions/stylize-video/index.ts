@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,6 +37,24 @@ serve(async (req) => {
     const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
     if (!REPLICATE_API_KEY) throw new Error("REPLICATE_API_KEY not configured");
 
+    // ═══ CREDIT GATE: rate-limit + balance pre-check BEFORE the paid video call ═══
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const gateCtx = {
+      supabase: supabaseAdmin,
+      fnName: "stylize-video",
+      userId: auth.userId,
+      isServiceRole: auth.isServiceRole,
+      projectId: null,
+      cost: 25,
+      dailyCap: 30,
+      corsHeaders,
+    };
+    const gateBlock = await preflightAiGate(gateCtx);
+    if (gateBlock) return gateBlock;
+
     console.log(`[StylizeVideo] Applying style "${style}" to video`);
 
     // Use Replicate video-to-video model
@@ -63,6 +82,9 @@ serve(async (req) => {
 
     const prediction = await predRes.json();
     console.log(`[StylizeVideo] ✅ Prediction created: ${prediction.id}`);
+
+    // ═══ CREDIT GATE: charge once now that the prediction was submitted ═══
+    await chargeAiGate(gateCtx);
 
     return new Response(
       JSON.stringify({

@@ -27,7 +27,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { z } from "zod";
-import { ArrowRight, Building2, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
+import { ArrowRight, Building2, Eye, EyeOff, Loader2, Lock, Mail, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -271,14 +271,14 @@ export default function Auth() {
             initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="relative w-full max-w-[400px] rounded-[28px] bg-[#0b0d13]/55 p-6 shadow-[0_40px_120px_-50px_rgba(0,0,0,0.95)] ring-1 ring-white/10 backdrop-blur-2xl lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none lg:ring-0 lg:backdrop-blur-none"
+            className="relative w-full max-w-[380px] rounded-[30px] bg-white/[0.045] p-5 shadow-[0_30px_90px_-44px_rgba(0,0,0,0.95)] backdrop-blur-2xl lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none lg:backdrop-blur-none"
           >
-            {/* Mobile-only mini header */}
-            <div className="lg:hidden mb-8">
-              <div className="text-[10px] uppercase tracking-[0.32em] text-white/55">Small Bridges</div>
-              <div className="font-display text-3xl text-white font-light mt-2 leading-tight">
-                One prompt away from a film.
-              </div>
+            {/* Mobile-only brand chip — borderless floating glass + icon */}
+            <div className="lg:hidden mb-5 flex items-center gap-2.5">
+              <span className="grid h-9 w-9 place-items-center rounded-2xl bg-white/[0.08] backdrop-blur-xl">
+                <Sparkles className="h-[17px] w-[17px] text-[#9fc6ff]" />
+              </span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-white/60">Small Bridges</span>
             </div>
 
             <AnimatePresence mode="wait" initial={false}>
@@ -357,17 +357,17 @@ export default function Auth() {
                   exit={reducedMotion ? { opacity: 0 } : { opacity: 0, x: -18 }}
                   transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
                 >
-                  <h2 className="font-display text-[34px] sm:text-[40px] text-white font-light leading-[1.05] tracking-tight">
+                  <h2 className="font-display text-[27px] lg:text-[40px] text-white font-light leading-[1.08] tracking-tight">
                     {mode === "signin" ? "Welcome back." : "Create your account."}
                   </h2>
-                  <p className="text-[14px] text-white/55 mt-3">
+                  <p className="text-[12.5px] text-white/50 mt-1.5">
                     {mode === "signin"
                       ? "Pick up where you left off."
                       : "Start free — your first 5-second video is on us."}
                   </p>
 
                   {/* Underline tab toggle */}
-                  <div className="mt-8 flex items-center gap-7 border-b border-white/[0.08]">
+                  <div className="mt-5 flex items-center gap-7 border-b border-white/[0.08]">
                     {(["signin", "signup"] as const).map((m) => (
                       <button
                         key={m}
@@ -391,16 +391,16 @@ export default function Auth() {
                   </div>
 
                   {/* Social sign-in first — Apple (required on iOS) + Google */}
-                  <div className="mt-6">
+                  <div className="mt-5">
                     <OAuthProviders next={nextParam ?? undefined} />
                   </div>
-                  <div className="my-5 flex items-center gap-3 text-[10px] uppercase tracking-[0.22em] text-white/40">
+                  <div className="my-4 flex items-center gap-3 text-[10px] uppercase tracking-[0.22em] text-white/40">
                     <span className="h-px flex-1 bg-white/12" /> or with email <span className="h-px flex-1 bg-white/12" />
                   </div>
 
                   <AuthErrorBanner cue={banner} />
 
-                  <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+                  <form onSubmit={handleSubmit} className="space-y-3 mt-1">
                     {/* Email */}
                     <div className="space-y-1.5">
                       <Label htmlFor="email" className="text-[10px] uppercase tracking-[0.18em] text-white/55">
@@ -422,7 +422,7 @@ export default function Auth() {
                             setEmail(e.target.value);
                             if (errors.email) setErrors((er) => ({ ...er, email: undefined }));
                           }}
-                          className={cn("pl-11 h-12", errors.email && "border-destructive/50")}
+                          className={cn("pl-11 h-11 rounded-2xl border-white/10 bg-white/[0.05] backdrop-blur-xl", errors.email && "border-destructive/50")}
                           maxLength={255}
                           required
                           aria-invalid={!!errors.email}
@@ -463,7 +463,7 @@ export default function Auth() {
                             setPassword(e.target.value);
                             if (errors.password) setErrors((er) => ({ ...er, password: undefined }));
                           }}
-                          className={cn("pl-11 pr-11 h-12", errors.password && "border-destructive/50")}
+                          className={cn("pl-11 pr-11 h-11 rounded-2xl border-white/10 bg-white/[0.05] backdrop-blur-xl", errors.password && "border-destructive/50")}
                           required
                           aria-invalid={!!errors.password}
                         />
@@ -556,7 +556,7 @@ export default function Auth() {
                     <Button
                       type="submit"
                       disabled={loading}
-                      className="w-full h-12 rounded-xl text-[14px] font-medium mt-2"
+                      className="mt-1 h-11 w-full rounded-2xl text-[14px] font-semibold"
                     >
                       {loading ? (
                         <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{mode === "signin" ? "Signing in…" : "Creating account…"}</>

@@ -46,6 +46,7 @@ interface LiveOps { active_visitors_5m: number; live_rooms: number; renders_in_f
 interface Sla { oldest_ticket_min: number | null; oldest_render_min: number | null; failed_rate_24h: number | null; stuck_renders: number }
 interface Activity_ { kind: string; label: string; ref_id: string; occurred_at: string }
 interface Trend { reel_id: string; title: string; creator: string; plays: number; likes: number; tips: number }
+interface Economy { issued: number; purchased: number; spent: number; welcome: number; txns: number }
 
 type ActionCard = { priority: "high" | "medium" | "low"; icon: LucideIcon; title: string; body: string; ctaLabel: string; ctaTo: string };
 const priorityRank = (p: ActionCard["priority"]) => (p === "high" ? 0 : p === "medium" ? 1 : 2);
@@ -96,6 +97,7 @@ export default function AdminDashboardPage() {
   const [sla, setSla] = useState<Sla | null>(null);
   const [activity, setActivity] = useState<Activity_[]>([]);
   const [trending, setTrending] = useState<Trend[]>([]);
+  const [economy, setEconomy] = useState<Economy | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -151,6 +153,8 @@ export default function AdminDashboardPage() {
       // Phase-1 command-center widgets.
       const tr = await supabase.rpc("admin_trending" as never, { _limit: 6 } as never) as { data: unknown; error: unknown };
       if (!tr.error && tr.data) setTrending((tr.data as Trend[]) ?? []);
+      const ec = await supabase.rpc("admin_credit_economy" as never) as { data: unknown; error: unknown };
+      if (!ec.error && ec.data) setEconomy(((ec.data as Economy[]) ?? [])[0] ?? null);
       await pollLive();
 
       setLastUpdated(new Date());
@@ -185,6 +189,21 @@ export default function AdminDashboardPage() {
 
   const spark = useMemo(() => series.map((s) => s.signups), [series]);
 
+  // Smart daily briefing — synthesizes the whole pulse into an exec summary.
+  const briefing = useMemo(() => {
+    const h = new Date().getHours();
+    const greet = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+    const s: string[] = [];
+    s.push(`${pulse.users.total_users.toLocaleString()} members on the platform${pulse.users.signups_7d > 0 ? `, ${pulse.users.signups_7d} new this week` : pulse.users.signups_24h > 0 ? `, ${pulse.users.signups_24h} new today` : ""}.`);
+    const inflight = pulse.projects.in_flight, failed = pulse.projects.failed;
+    s.push(`${inflight} render${inflight === 1 ? "" : "s"} in flight and ${failed} failed — ${failed === 0 ? "the pipeline is healthy" : (sla?.stuck_renders ?? 0) > 0 ? `${sla?.stuck_renders} stuck past ETA, worth a look` : "nothing stuck"}.`);
+    s.push(pulse.support.open_tickets > 0 ? `${pulse.support.open_tickets} support ticket${pulse.support.open_tickets === 1 ? "" : "s"} waiting on a reply.` : "Support inbox is clear.");
+    if ((liveOps?.active_visitors_5m ?? 0) > 0) s.push(`${liveOps?.active_visitors_5m} visitor${liveOps?.active_visitors_5m === 1 ? "" : "s"} on the site right now.`);
+    if (trending[0]) s.push(`Top reel is “${trending[0].title}” at ${compact(trending[0].plays)} plays.`);
+    if (economy && economy.purchased > 0) s.push(`${economy.purchased.toLocaleString()} credits purchased to date.`);
+    return { greet, text: s.join(" ") };
+  }, [pulse, sla, liveOps, trending, economy]);
+
   return (
     <AdminPageShell
       eyebrow="01 // PULSE"
@@ -200,6 +219,17 @@ export default function AdminDashboardPage() {
       }
     >
       <div className="space-y-14">
+        {/* Smart daily briefing — synthesized exec summary */}
+        <div className="relative overflow-hidden rounded-[20px] px-6 py-5" style={{ background: `linear-gradient(120deg, ${accent(0.14)}, rgba(255,255,255,0.02) 60%)` }}>
+          <div className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full blur-3xl" style={{ background: accent(0.18) }} />
+          <div className="relative flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-[#9ab4ff]">
+            <Sparkles className="h-3.5 w-3.5" /> Daily briefing · {new Date().toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" })}
+          </div>
+          <p className="relative mt-2.5 max-w-3xl text-[15.5px] font-light leading-relaxed text-white/85">
+            <span className="font-display font-semibold text-white">{briefing.greet}.</span> {briefing.text}
+          </p>
+        </div>
+
         {/* Live-ops strip — the "right now", auto-refreshing every 20s */}
         <div className="flex flex-wrap items-center gap-x-9 gap-y-4">
           <span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-emerald-300/80">
@@ -220,6 +250,17 @@ export default function AdminDashboardPage() {
             <SlaChip label="Stuck renders" value={sla.stuck_renders} bad={sla.stuck_renders > 0} />
             <SlaChip label="Oldest ticket" value={mins(sla.oldest_ticket_min)} bad={(sla.oldest_ticket_min ?? 0) > 1440} />
             <SlaChip label="Oldest render" value={mins(sla.oldest_render_min)} bad={(sla.oldest_render_min ?? 0) > 60} />
+          </div>
+        )}
+
+        {/* Credit economy strip */}
+        {economy && (
+          <div className="flex flex-wrap items-center gap-x-9 gap-y-4">
+            <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-amber-300/70">Economy</span>
+            <LiveStat icon={Coins} label="credits issued" value={economy.issued} />
+            <LiveStat icon={Wallet} label="purchased" value={economy.purchased} />
+            <LiveStat icon={Flame} label="spent" value={economy.spent} />
+            <LiveStat icon={Activity} label="ledger txns" value={economy.txns} />
           </div>
         )}
 

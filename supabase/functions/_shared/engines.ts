@@ -64,14 +64,42 @@ export function creditsFor(
   return cost;
 }
 
-function tableCost(table: Record<number, number>, duration: number): number {
-  const v = table[duration];
-  if (v == null) {
+// ── PRICING POLICY — single source of truth ──────────────────────────────
+// Target: ≥30% GROSS margin on EVERY generation, guaranteed even at the
+// cheapest credit value (the largest pack). A film's add-on COGS — scene image
+// + script/scene LLM + narration + music + stitch/thumbnail — are folded into
+// each clip's credit cost, because the pipeline produces them with the per-clip
+// credit charge SKIPPED (so they'd otherwise be unpriced).
+//   credits = ceil( fullClipCostUsd / (CREDIT_VALUE_FLOOR_USD × (1 − MARGIN)) )
+// At the floor that yields exactly 30% gross; on smaller packs, more.
+export const CREDIT_VALUE_FLOOR_USD = 0.078;   // $/credit on the largest (cheapest) pack — see creditPackages
+export const TARGET_GROSS_MARGIN = 0.30;
+export const BUNDLED_ADDON_COST_USD = 0.205;   // per-clip share of image + LLM + narration + music + stitch/thumbnail
+
+// Provider compute $ per clip (our COGS). EDIT HERE to reprice — credits derive.
+export const CLIP_COST_USD: Record<string, Record<number, number>> = {
+  'wan-25':      { 5: 0.15,  10: 0.30 },
+  'kling-v3':    { 5: 1.385, 10: 2.692, 15: 4.077 },
+  'seedance-2':  { 5: 2.692, 10: 5.385, 12: 6.538 },
+  'veo-3':       { 4: 1.923, 6: 2.923,  8: 3.846 },
+  'runway-gen4': { 5: 1.538, 10: 3.0 },
+  'sora-2':      { 4: 2.385, 8: 4.846,  12: 7.231 },
+};
+
+/** Credits needed to net ≥TARGET_GROSS_MARGIN on `costUsd` at the credit-value floor. */
+export function creditsForCostUsd(costUsd: number): number {
+  return Math.ceil(costUsd / (CREDIT_VALUE_FLOOR_USD * (1 - TARGET_GROSS_MARGIN)));
+}
+
+/** Full per-clip credit cost (compute + bundled add-ons) for an engine+duration. */
+function clipCredits(engineId: string, duration: number): number {
+  const cost = CLIP_COST_USD[engineId]?.[duration];
+  if (cost == null) {
     throw new Error(
-      `Unsupported duration ${duration}s (allowed: ${Object.keys(table).join(', ')}s)`,
+      `Unsupported duration ${duration}s (allowed: ${Object.keys(CLIP_COST_USD[engineId] ?? {}).join(', ')}s)`,
     );
   }
-  return v;
+  return creditsForCostUsd(cost + BUNDLED_ADDON_COST_USD);
 }
 
 export const ENGINES: Record<EngineId, EngineSpec> = {
@@ -94,7 +122,7 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     fps60Credits: 5,
     // Priced at Replicate compute (~$0.03/s) + storage + ops, marked up 30%.
     // FE/BE parity test in src/test/engines/fe-be-parity.test.ts pins this.
-    baseCreditsFor: (d) => tableCost({ 5: 3, 10: 5 }, d),
+    baseCreditsFor: (d) => clipCredits('wan-25', d),
   },
   // -------- STANDARD --------
   'kling-v3': {
@@ -114,7 +142,7 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     healthy: true,
     upscale4kCredits: 10,
     fps60Credits: 5,
-    baseCreditsFor: (d) => tableCost({ 5: 18, 10: 35, 15: 53 }, d),
+    baseCreditsFor: (d) => clipCredits('kling-v3', d),
   },
 
   // -------- PRO --------
@@ -135,7 +163,7 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     healthy: true,
     upscale4kCredits: 10,
     fps60Credits: 5,
-    baseCreditsFor: (d) => tableCost({ 5: 35, 10: 70, 12: 85 }, d),
+    baseCreditsFor: (d) => clipCredits('seedance-2', d),
   },
 
   // -------- CINEMA --------
@@ -157,7 +185,7 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     requiresEntitlement: 'studio_cinema',
     upscale4kCredits: 10,
     fps60Credits: 5,
-    baseCreditsFor: (d) => tableCost({ 4: 25, 6: 38, 8: 50 }, d),
+    baseCreditsFor: (d) => clipCredits('veo-3', d),
   },
 
   'runway-gen4': {
@@ -178,7 +206,7 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     requiresEntitlement: 'studio_cinema',
     upscale4kCredits: 10,
     fps60Credits: 5,
-    baseCreditsFor: (d) => tableCost({ 5: 20, 10: 39 }, d),
+    baseCreditsFor: (d) => clipCredits('runway-gen4', d),
   },
 
   'sora-2': {
@@ -199,7 +227,7 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     requiresEntitlement: 'studio_cinema',
     upscale4kCredits: 10,
     fps60Credits: 5,
-    baseCreditsFor: (d) => tableCost({ 4: 31, 8: 63, 12: 94 }, d),
+    baseCreditsFor: (d) => clipCredits('sora-2', d),
   },
 };
 

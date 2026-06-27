@@ -108,14 +108,36 @@ export function renderSurchargeCredits(
   return c;
 }
 
-function tableCost(table: Record<number, number>, duration: number): number {
-  const v = table[duration];
-  if (v == null) {
+// ── PRICING POLICY — mirror of supabase/functions/_shared/engines.ts ──────
+// ≥30% GROSS margin on every generation, guaranteed at the cheapest credit
+// value, with a film's add-on COGS (image+LLM+narration+music+stitch) folded
+// into each clip's credit cost. MUST stay identical to the backend copy
+// (fe-be-parity test enforces it).
+export const CREDIT_VALUE_FLOOR_USD = 0.078;
+export const TARGET_GROSS_MARGIN = 0.30;
+export const BUNDLED_ADDON_COST_USD = 0.205;
+
+export const CLIP_COST_USD: Record<string, Record<number, number>> = {
+  'wan-25':      { 5: 0.15,  10: 0.30 },
+  'kling-v3':    { 5: 1.385, 10: 2.692, 15: 4.077 },
+  'seedance-2':  { 5: 2.692, 10: 5.385, 12: 6.538 },
+  'veo-3':       { 4: 1.923, 6: 2.923,  8: 3.846 },
+  'runway-gen4': { 5: 1.538, 10: 3.0 },
+  'sora-2':      { 4: 2.385, 8: 4.846,  12: 7.231 },
+};
+
+export function creditsForCostUsd(costUsd: number): number {
+  return Math.ceil(costUsd / (CREDIT_VALUE_FLOOR_USD * (1 - TARGET_GROSS_MARGIN)));
+}
+
+function clipCredits(engineId: string, duration: number): number {
+  const cost = CLIP_COST_USD[engineId]?.[duration];
+  if (cost == null) {
     throw new Error(
-      `Unsupported duration ${duration}s (allowed: ${Object.keys(table).join(', ')}s)`,
+      `Unsupported duration ${duration}s (allowed: ${Object.keys(CLIP_COST_USD[engineId] ?? {}).join(', ')}s)`,
     );
   }
-  return v;
+  return creditsForCostUsd(cost + BUNDLED_ADDON_COST_USD);
 }
 
 export const ENGINES: Record<EngineId, EngineSpec> = {
@@ -150,7 +172,7 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
       { id: 'hd60',  label: 'HD 1080p · 60fps', description: 'Smooth motion via RIFE interpolation',     resolution: '1080p', fps: 60, options: { fps60: true } },
     ],
     // Priced at Replicate compute (~$0.03/s) + storage + ops, marked up 30%.
-    baseCreditsFor: (d) => tableCost({ 5: 3, 10: 5 }, d),
+    baseCreditsFor: (d) => clipCredits('wan-25', d),
   },
 
   // -------- STANDARD --------
@@ -182,7 +204,7 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
       { id: 'uhd24',    label: '4K Cinema',         description: 'Topaz Astra upscale to 4K · 24fps',                       resolution: '4K',    fps: 24, options: { upscale4k: true } },
       { id: 'uhd60',    label: '4K Cinema · 60fps', description: 'Topaz 4K + RIFE 60fps + auto retake on failed shots',     resolution: '4K',    fps: 60, options: { upscale4k: true, fps60: true, autoRetake: true } },
     ],
-    baseCreditsFor: (d) => tableCost({ 5: 18, 10: 35, 15: 53 }, d),
+    baseCreditsFor: (d) => clipCredits('kling-v3', d),
   },
 
   // -------- PRO --------
@@ -213,7 +235,7 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
       { id: 'hd60',  label: 'HD 1080p · 60fps', description: 'Smooth slow-mo via RIFE interpolation',             resolution: '1080p', fps: 60, options: { fps60: true } },
       { id: 'uhd24', label: '4K Pro',           description: 'Topaz upscale to 4K · 24fps',                       resolution: '4K',    fps: 24, options: { upscale4k: true } },
     ],
-    baseCreditsFor: (d) => tableCost({ 5: 35, 10: 70, 12: 85 }, d),
+    baseCreditsFor: (d) => clipCredits('seedance-2', d),
   },
 
   // -------- CINEMA --------
@@ -245,7 +267,7 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
       { id: 'uhd24', label: '4K Cinema',        description: 'Topaz upscale to 4K · 24fps',                       resolution: '4K',    fps: 24, options: { upscale4k: true } },
       { id: 'uhd60', label: '4K Cinema · 60fps',description: 'Topaz 4K + RIFE 60fps + auto retake',               resolution: '4K',    fps: 60, options: { upscale4k: true, fps60: true, autoRetake: true } },
     ],
-    baseCreditsFor: (d) => tableCost({ 4: 25, 6: 38, 8: 50 }, d),
+    baseCreditsFor: (d) => clipCredits('veo-3', d),
   },
 
   'runway-gen4': {
@@ -276,7 +298,7 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
       { id: 'uhd24', label: '4K Cinema',         description: 'Topaz upscale to 4K · 24fps',                         resolution: '4K',    fps: 24, options: { upscale4k: true } },
       { id: 'uhd60', label: '4K Cinema · 60fps', description: 'Topaz 4K + RIFE 60fps interpolation',                 resolution: '4K',    fps: 60, options: { upscale4k: true, fps60: true } },
     ],
-    baseCreditsFor: (d) => tableCost({ 5: 20, 10: 39 }, d),
+    baseCreditsFor: (d) => clipCredits('runway-gen4', d),
   },
 
   'sora-2': {
@@ -307,7 +329,7 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
       { id: 'uhd24', label: '4K Cinema',         description: 'Topaz upscale to 4K · 24fps',                         resolution: '4K',    fps: 24, options: { upscale4k: true } },
       { id: 'uhd60', label: '4K Cinema · 60fps', description: 'Topaz 4K + RIFE 60fps + auto retake',                 resolution: '4K',    fps: 60, options: { upscale4k: true, fps60: true, autoRetake: true } },
     ],
-    baseCreditsFor: (d) => tableCost({ 4: 31, 8: 63, 12: 94 }, d),
+    baseCreditsFor: (d) => clipCredits('sora-2', d),
   },
 };
 

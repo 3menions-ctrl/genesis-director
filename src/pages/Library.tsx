@@ -23,6 +23,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   Search, Plus, Film, Play, Loader2, Clock, Trash2, X as CloseIcon,
   Sparkles, Volume2, VolumeX, Pencil, Share2,
+  Shuffle, ArrowUpDown, CheckCircle2, Clapperboard, Flame,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CenterLine } from "@/components/ui/CenterLine";
@@ -67,6 +68,21 @@ const CATEGORIES: { id: Genre; label: string }[] = [
   { id: "religious",    label: "Religious" },
 ];
 
+type SortKey = "latest" | "oldest" | "title";
+const SORTS: Record<SortKey, { field: string; dir: "asc" | "desc"; label: string }> = {
+  latest: { field: "updated", dir: "desc", label: "Latest" },
+  oldest: { field: "updated", dir: "asc", label: "Oldest" },
+  title:  { field: "name", dir: "asc", label: "A–Z" },
+};
+
+// Time-of-day greeting + first name, for the personalized header.
+function greeting(name?: string | null): string {
+  const h = new Date().getHours();
+  const part = h < 5 ? "Still up" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+  const first = (name ?? "").trim().split(/\s+/)[0];
+  return first ? `${part}, ${first}` : part;
+}
+
 // Local project shape — narrower than usePaginatedProjects' return so
 // the rest of this file can rely on a stable set of fields.
 interface LibraryProject {
@@ -87,17 +103,18 @@ export default function Library() {
 
   const navigate = useNavigate();
   const reducedMotion = useReducedMotion();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<Genre>("all");
+  const [sort, setSort] = useState<SortKey>("latest");
 
   // Category is filtered SERVER-SIDE (5th arg) so it works across every page,
   // not just the first 25 already in memory — which previously made categories
   // whose films lived on later pages silently appear empty with no way to load.
   const { projects: rawProjects, isLoading: loading, hasMore, loadMore } = usePaginatedProjects(
-    "updated",
-    "desc",
+    SORTS[sort].field,
+    SORTS[sort].dir,
     "all",
     search,
     category,
@@ -144,24 +161,40 @@ export default function Library() {
   // — not just the loaded slice). One lightweight single-column query keeps the
   // pills accurate now that the paginated list is itself category-scoped.
   const [byCategory, setByCategory] = useState<Partial<Record<Genre, number>>>({});
+  const [stats, setStats] = useState({ total: 0, completed: 0, rendering: 0, thisWeek: 0 });
   useEffect(() => {
     if (!user?.id) return;
     let cancelled = false;
     (async () => {
       const { data } = await supabase
         .from("movie_projects")
-        .select("genre")
+        .select("genre, status, created_at")
         .eq("user_id", user.id);
       if (cancelled || !data) return;
-      const map: Partial<Record<Genre, number>> = { all: data.length };
-      for (const r of data as { genre: string | null }[]) {
+      const rows = data as { genre: string | null; status: string | null; created_at: string }[];
+      const map: Partial<Record<Genre, number>> = { all: rows.length };
+      const weekAgo = Date.now() - 7 * 86400_000;
+      let completed = 0, rendering = 0, thisWeek = 0;
+      for (const r of rows) {
         const g = (r.genre ?? "") as Genre;
         if (g) map[g] = (map[g] ?? 0) + 1;
+        if (r.status === "completed") completed++;
+        if (r.status === "generating" || r.status === "rendering" || r.status === "stitching") rendering++;
+        if (r.created_at && new Date(r.created_at).getTime() >= weekAgo) thisWeek++;
       }
       setByCategory(map);
+      setStats({ total: rows.length, completed, rendering, thisWeek });
     })();
     return () => { cancelled = true; };
   }, [user?.id]);
+
+  // "Surprise me" — open a random playable film (fun + a quick way back in).
+  const surpriseMe = () => {
+    const playable = projects.filter((p) => !!p.video_url);
+    if (playable.length === 0) { navigate("/studio?new=1"); return; }
+    const pick = playable[Math.floor(Math.random() * playable.length)];
+    navigate(`/r/${pick.id}`);
+  };
 
   // DELETE handler — confirmed via dialog state then writes to DB.
   // Optimistic remove from UI; if the delete fails we put it back and
@@ -210,32 +243,58 @@ export default function Library() {
           {/* ── Header ─────────────────────────────────────────── */}
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>
-              <EditorialEyebrow>Library</EditorialEyebrow>
+              <EditorialEyebrow>{greeting(profile?.display_name ?? profile?.full_name)}</EditorialEyebrow>
               <EditorialHeadline className="mt-5">
                 Your films.
               </EditorialHeadline>
               <p className="mt-5 max-w-xl text-[14px] font-light leading-relaxed text-muted-foreground/70">
-                Every reel you&rsquo;ve directed lives here. Latest on top,
-                category-filtered, click to play in place.
+                {stats.total > 0
+                  ? <>You&rsquo;ve directed <span className="text-foreground/90">{stats.total}</span>{stats.total === 1 ? " film" : " films"}. Latest on top — click any to play in place.</>
+                  : <>Every reel you direct will live here. Roll the first one.</>}
               </p>
             </div>
 
-            <button
-              onClick={() => navigate("/studio?new=1")}
-              className={cn(
-                "group inline-flex items-center gap-2 px-5 py-3",
-                RADIUS.chip,
-                "bg-gradient-to-br from-accent/15 to-accent/5",
-                "text-foreground transition-all hover:from-accent/25 hover:to-accent/10",
+            <div className="flex items-center gap-2.5">
+              {stats.total > 0 && (
+                <button
+                  onClick={surpriseMe}
+                  title="Open a random film"
+                  className={cn(
+                    "group inline-flex items-center gap-2 px-4 py-3", RADIUS.chip,
+                    "bg-white/[0.04] text-foreground/80 transition-all hover:bg-white/[0.07] hover:text-foreground",
+                  )}
+                >
+                  <Shuffle className="h-4 w-4 text-accent/80 transition-transform group-hover:rotate-12" strokeWidth={1.5} />
+                  <span className="text-[13px]">Surprise me</span>
+                </button>
               )}
-            >
-              <Plus className="h-4 w-4 text-accent" strokeWidth={1.5} />
-              <span className="text-[13px]">New film</span>
-              <span className={cn(TYPE_META, "text-muted-foreground/45 group-hover:text-accent/80")}>
-                ⌘ N
-              </span>
-            </button>
+              <button
+                onClick={() => navigate("/studio?new=1")}
+                className={cn(
+                  "group inline-flex items-center gap-2 px-5 py-3", RADIUS.chip,
+                  "bg-gradient-to-br from-accent/15 to-accent/5",
+                  "text-foreground transition-all hover:from-accent/25 hover:to-accent/10",
+                )}
+              >
+                <Plus className="h-4 w-4 text-accent" strokeWidth={1.5} />
+                <span className="text-[13px]">New film</span>
+                <span className={cn(TYPE_META, "text-muted-foreground/45 group-hover:text-accent/80")}>
+                  ⌘ N
+                </span>
+              </button>
+            </div>
           </div>
+
+          {/* ── Stat rail — at-a-glance, animated, borderless ────── */}
+          {stats.total > 0 && (
+            <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <StatTile index={0} icon={Clapperboard} label="Films" value={stats.total} aura="hsl(214 90% 62%)"
+                badge={stats.total >= 10 ? <Flame className="h-3 w-3 text-amber-400" /> : null} />
+              <StatTile index={1} icon={CheckCircle2} label="Completed" value={stats.completed} aura="hsl(158 86% 52%)" />
+              <StatTile index={2} icon={Loader2} label="Rendering" value={stats.rendering} aura="hsl(38 96% 62%)" pulse={stats.rendering > 0} />
+              <StatTile index={3} icon={Sparkles} label="This week" value={stats.thisWeek} aura="hsl(256 88% 72%)" />
+            </div>
+          )}
 
           {/* ── Active renders (auto-hides when nothing rendering) */}
           <div className="mt-10">
@@ -281,9 +340,9 @@ export default function Library() {
             })}
           </div>
 
-          {/* ── 3. SEARCH ──────────────────────────────────────── */}
-          <div className="mt-5 max-w-md">
-            <div className="flex items-center gap-2.5 rounded-full bg-white/[0.04] px-4 h-11">
+          {/* ── 3. SEARCH + SORT ───────────────────────────────── */}
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex w-full max-w-md items-center gap-2.5 rounded-full bg-white/[0.04] px-4 h-11">
               <Search className="h-3.5 w-3.5 text-muted-foreground/50" strokeWidth={1.5} />
               <input
                 value={search}
@@ -300,6 +359,23 @@ export default function Library() {
                   <CloseIcon className="h-3.5 w-3.5" />
                 </button>
               )}
+            </div>
+
+            {/* Sort — segmented, borderless */}
+            <div className="inline-flex items-center gap-1 self-start rounded-full bg-white/[0.03] p-1 sm:self-auto">
+              <ArrowUpDown className="ml-2 mr-0.5 h-3 w-3 text-muted-foreground/40" strokeWidth={1.5} />
+              {(Object.keys(SORTS) as SortKey[]).map((k) => (
+                <button
+                  key={k}
+                  onClick={() => setSort(k)}
+                  className={cn(
+                    "rounded-full px-3 py-1.5 text-[12px] transition-colors",
+                    sort === k ? "bg-white/[0.08] text-foreground" : "text-muted-foreground/65 hover:text-foreground",
+                  )}
+                >
+                  {SORTS[k].label}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -363,6 +439,59 @@ export default function Library() {
         onConfirm={handleConfirmDelete}
       />
     </FoundationShell>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// CountUp — animates an integer from 0 → value on mount (respects reduced motion).
+function CountUp({ value }: { value: number }) {
+  const reduced = useReducedMotion();
+  const [n, setN] = useState(reduced ? value : 0);
+  useEffect(() => {
+    if (reduced) { setN(value); return; }
+    let raf = 0;
+    const start = performance.now();
+    const dur = 850;
+    const from = 0;
+    const tick = (t: number) => {
+      const p = Math.min(1, (t - start) / dur);
+      const eased = 1 - Math.pow(1 - p, 3); // easeOutCubic
+      setN(Math.round(from + (value - from) * eased));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value, reduced]);
+  return <>{n.toLocaleString()}</>;
+}
+
+// StatTile — borderless floating KPI: a faint colour aura behind the figure,
+// icon chip, animated count. Matches the premium admin "orb" language.
+function StatTile({
+  icon: Icon, label, value, aura, index = 0, pulse = false, badge = null,
+}: {
+  icon: typeof Film; label: string; value: number; aura: string;
+  index?: number; pulse?: boolean; badge?: React.ReactNode;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: index * 0.06, ease: EASE_PREMIUM }}
+      className="group/stat relative overflow-hidden rounded-2xl bg-white/[0.03] px-5 py-4 transition-colors hover:bg-white/[0.05]"
+    >
+      <span aria-hidden className="pointer-events-none absolute -left-6 -top-8 h-24 w-24 rounded-full transition-opacity duration-500 group-hover/stat:opacity-50"
+        style={{ background: aura, filter: "blur(44px)", opacity: 0.18 }} />
+      <div className="relative flex items-center gap-2">
+        <Icon className={cn("h-3.5 w-3.5", pulse && "animate-spin")} strokeWidth={1.8} style={{ color: aura }} />
+        <span className={cn(TYPE_META, "text-muted-foreground/55")}>{label}</span>
+        {badge && <span className="ml-auto">{badge}</span>}
+      </div>
+      <div className="relative mt-2 font-display text-[30px] font-semibold leading-none tabular-nums text-foreground"
+        style={{ textShadow: `0 0 26px ${aura}40` }}>
+        <CountUp value={value} />
+      </div>
+    </motion.div>
   );
 }
 

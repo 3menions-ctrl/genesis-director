@@ -32,7 +32,7 @@ const SCENES: Scene[] = [
   { img: "/cinema-assets/surface-environments.jpg", label: "Environments", tag: "World", time: "4K" },
   { img: "/cinema-assets/surface-avatars.jpg", label: "Casting", tag: "Avatars", time: "12" },
   { img: "/cinema-assets/editor-loaded.jpg", label: "The Cutting Room", tag: "Timeline", time: "0:05" },
-  { img: "/cinema-assets/cover.jpg", label: "Establishing Shot", tag: "Vista", time: "0:08" },
+  { img: "/cinema-assets/cover-bridge.jpg", label: "Establishing Shot", tag: "Vista", time: "0:08" },
   { img: "/cinema-assets/surface-profile.jpg", label: "Your Library", tag: "Projects", time: "∞" },
 ];
 

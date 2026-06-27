@@ -42,6 +42,21 @@ export default function SystemOverview() {
   const [series, setSeries] = useState<{ day: string; pageviews: number; visitors: number; sessions: number }[]>([]);
   const [counts, setCounts] = useState<Counts>({ flags: null, webhooks: null, apiKeys: null });
   const [loading, setLoading] = useState(true);
+  // ADMIN-ONLY: Replicate render-credit health (server-side token; balance is
+  // not exposed by Replicate's API — we surface the 402/out-of-credit signal).
+  const [repl, setRepl] = useState<{
+    status?: string; tokenValid?: boolean; username?: string | null;
+    renders24h?: number; renders7d?: number; blocked24h?: number;
+    lastBlockedAt?: string | null; billingUrl?: string;
+  } | null>(null);
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await supabase.functions.invoke("admin-replicate-health");
+        if (data && !(data as { error?: string }).error) setRepl(data as typeof repl);
+      } catch { /* non-fatal */ }
+    })();
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -112,8 +127,16 @@ export default function SystemOverview() {
       { service: "Object storage", metric: storage.bytes > 0 || storage.objects > 0 ? `${fmtBytes(storage.bytes)} · ${storage.objects.toLocaleString()} obj` : "—", tone: "positive" as const, status: "operational" },
       { service: "Traffic ingest", metric: `${pageviews24h.toLocaleString()} views · 24h`, tone: trafficTone, status: trafficTone === "positive" ? "operational" : "idle" },
       { service: "Feature flags", metric: counts.flags == null ? "—" : `${counts.flags} configured`, tone: "positive" as const, status: counts.flags == null ? "unavailable" : "operational" },
+      {
+        service: "Render credit (Replicate)",
+        metric: repl
+          ? `${(repl.renders24h ?? 0).toLocaleString()} renders · 24h${repl.blocked24h ? ` · ${repl.blocked24h} blocked` : ""}`
+          : "—",
+        tone: (!repl ? "warn" : repl.status === "blocked" ? "danger" : !repl.tokenValid ? "warn" : "positive") as "positive" | "warn" | "danger",
+        status: !repl ? "checking…" : repl.status === "blocked" ? "out of credit" : !repl.tokenValid ? "token invalid" : "operational",
+      },
     ];
-  }, [connections, activeQueries, storage, pageviews24h, counts.flags]);
+  }, [connections, activeQueries, storage, pageviews24h, counts.flags, repl]);
 
   const diagRows = useMemo(() => {
     return Object.entries(diag).map(([k, v]) => {

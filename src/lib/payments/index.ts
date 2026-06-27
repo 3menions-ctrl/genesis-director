@@ -51,9 +51,28 @@ export interface PaymentsProvider {
   }): Promise<PortalSession>;
 }
 
-const ACTIVE: PaymentsProviderName =
+/**
+ * Stripe BILLING kill-switch (audit remediation).
+ *
+ * The Stripe create-*-checkout path does NOT fund the org credit pool — its
+ * webhook (`payments-webhook` → stripe-webhook-handler, currently "sandbox"
+ * mode) never tops up `organizations.credits_balance`, so org subscriptions
+ * purchased via Stripe land UNFUNDED. Billing is handled by Polar (merchant of
+ * record, which funds the pool via `polar-webhook`). This locks the Stripe
+ * BILLING provider off and routes any request for it to Polar.
+ *
+ * Reversible: set to `false` to re-enable Stripe billing once its webhook funds
+ * the org pool. Stripe Connect *payouts* (creator earnings) are a separate path
+ * and are unaffected by this switch.
+ */
+const STRIPE_BILLING_LOCKED = true;
+
+const REQUESTED: PaymentsProviderName =
   (import.meta.env.VITE_PAYMENTS_PROVIDER as PaymentsProviderName | undefined)
-  || "stripe";
+  || "polar";
+
+const ACTIVE: PaymentsProviderName =
+  STRIPE_BILLING_LOCKED && REQUESTED === "stripe" ? "polar" : REQUESTED;
 
 /**
  * Lazy provider resolver — only the active provider's module is loaded.

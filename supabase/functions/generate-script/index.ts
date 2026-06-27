@@ -360,6 +360,29 @@ ${mustPreserveContent ? '- USE the user\'s EXACT narration/dialogue verbatim' : 
 Write the script now:`;
     }
 
+    // CREDIT GATE (audit fix): this OpenAI generation was previously auth-only —
+    // any logged-in user could run it unlimited for free. Charge before the
+    // model call. deduct_credits is the canonical, org-aware spend RPC (returns
+    // false on insufficient balance). Service-role/internal callers are exempt.
+    if (!auth.isServiceRole && auth.userId) {
+      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.4");
+      const billing = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      );
+      const { data: charged, error: chargeErr } = await billing.rpc("deduct_credits", {
+        p_user_id: auth.userId,
+        p_amount: 3,
+        p_description: "Script generation",
+      });
+      if (chargeErr || charged !== true) {
+        return new Response(
+          JSON.stringify({ error: "insufficient_credits", required: 3 }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
+
     // Use retry with exponential backoff
     const response = await fetchWithRetry(
       "https://api.openai.com/v1/chat/completions",

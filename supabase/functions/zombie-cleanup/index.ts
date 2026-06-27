@@ -324,20 +324,22 @@ serve(async (req) => {
         if (existingRefund && existingRefund.length > 0) {
           console.log(`[ZombieCleanup] Skipping duplicate refund for project ${project.id}`);
         } else {
-          await supabase.from('credit_transactions').insert({
-            user_id: project.user_id,
-            amount: refundAmount,
-            transaction_type: 'refund',
-            description: `Refund for stalled avatar: ${project.title || project.id}`,
-            project_id: project.id,
+          // AUDIT FIX (zombie double-refund): see note at the project-refund site
+          // below. Single canonical, org-aware, idempotent refund instead of the
+          // 'refund' insert + increment_credits double-credit.
+          const { data: refunded, error: refundError } = await supabase.rpc('refund_credits', {
+            p_user_id: project.user_id,
+            p_amount: refundAmount,
+            p_description: `Refund for stalled avatar: ${project.title || project.id}`,
+            p_project_id: project.id,
+            p_idempotency_key: `zombie-refund:${project.id}`,
           });
-          
-          await supabase.rpc('increment_credits', {
-            user_id_param: project.user_id,
-            amount_param: refundAmount,
-          });
-          
-          report.creditsRefunded += refundAmount;
+
+          if (refundError) {
+            console.error(`[ZombieCleanup] refund_credits failed for project ${project.id}:`, refundError.message);
+          } else if (refunded) {
+            report.creditsRefunded += refundAmount;
+          }
         }
       }
       
@@ -490,22 +492,25 @@ serve(async (req) => {
           if (existingRefund && existingRefund.length > 0) {
             console.log(`[ZombieCleanup] Skipping duplicate refund for project ${project.id}`);
           } else {
-            const { error: refundError } = await supabase
-              .from('credit_transactions')
-              .insert({
-                user_id: project.user_id,
-                amount: refundAmount,
-                transaction_type: 'refund',
-                description: `Refund for failed project: ${project.title || project.id}`,
-                project_id: project.id,
-              });
-            
-            if (!refundError) {
-              await supabase.rpc('increment_credits', {
-                user_id_param: project.user_id,
-                amount_param: refundAmount,
-              });
-              
+            // AUDIT FIX (zombie double-refund): the prior code inserted a 'refund'
+            // credit_transactions row AND called increment_credits (which inserts a
+            // second 'system_grant' row). Both count in credit_ledger_total — the
+            // spendable balance — so every cleanup refunded 2× the amount. It was
+            // also non-org-aware (refunded org spend onto the personal ledger).
+            // refund_credits is the canonical RPC: it routes org vs personal from
+            // the project, locks the balance, writes a single 'refund' row, and is
+            // idempotent on (project_id, idempotency_key) so re-runs are safe.
+            const { data: refunded, error: refundError } = await supabase.rpc('refund_credits', {
+              p_user_id: project.user_id,
+              p_amount: refundAmount,
+              p_description: `Refund for failed project: ${project.title || project.id}`,
+              p_project_id: project.id,
+              p_idempotency_key: `zombie-refund:${project.id}`,
+            });
+
+            if (refundError) {
+              console.error(`[ZombieCleanup] refund_credits failed for project ${project.id}:`, refundError.message);
+            } else if (refunded) {
               report.creditsRefunded += refundAmount;
               console.log(`[ZombieCleanup] Refunded ${refundAmount} credits for project ${project.id}`);
             }
@@ -605,25 +610,25 @@ serve(async (req) => {
           .maybeSingle();
         
         if (project) {
-          // Refund 10 credits for the failed clip
+          // Refund 10 credits for the failed clip.
           const refundAmount = 10;
-          
-          const { error: refundError } = await supabase
-            .from('credit_transactions')
-            .insert({
-              user_id: project.user_id,
-              amount: refundAmount,
-              transaction_type: 'refund',
-              description: `Refund for failed clip: Shot ${clip.shot_index + 1}`,
-              project_id: clip.project_id,
-            });
-          
-          if (!refundError) {
-            await supabase.rpc('increment_credits', {
-              user_id_param: project.user_id,
-              amount_param: refundAmount,
-            });
-            
+
+          // AUDIT FIX (zombie double-refund + missing idempotency): this clip path
+          // previously inserted a 'refund' row AND called increment_credits (2×
+          // credit) AND had NO idempotency guard, so a re-run refunded the same
+          // clip again. refund_credits is org-aware and idempotent; keying on the
+          // clip id (clips share a project_id) gives per-clip idempotency.
+          const { data: refunded, error: refundError } = await supabase.rpc('refund_credits', {
+            p_user_id: project.user_id,
+            p_amount: refundAmount,
+            p_description: `Refund for failed clip: Shot ${clip.shot_index + 1}`,
+            p_project_id: clip.project_id,
+            p_idempotency_key: `zombie-clip-refund:${clip.id}`,
+          });
+
+          if (refundError) {
+            console.error(`[ZombieCleanup] refund_credits failed for clip ${clip.id}:`, refundError.message);
+          } else if (refunded) {
             report.creditsRefunded += refundAmount;
           }
           

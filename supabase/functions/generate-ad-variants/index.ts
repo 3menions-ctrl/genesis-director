@@ -233,6 +233,30 @@ Return JSON with this exact shape:
 }
 Produce all ${totalVariants} variants (every hook × every format) now.`;
 
+    // CREDIT GATE (audit fix): previously auth-only — any logged-in user could
+    // run this OpenAI variant generation unlimited for free. deduct_credits is
+    // the canonical, org-aware spend RPC (returns false on insufficient
+    // balance). Service-role/internal callers are exempt. NOTE: charges the
+    // caller's personal ledger; org-pool routing for business use is a follow-up.
+    if (!auth.isServiceRole && auth.userId) {
+      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.4");
+      const billing = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      );
+      const { data: charged, error: chargeErr } = await billing.rpc("deduct_credits", {
+        p_user_id: auth.userId,
+        p_amount: 2,
+        p_description: "Ad variant generation",
+      });
+      if (chargeErr || charged !== true) {
+        return new Response(
+          JSON.stringify({ error: "insufficient_credits", required: 2 }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
+
     const response = await fetchWithRetry(
       "https://api.openai.com/v1/chat/completions",
       {

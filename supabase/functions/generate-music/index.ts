@@ -746,23 +746,29 @@ serve(async (req) => {
 
     const musicUrl = await generateWorldClassMusic(finalPrompt, duration, generationSettings);
     
-    if (musicUrl && supabase && projectId) {
-      // Resolve project owner for owner-scoped storage path
-      let ownerId: string | null = null;
-      try {
-        const { data: proj } = await supabase
-          .from('movie_projects')
-          .select('user_id')
-          .eq('id', projectId)
-          .maybeSingle();
-        ownerId = proj?.user_id ?? null;
-      } catch (e) {
-        console.warn('[Music] Could not resolve project owner:', e);
+    if (musicUrl && supabase) {
+      // Owner = the project's owner when there's a project, otherwise the
+      // authenticated caller — so the standalone /music page (which sends NO
+      // projectId) still uploads the track and gets a URL back instead of
+      // failing with "No music returned".
+      let ownerId: string | null = auth.userId ?? null;
+      if (projectId) {
+        try {
+          const { data: proj } = await supabase
+            .from('movie_projects')
+            .select('user_id')
+            .eq('id', projectId)
+            .maybeSingle();
+          ownerId = proj?.user_id ?? ownerId;
+        } catch (e) {
+          console.warn('[Music] Could not resolve project owner:', e);
+        }
       }
-      const storedUrl = await uploadToStorage(musicUrl, projectId, supabase, ownerId);
+      // No project → store under the owner's "library" folder.
+      const storedUrl = await uploadToStorage(musicUrl, projectId ?? "library", supabase, ownerId);
       const finalUrl = storedUrl || musicUrl;
-      
-      if (storedUrl) {
+
+      if (projectId && storedUrl) {
         await supabase
           .from('movie_projects')
           .update({ music_url: storedUrl })
@@ -795,7 +801,7 @@ serve(async (req) => {
           userId: ownerId ?? auth.userId!,
           mediaType: "audio",
           assetUrl: finalUrl,
-          projectId: projectId,
+          projectId: projectId ?? null,
           source: "generate-music",
           engine: "replicate-musicgen-stereo-large",
           generationMode: "music",
@@ -808,9 +814,9 @@ serve(async (req) => {
       } catch (e) {
         console.warn("[Music] media library record failed (non-fatal):", (e as Error).message);
       }
-      
-      // Log cost
-      try {
+
+      // Log cost — project-scoped RPC, only when there is a project.
+      if (projectId) try {
         await supabase.rpc('log_api_cost', {
           p_project_id: projectId,
           p_shot_id: 'world_class_music',

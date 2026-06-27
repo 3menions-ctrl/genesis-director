@@ -45,7 +45,7 @@ export type Fixture = {
     bold?: boolean;
   }>;
   overlays?: Array<{ timelineStartSec: number; durationSec: number }>;
-  auxAudio?: Array<{ timelineStartSec: number; durationSec: number }>;
+  auxAudio?: Array<{ timelineStartSec: number; durationSec: number; kind?: "music" | "voice" }>;
 };
 
 export type CompiledFixture = {

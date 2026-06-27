@@ -191,6 +191,7 @@ function GenerateModule({ sel, setSel, onStartCreation, initialPrompt }: { sel: 
   const [duration, setDuration] = useState<number>(ENGINES[DEFAULT_ENGINE_ID].defaultDuration);
   const [scenes, setScenes] = useState(4);
   const [narration, setNarration] = useState(true);
+  const [narrationText, setNarrationText] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [genre, setGenre] = useState("cinematic");
   const [mood, setMood] = useState("epic");
@@ -233,14 +234,22 @@ function GenerateModule({ sel, setSel, onStartCreation, initialPrompt }: { sel: 
 
   const create = () => {
     if (!canCreate) return;
+    const useNarrationText = narration && narrationText.trim().length > 0;
     const cfg: Record<string, unknown> = {
       mode,
-      prompt: buildPrompt(sel, prompt),
+      // When the user supplies an explicit narration script, fold it into the
+      // prompt using the backend's [NARRATION] detection pattern
+      // (script-utils.detectDialogueAndNarration), so it's baked into the
+      // generated script as the voiceover instead of being auto-written.
+      prompt: useNarrationText
+        ? `${buildPrompt(sel, prompt)}\n\n[NARRATION]: ${narrationText.trim()}`
+        : buildPrompt(sel, prompt),
       aspectRatio: aspect,
       clipCount: scenes,
       clipDuration: safeDuration,
       clipDurations: Array.from({ length: scenes }, () => safeDuration),
       enableNarration: narration,
+      narrationText: useNarrationText ? narrationText.trim() : undefined,
       enableMusic: sel.music.enable,
       genre: sel.music.enable ? sel.music.genre : genre,
       mood: sel.music.enable ? sel.music.mood : mood,
@@ -352,6 +361,22 @@ function GenerateModule({ sel, setSel, onStartCreation, initialPrompt }: { sel: 
                   <Field label="Mood"><Select value={mood} onChange={setMood} options={MOODS} /></Field>
                   <Toggle label="Narration" icon={Mic} on={narration} onClick={() => setNarration((v) => !v)} />
                   <Toggle label="Music score" icon={Volume2} on={sel.music.enable} onClick={() => setSel({ ...sel, music: { ...sel.music, enable: !sel.music.enable } })} />
+                  {narration && (
+                    <div className="sm:col-span-2">
+                      <Field label="Narration script">
+                        <textarea
+                          value={narrationText}
+                          onChange={(e) => setNarrationText(e.target.value)}
+                          rows={3}
+                          placeholder="Type the exact voiceover to bake into the script — or leave blank and we'll write it from your prompt."
+                          className="w-full resize-none rounded-xl bg-[hsl(var(--foreground)/0.04)] px-3.5 py-2.5 text-[13px] leading-relaxed text-foreground placeholder:text-muted-foreground/70 ring-1 ring-inset ring-white/[0.06] outline-none transition focus:ring-white/20"
+                        />
+                        <p className="mt-1.5 text-[11px] text-muted-foreground/70">
+                          Baked into the generated script as the voiceover. Leave empty to auto-write narration.
+                        </p>
+                      </Field>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}

@@ -498,8 +498,9 @@ function CountUp({ value }: { value: number }) {
   return <>{n.toLocaleString()}</>;
 }
 
-// StatTile — borderless floating KPI: a faint colour aura behind the figure,
-// icon chip, animated count. Matches the premium admin "orb" language.
+// StatTile — a truly floating KPI: no card, no border, no fill. Just a soft
+// colour aura behind the figure, the icon, label, and an animated count that
+// appear to hover directly on the page.
 function StatTile({
   icon: Icon, label, value, aura, index = 0, pulse = false, badge = null,
 }: {
@@ -511,17 +512,18 @@ function StatTile({
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.06, ease: EASE_PREMIUM }}
-      className="group/stat relative overflow-hidden rounded-2xl bg-white/[0.03] px-5 py-4 transition-colors hover:bg-white/[0.05]"
+      className="group/stat relative px-1 py-1"
     >
-      <span aria-hidden className="pointer-events-none absolute -left-6 -top-8 h-24 w-24 rounded-full transition-opacity duration-500 group-hover/stat:opacity-50"
-        style={{ background: aura, filter: "blur(44px)", opacity: 0.18 }} />
+      {/* Floating colour glow — sits behind the number, no container edges. */}
+      <span aria-hidden className="pointer-events-none absolute left-0 top-1 h-28 w-28 rounded-full transition-opacity duration-500 group-hover/stat:opacity-60"
+        style={{ background: aura, filter: "blur(52px)", opacity: 0.22 }} />
       <div className="relative flex items-center gap-2">
         <Icon className={cn("h-3.5 w-3.5", pulse && "animate-spin")} strokeWidth={1.8} style={{ color: aura }} />
         <span className={cn(TYPE_META, "text-muted-foreground/55")}>{label}</span>
         {badge && <span className="ml-auto">{badge}</span>}
       </div>
-      <div className="relative mt-2 font-display text-[30px] font-semibold leading-none tabular-nums text-foreground"
-        style={{ textShadow: `0 0 26px ${aura}40` }}>
+      <div className="relative mt-2 font-display text-[34px] font-semibold leading-none tabular-nums text-foreground"
+        style={{ textShadow: `0 0 30px ${aura}55` }}>
         <CountUp value={value} />
       </div>
     </motion.div>

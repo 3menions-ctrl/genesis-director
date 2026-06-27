@@ -41,6 +41,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { GlassPanel, GlassButton } from "@/components/foundation/Floating";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Lane catalog
@@ -239,31 +240,18 @@ export default function Inbox() {
 
             {/* Quick actions */}
             <div className="flex flex-wrap items-center gap-2 shrink-0">
-              <Link to="/search?tab=people" className="inline-flex items-center gap-2 h-9 px-4 rounded-full bg-white/[0.04] hover:bg-white/[0.07] text-[11.5px] font-mono uppercase tracking-[0.22em] text-foreground/90 transition-colors">
+              <GlassButton to="/search?tab=people" size="sm" className="font-mono uppercase tracking-[0.22em]">
                 <Plus className="h-3.5 w-3.5" />New thread
-              </Link>
-              <button
-                type="button"
-                onClick={() => setLane("rooms")}
-                className="inline-flex items-center gap-2 h-9 px-4 rounded-full bg-white/[0.04] hover:bg-white/[0.07] text-[11.5px] font-mono uppercase tracking-[0.22em] text-foreground/90 transition-colors"
-              >
+              </GlassButton>
+              <GlassButton onClick={() => setLane("rooms")} size="sm" className="font-mono uppercase tracking-[0.22em]">
                 <Users className="h-3.5 w-3.5" />Rooms
-              </button>
+              </GlassButton>
             </div>
           </div>
 
-          {/* Day-summary tiles — floating glass, no card boundaries.
-              A single glass strip with five "wells" separated by hairlines.
-              Reads as one editorial band, not a row of cards. */}
+          {/* Day-summary tiles — truly floating: no box, no fill. Each KPI
+              floats on the Aurora backdrop, separated only by hairlines. */}
           <div className="mt-9 relative">
-            <div
-              aria-hidden
-              className="absolute inset-0 rounded-3xl backdrop-blur-2xl"
-              style={{
-                background: "linear-gradient(180deg, hsl(0 0% 100% / 0.025) 0%, hsl(0 0% 100% / 0.01) 100%)",
-                boxShadow: "0 24px 60px -30px hsl(0 0% 0% / 0.5), inset 0 1px 0 hsl(0 0% 100% / 0.06)",
-              }}
-            />
             <div className="relative grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
               <SummaryTile Icon={MessageSquare} label="DMs today"      value={daySummary.dms_today}      tone="accent" />
               <SummaryTile Icon={MessageCircle} label="Comments"       value={daySummary.comments_today} tone="accent" />
@@ -500,7 +488,7 @@ function PeopleLane({ onOpen, userId }: { onOpen: (partnerId: string) => void; u
           cta={rows.length === 0 ? { label: "Find people", to: "/search?tab=people" } : undefined}
         />
       ) : (
-        <ul className="rounded-2xl bg-white/[0.02] overflow-hidden">
+        <ul className="divide-y divide-white/[0.06]">
           {filtered.map((r) => {
             const isPinned = pinned.has(r.partner_id);
             const isArchived = archived.has(r.partner_id);
@@ -841,16 +829,7 @@ function DmThread({ userId, partnerId, onClose, reducedMotion }: { userId: strin
   }, [reactions]);
 
   return (
-    <div
-      className="relative overflow-hidden flex flex-col rounded-3xl"
-      style={{
-        minHeight: "70vh",
-        background: "linear-gradient(180deg, hsl(0 0% 100% / 0.025) 0%, hsl(0 0% 100% / 0.005) 100%)",
-        backdropFilter: "blur(40px)",
-        WebkitBackdropFilter: "blur(40px)",
-        boxShadow: "0 32px 80px -30px hsl(0 0% 0% / 0.6), inset 0 1px 0 hsl(0 0% 100% / 0.07)",
-      }}
-    >
+    <GlassPanel className="relative overflow-hidden flex flex-col min-h-[70vh]">
       {/* Header */}
       <header className="px-5 py-4 flex items-center gap-3">
         <button type="button" onClick={onClose} className="text-muted-foreground/65 hover:text-foreground transition-colors" aria-label="Back">
@@ -948,7 +927,7 @@ function DmThread({ userId, partnerId, onClose, reducedMotion }: { userId: strin
         recipientName={partnerName}
         recipientId={partnerId}
       />
-    </div>
+    </GlassPanel>
   );
 }
 
@@ -2128,7 +2107,7 @@ function RoomGroup({ title, rooms, onOpen }: { title: string; rooms: RoomRow[]; 
   return (
     <section>
       <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.30em] mb-3")}>{title}</div>
-      <ul className="rounded-2xl bg-white/[0.02] overflow-hidden">
+      <ul className="divide-y divide-white/[0.06]">
         {rooms.map((r) => (
           <li key={r.id}>
             <button
@@ -2358,16 +2337,7 @@ function RoomDetail({ room, userId, reducedMotion, onClose }: { room: RoomRow; u
   };
 
   return (
-    <div
-      className="relative overflow-hidden flex flex-col rounded-3xl"
-      style={{
-        minHeight: "70vh",
-        background: "linear-gradient(180deg, hsl(0 0% 100% / 0.025) 0%, hsl(0 0% 100% / 0.005) 100%)",
-        backdropFilter: "blur(40px)",
-        WebkitBackdropFilter: "blur(40px)",
-        boxShadow: "0 32px 80px -30px hsl(0 0% 0% / 0.6), inset 0 1px 0 hsl(0 0% 100% / 0.07)",
-      }}
-    >
+    <GlassPanel className="relative overflow-hidden flex flex-col min-h-[70vh]">
       <header className="px-5 py-4 flex items-center gap-3">
         <button type="button" onClick={onClose} className="text-muted-foreground/65 hover:text-foreground transition-colors"><X className="h-4 w-4" /></button>
         <div className={cn("h-10 w-10 rounded-full grid place-items-center shrink-0",
@@ -2439,7 +2409,7 @@ function RoomDetail({ room, userId, reducedMotion, onClose }: { room: RoomRow; u
           {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>
       </footer>
-    </div>
+    </GlassPanel>
   );
 }
 

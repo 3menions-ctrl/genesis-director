@@ -85,7 +85,7 @@ function MessageRow({ m, isOwn }: { m: WorldChatMessage; isOwn: boolean }) {
 export function WorldChat({ className }: { className?: string }) {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { messages, loading, sending, send, canSend } = useWorldChat();
+  const { messages, loading, sending, send, canSend, onlineCount } = useWorldChat();
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const pinnedToBottom = useRef(true);
@@ -145,8 +145,8 @@ export function WorldChat({ className }: { className?: string }) {
           World Chat
         </div>
         <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-[hsl(160_60%_50%)]">
-          <span className="h-1.5 w-1.5 rounded-full bg-[hsl(160_60%_50%)] shadow-[0_0_8px_hsl(160_60%_50%)]" />
-          live
+          <span className="h-1.5 w-1.5 rounded-full bg-[hsl(160_60%_50%)] shadow-[0_0_8px_hsl(160_60%_50%)] animate-pulse" />
+          {onlineCount > 0 ? `${onlineCount} online` : "live"}
         </span>
       </div>
 

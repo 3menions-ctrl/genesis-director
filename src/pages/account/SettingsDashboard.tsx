@@ -663,18 +663,18 @@ function SectionHeader({ eyebrow, title, sub }: { eyebrow: string; title: string
   );
 }
 
+// Card — a BORDERLESS, fill-less floating section. Content floats on the Aurora
+// backdrop; sections are separated by a soft hairline instead of a boxed card.
+// (Heavy fill/shadow/rounded chrome removed per the floating design system.)
 function Card({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div
-      className={cn(
-        "relative rounded-2xl p-6 sm:p-7",
-        "bg-white/[0.03] shadow-[0_24px_60px_-32px_hsl(0_0%_0%/0.7)]",
-        "backdrop-blur-2xl",
-        className,
-      )}
-    >
+    <section className={cn("relative pt-7", className)}>
+      <div
+        aria-hidden
+        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"
+      />
       {children}
-    </div>
+    </section>
   );
 }
 
@@ -1949,12 +1949,19 @@ function BillingModule({
   );
 }
 
+// Borderless floating KPI — big number floats on the backdrop with a soft aura,
+// no boxed fill (matches the FloatingStat reference look).
 function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className="rounded-xl bg-white/[0.03] p-4">
-      <div className={cn(TYPE_META, "text-muted-foreground/65 tracking-[0.22em]")}>{label}</div>
+    <div className="group/fs relative">
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -left-2 top-0 h-20 w-20 rounded-full blur-[44px] opacity-20 transition-opacity duration-500 group-hover/fs:opacity-40"
+        style={{ background: accent ? "hsl(38 90% 60%)" : "hsl(214 90% 62%)" }}
+      />
+      <div className={cn(TYPE_META, "relative text-muted-foreground/65 tracking-[0.22em]")}>{label}</div>
       <div
-        className={cn("mt-2 font-display italic tabular-nums leading-none", accent ? "text-amber-200" : "text-foreground")}
+        className={cn("relative mt-2 font-display italic tabular-nums leading-none", accent ? "text-amber-200" : "text-foreground")}
         style={{ fontFamily: "'Fraunces', serif", fontSize: "clamp(1.6rem, 2.4vw, 2.2rem)" }}
       >
         {value}
@@ -2462,7 +2469,7 @@ function DataModule({ profile }: { profile: ProfileRow }) {
         </div>
       </Card>
 
-      <Card className="bg-rose-500/[0.04]">
+      <section className="relative mt-2 rounded-2xl bg-rose-500/[0.04] p-6 sm:p-7">
         <h3 className="font-mono text-[11px] uppercase tracking-[0.30em] text-rose-200/85 mb-3 inline-flex items-center gap-2">
           <AlertTriangle className="h-3 w-3" />Danger zone
         </h3>
@@ -2491,7 +2498,7 @@ function DataModule({ profile }: { profile: ProfileRow }) {
             </Button>
           </div>
         </div>
-      </Card>
+      </section>
 
       <DeleteAccountDialog open={showDelete} onClose={() => setShowDelete(false)} />
     </div>

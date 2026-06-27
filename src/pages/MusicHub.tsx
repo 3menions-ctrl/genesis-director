@@ -31,6 +31,7 @@ import { validateUploadFile, describeIngestError, insertWithNextShotIndex } from
 import { FoundationShell } from "@/components/foundation/FoundationShell";
 import { UserHueBackdrop } from "@/components/foundation/UserHueBackdrop";
 import { EditorialCanvas } from "@/components/foundation/EditorialCanvas";
+import { GlassButton } from "@/components/foundation/Floating";
 import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
 import { toast } from "sonner";
 import {
@@ -160,12 +161,13 @@ export default function MusicHub() {
             status={["Compose", "Mix", "Download"]}
             subhead="Cinematic scoring"
           >
-            <button
+            <GlassButton
               onClick={() => openScore(null)}
-              className="inline-flex items-center gap-2 h-10 px-5 rounded-full bg-accent/90 hover:bg-accent text-black text-[11px] font-mono uppercase tracking-[0.22em]"
+              tone="accent"
+              className="font-mono uppercase tracking-[0.22em] text-[11px]"
             >
               <Piano className="w-3.5 h-3.5" /> Compose a score
-            </button>
+            </GlassButton>
           </StudioHero>
 
           <motion.div
@@ -188,7 +190,7 @@ export default function MusicHub() {
               <SectionLabel label="Free library · ready to use" icon={FileMusic} meta={`${MUSIC_LIBRARY.length} tracks`} />
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {MUSIC_LIBRARY.map((t) => (
-                  <div key={t.id} className="rounded-2xl bg-white/[0.04] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                  <div key={t.id} className="relative px-1 py-4">
                     <div className="mb-2 flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="truncate text-[15px] font-light text-white" style={{ fontFamily: "'Fraunces', serif" }}>{t.title}</div>
@@ -200,6 +202,7 @@ export default function MusicHub() {
                     </div>
                     <audio src={t.url} controls preload="none" className="h-9 w-full" />
                     <div className="mt-2 text-[10.5px] text-white/35">{t.license}</div>
+                    <div aria-hidden className="absolute inset-x-1 bottom-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
                   </div>
                 ))}
               </div>
@@ -230,9 +233,9 @@ function PresetCard({ preset, onPick }: { preset: MusicPreset; onPick: () => voi
   return (
     <button
       onClick={onPick}
-      className="group text-left rounded-2xl overflow-hidden bg-white/[0.04] hover:bg-white/[0.07] transition-colors shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+      className="group text-left rounded-2xl overflow-hidden transition-colors"
     >
-      <div className="aspect-[16/10] relative" style={{ background: preset.gradient }}>
+      <div className="aspect-[16/10] relative rounded-2xl overflow-hidden" style={{ background: preset.gradient }}>
         <img
           src={preset.cover}
           alt=""
@@ -297,21 +300,23 @@ function MyTracksPanel({
     <section className="mb-12">
       <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
         <SectionLabel label="My tracks" icon={FileMusic} meta={signedIn ? `${tracks.length} saved` : undefined} />
-        <button
+        <GlassButton
           onClick={onUpload}
-          className="inline-flex items-center gap-2 h-9 px-4 rounded-full bg-accent/90 hover:bg-accent text-black text-[11px] font-mono uppercase tracking-[0.22em] shrink-0"
+          tone="accent"
+          size="sm"
+          className="font-mono uppercase tracking-[0.22em] shrink-0"
         >
           <UploadCloud className="w-3.5 h-3.5" /> Upload track
-        </button>
+        </GlassButton>
       </div>
 
       {!signedIn ? (
         <div className="text-center py-12 max-w-md mx-auto">
           <FileMusic className="w-6 h-6 mx-auto mb-3 text-muted-foreground" />
           <p className="text-muted-foreground text-[13px] mb-5">Sign in to generate scores and build a personal track library.</p>
-          <button onClick={onSignIn} className="inline-flex items-center gap-2 h-10 px-5 rounded-full bg-white/[0.07] hover:bg-white/[0.12] text-[11px] font-mono uppercase tracking-[0.22em] text-foreground">
+          <GlassButton onClick={onSignIn} className="font-mono uppercase tracking-[0.22em]">
             Sign in
-          </button>
+          </GlassButton>
         </div>
       ) : loading ? (
         <div className="flex items-center justify-center py-16 gap-3 text-muted-foreground">
@@ -319,13 +324,13 @@ function MyTracksPanel({
           <span className="text-[12px] font-mono uppercase tracking-[0.22em]">Loading your tracks…</span>
         </div>
       ) : tracks.length === 0 ? (
-        <div className="text-center py-12 max-w-md mx-auto rounded-2xl bg-white/[0.03]">
+        <div className="text-center py-12 max-w-md mx-auto">
           <FileMusic className="w-6 h-6 mx-auto mb-3 text-muted-foreground" />
           <h3 className="font-display italic text-[20px] font-light text-foreground mb-2" style={{ fontFamily: "'Fraunces', serif" }}>No tracks yet.</h3>
           <p className="text-muted-foreground text-[13px] mb-5">Pick a cinematic style above to generate your first score, or upload music you've made elsewhere — MP3, WAV, M4A, FLAC.</p>
-          <button onClick={onUpload} className="inline-flex items-center gap-2 h-10 px-5 rounded-full bg-accent/90 hover:bg-accent text-black text-[11px] font-mono uppercase tracking-[0.22em]">
+          <GlassButton onClick={onUpload} tone="accent" className="font-mono uppercase tracking-[0.22em]">
             <UploadCloud className="w-3.5 h-3.5" /> Upload a track
-          </button>
+          </GlassButton>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
@@ -445,7 +450,7 @@ function TrackRow({ asset, onRemove, onAdd }: { asset: MediaAsset; onRemove: (id
   const cover = (asset as MediaAsset & { thumbnail_url?: string | null; cover_url?: string | null }).thumbnail_url
     || (asset as MediaAsset & { cover_url?: string | null }).cover_url || null;
   return (
-    <div className="rounded-2xl bg-white/[0.04] hover:bg-white/[0.07] backdrop-blur-md p-4 transition-colors shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+    <div className="group/track relative px-1 py-4">
       <div className="flex items-center gap-3 mb-3">
         {/* Cover — real artwork if present, else a deterministic gradient. */}
         <div
@@ -495,6 +500,7 @@ function TrackRow({ asset, onRemove, onAdd }: { asset: MediaAsset; onRemove: (id
         </div>
       </div>
       <audio src={asset.asset_url} controls preload="none" className="w-full h-9" />
+      <div aria-hidden className="absolute inset-x-1 bottom-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
     </div>
   );
 }

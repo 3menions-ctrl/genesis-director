@@ -45,6 +45,7 @@ import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/na
 
 import { NavigationGuardProvider, NavigationBridge } from "@/lib/navigation";
 import { NativeShell } from "@/components/native/NativeShell";
+import { NativeAuthGate } from "@/components/native/NativeAuthGate";
 import { MobileTabBar } from "@/components/native/MobileTabBar";
 import { MobileOnboardingGate } from "@/components/native/MobileOnboardingGate";
 import { MobileRouteRedirects } from "@/components/native/MobileRouteRedirects";
@@ -322,6 +323,8 @@ const App = () => {
               <UserPreferencesProvider>
               <UserPreferencesApplier />
               <DeactivatedAccountGate />
+              {/* Phone app: mandatory sign-in — no app access without auth. */}
+              <NativeAuthGate />
               <CreditsProvider>
               <WorkspaceProvider>
               <StudioProvider>

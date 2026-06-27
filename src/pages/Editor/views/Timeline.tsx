@@ -119,6 +119,11 @@ import {
   ingestMusicUrl as ingestMusicUrlFn,
 } from "@/lib/editor/upload-ingest";
 import { flushNow as flushDocNow } from "@/lib/editor/document-store";
+import {
+  MEDIA_DRAG_MIME,
+  addRemoteClipToTimeline,
+  type MediaDragPayload,
+} from "@/lib/editor/media-drag";
 import { useAuth as useAuthForUpload } from "@/contexts/AuthContext";
 import { ClipFilmstrip } from "../components/ClipFilmstrip";
 import { TextOverlayTrack } from "../components/TextOverlayTrack";
@@ -2678,7 +2683,12 @@ export function useTimelineDropzone(projectId: string | undefined) {
   const [dragOver, setDragOver] = useState(false);
 
   const onDragOver = (e: React.DragEvent) => {
-    if (e.dataTransfer.types.includes("Files")) {
+    // Accept OS-file drags AND in-app library-asset drags (a remote URL
+    // stamped under MEDIA_DRAG_MIME by MyLibraryPanel / MediaLibrary).
+    if (
+      e.dataTransfer.types.includes("Files") ||
+      e.dataTransfer.types.includes(MEDIA_DRAG_MIME)
+    ) {
       e.preventDefault();
       setDragOver(true);
     }
@@ -2691,6 +2701,61 @@ export function useTimelineDropzone(projectId: string | undefined) {
       toast.error("Sign in + open a project to upload clips");
       return;
     }
+
+    // Detect drop-on-clip ONCE: walk up from the event target looking
+    // for a [data-clip-id] node. When found, the drop REPLACES that
+    // clip's source media; empty area appends a new clip. Used by both
+    // the library-asset branch and the file branch below.
+    let targetClipId: string | null = null;
+    const targetEl = e.target as HTMLElement | null;
+    const clipEl = targetEl?.closest?.("[data-clip-id]") as HTMLElement | null;
+    if (clipEl) targetClipId = clipEl.getAttribute("data-clip-id");
+
+    // ── Library-asset drag (remote URL, no file bytes) ──────────────
+    // Routed before the file path because these drags carry no
+    // dataTransfer.files — they reference an already-stored video.
+    const mediaRaw = e.dataTransfer.getData(MEDIA_DRAG_MIME);
+    if (mediaRaw) {
+      let payload: MediaDragPayload;
+      try {
+        payload = JSON.parse(mediaRaw) as MediaDragPayload;
+      } catch {
+        return; // malformed payload — nothing to add
+      }
+      if (!payload?.assetUrl) return;
+
+      if (targetClipId) {
+        const ok = replaceClipMut(targetClipId, {
+          videoUrl:     payload.assetUrl,
+          thumbnailUrl: payload.thumbnailUrl,
+          durationSec:  payload.durationSec ?? undefined,
+        });
+        if (ok) toast.success("Clip replaced", { description: payload.title ?? "Library clip" });
+        else toast.error("Couldn't replace clip — its track may be locked");
+        return;
+      }
+
+      const toastId = toast.loading(`Adding ${payload.title ?? "clip"} to the timeline…`);
+      try {
+        await addRemoteClipToTimeline({
+          projectId,
+          userId:       user.id,
+          assetUrl:     payload.assetUrl,
+          thumbnailUrl: payload.thumbnailUrl,
+          title:        payload.title,
+          durationSec:  payload.durationSec,
+        });
+        toast.success("Added to timeline", { id: toastId, description: payload.title ?? "Library clip" });
+      } catch (err) {
+        toast.error("Couldn't add clip", {
+          id: toastId,
+          description: err instanceof Error ? err.message : undefined,
+        });
+      }
+      return;
+    }
+
+    // ── OS file drag ────────────────────────────────────────────────
     const doc = getDocStateForPill().doc;
     if (!doc) {
       toast.error("Document still loading — try again");
@@ -2709,17 +2774,10 @@ export function useTimelineDropzone(projectId: string | undefined) {
       return;
     }
 
-    // Detect drop-on-clip: walk up from the event target looking for a
-    // [data-clip-id] node. When found, REPLACE the source media of
-    // that clip instead of inserting new ones. Empty area falls
-    // through to the regular ingest flow that adds clips to the end.
-    let targetClipId: string | null = null;
-    const targetEl = e.target as HTMLElement | null;
-    if (targetEl) {
-      const clipEl = targetEl.closest?.("[data-clip-id]") as HTMLElement | null;
-      if (clipEl) targetClipId = clipEl.getAttribute("data-clip-id");
-    }
-
+    // Drop-on-clip (targetClipId resolved above) REPLACES the source
+    // media of that clip instead of inserting new ones. Empty area
+    // falls through to the regular ingest flow that adds clips to the
+    // end.
     if (targetClipId) {
       // Replace flow — single file only, the rest are ignored. We use
       // the same validation + upload pipeline as ingest so file

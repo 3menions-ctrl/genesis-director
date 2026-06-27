@@ -44,8 +44,11 @@ const PLAN_CATALOG: Record<
 const log = (s: string, d?: unknown) =>
   console.log(`[CREATE-PLAN-CHECKOUT] ${s}${d ? " - " + JSON.stringify(d) : ""}`);
 
+import { STRIPE_BILLING_LOCKED, stripeBillingLockedResponse } from "../_shared/stripe-lock.ts";
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (STRIPE_BILLING_LOCKED) return stripeBillingLockedResponse(corsHeaders);
 
   try {
     const body = await req.json().catch(() => ({}));

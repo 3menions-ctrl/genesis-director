@@ -98,6 +98,10 @@ import {
   type QualityPostOpts,
 } from "../_shared/quality-post.ts";
 import { getEngine, backendToEngineId } from "../_shared/engines.ts";
+import {
+  buildBreakthroughCommand,
+  type BreakthroughCommandOpts,
+} from "../_shared/breakthrough-command.ts";
 
 // ── Constants ──────────────────────────────────────────────────────────
 const FFMPEG_MODEL_VERSION =
@@ -122,6 +126,14 @@ const corsHeaders = {
 
 // ── Types ──────────────────────────────────────────────────────────────
 interface StitchRequest {
+  /** Breakthrough-mode: layered 4-plane composite (chrome / inner / subject /
+   *  aftermath) with an animating boundary mask. Bypasses the clip-xfade path
+   *  entirely — the caller supplies already-generated layer URLs (see the
+   *  client orchestrator `executeBreakthroughRender`). */
+  breakthrough?: BreakthroughCommandOpts & {
+    namespaceId?: string;
+    templateId?: string;
+  };
   /** Project-mode: loads clips from `video_clips` and updates `movie_projects.video_url`. */
   projectId?: string;
   /** Clips-mode: explicit list, bypasses DB lookup. Required when projectId is absent.
@@ -221,11 +233,46 @@ serve(async (req) => {
     // but still lets ANY authenticated user pass an arbitrary projectId. We
     // validate here so the caller identity is available for the project
     // ownership check below. Service-role (internal pipeline) passes and is
-    // exempted from the ownership check.
+    // exempted from the ownership check. Placed before the breakthrough branch
+    // so that mode is authenticated too.
     const { validateAuth, unauthorizedResponse, forbiddenResponse } = await import("../_shared/auth-guard.ts");
     const auth = await validateAuth(req);
     if (!auth.authenticated) {
       return unauthorizedResponse(corsHeaders, auth.error);
+    }
+
+    // ── Breakthrough composite mode ──────────────────────────────────
+    // A layered 4-plane render (chrome still + masked inner video +
+    // chroma-keyed subject + aftermath), NOT a clip xfade. Reuses the same
+    // Replicate FFmpeg path (runFfmpeg) + storage (persistOutput) as every
+    // other render — only the command graph differs.
+    if (body.breakthrough) {
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      );
+      const bt = body.breakthrough;
+      const { command, inputs, outputName } = buildBreakthroughCommand({
+        ...bt,
+        aspectRatio: bt.aspectRatio ?? body.aspectRatio,
+        resolution: bt.resolution ?? body.resolution,
+        format: bt.format ?? body.format,
+        crf: bt.crf ?? body.crf,
+      });
+      const outputUrl = await runFfmpeg({
+        replicateKey: Deno.env.get("REPLICATE_API_KEY")!,
+        command,
+        inputs,
+        outputName,
+      });
+      const ext = outputName.split(".").pop() ?? "mp4";
+      const hash = (await sha256Hex(command)).slice(0, 16);
+      const outputKey =
+        `${bt.namespaceId ?? "breakthrough"}/${bt.templateId ?? "render"}_${hash}.${ext}`;
+      const signed = await persistOutput(supabase, outputUrl, outputKey);
+      return new Response(JSON.stringify({ video_url: signed }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Reject ambiguous calls early.

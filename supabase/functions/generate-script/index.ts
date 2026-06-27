@@ -15,6 +15,7 @@ import {
   getSafetyInstructions,
   type UserIntent,
 } from "../_shared/script-utils.ts";
+import { aiRateLimit, preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
 
 interface CharacterInput {
   name: string;
@@ -122,6 +123,24 @@ serve(async (req) => {
       throw new Error("OPENAI_API_KEY is not configured");
     }
 
+    // ═══ AI CREDIT GATE context (built early so it covers BOTH the user-script
+    // passthrough below and the OpenAI path further down) ═══
+    const { createClient: createServiceClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.4");
+    const gateSupabase = createServiceClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    );
+    const gateCtx = {
+      supabase: gateSupabase,
+      fnName: "generate-script",
+      userId: auth.userId,
+      isServiceRole: auth.isServiceRole,
+      projectId: ((requestData as any)?.projectId as string | undefined) ?? null,
+      cost: 2,
+      dailyCap: 100,
+      corsHeaders,
+    };
+
     // ═══ BRAND KIT INJECTION ═══
     // If the request includes an organizationId, fetch the org's brand kit
     // (colors, voice, primary use case) and weave it into the system prompt
@@ -165,7 +184,13 @@ serve(async (req) => {
     // Check if user provided their own complete script - use it directly
     if (requestData.userScript && requestData.userScript.trim().length > 50) {
       console.log("[generate-script] Using user-provided script directly");
-      
+
+      // Rate-limit this passthrough too (it does no provider work, so it is NOT
+      // credit-charged and never 402s — but it must still count against the
+      // per-user abuse cap).
+      const passthroughLimited = await aiRateLimit(gateCtx);
+      if (passthroughLimited) return passthroughLimited;
+
       // Return the user's script with minimal processing
       return new Response(
         JSON.stringify({ 
@@ -360,28 +385,10 @@ ${mustPreserveContent ? '- USE the user\'s EXACT narration/dialogue verbatim' : 
 Write the script now:`;
     }
 
-    // CREDIT GATE (audit fix): this OpenAI generation was previously auth-only —
-    // any logged-in user could run it unlimited for free. Charge before the
-    // model call. deduct_credits is the canonical, org-aware spend RPC (returns
-    // false on insufficient balance). Service-role/internal callers are exempt.
-    if (!auth.isServiceRole && auth.userId) {
-      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.4");
-      const billing = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      );
-      const { data: charged, error: chargeErr } = await billing.rpc("deduct_credits", {
-        p_user_id: auth.userId,
-        p_amount: 3,
-        p_description: "Script generation",
-      });
-      if (chargeErr || charged !== true) {
-        return new Response(
-          JSON.stringify({ error: "insufficient_credits", required: 3 }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-    }
+    // ═══ AI CREDIT GATE: rate-limit + credit pre-check BEFORE the paid provider
+    // call (gateCtx was built early, above) ═══
+    const gateBlocked = await preflightAiGate(gateCtx);
+    if (gateBlocked) return gateBlocked;
 
     // Use retry with exponential backoff
     const response = await fetchWithRetry(
@@ -442,7 +449,10 @@ Write the script now:`;
     const generationTimeMs = Date.now() - startTime;
     console.log(`[generate-script] Success in ${generationTimeMs}ms, length: ${script?.length}, shots: ${actualShotCount}`);
 
-    return successResponse({ 
+    // ═══ AI CREDIT GATE: charge once, only after a successful generation ═══
+    await chargeAiGate(gateCtx);
+
+    return successResponse({
       script,
       title: requestData.title,
       genre: requestData.genre,

@@ -8,6 +8,7 @@
  * movie_projects. Admin-gated. CSV export of the leaderboard.
  */
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { csvRow } from "@/lib/csvSafe";
 import { Lock, Users, Download } from "lucide-react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -65,8 +66,16 @@ export default function BusinessAnalytics() {
           args: Record<string, unknown>,
         ) => Promise<{ data: Array<{ id: string; display_name: string | null; full_name: string | null; avatar_url: string | null; email: string | null }> | null }>
         )("org_member_directory", { p_org_id: currentOrg.id }),
-        supabase.from("credit_transactions").select("user_id, amount, created_at")
-          .in("user_id", userIds).lt("amount", 0).gte("created_at", since90),
+        // Org-scoped spend ledger (SECURITY DEFINER) — credit_transactions RLS
+        // restricts the base table to the caller's own rows, so an admin querying
+        // it directly only ever sees their own spend, not the team's. This RPC
+        // gates on org membership and returns the WHOLE org ledger; we post-filter
+        // to spend (negative amounts) below.
+        (supabase.rpc as unknown as (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => Promise<{ data: Txn[] | null }>
+        )("org_credit_transactions", { p_org_id: currentOrg.id, p_since: since90 }),
         supabase.from("movie_projects").select("user_id, id, created_at, quality_tier, engine")
           .in("user_id", userIds).gte("created_at", since90),
       ]);
@@ -75,7 +84,7 @@ export default function BusinessAnalytics() {
         const p = pmap.get(id);
         return { user_id: id, name: p?.display_name || p?.full_name || "Member", email: p?.email ?? "", avatar_url: p?.avatar_url ?? null };
       }));
-      setTxns((txnRes.data ?? []) as Txn[]);
+      setTxns(((txnRes.data ?? []) as Txn[]).filter((t) => t.amount < 0));
       setProjects((projRes.data ?? []) as Proj[]);
     } catch (e) {
       console.error("[telemetry] load", e);
@@ -140,7 +149,7 @@ export default function BusinessAnalytics() {
 
   const exportCsv = () => {
     const header = "Member,Email,Credits,Projects\n";
-    const body = a.stats.map((m) => `"${m.name}","${m.email}",${m.credits},${m.projects}`).join("\n");
+    const body = a.stats.map((m) => csvRow([m.name, m.email, m.credits, m.projects])).join("\n");
     const blob = new Blob([header + body], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");

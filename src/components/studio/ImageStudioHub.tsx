@@ -718,7 +718,7 @@ export function ImageStudioHub() {
                 <p className="text-body-muted text-sm leading-relaxed">{preview.prompt}</p>
                 <div className="grid grid-cols-2 gap-2 pt-4">
                   <Button variant="pill" size="pill" asChild>
-                    <a href={preview.url} download={`smallbridges-${preview.id}.png`}>
+                    <a href={safeHref(preview.url)} download={`smallbridges-${preview.id}.png`}>
                       <Download className="w-4 h-4" /> Download
                     </a>
                   </Button>

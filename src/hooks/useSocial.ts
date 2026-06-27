@@ -25,6 +25,7 @@ export interface ProjectComment {
   reply_to_id: string | null;
   likes_count: number;
   created_at: string;
+  updated_at?: string | null;
   profiles?: {
     display_name: string | null;
     avatar_url: string | null;
@@ -403,10 +404,49 @@ export function useProjectComments(projectId?: string) {
     },
   });
 
+  // Edit comment. The "Users can edit their own comments" RLS policy guards
+  // ownership; we bump updated_at so the UI can show an "edited" marker.
+  const updateComment = useMutation({
+    mutationFn: async ({ commentId, content }: { commentId: string; content: string }) => {
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('project_comments')
+        .update({ content, updated_at: new Date().toISOString() })
+        .eq('id', commentId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-comments', projectId] });
+    },
+  });
+
+  // Delete comment. Realtime DELETE events are not reliably delivered for this
+  // table, so we invalidate explicitly rather than waiting for the channel —
+  // otherwise the deleted comment lingers in the list until a manual reload.
+  const deleteComment = useMutation({
+    mutationFn: async (commentId: string) => {
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('project_comments')
+        .delete()
+        .eq('id', commentId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-comments', projectId] });
+    },
+  });
+
   return {
     comments,
     isLoading,
     addComment,
     likeComment,
+    updateComment,
+    deleteComment,
   };
 }

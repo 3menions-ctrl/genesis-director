@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1500" viewBox="0 0 1200 1500" role="img" aria-label="Aquarium Pour-Out">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="34%" r="80%">
+      <stop offset="0%" stop-color="#34D3C5" stop-opacity="0.22"/>
+      <stop offset="40%" stop-color="#06303A"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </radialGradient>
+    <linearGradient id="vig" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#000" stop-opacity="0"/>
+      <stop offset="72%" stop-color="#000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0.78"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="1500" fill="url(#bg)"/>
+  <rect x="20" y="20" width="1160" height="1460" rx="28" fill="none" stroke="#EAF7FF" stroke-opacity="0.35" stroke-width="3"/>
+  
+        <rect x="280" y="380" width="640" height="560" rx="14" fill="#06303A" opacity="0.85" stroke="#34D3C5" stroke-width="6"/>
+        <path d="M280 520 q160 -40 320 0 t320 0 v420 h-640 z" fill="#34D3C5" opacity="0.30"/>
+        <ellipse cx="470" cy="640" rx="40" ry="22" fill="#EAF7FF"/><ellipse cx="700" cy="720" rx="34" ry="18" fill="#EAF7FF" opacity="0.8"/>
+        <!-- water pouring out toward viewer -->
+        <path d="M300 920 q120 120 300 150 q260 -10 300 -150 q-40 220 -300 280 q-280 -40 -300 -280 z" fill="#EAF7FF" opacity="0.85"/>
+        <circle cx="360" cy="1180" r="10" fill="#EAF7FF" opacity="0.7"/><circle cx="430" cy="1220" r="16" fill="#EAF7FF" opacity="0.7"/><circle cx="500" cy="1260" r="22" fill="#EAF7FF" opacity="0.7"/><circle cx="570" cy="1180" r="10" fill="#EAF7FF" opacity="0.7"/><circle cx="640" cy="1220" r="16" fill="#EAF7FF" opacity="0.7"/><circle cx="710" cy="1260" r="22" fill="#EAF7FF" opacity="0.7"/><circle cx="780" cy="1180" r="10" fill="#EAF7FF" opacity="0.7"/>
+  <rect width="1200" height="1500" fill="url(#vig)"/>
+  <text x="60" y="1350" font-family="Georgia, 'Times New Roman', serif" font-size="74" font-weight="700" fill="#ffffff">Aquarium Pour-Out</text>
+  <text x="62" y="1408" font-family="ui-monospace, Menlo, monospace" font-size="30" letter-spacing="3" fill="#EAF7FF" opacity="0.95">aquarium · pour / liquefy · toward viewer</text>
+</svg>

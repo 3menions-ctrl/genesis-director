@@ -9,6 +9,7 @@ import {
   checkMultipleContent,
   parseJsonWithRecovery,
 } from "../_shared/script-utils.ts";
+import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
 
 /**
  * generate-ad-variants — variant generation at scale + multi-format reframe.
@@ -97,6 +98,32 @@ serve(async (req) => {
     const body: VariantsRequest = await req.json();
     const base = body.baseConcept ?? {};
 
+    // ═══ ORG MEMBERSHIP GATE ═══
+    // If an organizationId is supplied (used below for brand-kit injection), the
+    // caller MUST be a member of that workspace. Without this, a request could pass
+    // an arbitrary organizationId and pull a workspace it does not belong to — the
+    // anon/RLS path alone fails open (org=null → generation proceeds regardless).
+    // End-user JWTs are verified against organization_members; internal
+    // service-role calls (auth.userId === null) are trusted.
+    const orgId = typeof body.organizationId === "string" && body.organizationId
+      ? body.organizationId
+      : null;
+    if (orgId && !auth.isServiceRole) {
+      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.4");
+      const admin = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      );
+      const { data: membership, error: membershipErr } = await admin
+        .from("organization_members")
+        .select("user_id")
+        .eq("organization_id", orgId)
+        .eq("user_id", auth.userId)
+        .maybeSingle();
+      if (membershipErr) return errorResponse("Couldn't verify workspace membership. Please retry.", 500);
+      if (!membership) return errorResponse("You are not a member of this workspace.", 403);
+    }
+
     // ═══ CONTENT SAFETY ═══
     const safety = checkMultipleContent([
       body.productName,
@@ -149,8 +176,7 @@ serve(async (req) => {
     // ═══ BRAND KIT INJECTION ═══
     let brandKitGuidance = "";
     try {
-      const orgId = body.organizationId;
-      if (orgId && typeof orgId === "string") {
+      if (orgId) {
         const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.4");
         const sb = createClient(
           Deno.env.get("SUPABASE_URL") ?? "",
@@ -233,29 +259,26 @@ Return JSON with this exact shape:
 }
 Produce all ${totalVariants} variants (every hook × every format) now.`;
 
-    // CREDIT GATE (audit fix): previously auth-only — any logged-in user could
-    // run this OpenAI variant generation unlimited for free. deduct_credits is
-    // the canonical, org-aware spend RPC (returns false on insufficient
-    // balance). Service-role/internal callers are exempt. NOTE: charges the
-    // caller's personal ledger; org-pool routing for business use is a follow-up.
-    if (!auth.isServiceRole && auth.userId) {
-      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.4");
-      const billing = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      );
-      const { data: charged, error: chargeErr } = await billing.rpc("deduct_credits", {
-        p_user_id: auth.userId,
-        p_amount: 2,
-        p_description: "Ad variant generation",
-      });
-      if (chargeErr || charged !== true) {
-        return new Response(
-          JSON.stringify({ error: "insufficient_credits", required: 2 }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-    }
+    // ═══ AI CREDIT GATE (pre-flight) ═══
+    // Org-scoped: charge the org pool when organizationId is present, else personal.
+    const gateOrgId = body.organizationId && typeof body.organizationId === "string" ? body.organizationId : undefined;
+    const { createClient: createGateClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.4");
+    const gateSupabase = createGateClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    );
+    const gateCtx = {
+      supabase: gateSupabase,
+      fnName: "generate-ad-variants",
+      userId: auth.userId,
+      isServiceRole: auth.isServiceRole,
+      orgId: gateOrgId,
+      cost: 2,
+      dailyCap: 100,
+      corsHeaders,
+    };
+    const gateBlocked = await preflightAiGate(gateCtx);
+    if (gateBlocked) return gateBlocked;
 
     const response = await fetchWithRetry(
       "https://api.openai.com/v1/chat/completions",
@@ -319,6 +342,9 @@ Produce all ${totalVariants} variants (every hook × every format) now.`;
 
     const generationTimeMs = Date.now() - startTime;
     console.log(`[generate-ad-variants] Success in ${generationTimeMs}ms — ${variants.length} variant(s), formats=${trimmedFormats.join("/")}, hooks=${hookVariants}`);
+
+    // ═══ AI CREDIT GATE (charge once, on success) ═══
+    await chargeAiGate(gateCtx);
 
     return successResponse({
       variants,

@@ -25,8 +25,11 @@ function isoFromUnix(s: number | null | undefined): string | null {
   return s ? new Date(s * 1000).toISOString() : null;
 }
 
+import { STRIPE_BILLING_LOCKED, stripeBillingLockedResponse } from "../_shared/stripe-lock.ts";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+  if (STRIPE_BILLING_LOCKED) return stripeBillingLockedResponse(cors);
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405, headers: cors });
   }

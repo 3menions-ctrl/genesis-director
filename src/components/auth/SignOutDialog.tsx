@@ -97,7 +97,7 @@ export const SignOutDialog = memo(forwardRef<HTMLDivElement, SignOutDialogProps>
 
       {/* Epic, borderless sign-out — premium glass card with an ambient glow. */}
       <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent className="overflow-visible border-0 bg-transparent p-0 shadow-none sm:max-w-[380px]">
+        <AlertDialogContent className="overflow-visible border-0 bg-transparent p-0 shadow-none sm:max-w-[340px]">
           <div className="relative overflow-hidden rounded-[22px] bg-[#0a0b10]/95 p-5 backdrop-blur-2xl shadow-[0_40px_120px_-40px_rgba(0,0,0,0.95)]">
             {/* ambient cinematics */}
             <div aria-hidden className="pointer-events-none absolute -top-16 left-1/2 h-36 w-36 -translate-x-1/2 rounded-full blur-3xl" style={{ background: 'radial-gradient(circle, hsl(var(--accent) / 0.28), transparent 70%)' }} />
@@ -109,7 +109,7 @@ export const SignOutDialog = memo(forwardRef<HTMLDivElement, SignOutDialogProps>
               <LogOut className="relative h-5 w-5 text-white" strokeWidth={1.7} />
             </div>
 
-            <AlertDialogHeader className="space-y-1.5 text-center">
+            <AlertDialogHeader className="space-y-1.5 text-center sm:text-center">
               <AlertDialogTitle className="font-display text-[19px] font-semibold leading-tight tracking-[-0.01em] text-white">Until next time?</AlertDialogTitle>
               <AlertDialogDescription className="mx-auto max-w-[18rem] text-[13px] leading-snug text-white/55">
                 You'll be signed out — your projects and credits stay saved.

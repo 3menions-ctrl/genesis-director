@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   corsHeaders,
   validateInput,
@@ -6,6 +7,7 @@ import {
   errorResponse,
   successResponse,
 } from "../_shared/script-utils.ts";
+import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -24,8 +26,8 @@ serve(async (req) => {
       return unauthorizedResponse(scriptCorsHeaders, auth.error);
     }
 
-    const { action, currentScript, userPrompt, prompt, context, tone, targetLength } = await req.json();
-    
+    const { action, currentScript, userPrompt, prompt, context, tone, targetLength, projectId } = await req.json();
+
     // Input validation
     const promptValidation = validateInput(userPrompt || prompt, { maxLength: 5000, fieldName: 'userPrompt' });
     const scriptValidation = validateInput(currentScript, { maxLength: 50000, fieldName: 'currentScript' });
@@ -137,28 +139,23 @@ Provide helpful, actionable suggestions or generate content as requested.`;
 
     console.log("Script Assistant - Action:", action, "Tone:", tone, "Length:", targetLength);
 
-    // CREDIT GATE (audit fix): previously auth-only — any logged-in user could
-    // run this OpenAI assistant unlimited for free. deduct_credits is the
-    // canonical, org-aware spend RPC (returns false on insufficient balance).
-    // Service-role/internal callers are exempt.
-    if (!auth.isServiceRole && auth.userId) {
-      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.4");
-      const billing = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      );
-      const { data: charged, error: chargeErr } = await billing.rpc("deduct_credits", {
-        p_user_id: auth.userId,
-        p_amount: 1,
-        p_description: "Script assistant",
-      });
-      if (chargeErr || charged !== true) {
-        return new Response(
-          JSON.stringify({ error: "insufficient_credits", required: 1 }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-    }
+    // ═══ CREDIT GATE: rate-limit + balance pre-check before the paid provider call ═══
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    );
+    const gateCtx = {
+      supabase,
+      fnName: "script-assistant",
+      userId: auth.userId,
+      isServiceRole: auth.isServiceRole,
+      projectId: projectId ?? null,
+      cost: 1,
+      dailyCap: 300,
+      corsHeaders,
+    };
+    const gateBlocked = await preflightAiGate(gateCtx);
+    if (gateBlocked) return gateBlocked;
 
     // Use retry with exponential backoff
     const response = await fetchWithRetry(
@@ -203,6 +200,9 @@ Provide helpful, actionable suggestions or generate content as requested.`;
     }
 
     console.log("[script-assistant] Success, length:", generatedScript.length);
+
+    // ═══ CHARGE: deduct credits once after a confirmed-successful generation ═══
+    await chargeAiGate(gateCtx);
 
     // Return different response format for rephrase action
     if (isRephraseAction) {

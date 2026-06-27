@@ -57,7 +57,7 @@ function CardShell({ icon: Icon, children }: { icon: LucideIcon; children: React
   return (
     <div className="rounded-2xl p-5 transition-colors">
       <div className="flex items-start gap-4">
-        <div className="w-10 h-10 rounded-xl ring-1 ring-white/[0.07] bg-gradient-to-br from-white/[0.06] to-white/[0.015] flex items-center justify-center shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-white/[0.08] to-white/[0.015] flex items-center justify-center shrink-0">
           <Icon className="w-4 h-4 text-[hsl(215,100%,72%)]" strokeWidth={1.5} />
         </div>
         <div className="flex-1 min-w-0">{children}</div>
@@ -66,10 +66,12 @@ function CardShell({ icon: Icon, children }: { icon: LucideIcon; children: React
   );
 }
 
+// Premium translucent buttons — top-light gradient + inner highlight + lift,
+// no hard ring or flat fill (mirrors the GlassButton idiom).
 const BTN_PRIMARY =
-  "inline-flex items-center gap-1.5 rounded-full px-4 h-9 bg-[hsl(215,90%,55%)] text-white text-[12px] font-medium hover:bg-[hsl(215,90%,60%)] transition-colors disabled:opacity-40 disabled:pointer-events-none";
+  "inline-flex items-center gap-1.5 rounded-full px-4 h-9 text-[12px] font-medium text-[hsl(215,100%,88%)] backdrop-blur-xl bg-[linear-gradient(180deg,hsl(215_90%_55%/0.22),hsl(215_90%_55%/0.06))] shadow-[inset_0_1px_0_hsl(0_0%_100%/0.1),0_10px_30px_-16px_hsl(0_0%_0%/0.8)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[inset_0_1px_0_hsl(0_0%_100%/0.14),0_18px_44px_-18px_hsl(215_90%_55%/0.5)] disabled:opacity-40 disabled:pointer-events-none";
 const BTN_GHOST =
-  "inline-flex items-center gap-1.5 rounded-full px-4 h-9 ring-1 ring-white/[0.08] text-white/70 text-[12px] hover:text-white hover:ring-white/15 transition-colors disabled:opacity-40 disabled:pointer-events-none";
+  "inline-flex items-center gap-1.5 rounded-full px-4 h-9 text-[12px] text-white/70 backdrop-blur-xl bg-[linear-gradient(180deg,hsl(0_0%_100%/0.08),hsl(0_0%_100%/0.02))] shadow-[inset_0_1px_0_hsl(0_0%_100%/0.08)] transition-all duration-300 hover:-translate-y-0.5 hover:text-white disabled:opacity-40 disabled:pointer-events-none";
 
 function WebhookIntegration({
   kind, icon: Icon, name, blurb, placeholder, currentUrl, canEdit, onSaved,

@@ -15,6 +15,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { BusinessPage, StatCard, SectionHead, Badge, EmptyState } from "@/components/business/BusinessPage";
+import { GlassButton, GlassPanel } from "@/components/foundation/Floating";
 import {
   ChartCard, AreaTrend, TrendStat, DataTable, bucketByDay, periodDelta,
   CHART_CYAN, type Column,
@@ -282,14 +283,14 @@ export default function BusinessCredits() {
       title="Credits."
       subtitle="Pooled credit balance shared by every workspace member. Track burn, watch the runway, and set spend thresholds. Request more credits through billing when the pool runs low."
       actions={
-        <Link to="/business/billing" className="inline-flex items-center gap-2 rounded-full px-5 h-11 bg-[hsl(215,90%,55%)] text-white text-[13px] font-medium hover:bg-[hsl(215,90%,60%)] transition-colors">
+        <GlassButton tone="accent" to="/business/billing">
           <Coins className="w-4 h-4" strokeWidth={1.8} /> Request credits
-        </Link>
+        </GlassButton>
       }
     >
       {/* ── Balance hero — pool + runway · 30-day burn-down ─────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        <div className="rounded-2xl p-5 ring-1 ring-[hsl(215_90%_60%/0.25)] bg-[hsl(215_90%_55%/0.06)] flex flex-col justify-between">
+        <GlassPanel tone="accent" className="p-5 flex flex-col justify-between">
           <div>
             <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-white/45">Pool balance</div>
             <div className="mt-3 font-display font-light text-[48px] leading-none tracking-[-0.02em] text-white tabular-nums">
@@ -297,7 +298,8 @@ export default function BusinessCredits() {
             </div>
             <div className="mt-2 text-[12px] text-white/40">credits available · shared</div>
           </div>
-          <div className="mt-5 pt-4 border-t border-white/[0.08] flex items-center gap-2.5">
+          <span aria-hidden className="mt-5 block h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+          <div className="mt-4 flex items-center gap-2.5">
             <Gauge className="w-4 h-4 text-[hsl(215,100%,72%)]" strokeWidth={1.6} />
             <div>
               <div className="text-[13px] text-white/85 tabular-nums">
@@ -306,7 +308,7 @@ export default function BusinessCredits() {
               <div className="text-[11px] text-white/40">Projected runway at current burn</div>
             </div>
           </div>
-        </div>
+        </GlassPanel>
         <ChartCard className="lg:col-span-2" title="Credit burn-down" subtitle="Credits spent per day · 30d"
           action={<Badge tone={low ? "warn" : "neutral"}>{low ? "Low balance" : "Healthy"}</Badge>}>
           {loading ? <ChartSkeleton /> : a.hasBurn ? (
@@ -330,7 +332,7 @@ export default function BusinessCredits() {
         label="Credit ledger"
         count={loading ? undefined : total}
         action={
-          <div className="inline-flex items-center gap-1 rounded-full ring-1 ring-white/[0.08] bg-white/[0.02] p-0.5">
+          <div className="inline-flex items-center gap-1 rounded-full bg-white/[0.04] p-0.5">
             {FILTERS.map((f) => (
               <button
                 key={f.key}
@@ -409,23 +411,17 @@ export default function BusinessCredits() {
           </p>
         )}
         <div className="mt-5 flex flex-wrap gap-2.5">
-          <button type="button" disabled={!canEdit} onClick={() => setOpen(true)}
-            className={cn(
-              "inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl text-[13px] font-medium transition-colors disabled:opacity-50",
-              enabled ? "ring-1 ring-white/[0.08] bg-white/[0.04] text-white hover:ring-white/20" : "bg-[hsl(215,90%,55%)] text-white hover:bg-[hsl(215,90%,60%)]",
-            )}>
+          <GlassButton tone={enabled ? "neutral" : "accent"} disabled={!canEdit} onClick={() => setOpen(true)}>
             {enabled ? "Edit auto-recharge" : "Configure auto-recharge"}
-          </button>
+          </GlassButton>
           {enabled && (
-            <button type="button" disabled={!canEdit || saving} onClick={() => void save(false)}
-              className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl ring-1 ring-white/[0.08] bg-white/[0.04] text-white text-[13px] font-medium hover:ring-white/20 disabled:opacity-50 transition-colors">
+            <GlassButton tone="neutral" disabled={!canEdit || saving} onClick={() => void save(false)}>
               Disable
-            </button>
+            </GlassButton>
           )}
-          <Link to="/workspace/analytics"
-            className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl ring-1 ring-white/[0.08] bg-white/[0.04] text-white/75 text-[13px] font-medium hover:text-white hover:ring-white/20 transition-colors">
+          <GlassButton tone="neutral" to="/workspace/analytics">
             <TrendingDown className="w-4 h-4" strokeWidth={1.8} /> View burn report
-          </Link>
+          </GlassButton>
         </div>
       </div>
 
@@ -452,10 +448,9 @@ export default function BusinessCredits() {
           </div>
         </div>
         <div className="mt-4">
-          <button type="button" disabled={!canEdit || savingAlerts} onClick={() => void saveAlerts()}
-            className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl ring-1 ring-white/[0.08] bg-white/[0.04] text-white text-[13px] font-medium hover:ring-white/20 disabled:opacity-50 transition-colors">
+          <GlassButton tone="neutral" disabled={!canEdit || savingAlerts} onClick={() => void saveAlerts()}>
             {savingAlerts ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : "Save alerts"}
-          </button>
+          </GlassButton>
         </div>
       </div>
 
@@ -485,14 +480,12 @@ export default function BusinessCredits() {
             </div>
           </div>
           <DialogFooter>
-            <button type="button" onClick={() => setOpen(false)}
-              className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl ring-1 ring-white/[0.08] bg-white/[0.04] text-white text-[13px] font-medium hover:ring-white/20 transition-colors">
+            <GlassButton tone="neutral" onClick={() => setOpen(false)}>
               Cancel
-            </button>
-            <button type="button" disabled={saving || threshold <= 0 || amount <= 0} onClick={() => void save(true)}
-              className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl bg-[hsl(215,90%,55%)] text-white text-[13px] font-medium hover:bg-[hsl(215,90%,60%)] disabled:opacity-50 transition-colors">
+            </GlassButton>
+            <GlassButton tone="accent" disabled={saving || threshold <= 0 || amount <= 0} onClick={() => void save(true)}>
               <Check className="w-4 h-4" /> {saving ? "Saving…" : "Arm auto-recharge"}
-            </button>
+            </GlassButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

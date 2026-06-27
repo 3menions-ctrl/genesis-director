@@ -15,7 +15,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import { BusinessPage, SectionHead, EmptyState } from "@/components/business/BusinessPage";
+import { BusinessPage, SectionHead, EmptyState, Badge } from "@/components/business/BusinessPage";
+import { GlassButton } from "@/components/foundation/Floating";
 import {
   ChartCard, BarTrend, DonutChart, ChartLegend, TrendStat, DataTable,
   bucketByDay, periodDelta,
@@ -233,11 +234,7 @@ export default function BusinessBilling() {
       }
       title="Billing."
       subtitle="Workspace plans launch later. For now, your team runs on shared, hand-allocated credits — here's your spend, broken down so you can shape the plan that fits."
-      actions={
-        <span className="inline-flex items-center px-3 h-8 rounded-full text-[10px] font-mono uppercase tracking-[0.16em] text-emerald-300/90 ring-1 ring-emerald-400/30 bg-emerald-400/10">
-          Free to start
-        </span>
-      }
+      actions={<Badge tone="good">Free to start</Badge>}
     >
       {/* KPI row */}
       <SectionHead label="Usage at a glance" action={<span className={cn(TYPE_META, "text-white/35")}>Burn · 30d</span>} />
@@ -311,7 +308,7 @@ export default function BusinessBilling() {
       {/* Pricing inquiry (preserved) */}
       <SectionHead label="Talk to us about pricing" />
       {sent ? (
-        <div className="rounded-2xl ring-1 ring-emerald-400/30 bg-emerald-500/[0.04] p-6 flex items-start gap-3 animate-in fade-in slide-in-from-top-1 duration-300">
+        <div className="rounded-2xl p-6 flex items-start gap-3 animate-in fade-in slide-in-from-top-1 duration-300">
           <BadgeCheck className="w-5 h-5 text-emerald-300 mt-0.5 shrink-0" strokeWidth={1.6} />
           <div>
             <div className="text-white text-[15px] font-light mb-1">Got it.</div>
@@ -349,15 +346,10 @@ export default function BusinessBilling() {
             </label>
           </div>
           <div className="mt-5">
-            <button
-              type="button"
-              disabled={!canManage || busy}
-              onClick={submitInquiry}
-              className="inline-flex items-center gap-2 rounded-full px-5 h-11 bg-[hsl(215,90%,55%)] text-white text-[13px] font-medium hover:bg-[hsl(215,90%,60%)] transition-colors disabled:opacity-50 disabled:hover:bg-[hsl(215,90%,55%)]"
-            >
+            <GlassButton tone="accent" disabled={!canManage || busy} onClick={submitInquiry}>
               {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" strokeWidth={1.8} />}
               Send to billing
-            </button>
+            </GlassButton>
           </div>
         </div>
       )}

@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { confirmAsync } from "@/components/ui/global-confirm";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { BusinessPage, StatCard, SectionHead, EmptyState, SkeletonRows, Badge } from "@/components/business/BusinessPage";
+import { GlassPanel } from "@/components/foundation/Floating";
 import { toast } from "sonner";
 import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import { cn } from "@/lib/utils";
@@ -54,10 +55,12 @@ const WEBHOOK_EVENTS = [
 
 const inputCls =
   "h-11 px-4 rounded-xl bg-white/[0.04] ring-1 ring-white/[0.08] focus:ring-white/20 text-[14px] text-white placeholder:text-white/35 outline-none transition";
+// Premium translucent buttons — top-light gradient + inner highlight + lift,
+// no hard ring or flat fill (mirrors the GlassButton idiom).
 const primaryBtn =
-  "inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl bg-[hsl(215,90%,55%)] text-white text-[13px] font-medium hover:bg-[hsl(215,90%,60%)] disabled:opacity-50 transition-colors";
+  "inline-flex items-center justify-center gap-2 h-11 px-5 rounded-full text-[13px] font-medium text-[hsl(215,100%,88%)] backdrop-blur-xl bg-[linear-gradient(180deg,hsl(215_90%_55%/0.22),hsl(215_90%_55%/0.06))] shadow-[inset_0_1px_0_hsl(0_0%_100%/0.1),0_10px_30px_-16px_hsl(0_0%_0%/0.8)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[inset_0_1px_0_hsl(0_0%_100%/0.14),0_18px_44px_-18px_hsl(215_90%_55%/0.5)] disabled:opacity-50 disabled:pointer-events-none";
 const ghostBtn =
-  "inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg ring-1 ring-white/[0.08] text-[12px] text-white/65 hover:text-white hover:ring-white/15 transition-colors";
+  "inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-full text-[12px] text-white/65 backdrop-blur-xl bg-[linear-gradient(180deg,hsl(0_0%_100%/0.08),hsl(0_0%_100%/0.02))] shadow-[inset_0_1px_0_hsl(0_0%_100%/0.08)] transition-all duration-300 hover:-translate-y-0.5 hover:text-white disabled:opacity-40 disabled:pointer-events-none";
 
 /** Compact "2h ago" style relative time. */
 function relativeTime(iso: string | null): string {
@@ -220,12 +223,12 @@ export default function BusinessApi() {
       <SectionHead label="API keys" count={loading ? undefined : `${keys.length}`} />
 
       {revealed && (
-        <div className="mb-4 rounded-2xl ring-1 ring-amber-400/30 bg-amber-400/[0.06] p-4">
+        <GlassPanel className="mb-4 p-4">
           <div className={cn(TYPE_META, "text-amber-200/90 mb-2")}>
             Copy this key now — it will not be shown again.
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            <code className="flex-1 px-3 py-2 rounded-xl bg-black/40 ring-1 ring-white/[0.08] font-mono text-[12px] text-white/95 break-all">
+            <code className="flex-1 px-3 py-2 rounded-xl bg-black/40 font-mono text-[12px] text-white/95 break-all">
               {revealed.token}
             </code>
             <div className="flex items-center gap-2">
@@ -236,7 +239,7 @@ export default function BusinessApi() {
               <button type="button" onClick={() => setRevealed(null)} className={ghostBtn}>Done</button>
             </div>
           </div>
-        </div>
+        </GlassPanel>
       )}
 
       {canManage && (
@@ -395,12 +398,12 @@ function WebhooksSection({ canManage, hooks, loading, reload }: {
       />
 
       {revealedSecret && (
-        <div className="mb-4 rounded-2xl ring-1 ring-amber-400/30 bg-amber-400/[0.06] p-4">
+        <GlassPanel className="mb-4 p-4">
           <div className={cn(TYPE_META, "text-amber-200/90 mb-2")}>
             Copy this signing secret — use it to verify the signature header on incoming events.
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            <code className="flex-1 px-3 py-2 rounded-xl bg-black/40 ring-1 ring-white/[0.08] font-mono text-[12px] text-white/95 break-all">
+            <code className="flex-1 px-3 py-2 rounded-xl bg-black/40 font-mono text-[12px] text-white/95 break-all">
               {revealedSecret.secret}
             </code>
             <div className="flex items-center gap-2">
@@ -411,7 +414,7 @@ function WebhooksSection({ canManage, hooks, loading, reload }: {
               <button type="button" onClick={() => setRevealedSecret(null)} className={ghostBtn}>Done</button>
             </div>
           </div>
-        </div>
+        </GlassPanel>
       )}
 
       {showCreate && (
@@ -500,7 +503,9 @@ function WebhooksSection({ canManage, hooks, loading, reload }: {
               </div>
 
               {canManage && (
-                <div className="mt-4 pt-3 border-t border-white/[0.06] flex items-center gap-2">
+                <>
+                <span aria-hidden className="mt-4 block h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                <div className="mt-3 flex items-center gap-2">
                   <button
                     onClick={() => void testFire(h)}
                     className={ghostBtn}
@@ -523,6 +528,7 @@ function WebhooksSection({ canManage, hooks, loading, reload }: {
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
+                </>
               )}
             </div>
           );

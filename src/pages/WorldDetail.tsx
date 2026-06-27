@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/shell";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Spinner } from "@/components/ui/Spinner";
+import { GlassButton } from "@/components/foundation/Floating";
 
 interface World {
   id: string;
@@ -103,14 +104,14 @@ export default function WorldDetail() {
           <Sparkles className="w-6 h-6 mx-auto mb-4 text-white/45" />
           <h2 className="font-display font-medium text-[26px] text-white mb-2">World not found.</h2>
           <p className="text-white/45 text-[13px] mb-6">Try one of the others.</p>
-          <Link to="/lobby" className="inline-flex items-center gap-2 h-10 px-5 rounded-full bg-white text-black text-[11px] font-mono uppercase tracking-[0.22em]">
+          <GlassButton to="/lobby" tone="solid" className="font-mono uppercase tracking-[0.22em] text-[11px]">
             Back to Lobby <ArrowRight className="w-3 h-3" />
-          </Link>
+          </GlassButton>
         </div>
       ) : (
         <>
           {/* HERO */}
-          <section className="relative rounded-3xl overflow-hidden border border-white/[0.06] mb-12">
+          <section className="relative rounded-3xl overflow-hidden mb-12">
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.4fr] gap-0">
               {/* Left — manifesto */}
               <div className="p-8 lg:p-12 flex flex-col justify-between gap-8 min-h-[460px] relative">
@@ -139,18 +140,12 @@ export default function WorldDetail() {
                   )}
                 </div>
                 <div className="relative flex flex-wrap items-center gap-3">
-                  <Link
-                    to="/auth?mode=signup"
-                    className="inline-flex items-center gap-2 h-11 px-5 rounded-full bg-white text-black hover:bg-white/90 transition-colors font-mono uppercase tracking-[0.22em] text-[11px]"
-                  >
+                  <GlassButton to="/auth?mode=signup" tone="solid" className="font-mono uppercase tracking-[0.22em] text-[11px]">
                     <Wand2 className="w-3.5 h-3.5" />Direct a {world.name.toLowerCase()} scene
-                  </Link>
-                  <Link
-                    to="/lobby"
-                    className="inline-flex items-center gap-2 h-11 px-5 rounded-full border border-white/[0.08] hover:border-white/30 text-white/75 hover:text-white transition-colors font-mono uppercase tracking-[0.22em] text-[11px]"
-                  >
+                  </GlassButton>
+                  <GlassButton to="/lobby" className="font-mono uppercase tracking-[0.22em] text-[11px]">
                     <ArrowLeft className="w-3 h-3" />All worlds
-                  </Link>
+                  </GlassButton>
                 </div>
               </div>
 
@@ -171,7 +166,7 @@ export default function WorldDetail() {
                         by {featured.creator_name ?? "Anonymous"}
                       </div>
                     </div>
-                    <div className="absolute top-6 right-6 inline-flex items-center gap-2 px-3 h-9 rounded-full bg-black/55 backdrop-blur-md border border-white/[0.08] text-[11px] font-mono uppercase tracking-[0.22em] text-white/85">
+                    <div className="absolute top-6 right-6 inline-flex items-center gap-2 px-3 h-9 rounded-full bg-black/55 backdrop-blur-md text-[11px] font-mono uppercase tracking-[0.22em] text-white/85">
                       <Play className="w-3 h-3" />Open theater
                     </div>
                   </Link>
@@ -236,9 +231,9 @@ function Rail({ reels, accent }: { reels: Reel[]; accent: string }) {
         <Link
           key={r.id}
           to={`/watch/${r.id}`}
-          className="group rounded-2xl border border-white/[0.06] bg-white/[0.015] hover:border-white/15 overflow-hidden transition-colors"
+          className="group block"
         >
-          <div className="aspect-video bg-black/40 relative">
+          <div className="aspect-video bg-black/40 relative rounded-2xl overflow-hidden">
             {r.thumbnail_url ? (
               <img src={r.thumbnail_url} alt="" className="w-full h-full object-cover" />
             ) : null}
@@ -249,7 +244,7 @@ function Rail({ reels, accent }: { reels: Reel[]; accent: string }) {
               <span className="inline-flex items-center gap-1"><Wand2 className="w-3 h-3" />{r.remix_count.toLocaleString()}</span>
             </div>
           </div>
-          <div className="p-3">
+          <div className="pt-3">
             <div className="text-[13px] text-white font-light truncate">{r.title}</div>
             <div className="mt-1 flex items-center gap-1.5 text-[10px] text-white/45 font-mono uppercase tracking-[0.22em]">
               {r.creator_avatar ? (

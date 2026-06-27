@@ -168,22 +168,27 @@ export default function BreakthroughLab() {
             </button>
           </div>
 
-          {/* readout — ties the visual to the data model */}
-          <div className="rounded-2xl bg-white/[0.04] p-4 text-sm space-y-2.5">
-            <Row k="Container" v={CONTAINER_LABELS[def.container.kind]} />
-            <Row k="Violation" v={BOUNDARY_VIOLATION_LABELS[def.boundaryViolation]} />
-            <Row k="Destination" v={DESTINATION_LABELS[def.destination]} />
-            <Row k="Simulator" v={simKindFor(def.boundaryViolation)} />
-            <Row k="Break beat" v={`${effectiveBreak.toFixed(1)}s`} />
-            <Row k="Mask opens" v={`${scene.mask.openStartSec.toFixed(1)}–${scene.mask.openEndSec.toFixed(1)}s`} />
-            <div className="pt-1 border-t border-white/10">
-              <div className="text-white/40 text-xs mb-1.5">Beats</div>
-              <div className="flex flex-wrap gap-1.5">
-                {scene.timeline.beats.map((b) => (
-                  <span key={b.id} className="px-2 py-0.5 rounded-full bg-white/5 text-xs text-white/60">
-                    {b.label} · {b.atSec.toFixed(1)}s
-                  </span>
-                ))}
+          {/* readout — ties the visual to the data model; borderless, floats */}
+          <div>
+            <div className="text-xs uppercase tracking-[0.25em] text-white/40 mb-3">Readout</div>
+            <div aria-hidden className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+            <div className="px-1 pt-4 text-sm space-y-2.5">
+              <Row k="Container" v={CONTAINER_LABELS[def.container.kind]} />
+              <Row k="Violation" v={BOUNDARY_VIOLATION_LABELS[def.boundaryViolation]} />
+              <Row k="Destination" v={DESTINATION_LABELS[def.destination]} />
+              <Row k="Simulator" v={simKindFor(def.boundaryViolation)} />
+              <Row k="Break beat" v={`${effectiveBreak.toFixed(1)}s`} />
+              <Row k="Mask opens" v={`${scene.mask.openStartSec.toFixed(1)}–${scene.mask.openEndSec.toFixed(1)}s`} />
+              <div className="pt-2.5">
+                <div aria-hidden className="mb-2.5 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                <div className="text-white/40 text-xs mb-1.5">Beats</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {scene.timeline.beats.map((b) => (
+                    <span key={b.id} className="px-2 py-0.5 rounded-full bg-white/5 text-xs text-white/60">
+                      {b.label} · {b.atSec.toFixed(1)}s
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

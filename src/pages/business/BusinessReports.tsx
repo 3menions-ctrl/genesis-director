@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { BusinessPage, SectionHead, Badge } from "@/components/business/BusinessPage";
+import { GlassButton } from "@/components/foundation/Floating";
 import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
 import { toast } from "sonner";
@@ -72,7 +73,7 @@ export default function BusinessReports() {
     >
       <SectionHead label="Date range" />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl">
-        <label className="rounded-2xl p-5 ring-1 ring-white/[0.07] bg-white/[0.015] transition-colors">
+        <label className="rounded-2xl py-3 pr-5 transition-colors">
           <span className={cn(TYPE_META, "text-white/45")}>From</span>
           <input
             type="date"
@@ -80,8 +81,9 @@ export default function BusinessReports() {
             onChange={(e) => setRange({ ...range, start: e.target.value })}
             className="mt-2 w-full bg-transparent text-[15px] text-white tabular-nums outline-none [color-scheme:dark]"
           />
+          <span aria-hidden className="mt-3 block h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
         </label>
-        <label className="rounded-2xl p-5 ring-1 ring-white/[0.07] bg-white/[0.015] transition-colors">
+        <label className="rounded-2xl py-3 pr-5 transition-colors">
           <span className={cn(TYPE_META, "text-white/45")}>To</span>
           <input
             type="date"
@@ -89,6 +91,7 @@ export default function BusinessReports() {
             onChange={(e) => setRange({ ...range, end: e.target.value })}
             className="mt-2 w-full bg-transparent text-[15px] text-white tabular-nums outline-none [color-scheme:dark]"
           />
+          <span aria-hidden className="mt-3 block h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
         </label>
       </div>
 
@@ -104,22 +107,17 @@ export default function BusinessReports() {
               <div className={cn(TYPE_META, "text-white/45 mt-1.5")}>{r.sub}</div>
             </div>
             <Badge tone="neutral">CSV</Badge>
-            <button
-              type="button"
+            <GlassButton
+              tone="accent"
+              size="sm"
               disabled={busy === r.key}
               onClick={() => exportReport(r.key, r.label)}
-              className={cn(
-                "inline-flex items-center gap-2 rounded-full px-4 h-10 text-[13px] font-medium transition-colors ring-1",
-                busy === r.key
-                  ? "ring-white/[0.07] text-white/40 cursor-not-allowed"
-                  : "ring-[hsl(215_90%_60%/0.4)] bg-[hsl(215_90%_55%/0.12)] text-white hover:bg-[hsl(215_90%_55%/0.2)]",
-              )}
             >
               {busy === r.key
                 ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 : <Download className="w-3.5 h-3.5" strokeWidth={1.8} />}
               {busy === r.key ? "Exporting…" : "Export"}
-            </button>
+            </GlassButton>
           </div>
         ))}
       </div>

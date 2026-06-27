@@ -26,6 +26,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { Spinner } from "@/components/ui/Spinner";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { GlassButton, GlassPanel } from "@/components/foundation/Floating";
 
 interface ReelLite {
   id: string;
@@ -148,12 +149,13 @@ export default function DirectorCards() {
         <div className="max-w-md">
           <Film className="w-6 h-6 mx-auto mb-4 text-white/45" />
           <h2 className="font-display font-medium text-[24px] mb-2">Sign in to see your Director Card</h2>
-          <button
+          <GlassButton
             onClick={() => navigate("/auth")}
-            className="mt-4 inline-flex items-center gap-2 h-10 px-5 rounded-full bg-white text-black text-[11px] font-mono uppercase tracking-[0.22em]"
+            tone="solid"
+            className="mt-4 text-[11px] font-mono uppercase tracking-[0.22em]"
           >
             Sign in
-          </button>
+          </GlassButton>
         </div>
       </div>
     );
@@ -186,20 +188,23 @@ export default function DirectorCards() {
           <Sparkles className="w-6 h-6 mx-auto mb-4 text-white/45" />
           <h2 className="font-display font-medium text-[26px] mb-2">No data yet for {year}.</h2>
           <p className="text-white/45 text-[13px] mb-6">Publish a reel first, then come back.</p>
-          <Link
+          <GlassButton
             to="/auth?mode=signup"
-            className="inline-flex items-center gap-2 h-10 px-5 rounded-full bg-white text-black text-[11px] font-mono uppercase tracking-[0.22em]"
+            tone="solid"
+            className="text-[11px] font-mono uppercase tracking-[0.22em]"
           >
             <Wand2 className="w-3.5 h-3.5" />Direct your first reel
-          </Link>
+          </GlassButton>
         </div>
       ) : (
         <div className="relative z-10 w-full max-w-[480px]">
-          {/* Card stack — only the active one is rendered */}
-          <div className="aspect-[9/16] rounded-3xl border border-white/[0.10] bg-gradient-to-br from-white/[0.04] to-white/[0.01] backdrop-blur-xl overflow-hidden shadow-[0_60px_120px_-30px_rgba(0,0,0,0.95)] relative">
+          {/* Card stack — only the active one is rendered. GlassPanel is the
+              one sanctioned surface; the card is a shareable artefact so it
+              keeps a real (borderless) surface. */}
+          <GlassPanel className="aspect-[9/16] overflow-hidden">
             <CardBody body={cards[card]} year={year} />
             {/* Progress dots */}
-            <div className="absolute top-4 left-4 right-4 flex items-center gap-1.5">
+            <div className="absolute top-4 left-4 right-4 z-10 flex items-center gap-1.5">
               {cards.map((_, i) => (
                 <span
                   key={i}
@@ -210,14 +215,15 @@ export default function DirectorCards() {
                 />
               ))}
             </div>
-          </div>
+          </GlassPanel>
 
           {/* Controls */}
           <div className="mt-4 flex items-center justify-between">
             <button
               onClick={() => setCard((c) => Math.max(0, c - 1))}
               disabled={card === 0}
-              className="w-10 h-10 rounded-full border border-white/[0.10] hover:border-white/30 text-white/65 hover:text-white flex items-center justify-center disabled:opacity-30"
+              aria-label="Previous card"
+              className="w-10 h-10 rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-white/65 hover:text-white flex items-center justify-center transition-colors disabled:opacity-30"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -227,7 +233,8 @@ export default function DirectorCards() {
             <button
               onClick={() => setCard((c) => Math.min(cards.length - 1, c + 1))}
               disabled={card === cards.length - 1}
-              className="w-10 h-10 rounded-full border border-white/[0.10] hover:border-white/30 text-white/65 hover:text-white flex items-center justify-center disabled:opacity-30"
+              aria-label="Next card"
+              className="w-10 h-10 rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-white/65 hover:text-white flex items-center justify-center transition-colors disabled:opacity-30"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -236,12 +243,14 @@ export default function DirectorCards() {
           {/* Footer actions — only on last card */}
           {card === cards.length - 1 && (
             <div className="mt-4 flex flex-col items-center gap-2">
-              <button
+              <GlassButton
                 onClick={share}
-                className="inline-flex items-center gap-2 h-11 px-5 rounded-full bg-white text-black hover:bg-white/90 text-[11px] font-mono uppercase tracking-[0.22em]"
+                tone="solid"
+                size="lg"
+                className="text-[11px] font-mono uppercase tracking-[0.22em]"
               >
                 <Share2 className="w-3.5 h-3.5" />Share my year
-              </button>
+              </GlassButton>
               <Link
                 to="/lobby"
                 className="inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.22em] text-white/45 hover:text-white"
@@ -314,7 +323,7 @@ function buildCards(stats: YearStats | null, year: number): CardSpec[] {
       body: (
         <div className="space-y-3 mt-3">
           {stats.topReel.thumbnail_url && (
-            <img src={stats.topReel.thumbnail_url} alt="" className="w-full rounded-xl object-cover aspect-video border border-white/[0.08]" />
+            <img src={stats.topReel.thumbnail_url} alt="" className="w-full rounded-xl object-cover aspect-video" />
           )}
           <div className="flex items-center gap-3 text-[11px] font-mono text-white/55 tabular-nums">
             <span className="inline-flex items-center gap-1"><Eye className="w-3 h-3" />{stats.topReel.play_count.toLocaleString()}</span>

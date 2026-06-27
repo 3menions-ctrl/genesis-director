@@ -253,7 +253,7 @@ export default function NotificationSettings() {
 
             {/* Quiet hours */}
             <Section eyebrow="◆ Quiet hours" title="When the bell stays silent">
-              <div className="px-4 py-5 rounded-2xl bg-white/[0.02]">
+              <div className="px-1 py-2">
                 <div className="flex items-start gap-3">
                   <Moon className="h-4 w-4 text-accent/80 mt-1" strokeWidth={1.5} />
                   <div className="flex-1">

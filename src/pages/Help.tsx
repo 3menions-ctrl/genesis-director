@@ -64,9 +64,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { GradientBackdrop } from "@/components/foundation/GradientBackdrop";
+import { GlassButton, GlassPanel } from "@/components/foundation/Floating";
 import { cn } from "@/lib/utils";
 import { EASE_PREMIUM, TYPE_META } from "@/lib/design-system";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 // Heavy aurora backdrop — same atmospheric layer the Pricing page wraps in,
@@ -362,8 +362,7 @@ function Hero({
             className={cn(
               "relative flex items-center gap-4",
               "rounded-2xl bg-[hsl(220_30%_6%/0.55)] backdrop-blur-2xl",
-              "border border-white/[0.07] focus-within:border-accent/30",
-              "shadow-[inset_0_1px_0_hsl(0_0%_100%/0.05),0_30px_80px_-30px_hsl(0_0%_0%/0.6)]",
+              "shadow-[inset_0_1px_0_hsl(0_0%_100%/0.07),0_30px_80px_-30px_hsl(0_0%_0%/0.6)]",
               "transition-colors duration-300",
               "px-5 sm:px-7 h-16 sm:h-[72px]",
             )}
@@ -474,9 +473,6 @@ function QuickActions({
               className={cn(
                 "group/tile relative text-left",
                 "rounded-[20px] p-6 sm:p-7",
-                "bg-[hsl(220_30%_6%/0.45)] backdrop-blur-2xl",
-                "border border-white/[0.06] hover:border-white/[0.14]",
-                "shadow-[inset_0_1px_0_hsl(0_0%_100%/0.05),0_20px_50px_-30px_hsl(0_0%_0%/0.6)]",
                 "transition-all duration-300",
                 "overflow-hidden",
               )}
@@ -594,14 +590,7 @@ function StatusPanel({ reducedMotion }: { reducedMotion: boolean }) {
         </Link>
       </div>
 
-      <div
-        className={cn(
-          "relative rounded-[20px] p-6 sm:p-7",
-          "bg-[hsl(220_30%_6%/0.45)] backdrop-blur-2xl",
-          "border border-white/[0.06]",
-          "shadow-[inset_0_1px_0_hsl(0_0%_100%/0.05),0_20px_50px_-30px_hsl(0_0%_0%/0.6)]",
-        )}
-      >
+      <GlassPanel className="p-6 sm:p-7">
         <div className="flex flex-wrap items-center gap-4 sm:gap-6">
           {/* Big dot + label */}
           <div className="flex items-center gap-3">
@@ -656,7 +645,7 @@ function StatusPanel({ reducedMotion }: { reducedMotion: boolean }) {
 
         {/* Incident strip (only when unhealthy) */}
         {loaded && !healthy && status && (
-          <div className="mt-5 border-t border-white/[0.05] pt-5 space-y-2">
+          <div className="mt-5 pt-5 space-y-2 [border-top:1px_solid] [border-image:linear-gradient(90deg,transparent,hsl(0_0%_100%/0.1),transparent)_1]">
             {status.blocker_open > 0 && (
               <IncidentRow
                 Icon={AlertTriangle}
@@ -675,7 +664,7 @@ function StatusPanel({ reducedMotion }: { reducedMotion: boolean }) {
             )}
           </div>
         )}
-      </div>
+      </GlassPanel>
     </motion.section>
   );
 }
@@ -800,7 +789,7 @@ function FaqSection({ query, setQuery }: { query: string; setQuery: (s: string) 
       </div>
 
       {filtered.length === 0 ? (
-        <div className="rounded-[20px] border border-white/[0.05] bg-[hsl(220_30%_6%/0.35)] backdrop-blur-2xl p-10 text-center">
+        <div className="p-10 text-center">
           <Sparkles className="mx-auto h-6 w-6 text-muted-foreground/50" strokeWidth={1.5} />
           <p className="mt-4 text-foreground/85 font-light">
             No FAQ matches "{query}".
@@ -810,7 +799,7 @@ function FaqSection({ query, setQuery }: { query: string; setQuery: (s: string) 
           </p>
         </div>
       ) : (
-        <ul className="divide-y divide-white/[0.05] rounded-[20px] border border-white/[0.05] bg-[hsl(220_30%_6%/0.4)] backdrop-blur-2xl shadow-[inset_0_1px_0_hsl(0_0%_100%/0.04),0_20px_60px_-40px_hsl(0_0%_0%/0.6)] overflow-hidden">
+        <ul className="divide-y divide-white/[0.06]">
           {filtered.map((entry, i) => {
             const open = openIdx === i;
             return (
@@ -1010,16 +999,9 @@ function AdminWindow({
         </p>
       </div>
 
-      <div
-        className={cn(
-          "relative rounded-[24px] overflow-hidden",
-          "bg-[hsl(220_30%_6%/0.5)] backdrop-blur-2xl",
-          "border border-white/[0.07]",
-          "shadow-[inset_0_1px_0_hsl(0_0%_100%/0.05),0_30px_80px_-40px_hsl(0_0%_0%/0.7)]",
-        )}
-      >
+      <GlassPanel className="rounded-[24px] overflow-hidden">
         {/* Chrome strip — kind tabs */}
-        <div className="flex items-center gap-1 px-3 py-3 border-b border-white/[0.05] overflow-x-auto scrollbar-hide">
+        <div className="flex items-center gap-1 px-3 py-3 [border-bottom:1px_solid] [border-image:linear-gradient(90deg,transparent,hsl(0_0%_100%/0.08),transparent)_1] overflow-x-auto scrollbar-hide">
           {(Object.keys(kindCopy) as QuickActionKind[]).map((k) => (
             <button
               key={k}
@@ -1028,7 +1010,7 @@ function AdminWindow({
               className={cn(
                 "shrink-0 px-4 h-9 rounded-full text-[12.5px] font-light tracking-[-0.005em] transition-all",
                 kind === k
-                  ? "bg-white/[0.08] text-foreground border border-white/[0.12]"
+                  ? "bg-white/[0.08] text-foreground shadow-[inset_0_1px_0_hsl(0_0%_100%/0.10)]"
                   : "text-muted-foreground/70 hover:text-foreground hover:bg-white/[0.03]",
               )}
             >
@@ -1070,19 +1052,12 @@ function AdminWindow({
                 and on this page below.
               </p>
               <div className="mt-6 flex items-center justify-center gap-3">
-                <Button
-                  type="button"
-                  onClick={reset}
-                  variant="outline"
-                  className="rounded-full"
-                >
+                <GlassButton type="button" onClick={reset}>
                   File another
-                </Button>
-                <Button asChild className="rounded-full bg-white text-black hover:bg-white/90">
-                  <Link to="/inbox">
-                    Open inbox <ArrowUpRight className="ml-1.5 h-4 w-4" />
-                  </Link>
-                </Button>
+                </GlassButton>
+                <GlassButton to="/inbox" tone="solid">
+                  Open inbox <ArrowUpRight className="ml-1.5 h-4 w-4" />
+                </GlassButton>
               </div>
             </motion.div>
           ) : (
@@ -1163,7 +1138,7 @@ function AdminWindow({
                       onClick={() => fileInputRef.current?.click()}
                       className={cn(
                         "inline-flex items-center gap-2 px-3 h-9 rounded-full",
-                        "bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.14]",
+                        "bg-white/[0.05] hover:bg-white/[0.09] shadow-[inset_0_1px_0_hsl(0_0%_100%/0.08)]",
                         "text-[12.5px] font-light text-foreground/85 transition-all",
                       )}
                     >
@@ -1218,13 +1193,11 @@ function AdminWindow({
                 <p className={cn(TYPE_META, "text-muted-foreground/45 tracking-[0.28em]")}>
                   ENCRYPTED AT REST · ADMIN ONLY
                 </p>
-                <Button
+                <GlassButton
                   type="submit"
+                  tone="solid"
                   disabled={submitting || !user}
-                  className={cn(
-                    "rounded-full bg-white text-black hover:bg-white/90 disabled:opacity-50",
-                    "px-6 h-11 text-[13px]",
-                  )}
+                  className="px-6 text-[13px]"
                 >
                   {submitting ? (
                     <>
@@ -1237,12 +1210,12 @@ function AdminWindow({
                       <ArrowUpRight className="ml-1.5 h-4 w-4" strokeWidth={1.8} />
                     </>
                   )}
-                </Button>
+                </GlassButton>
               </div>
             </motion.form>
           )}
         </AnimatePresence>
-      </div>
+      </GlassPanel>
     </section>
   );
 }
@@ -1314,12 +1287,12 @@ function RecentTickets({ userId }: { userId: string }) {
   return (
     <section className="mb-16">
       <SectionHeading eyebrow="Your tickets" title="Open threads." />
-      <ul className="rounded-[20px] border border-white/[0.05] bg-[hsl(220_30%_6%/0.4)] backdrop-blur-2xl divide-y divide-white/[0.05] overflow-hidden">
+      <ul className="divide-y divide-white/[0.06]">
         {rows.map((r) => (
           <li key={r.id}>
             <Link
               to="/inbox"
-              className="flex items-center gap-4 px-5 py-4 hover:bg-white/[0.03] transition-colors"
+              className="flex items-center gap-4 px-1 py-4 hover:bg-white/[0.02] transition-colors sm:px-2"
             >
               <StatusDot status={r.status} />
               <div className="flex-1 min-w-0">
@@ -1408,14 +1381,13 @@ function DocumentationRail({ reducedMotion }: { reducedMotion: boolean }) {
                 to={d.to}
                 className={cn(
                   "group/doc relative block rounded-[20px] p-6",
-                  "bg-[hsl(220_30%_6%/0.4)] backdrop-blur-2xl",
-                  "border border-white/[0.05] hover:border-white/[0.12]",
+                  "hover:bg-white/[0.02]",
                   "transition-all duration-300",
                   "overflow-hidden",
                 )}
               >
                 <div className="flex items-start gap-4">
-                  <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.04] border border-white/[0.06] shrink-0">
+                  <div className="inline-flex h-10 w-10 items-center justify-center shrink-0">
                     <Icon
                       className="h-4 w-4 text-foreground/80 group-hover/doc:text-accent transition-colors"
                       strokeWidth={1.6}

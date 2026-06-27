@@ -1,6 +1,5 @@
 import { ArrowLeft, Mail, Clock, MapPin, Send, Sparkles, LifeBuoy, Handshake, Newspaper } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useState, lazy, Suspense } from "react";
@@ -13,6 +12,7 @@ import { PageHero } from "@/components/page/PageHero";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { PhotoBand } from "@/components/marketing/PhotoBand";
 import { Footer } from "@/components/cinema/Footer";
+import { GlassButton, GlassPanel } from "@/components/foundation/Floating";
 
 import { usePageMeta } from '@/hooks/usePageMeta';
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
@@ -206,7 +206,7 @@ const Contact = () => {
             transition={{ duration: 0.6, delay: 0.15 }}
             className="lg:col-span-3"
           >
-            <div className="p-8 rounded-3xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-sm">
+            <GlassPanel className="p-8">
               <h2 className="text-xl font-semibold text-white mb-2 flex items-center gap-3">
                 <Send className="w-5 h-5 text-white/75" />
                 Send us a message
@@ -280,15 +280,17 @@ const Contact = () => {
                   />
                 </div>
 
-                <Button
+                <GlassButton
                   type="submit"
-                  className="w-full h-12 text-base font-medium rounded-full bg-white text-black hover:bg-white/90 shadow-[0_0_40px_rgba(255,255,255,0.1)] transition-all duration-300 hover:shadow-[0_0_60px_rgba(255,255,255,0.15)]"
+                  tone="solid"
+                  size="lg"
                   disabled={isSubmitting}
+                  className="w-full"
                 >
                   {isSubmitting ? "Sending…" : "Send Message"}
-                </Button>
+                </GlassButton>
               </form>
-            </div>
+            </GlassPanel>
           </motion.div>
 
           {/* Contact Information */}
@@ -298,14 +300,14 @@ const Contact = () => {
             transition={{ duration: 0.6, delay: 0.25 }}
             className="lg:col-span-2 space-y-6"
           >
-            <div className="p-6 rounded-3xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-sm">
+            <div className="px-1">
               <h2 className="text-lg font-semibold text-white mb-5">Reach us directly</h2>
 
               <div className="space-y-5">
                 {REACH_CARDS.map((card) => (
                   <div key={card.title} className="flex items-start gap-4">
-                    <div className="p-3 rounded-xl bg-white/[0.04] border border-white/[0.08]">
-                      <card.icon className="w-5 h-5 text-white/55" />
+                    <div className="text-white/55">
+                      <card.icon className="w-5 h-5" />
                     </div>
                     <div>
                       <h3 className="font-medium text-white mb-0.5">{card.title}</h3>
@@ -322,10 +324,11 @@ const Contact = () => {
               </div>
             </div>
 
-            <div className="p-6 rounded-3xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-sm space-y-5">
+            <div className="px-1 space-y-5">
+              <div aria-hidden className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
               <div className="flex items-start gap-4">
-                <div className="p-3 rounded-xl bg-white/[0.04] border border-white/[0.08]">
-                  <Clock className="w-5 h-5 text-white/55" />
+                <div className="text-white/55">
+                  <Clock className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="font-medium text-white mb-0.5">Response time</h3>
@@ -336,8 +339,8 @@ const Contact = () => {
               </div>
 
               <div className="flex items-start gap-4">
-                <div className="p-3 rounded-xl bg-white/[0.04] border border-white/[0.08]">
-                  <MapPin className="w-5 h-5 text-white/55" />
+                <div className="text-white/55">
+                  <MapPin className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="font-medium text-white mb-0.5">Where we are</h3>
@@ -361,20 +364,22 @@ const Contact = () => {
           <p className="text-white/55 text-sm mb-8 max-w-2xl">
             Not sure where your question fits? Here's how we sort the conversations that come our way — pick the one that's closest and we'll route it from there.
           </p>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div aria-hidden className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4">
             {TOPICS.map((topic) => (
               <div
                 key={topic.title}
-                className="p-6 rounded-2xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-sm hover:border-white/[0.12] transition-colors"
+                className="group px-1 py-7 sm:px-5 transition-colors"
               >
-                <div className="w-11 h-11 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center mb-4">
-                  <topic.icon className="w-5 h-5 text-white/70" />
+                <div className="w-11 h-11 flex items-center justify-center mb-4 text-white/70 transition-colors group-hover:text-white">
+                  <topic.icon className="w-5 h-5" />
                 </div>
                 <h3 className="font-medium text-white mb-1.5">{topic.title}</h3>
                 <p className="text-white/55 text-sm leading-relaxed">{topic.body}</p>
               </div>
             ))}
           </div>
+          <div aria-hidden className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
         </motion.div>
       </div>
 

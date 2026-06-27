@@ -15,9 +15,9 @@ import {
   Sparkles, Settings, Clock, Star, ArrowUpRight,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { GlassButton } from '@/components/foundation/Floating';
 import { SafeMarkdownRenderer } from '@/components/content/SafeMarkdownRenderer';
 import { SupportInboxModal } from '@/components/social/SupportInboxModal';
 import { useAuth } from '@/contexts/AuthContext';
@@ -109,19 +109,18 @@ function ContactSupportBlock() {
   const { user } = useAuth();
   if (user) return <SupportInboxModal />;
   return (
-    <div className="p-8 rounded-3xl bg-glass border border-white/[0.05] text-center">
+    <div className="p-8 text-center">
+      <div aria-hidden className="mb-8 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       <MessageCircle className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
       <h2 className="text-xl font-semibold text-foreground mb-2">Still need help?</h2>
       <p className="text-foreground/80 mb-6">
         Sign in to message our team in-app and track replies, or send us a note.
       </p>
       <div className="flex items-center justify-center gap-3">
-        <Button asChild className="bg-white text-black hover:bg-white/90 rounded-full">
-          <Link to="/auth">Sign in to message admin <ArrowUpRight className="w-4 h-4 ml-2" /></Link>
-        </Button>
-        <Button asChild variant="outline" className="rounded-full">
-          <Link to="/contact">Contact form</Link>
-        </Button>
+        <GlassButton to="/auth" tone="solid">
+          Sign in to message admin <ArrowUpRight className="w-4 h-4 ml-2" />
+        </GlassButton>
+        <GlassButton to="/contact">Contact form</GlassButton>
       </div>
     </div>
   );
@@ -142,24 +141,21 @@ const ArticleContent = forwardRef<HTMLDivElement, { article: SelectedArticle; on
         exit={{ opacity: 0, y: -20 }}
         className="max-w-3xl mx-auto"
       >
-        <Button
-          variant="ghost"
-          onClick={onBack}
-          className="mb-6 text-muted-foreground hover:text-foreground hover:bg-muted/10"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
+        <GlassButton onClick={onBack} size="sm" className="mb-6">
+          <ArrowLeft className="w-4 h-4" />
           Back to Help Center
-        </Button>
+        </GlassButton>
 
-        <div className="p-8 rounded-3xl bg-card/50 border border-border/50">
+        <div className="px-1">
           <div className="flex items-center gap-3 mb-4">
-            <Badge className="bg-muted text-muted-foreground border-0">{article.categoryTitle}</Badge>
+            <span className="text-[11px] font-mono uppercase tracking-[0.18em] text-muted-foreground/70">{article.categoryTitle}</span>
             <span className="text-muted-foreground/60 text-sm flex items-center gap-1">
               <Clock className="w-3 h-3" />
               {article.readTime}
             </span>
           </div>
           <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-6">{article.title}</h1>
+          <div aria-hidden className="mb-6 h-px bg-gradient-to-r from-white/15 via-white/5 to-transparent" />
           <SafeMarkdownRenderer
             content={article.content}
             className="prose prose-invert max-w-none"
@@ -251,14 +247,14 @@ export default function HelpCenter() {
                     <h2 className="text-lg font-semibold text-foreground mb-4">
                       Search Results ({filteredArticles.length})
                     </h2>
-                    <div className="grid gap-3">
+                    <div className="divide-y divide-white/[0.06]">
                       {filteredArticles.map((article) => {
                         const chrome = getChrome(article.category);
                         return (
                           <button
                             key={article.id || article.slug}
                             onClick={() => { select(article); setSearchQuery(''); }}
-                            className="group w-full text-left p-4 rounded-xl bg-glass border border-white/[0.05] hover:bg-glass-hover hover:border-white/[0.1] transition-all"
+                            className="group w-full text-left px-1 py-4 hover:bg-white/[0.02] transition-all sm:px-2"
                           >
                             <div className="flex items-center justify-between">
                               <div>
@@ -298,12 +294,12 @@ export default function HelpCenter() {
                       <Star className="w-5 h-5 text-warning" />
                       Popular Articles
                     </h2>
-                    <div className="grid md:grid-cols-2 gap-3">
+                    <div className="grid md:grid-cols-2 md:gap-x-8">
                       {popularArticles.map((article) => (
                         <button
                           key={article.id || article.slug}
                           onClick={() => select(article)}
-                          className="group text-left p-4 rounded-xl bg-glass border border-white/[0.05] hover:bg-glass-hover hover:border-white/[0.1] transition-all"
+                          className="group text-left px-1 py-4 border-t border-white/[0.06] hover:bg-white/[0.02] transition-all sm:px-2"
                         >
                           <div className="flex items-center justify-between">
                             <div>
@@ -323,16 +319,16 @@ export default function HelpCenter() {
                 {!searchQuery && (
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
                     <h2 className="text-lg font-semibold text-foreground mb-4">Browse by Category</h2>
-                    <div className="space-y-3">
+                    <div className="divide-y divide-white/[0.06]">
                       {HELP_CATEGORIES.map((category) => {
                         const chrome = getChrome(category.id);
                         const Icon = chrome.icon;
                         const isExpanded = expandedCategory === category.id;
                         return (
-                          <div key={category.id} className="rounded-2xl bg-glass border border-white/[0.05] overflow-hidden">
+                          <div key={category.id} className="overflow-hidden">
                             <button
                               onClick={() => setExpandedCategory(isExpanded ? null : category.id)}
-                              className="w-full flex items-center justify-between p-5 hover:bg-glass transition-colors"
+                              className="w-full flex items-center justify-between px-1 py-5 hover:bg-white/[0.02] transition-colors sm:px-2"
                             >
                               <div className="flex items-center gap-4">
                                 <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br', chrome.color)}>
@@ -354,12 +350,12 @@ export default function HelpCenter() {
                                   transition={{ duration: 0.2 }}
                                   className="overflow-hidden"
                                 >
-                                  <div className="px-5 pb-5 space-y-2">
+                                  <div className="px-1 pb-5 sm:px-2">
                                     {category.articles.map((article) => (
                                       <button
                                         key={article.id || article.slug}
                                         onClick={() => select(article)}
-                                        className="group w-full flex items-center justify-between p-3 rounded-xl hover:bg-glass transition-colors"
+                                        className="group w-full flex items-center justify-between py-3 pl-7 pr-1 hover:bg-white/[0.02] transition-colors"
                                       >
                                         <div className="flex items-center gap-3">
                                           <FileText className="w-4 h-4 text-muted-foreground" />

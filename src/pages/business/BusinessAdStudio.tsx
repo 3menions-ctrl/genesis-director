@@ -382,7 +382,7 @@ function ConceptCard({ index, concept, canEdit, onSend, context }: {
   return (
     <div className="rounded-2xl overflow-hidden">
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-3 p-5 border-b border-white/[0.06]">
+      <div className="relative flex flex-wrap items-start justify-between gap-3 p-5 after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-white/10 after:to-transparent after:content-['']">
         <div className="min-w-0">
           <div className="flex items-center gap-2.5">
             <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/35">Concept {index + 1}</span>
@@ -425,7 +425,7 @@ function ConceptCard({ index, concept, canEdit, onSend, context }: {
             <CopyButton text={concept.script} />
           </div>
           {scriptOpen && (
-            <pre className="rounded-xl ring-1 ring-white/[0.06] bg-black/30 p-4 text-[12.5px] leading-relaxed text-white/75 font-mono whitespace-pre-wrap break-words">{concept.script}</pre>
+            <pre className="rounded-xl bg-black/30 p-4 text-[12.5px] leading-relaxed text-white/75 font-mono whitespace-pre-wrap break-words">{concept.script}</pre>
           )}
         </div>
 
@@ -527,7 +527,7 @@ function VariantLab({ concept, context, canEdit, onSend }: {
   };
 
   return (
-    <div className="mt-4 pt-4 border-t border-white/[0.06]">
+    <div className="relative mt-4 pt-4 before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent before:content-['']">
       <button type="button" onClick={() => setOpen((v) => !v)}
         className="inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.22em] text-white/45 hover:text-white/80 transition-colors">
         <LayoutGrid className="w-3.5 h-3.5" strokeWidth={1.6} />
@@ -619,7 +619,7 @@ function VariantRow({ variant, canEdit, onSend }: {
       {variant.framingNotes && (
         <p className="mt-1.5 text-[11.5px] leading-snug text-white/40 font-light italic">{variant.framingNotes}</p>
       )}
-      <div className="flex items-center gap-3 mt-2.5 pt-2.5 border-t border-white/[0.06]">
+      <div className="relative flex items-center gap-3 mt-2.5 pt-2.5 before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent before:content-['']">
         <button type="button" onClick={() => setScriptOpen((v) => !v)}
           className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/45 hover:text-white/80 inline-flex items-center gap-1 transition-colors">
           Script <ChevronDown className={cn("w-3 h-3 transition-transform", scriptOpen && "rotate-180")} />
@@ -633,7 +633,7 @@ function VariantRow({ variant, canEdit, onSend }: {
         )}
       </div>
       {scriptOpen && (
-        <pre className="mt-2.5 rounded-lg ring-1 ring-white/[0.06] bg-black/30 p-3 text-[12px] leading-relaxed text-white/75 font-mono whitespace-pre-wrap break-words">{variant.script}</pre>
+        <pre className="mt-2.5 rounded-lg bg-black/30 p-3 text-[12px] leading-relaxed text-white/75 font-mono whitespace-pre-wrap break-words">{variant.script}</pre>
       )}
     </div>
   );

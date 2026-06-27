@@ -252,25 +252,28 @@ export default function Auth() {
   }, [pendingEmail]);
 
   return (
-    <div className="relative w-full bg-[#0a0b0f] text-foreground overflow-y-auto lg:overflow-hidden">
-      {/* Immersive full-bleed backdrop — covers UNDER the notch + home indicator
-          (the global body has safe-area padding; a fixed layer escapes it so the
-          dark background reaches every edge of the iPhone). */}
+    <div className="relative w-full bg-[#0a0b0f] text-foreground overflow-hidden">
+      {/* Immersive full-bleed backdrop — covers UNDER the notch + home indicator. */}
       <div aria-hidden className="fixed inset-0 -z-10 bg-[#0a0b0f]" />
-      {/* Size the grid to the SAFE visible area (between notch + home indicator)
-          so `items-center` lands the form on the true optical centre, not pushed
-          down by the top inset. Reduces to 100dvh on devices with no insets. */}
-      <div
-        className="relative z-10 grid grid-cols-1 lg:grid-cols-[1.1fr_1fr]"
-        style={{ minHeight: "calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom))" }}
-      >
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] lg:min-h-[100dvh]">
         {/* HERO — desktop only. */}
         <div className="hidden lg:block">
           <AuthHeroStage />
         </div>
 
-        {/* FORM column — borderless, generous spacing */}
-        <div className="relative flex items-center justify-center px-6 py-10 sm:px-10 md:py-14 lg:px-14">
+        {/* FORM column — iPhone gets a DIFFERENT layout than the web split:
+            a fixed, immersive, scroll-centred container that respects the safe
+            area. `min-h-full` centres the form when it fits and lets it scroll
+            from the top when it's taller than the screen (keyboard / small
+            phones). Desktop (lg) reverts to the borderless grid cell. */}
+        <div className="fixed inset-0 z-10 overflow-y-auto lg:static lg:inset-auto lg:z-auto lg:overflow-visible">
+          <div
+            className="flex min-h-full items-center justify-center px-6 sm:px-10 lg:px-14"
+            style={{
+              paddingTop: "max(2.5rem, env(safe-area-inset-top))",
+              paddingBottom: "max(2.5rem, env(safe-area-inset-bottom))",
+            }}
+          >
           <motion.div
             initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
@@ -618,6 +621,7 @@ export default function Auth() {
               )}
             </AnimatePresence>
           </motion.div>
+          </div>
         </div>
       </div>
     </div>

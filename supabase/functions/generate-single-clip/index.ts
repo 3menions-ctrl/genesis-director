@@ -1060,7 +1060,7 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   // ═══ AUTH GUARD: Prevent unauthorized API credit consumption ═══
-  const { validateAuth, unauthorizedResponse, resolveEffectiveUserId, forbiddenResponse } =
+  const { validateAuth, unauthorizedResponse, resolveEffectiveUserId, forbiddenResponse, assertProjectOwnership } =
     await import("../_shared/auth-guard.ts");
   const auth = await validateAuth(req);
   if (!auth.authenticated) {
@@ -1139,6 +1139,14 @@ serve(async (req) => {
         JSON.stringify({ success: false, error: "CREDIT_RESERVATION_REQUIRED" }),
         { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
+    }
+
+    // ═══ IDOR GUARD: end-user callers may only generate into a project they
+    // own (service-role/pipeline bypasses). Without this, an authenticated user
+    // could pass a victim's projectId and mutate its pipeline_state / locks.
+    {
+      const ownErr = await assertProjectOwnership(supabase, auth, projectId, corsHeaders);
+      if (ownErr) return ownErr;
     }
 
     // ── Continuity payload (server-side ordering enforcement) ────────────

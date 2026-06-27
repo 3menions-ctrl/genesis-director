@@ -15,7 +15,7 @@ Ownership guards (service-role bypass) added to: `continue-production`, `seamles
 ### Abuse / cost control
 - **log-widget-event** — replaced attacker-controllable in-memory throttle with DB-backed `rate_limit_hit` keyed on client IP + a per-`(widget,IP)` cap on the credit-bearing `view` event (stops owner-credit drain). `log-widget-event/index.ts`
 - **newsletter-subscribe** — added per-IP DB-backed rate limit (email-bomb / Resend-cost protection). `newsletter-subscribe/index.ts`
-- **Ungated OpenAI fns** — credit gates (`deduct_credits`, service-role exempt): `generate-script` 3cr, `generate-ad-studio` 3cr, `generate-ad-variants` 2cr, `script-assistant` 1cr.
+- **Ungated OpenAI fns** — ~~credit gates added inline (`deduct_credits`)~~ **SUPERSEDED**: when merging `main` into the branch, `main` was found to already gate all 4 (`generate-script`, `generate-ad-studio`, `generate-ad-variants`, `script-assistant`) via a proper shared `_shared/ai-credit-gate.ts` module (rate-limit + preflight + charge + daily caps) — strictly better than the inline approach. The merge took **main's version** of these 4 files; my inline gating was dropped. Net: the gap is closed, by main's implementation.
 
 ### Data loss
 - **clip-lost-on-import** — `upload-ingest.ts` now rethrows on `video_clips` insert failure instead of swallowing + faking a success toast (callers already surface the error).

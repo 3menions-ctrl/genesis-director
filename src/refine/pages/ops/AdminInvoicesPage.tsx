@@ -9,7 +9,10 @@ import { ListPagination, usePagination } from "@/components/ui/list-pagination";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-const CENTS_PER_CREDIT = 10; // $0.10 / credit
+// AUDIT NOTE (synthetic revenue): NOMINAL estimate only — not real Polar cash.
+// The ledger stores credits, not dollars; bulk packages sell credits below
+// $0.10, so credits×$0.10 OVERSTATES actual USD. Figures are labelled "(est.)".
+const CENTS_PER_CREDIT = 10; // nominal $0.10 / credit (estimate)
 
 type Row = {
   id: string;
@@ -82,8 +85,8 @@ export default function AdminInvoicesPage() {
       description="Credit purchase ledger — every Polar-backed transaction with full audit trail."
       stats={[
         { label: "Transactions YTD", value: ytd.length, tone: "blue" },
-        { label: "Gross YTD", value: `$${(grossCents/100).toFixed(2)}`, tone: "emerald" },
-        { label: "Refunds YTD", value: `$${(refundsCents/100).toFixed(2)}`, tone: refundsCents > 0 ? "rose" : "neutral" },
+        { label: "Gross YTD (est.)", value: `$${(grossCents/100).toFixed(2)}`, tone: "emerald" },
+        { label: "Refunds YTD (est.)", value: `$${(refundsCents/100).toFixed(2)}`, tone: refundsCents > 0 ? "rose" : "neutral" },
         { label: "Total Ledger", value: rows.length, tone: "amber" },
       ]}
       actions={

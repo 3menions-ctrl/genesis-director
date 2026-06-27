@@ -1,8 +1,6 @@
 import { useCallback, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
-import { QualityTier } from '@/types/quality-tiers';
 import { 
   CREDIT_SYSTEM, 
   calculateCreditsPerClip, 
@@ -53,13 +51,6 @@ export const API_COSTS_CENTS = {
   RETRY_GENERATION: 80,     // Same as video generation
 } as const;
 
-interface BillingResult {
-  success: boolean;
-  error?: string;
-  creditsCharged?: number;
-  remainingBalance?: number;
-}
-
 interface CostLogParams {
   shotId: string;
   service: 'replicate' | 'elevenlabs' | 'openai';
@@ -73,134 +64,18 @@ interface CostLogParams {
 
 export function useCreditBilling() {
   const { user } = useAuth();
-  const [isCharging, setIsCharging] = useState(false);
+  const [isCharging] = useState(false);
 
-  // Charge pre-production credits (2 credits) - called when script/image generation starts
-  const chargePreProduction = useCallback(async (
-    projectId: string,
-    shotId: string,
-    creditsAmount?: number
-  ): Promise<BillingResult> => {
-    if (!user) {
-      return { success: false, error: 'User not authenticated' };
-    }
-
-    setIsCharging(true);
-    try {
-      const rpcParams: { p_project_id: string; p_shot_id: string; p_credits_amount?: number } = {
-        p_project_id: projectId,
-        p_shot_id: shotId,
-      };
-      if (creditsAmount !== undefined) {
-        rpcParams.p_credits_amount = creditsAmount;
-      }
-      const { data, error } = await supabase.rpc('charge_preproduction_credits', rpcParams as any);
-
-      if (error) throw error;
-
-      const result = data as { success: boolean; error?: string; credits_charged?: number; remaining_balance?: number };
-      
-      if (!result.success) {
-        toast.error(result.error || 'Insufficient credits for pre-production');
-        return { 
-          success: false, 
-          error: result.error || 'Insufficient credits'
-        };
-      }
-
-      return {
-        success: true,
-        creditsCharged: result.credits_charged,
-        remainingBalance: result.remaining_balance,
-      };
-    } catch (err) {
-      console.error('Pre-production billing error:', err);
-      return { success: false, error: 'Billing failed' };
-    } finally {
-      setIsCharging(false);
-    }
-  }, [user]);
-
-  // Charge production credits (6-9 credits depending on clip type) - called when video generation starts
-  const chargeProduction = useCallback(async (
-    projectId: string,
-    shotId: string,
-    creditsAmount?: number
-  ): Promise<BillingResult> => {
-    if (!user) {
-      return { success: false, error: 'User not authenticated' };
-    }
-
-    setIsCharging(true);
-    try {
-      const prodParams: { p_project_id: string; p_shot_id: string; p_credits_amount?: number } = {
-        p_project_id: projectId,
-        p_shot_id: shotId,
-      };
-      if (creditsAmount !== undefined) {
-        prodParams.p_credits_amount = creditsAmount;
-      }
-      const { data, error } = await supabase.rpc('charge_production_credits', prodParams as any);
-
-      if (error) throw error;
-
-      const result = data as { success: boolean; error?: string; credits_charged?: number; remaining_balance?: number };
-      
-      if (!result.success) {
-        toast.error(result.error || 'Insufficient credits for production');
-        return { 
-          success: false, 
-          error: result.error || 'Insufficient credits'
-        };
-      }
-
-      return {
-        success: true,
-        creditsCharged: result.credits_charged,
-        remainingBalance: result.remaining_balance,
-      };
-    } catch (err) {
-      console.error('Production billing error:', err);
-      return { success: false, error: 'Billing failed' };
-    } finally {
-      setIsCharging(false);
-    }
-  }, [user]);
-
-  // Refund credits on API failure
-  const refundCredits = useCallback(async (
-    projectId: string,
-    shotId: string,
-    reason: string
-  ): Promise<BillingResult> => {
-    if (!user) {
-      return { success: false, error: 'User not authenticated' };
-    }
-
-    try {
-      const { data, error } = await supabase.rpc('refund_production_credits', {
-        p_project_id: projectId,
-        p_shot_id: shotId,
-        p_reason: reason,
-      });
-
-      if (error) throw error;
-
-      const result = data as { success: boolean; credits_refunded?: number };
-      
-      if (result.credits_refunded && result.credits_refunded > 0) {
-        toast.info(`${result.credits_refunded} credits refunded due to: ${reason}`);
-      }
-
-      return {
-        success: true,
-        creditsCharged: result.credits_refunded,
-      };
-    } catch (err) {
-      console.error('Refund error:', err);
-      return { success: false, error: 'Refund failed' };
-    }
-  }, [user]);
+  // NOTE: Direct client-side charge/refund of production credits has been
+  // removed. Charging and refunding are server-authoritative only: edge
+  // functions reserve/consume/release credit holds (reserve_credits ->
+  // consume_credit_hold / release_credit_hold) with the service-role key.
+  // The legacy client RPCs (charge_preproduction_credits,
+  // charge_production_credits, refund_production_credits) trusted a
+  // client-supplied amount and allowed self-refund of already-delivered
+  // shots; they are now revoked from anon/authenticated (see migration
+  // 20260706001000_lock_legacy_client_credit_rpcs.sql). Do NOT re-add a
+  // client charge/refund path here.
 
   // Log API cost for profit tracking
   const logApiCost = useCallback(async (
@@ -284,9 +159,6 @@ export function useCreditBilling() {
   }, [user]);
 
   return {
-    chargePreProduction,
-    chargeProduction,
-    refundCredits,
     logApiCost,
     canAffordShots,
     isCharging,

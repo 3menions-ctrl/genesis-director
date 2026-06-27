@@ -86,6 +86,10 @@ export default function BusinessAssets() {
   const canUpload = hasPermission("producer");
   const canDelete = hasPermission("admin");
   const [assets, setAssets] = useState<BrandAsset[]>([]);
+  // brand-assets is a PRIVATE bucket (confidential org material). We mint
+  // short-lived signed URLs per asset on load instead of relying on public
+  // URLs — see migration 20260706001800_privatize_brand_assets_bucket.sql.
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -110,7 +114,18 @@ export default function BusinessAssets() {
       .order("created_at", { ascending: false });
     setLoading(false);
     if (error) { toast.error("Failed to load assets"); return; }
-    setAssets((data ?? []) as BrandAsset[]);
+    const rows = (data ?? []) as BrandAsset[];
+    setAssets(rows);
+    // Mint signed URLs for display (bucket is private; public URLs 403).
+    const paths = rows.map((r) => r.storage_path).filter(Boolean);
+    if (paths.length) {
+      const { data: signed } = await supabase.storage.from("brand-assets").createSignedUrls(paths, 3600);
+      const map: Record<string, string> = {};
+      (signed ?? []).forEach((s, i) => { if (s?.signedUrl) map[rows[i].id] = s.signedUrl; });
+      setSignedUrls(map);
+    } else {
+      setSignedUrls({});
+    }
   }, [currentOrg]);
 
   useEffect(() => { void load(); }, [load]);
@@ -129,14 +144,15 @@ export default function BusinessAssets() {
           cacheControl: "31536000", upsert: false,
         });
         if (upErr) throw upErr;
-        const { data: pub } = supabase.storage.from("brand-assets").getPublicUrl(path);
+        // Private bucket — no public URL. Persist the storage path as the stable
+        // reference; display URLs are minted as short-lived signed URLs on load.
         const { error: rowErr } = await (supabase as unknown as {
           from: (t: string) => { insert: (v: Record<string, unknown>) => Promise<{ error: { message: string } | null }> };
         }).from("organization_brand_assets").insert({
           organization_id: currentOrg.id,
           uploaded_by: user.id,
           kind, name: file.name, storage_path: path,
-          public_url: pub.publicUrl, mime_type: file.type, size_bytes: file.size,
+          public_url: path, mime_type: file.type, size_bytes: file.size,
         });
         if (rowErr) throw rowErr;
         success++;
@@ -380,7 +396,7 @@ export default function BusinessAssets() {
                 <StaggerItem key={a.id} className="group rounded-2xl overflow-hidden ring-1 ring-white/[0.07] bg-white/[0.015] hover:ring-white/20 transition-all">
                   <div className="aspect-square relative flex items-center justify-center" style={isImage ? CHECKER : undefined}>
                     {isImage ? (
-                      <img src={a.public_url} alt={a.name} loading="lazy" className="absolute inset-0 w-full h-full object-contain p-3" />
+                      <img src={signedUrls[a.id] ?? ""} alt={a.name} loading="lazy" className="absolute inset-0 w-full h-full object-contain p-3" />
                     ) : (
                       <div className="flex flex-col items-center gap-2.5 px-3 text-center">
                         <meta.Icon className="w-10 h-10 text-[hsl(215,100%,72%)]" strokeWidth={1.2} />
@@ -392,7 +408,7 @@ export default function BusinessAssets() {
                     </div>
                     {/* Hover action overlay */}
                     <div className="absolute top-2.5 right-2.5 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition">
-                      <a href={a.public_url} target="_blank" rel="noopener noreferrer"
+                      <a href={signedUrls[a.id] ?? "#"} target="_blank" rel="noopener noreferrer"
                          className="p-1.5 rounded-full bg-black/55 backdrop-blur text-white/70 hover:text-white ring-1 ring-white/10"
                          title="Open">
                         <ExternalLink className="w-3.5 h-3.5" />

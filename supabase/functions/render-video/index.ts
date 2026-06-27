@@ -29,7 +29,7 @@ serve(async (req) => {
   }
 
   try {
-    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const { validateAuth, unauthorizedResponse, forbiddenResponse } = await import("../_shared/auth-guard.ts");
     const auth = await validateAuth(req);
     if (!auth.authenticated) {
       return unauthorizedResponse(corsHeaders, auth.error);
@@ -46,6 +46,22 @@ serve(async (req) => {
 
     const body = await req.json();
     const action = body.action || "submit";
+
+    // ═══ IDOR GUARD: a non-service-role caller may only touch their own edit
+    // session. render-video uses a service-role client (RLS bypassed) keyed on
+    // a body-supplied sessionId — without this, any authenticated user could
+    // read another user's render_url (status) or clobber/flip their session
+    // (submit). Service-role (internal) callers bypass.
+    if (!auth.isServiceRole && body.sessionId) {
+      const { data: own } = await supabase
+        .from("edit_sessions")
+        .select("user_id")
+        .eq("id", body.sessionId)
+        .maybeSingle();
+      if (!own || own.user_id !== auth.userId) {
+        return forbiddenResponse(corsHeaders, "forbidden: not your session");
+      }
+    }
 
     // =========================================================================
     // STATUS: Poll Replicate prediction and return current state

@@ -45,6 +45,23 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with: { bun-version: latest }
       - run: bun install --frozen-lockfile
+
+      # ── Quality gate (audit fix): deploy-cloudflare ran independently of
+      # ci.yml and GitHub Actions cannot express a cross-workflow `needs:`, so
+      # type errors, failing tests, or a failing edge-auth audit still shipped
+      # to prod. Run the security-critical gate here so a red check blocks the
+      # publish below. Lint is intentionally non-blocking (known pre-existing
+      # red); typecheck / edge-auth / unit tests are hard gates.
+      - name: Lint (non-blocking)
+        run: bun run lint
+        continue-on-error: true
+      - name: Typecheck (gate)
+        run: bun run typecheck
+      - name: Edge-function auth audit (gate)
+        run: bun run audit:edge-auth
+      - name: Unit tests (gate)
+        run: bun run test
+
       - run: bun run build
       - name: Publish to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3

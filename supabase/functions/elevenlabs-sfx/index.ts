@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { validateAuth, unauthorizedResponse } from "../_shared/auth-guard.ts";
+import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -33,6 +35,24 @@ serve(async (req) => {
       );
     }
 
+    // ═══ CREDIT GATE: rate-limit + balance pre-check BEFORE the paid SFX call ═══
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const gateCtx = {
+      supabase: supabaseAdmin,
+      fnName: "elevenlabs-sfx",
+      userId: auth.userId,
+      isServiceRole: auth.isServiceRole,
+      projectId: null,
+      cost: 2,
+      dailyCap: 100,
+      corsHeaders,
+    };
+    const gateBlock = await preflightAiGate(gateCtx);
+    if (gateBlock) return gateBlock;
+
     console.log(`[ElevenLabs-SFX] Generating: "${prompt.substring(0, 100)}" (${duration || 5}s)`);
 
     const response = await fetch("https://api.elevenlabs.io/v1/sound-generation", {
@@ -59,6 +79,9 @@ serve(async (req) => {
 
     const audioBuffer = await response.arrayBuffer();
     console.log(`[ElevenLabs-SFX] ✅ Generated ${audioBuffer.byteLength} bytes`);
+
+    // ═══ CREDIT GATE: charge once now that SFX generated successfully ═══
+    await chargeAiGate(gateCtx);
 
     return new Response(audioBuffer, {
       headers: {

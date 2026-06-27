@@ -16,6 +16,12 @@ ALTER TABLE public.api_keys
 -- Expose scopes from the owner-lookup helper so api-v1 can authorize the
 -- request without a second round-trip. (Recreated with the same name +
 -- arg signature; SECURITY DEFINER / service-role usage is unchanged.)
+-- NOTE: prod applied 20260705010300 (2-col find_api_key_owner) WITHOUT this
+-- migration (out-of-order drift), so changing the TABLE return columns via a
+-- bare CREATE OR REPLACE aborts the push ("cannot change return type"). DROP
+-- first so the apply succeeds regardless of the prior column shape; harmless
+-- on a fresh DB.
+DROP FUNCTION IF EXISTS public.find_api_key_owner(text);
 CREATE OR REPLACE FUNCTION public.find_api_key_owner(p_key_hash text)
 RETURNS TABLE(api_key_id uuid, owner_user_id uuid, scopes text[])
 LANGUAGE sql

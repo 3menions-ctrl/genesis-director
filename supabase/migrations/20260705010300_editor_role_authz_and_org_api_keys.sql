@@ -67,6 +67,13 @@ AS $function$
   );
 $function$;
 
+-- 20260705000400 defined this as RETURNS TABLE(..., scopes text[]). Changing
+-- the TABLE return columns via CREATE OR REPLACE is rejected by Postgres
+-- ("cannot change return type of existing function"), which aborts a clean
+-- forward `db push`. DROP first so the apply succeeds. (The 3-col scopes
+-- variant is restored immediately after, in 20260706000100.)
+DROP FUNCTION IF EXISTS public.find_api_key_owner(text);
+
 CREATE OR REPLACE FUNCTION public.find_api_key_owner(p_key_hash text)
  RETURNS TABLE(api_key_id uuid, owner_user_id uuid)
  LANGUAGE sql

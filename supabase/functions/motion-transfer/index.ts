@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -66,6 +68,26 @@ serve(async (req) => {
     const modelVersion =
       Deno.env.get("MOTION_TRANSFER_MODEL_VERSION") ?? DEFAULT_MODEL_VERSION;
 
+    // ═══ CREDIT GATE: rate-limit + balance pre-check BEFORE the paid video call.
+    // Internal mode-router calls use the service-role key (already deducted
+    // credits there) so they auto-exempt; only direct end-user calls are gated. ═══
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const gateCtx = {
+      supabase: supabaseAdmin,
+      fnName: "motion-transfer",
+      userId: auth.userId,
+      isServiceRole: auth.isServiceRole,
+      projectId: null,
+      cost: 25,
+      dailyCap: 30,
+      corsHeaders,
+    };
+    const gateBlock = await preflightAiGate(gateCtx);
+    if (gateBlock) return gateBlock;
+
     console.log(
       `[MotionTransfer] Submitting prediction — mode=${mode}, modelVersion=${modelVersion.slice(0, 10)}…`,
     );
@@ -111,6 +133,9 @@ serve(async (req) => {
 
     const prediction = await predRes.json();
     console.log(`[MotionTransfer] ✅ Prediction created: ${prediction.id}`);
+
+    // ═══ CREDIT GATE: charge once now that the prediction was submitted ═══
+    await chargeAiGate(gateCtx);
 
     return new Response(
       JSON.stringify({

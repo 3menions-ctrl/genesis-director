@@ -71,7 +71,7 @@ serve(async (req) => {
   }
 
   // ═══ AUTH GUARD ═══
-  const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+  const { validateAuth, unauthorizedResponse, assertProjectOwnership } = await import("../_shared/auth-guard.ts");
   const auth = await validateAuth(req);
   if (!auth.authenticated) {
     return unauthorizedResponse(corsHeaders, auth.error);
@@ -93,6 +93,15 @@ serve(async (req) => {
   try {
     const request: CharacterGenerationRequest = await req.json();
     const { sceneContext, characterSpec, role, dialogueRole, projectId, saveToLibrary = true } = request;
+
+    // IDOR GUARD (audit / defense-in-depth): projectId is body-supplied but is
+    // NOT currently used for any project-scoped read/write here (the character is
+    // saved to the global avatar_templates library), so there is no active
+    // cross-tenant leak. We still verify ownership when a projectId is passed so
+    // the function can't be turned into a leak if projectId is later wired to
+    // scoped IO. Service-role bypasses; null projectId is skipped.
+    const ownErr = await assertProjectOwnership(supabase, auth, projectId, corsHeaders);
+    if (ownErr) return ownErr;
 
     console.log("[GenerateCharacter] ═══════════════════════════════════════════════════════");
     console.log(`[GenerateCharacter] Creating character: ${characterSpec.name}`);

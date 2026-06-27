@@ -20,7 +20,7 @@ serve(async (req) => {
 
   try {
     // ═══ AUTH GUARD ═══
-    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const { validateAuth, unauthorizedResponse, assertProjectOwnership } = await import("../_shared/auth-guard.ts");
     const auth = await validateAuth(req);
     if (!auth.authenticated) {
       return unauthorizedResponse(corsHeaders, auth.error);
@@ -35,6 +35,10 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // ═══ IDOR GUARD: caller must own the project (service-role bypasses) ═══
+    const ownErr = await assertProjectOwnership(supabase, auth, projectId, corsHeaders);
+    if (ownErr) return ownErr;
 
     // Get project data
     const { data: project, error: projectError } = await supabase

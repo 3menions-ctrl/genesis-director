@@ -618,6 +618,41 @@ serve(async (req) => {
       }
 
       if (prediction.status === "failed" || prediction.status === "canceled") {
+        // AUDIT FIX (charge-without-refund): credits were deducted at submit.
+        // When the prediction fails/cancels asynchronously, refund them 1:1.
+        // The submit path stashed the charge in api_cost_logs keyed by
+        // predictionId; refund off that and flip the row to 'refunded' so
+        // repeated status polls cannot multi-refund. (Editor clips don't reach
+        // the hold-based M1 refund path, so this is the only refund site.)
+        try {
+          const supabase = createClient(
+            Deno.env.get("SUPABASE_URL")!,
+            Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+          );
+          const { data: costLog } = await supabase
+            .from("api_cost_logs")
+            .select("id, credits_charged, status, metadata")
+            .eq("user_id", auth.userId)
+            .eq("metadata->>predictionId", predictionId)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          const charged = Number(costLog?.credits_charged || 0);
+          if (costLog && charged > 0 && costLog.status !== "refunded") {
+            const meta = (costLog.metadata || {}) as Record<string, unknown>;
+            await supabase.rpc("refund_credits", {
+              p_user_id: auth.userId,
+              p_amount: charged,
+              p_description: "Editor clip generation failed",
+              p_project_id: (meta.creditProjectId as string) ?? null,
+              p_idempotency_key: `editor-refund:${predictionId}`,
+            });
+            await supabase.from("api_cost_logs").update({ status: "refunded" }).eq("id", costLog.id);
+          }
+        } catch (refundErr) {
+          console.error("[editor-generate-clip] async refund failed:", refundErr);
+        }
+
         return new Response(JSON.stringify({
           status: "failed",
           error: prediction.error || "Generation failed",

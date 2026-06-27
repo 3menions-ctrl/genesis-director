@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -736,6 +737,23 @@ serve(async (req) => {
       }
     }
 
+    // ═══ CREDIT GATE: rate-limit + balance pre-check BEFORE the paid music call.
+    // Internal pipeline calls use the service-role key (music is bundled into
+    // video production credits there) so they auto-exempt; only direct end-user
+    // calls are charged. ═══
+    const gateCtx = {
+      supabase,
+      fnName: "generate-music",
+      userId: auth.userId,
+      isServiceRole: auth.isServiceRole,
+      projectId: projectId ?? null,
+      cost: 3,
+      dailyCap: 100,
+      corsHeaders,
+    };
+    const gateBlock = await preflightAiGate(gateCtx);
+    if (gateBlock) return gateBlock;
+
     // Generate world-class music with optimized settings based on mood
     const generationSettings = {
       temperature: intensity === 'explosive' ? 1.1 : 1.0,
@@ -833,7 +851,10 @@ serve(async (req) => {
       } catch (e) {
         console.warn("[Music] Cost log failed:", e);
       }
-      
+
+      // ═══ CREDIT GATE: charge once now that music generated successfully ═══
+      await chargeAiGate(gateCtx);
+
       return new Response(
         JSON.stringify({
           success: true,

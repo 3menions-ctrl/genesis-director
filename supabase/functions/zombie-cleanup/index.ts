@@ -478,7 +478,23 @@ serve(async (req) => {
       
       if (!updateError) {
         report.projectsFailed++;
-        
+
+        // AUDIT FIX (zombie double-refund): Phase 1 refunds this project's
+        // incomplete clips in aggregate (key zombie-refund:<projectId>). If we
+        // leave those clip rows in 'generating', PHASE 2 below picks them up and
+        // refunds each AGAIN (key zombie-clip-refund:<clipId>) — disjoint keys,
+        // so refund_credits idempotency can't dedupe. Mark them failed here so
+        // Phase 2 (which only selects status='generating') cannot touch them.
+        await supabase
+          .from('video_clips')
+          .update({
+            status: 'failed',
+            error_message: 'Project timed out after extended inactivity (zombie cleanup)',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('project_id', project.id)
+          .in('status', ['generating', 'pending']);
+
         // Issue refund if applicable
         if (refundAmount > 0) {
           // IDEMPOTENCY CHECK: Don't issue duplicate refunds

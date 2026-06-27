@@ -112,11 +112,11 @@ const SEEDANCE_MODEL_NAME = "seedance-2.0";
 const SEEDANCE_MODEL_URL = `https://api.replicate.com/v1/models/${SEEDANCE_MODEL_OWNER}/${SEEDANCE_MODEL_NAME}/predictions`;
 
 // ─── Wan 2.5 (Alibaba) — FREE TIER engine ──────────────────────────────────
-// Model: wan-ai/wan-2.5-t2v — text-to-video + image-to-video (5/10s clips).
+// Model: wan-video/wan-2.5-t2v — text-to-video (5/10s clips).
 // Chosen as the free-tier engine because it's cheap to run, the quality is
 // strong enough to demo the product, and Alibaba's pricing on Replicate
 // keeps the platform burn-rate sustainable on signup-grant credits.
-const WAN_MODEL_OWNER = "wan-ai";
+const WAN_MODEL_OWNER = "wan-video";
 const WAN_MODEL_NAME = "wan-2.5-t2v";
 const WAN_MODEL_URL = `https://api.replicate.com/v1/models/${WAN_MODEL_OWNER}/${WAN_MODEL_NAME}/predictions`;
 
@@ -295,7 +295,7 @@ const createReplicatePrediction = createKlingV3Prediction;
 /**
  * Create an Alibaba Wan 2.5 prediction via Replicate.
  *
- * Model: wan-ai/wan-2.5-t2v
+ * Model: wan-video/wan-2.5-t2v
  *   - Text-to-Video and Image-to-Video (start frame)
  *   - Duration: 5s or 10s
  *   - 1080p output, 24fps
@@ -318,10 +318,15 @@ async function createWan25Prediction(
   // Wan 2.5: durations 5s or 10s — snap to nearest.
   const duration = durationSeconds <= 7 ? 5 : 10;
 
+  // wan-video/wan-2.5-t2v takes `size` (WIDTH*HEIGHT), NOT `aspect_ratio`.
+  const wanSize = aspectRatio === '9:16' ? '720*1280'
+    : aspectRatio === '1:1' ? '960*960'
+    : '1280*720';
+
   const input: Record<string, any> = {
     prompt: prompt.slice(0, 2500),
     duration,
-    aspect_ratio: aspectRatio,
+    size: wanSize,
     seed: Math.floor(Math.random() * 2147483647),
   };
   if (startImageUrl && startImageUrl.startsWith("http")) {
@@ -1060,7 +1065,7 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   // ═══ AUTH GUARD: Prevent unauthorized API credit consumption ═══
-  const { validateAuth, unauthorizedResponse, resolveEffectiveUserId, forbiddenResponse } =
+  const { validateAuth, unauthorizedResponse, resolveEffectiveUserId, forbiddenResponse, assertProjectOwnership } =
     await import("../_shared/auth-guard.ts");
   const auth = await validateAuth(req);
   if (!auth.authenticated) {
@@ -1126,6 +1131,27 @@ serve(async (req) => {
 
     if (!projectId || !prompt) {
       throw new Error("projectId and prompt are required");
+    }
+
+    // ═══ SECURITY: credit reservation required for end-user calls ═══
+    // Billing here happens solely via consumeHold(holdId), which is a no-op
+    // when holdId is absent. An end-user (non-service-role) invocation without
+    // a hold would therefore run a paid Replicate/Kling render for FREE.
+    // Internal/service-role callers (hollywood-pipeline / continue-production)
+    // manage credits upstream and may proceed without a per-clip hold.
+    if (!auth.isServiceRole && !holdId) {
+      return new Response(
+        JSON.stringify({ success: false, error: "CREDIT_RESERVATION_REQUIRED" }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // ═══ IDOR GUARD: end-user callers may only generate into a project they
+    // own (service-role/pipeline bypasses). Without this, an authenticated user
+    // could pass a victim's projectId and mutate its pipeline_state / locks.
+    {
+      const ownErr = await assertProjectOwnership(supabase, auth, projectId, corsHeaders);
+      if (ownErr) return ownErr;
     }
 
     // ── Continuity payload (server-side ordering enforcement) ────────────
@@ -1212,7 +1238,7 @@ serve(async (req) => {
       console.log(`[SingleClip] 🎭 Avatar mode + Seedance: visuals via Seedance, TTS audio overlaid in post-stitch`);
     }
     const ENGINE_ROUTE_LABEL: Record<BackendEngine, string> = {
-      wan:      'wan-ai/wan-2.5-t2v',
+      wan:      'wan-video/wan-2.5-t2v',
       kling:    'kwaivgi/kling-v3-video',
       seedance: 'bytedance/seedance-2.0',
       veo:      'google/veo-3-fast',
@@ -1652,7 +1678,7 @@ serve(async (req) => {
 
     let predictionId: string;
     if (videoEngine === 'wan') {
-      console.log(`[SingleClip] ══ ROUTING TO WAN 2.5 (wan-ai/wan-2.5-t2v) — FREE TIER ══`);
+      console.log(`[SingleClip] ══ ROUTING TO WAN 2.5 (wan-video/wan-2.5-t2v) — FREE TIER ══`);
       const wanResult = await createWan25Prediction(
         tuneForEngine('wan', enhancedPrompt, { isAvatarMode, hasStartImage }),
         validatedStartImage,

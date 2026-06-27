@@ -113,6 +113,37 @@ export function forbiddenResponse(
   );
 }
 
+/**
+ * Project-ownership IDOR guard.
+ *
+ * Many functions build a SERVICE_ROLE client (RLS bypassed) and then key reads/
+ * writes on a body-supplied projectId. validateAuth only proves the caller is
+ * *some* authenticated user, so without this check any logged-in user can pass a
+ * victim's projectId. Service-role callers (internal pipelines) bypass.
+ *
+ * Returns a 403 Response to return early, or null when the caller is allowed to
+ * proceed. Pass a `select`-capable supabase client.
+ */
+export async function assertProjectOwnership(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  auth: AuthResult,
+  projectId: string | null | undefined,
+  corsHeaders: Record<string, string>,
+): Promise<Response | null> {
+  if (auth.isServiceRole) return null;          // internal/service-role bypass
+  if (!projectId) return null;                  // nothing to verify
+  const { data } = await supabase
+    .from('movie_projects')
+    .select('user_id')
+    .eq('id', projectId)
+    .maybeSingle();
+  if (!data || data.user_id !== auth.userId) {
+    return forbiddenResponse(corsHeaders, 'forbidden: not your project');
+  }
+  return null;
+}
+
 // =========================================================================
 // Cron / service-role / webhook trust boundaries
 // =========================================================================

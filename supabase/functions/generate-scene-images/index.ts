@@ -296,7 +296,7 @@ serve(async (req) => {
 
   try {
     // ═══ AUTH GUARD ═══
-    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const { validateAuth, unauthorizedResponse, resolveEffectiveUserId, forbiddenResponse, assertProjectOwnership } = await import("../_shared/auth-guard.ts");
     const auth = await validateAuth(req);
     if (!auth.authenticated) {
       return unauthorizedResponse(corsHeaders, auth.error);
@@ -305,7 +305,7 @@ serve(async (req) => {
     const {
       scenes,
       projectId,
-      userId,
+      userId: bodyUserId,
       visualStyle,
       globalStyle,
       globalCharacters,
@@ -315,6 +315,18 @@ serve(async (req) => {
 
     if (!scenes || scenes.length === 0) {
       throw new Error("Scenes array is required");
+    }
+
+    // SECURITY: pin userId to the JWT for end-user calls (never trust the body);
+    // service-role may pass an explicit userId. Prevents writing media rows /
+    // scene images under another user's id.
+    let userId: string | undefined;
+    try {
+      userId = (bodyUserId !== undefined || !auth.isServiceRole)
+        ? resolveEffectiveUserId(auth, bodyUserId)
+        : undefined;
+    } catch (e) {
+      return forbiddenResponse(corsHeaders, (e as Error).message);
     }
 
     const effectiveProjectId = projectId || `temp-${Date.now()}`;
@@ -331,6 +343,15 @@ serve(async (req) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // ═══ IDOR GUARD: if an existing projectId is supplied, the caller must own
+    // it (service-role bypasses). Prevents overwriting another tenant's
+    // scene_images / driving their pipeline. Temp ids (no projectId) are skipped.
+    {
+      const ownErr = await assertProjectOwnership(supabase, auth, projectId, corsHeaders);
+      if (ownErr) return ownErr;
+    }
+
     const styleToUse = visualStyle || globalStyle;
 
     console.log(`[SceneImages] ═══ FLUX 1.1 Pro Ultra + Cinematographic Prompt Engine ═══`);

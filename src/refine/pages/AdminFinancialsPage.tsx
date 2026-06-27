@@ -57,6 +57,11 @@ export default function AdminFinancialsPage() {
       // generations are internal credit grants, NOT cash refunds — they
       // must never be subtracted from revenue. Cash refunds would arrive
       // via Polar webhooks as a separate transaction class.
+      // AUDIT NOTE (synthetic revenue): this is a NOMINAL estimate, not actual
+      // Polar cash. The ledger has no cents column, and bulk packages price
+      // credits below $0.10 (agency+ ≈ $0.078), so credits×$0.10 OVERSTATES real
+      // revenue. Figures are surfaced as "(est.)" in the UI. Replace with real
+      // Polar settlement amounts when a cash column / webhook feed exists.
       const CREDIT_PRICE_CENTS = 10.0;
 
       // Revenue total must cover ALL purchases, not just the latest 100.
@@ -140,10 +145,10 @@ export default function AdminFinancialsPage() {
     <div className="space-y-12 animate-fade-in">
       {/* KPI rail — floating figures */}
       <div className="grid grid-cols-2 gap-x-10 gap-y-12 lg:grid-cols-4">
-        <StatOrb index={0} icon={DollarSign} aura={CYAN} accentNumber label="Revenue" value={fmt(revenue)} sub={`${purchaseCount} purchase${purchaseCount === 1 ? "" : "s"} · ${creditsSold} credits sold`} />
+        <StatOrb index={0} icon={DollarSign} aura={CYAN} accentNumber label="Revenue (est.)" value={fmt(revenue)} sub={`est. @ nominal $0.10/credit · ${purchaseCount} purchase${purchaseCount === 1 ? "" : "s"} · ${creditsSold} credits sold`} />
         <StatOrb index={1} icon={ArrowDownRight} aura={ROSE} label="API Cost" value={fmt(apiCost)} sub={`${totalOps.toLocaleString()} operations`} />
-        <StatOrb index={2} icon={TrendingUp} aura={ACCENT_HSL} label="Net Profit" value={fmt(profit)} />
-        <StatOrb index={3} icon={BarChart3} aura={margin >= 70 ? CYAN : margin >= 50 ? AMBER : ROSE} label="Margin" value={fmtPct(margin)} sub="Target: 70-80%" />
+        <StatOrb index={2} icon={TrendingUp} aura={ACCENT_HSL} label="Net Profit (est.)" value={fmt(profit)} sub="revenue est. − API cost" />
+        <StatOrb index={3} icon={BarChart3} aura={margin >= 70 ? CYAN : margin >= 50 ? AMBER : ROSE} label="Margin (est.)" value={fmtPct(margin)} sub="Target: 70-80%" />
       </div>
 
       {/* Recent Polar purchases — Polar.sh is the billing provider; the legacy

@@ -55,7 +55,15 @@ serve(async (req) => {
   }
 
   const startTime = Date.now();
-  
+
+  // AUDIT FIX (charge-without-refund / stuck 'stitching'): parse the body ONCE
+  // up front. The error handler previously did `await req.clone().json()` AFTER
+  // the body was already consumed below, which throws ("Body already consumed")
+  // — so the project was never reset to 'error' and stuck in 'stitching',
+  // blocking retries. Reuse this parsed copy in both the main flow and catch.
+  let parsedBody: Partial<FinalAssemblyRequest> = {};
+  try { parsedBody = await req.json() as FinalAssemblyRequest; } catch { /* invalid/empty body — validated below */ }
+
   try {
     const { validateAuth, unauthorizedResponse, resolveEffectiveUserId, forbiddenResponse } = await import("../_shared/auth-guard.ts");
     const auth = await validateAuth(req);
@@ -77,7 +85,7 @@ serve(async (req) => {
       resolution,
       format,
       crf,
-    } = await req.json() as FinalAssemblyRequest;
+    } = parsedBody;
     // SECURITY: trust JWT, never the body, for end-user calls
     let userId: string | undefined;
     try {
@@ -362,9 +370,10 @@ serve(async (req) => {
     const errorMsg = error instanceof Error ? error.message : "Unknown error";
     console.error("[FinalAssembly] Error:", errorMsg);
     
-    // Try to update project with error state
+    // Try to update project with error state (reuse the pre-parsed body — the
+    // request stream is already consumed, so re-reading it here would throw).
     try {
-      const body = await req.clone().json() as FinalAssemblyRequest;
+      const body = parsedBody;
       if (body.projectId) {
         const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
         const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

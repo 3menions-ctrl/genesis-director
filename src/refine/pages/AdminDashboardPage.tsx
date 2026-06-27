@@ -1,18 +1,21 @@
 /**
  * AdminDashboardPage — Mission Control (Horizon kit).
  *
- * Borderless floating figures over the shared aurora: a StatOrb KPI rail, live
- * FloatSection visualizations, an attention queue and hub nav. Built entirely on
- * the canonical admin primitives (src/admin/ui) + AdminPageShell hero.
+ * Borderless floating figures over the shared aurora: a real-time live-ops strip,
+ * a StatOrb KPI rail, SLA/health chips, trend visualizations, a live activity
+ * feed, trending content, an attention queue and hub nav. Built on the canonical
+ * admin primitives (src/admin/ui) + AdminPageShell hero.
  *
- * Data path is preserved: one `admin_dashboard_pulse` RPC with a parallel-count
- * fallback, plus a real 14-day signups series for the trend chart.
+ * Data: admin_dashboard_pulse (+ parallel-count fallback) and a 14-day signups
+ * series, plus Phase-1 command-center RPCs — admin_live_ops, admin_sla,
+ * admin_activity_feed, admin_trending. The live strip + feed auto-refresh.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Activity, AlertTriangle, Coins, FolderKanban, MessageSquare, RefreshCw,
-  Sparkles, TrendingUp, Users, Wallet, Zap, ChevronRight, type LucideIcon,
+  Sparkles, TrendingUp, Users, Wallet, Zap, ChevronRight, Eye, Radio,
+  Clapperboard, UserPlus, Film, Flame, Clock, Play, type LucideIcon,
 } from "lucide-react";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -39,6 +42,11 @@ const empty: Pulse = {
   support:  { open_tickets: 0 },
 };
 
+interface LiveOps { active_visitors_5m: number; live_rooms: number; renders_in_flight: number; signups_1h: number; published_1h: number }
+interface Sla { oldest_ticket_min: number | null; oldest_render_min: number | null; failed_rate_24h: number | null; stuck_renders: number }
+interface Activity_ { kind: string; label: string; ref_id: string; occurred_at: string }
+interface Trend { reel_id: string; title: string; creator: string; plays: number; likes: number; tips: number }
+
 type ActionCard = { priority: "high" | "medium" | "low"; icon: LucideIcon; title: string; body: string; ctaLabel: string; ctaTo: string };
 const priorityRank = (p: ActionCard["priority"]) => (p === "high" ? 0 : p === "medium" ? 1 : 2);
 
@@ -50,12 +58,59 @@ const HUBS = [
   { icon: Zap, title: "System", sub: "API keys · webhooks · secrets · DB health", to: "/admin/system" },
 ];
 
+const compact = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1).replace(/\.0$/, "")}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1).replace(/\.0$/, "")}k` : String(n));
+const ago = (iso: string) => { const s = Math.max(1, Math.floor((Date.now() - new Date(iso).getTime()) / 1000)); return s < 60 ? `${s}s` : s < 3600 ? `${Math.floor(s / 60)}m` : s < 86400 ? `${Math.floor(s / 3600)}h` : `${Math.floor(s / 86400)}d`; };
+const mins = (m: number | null) => { if (m == null) return "—"; if (m < 60) return `${Math.round(m)}m`; const h = Math.floor(m / 60); return `${h}h ${Math.round(m % 60)}m`; };
+
+const ACT: Record<string, { icon: LucideIcon; color: string }> = {
+  signup: { icon: UserPlus, color: "hsl(150 70% 60%)" },
+  publish: { icon: Film, color: ACCENT_HSL },
+  render_failed: { icon: AlertTriangle, color: "hsl(350 90% 70%)" },
+  live: { icon: Radio, color: "hsl(330 90% 68%)" },
+};
+
+function LiveStat({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: number }) {
+  return (
+    <span className="inline-flex items-center gap-2.5">
+      <Icon className="h-4 w-4 text-white/45" strokeWidth={1.8} />
+      <span className="font-display text-[20px] font-semibold tabular-nums text-white" style={{ textShadow: `0 0 18px ${accent(0.4)}` }}>{compact(value)}</span>
+      <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-white/40">{label}</span>
+    </span>
+  );
+}
+
+function SlaChip({ label, value, bad }: { label: string; value: string | number; bad: boolean }) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full px-3 py-1.5" style={{ background: bad ? "hsl(350 90% 60% / 0.14)" : "rgba(255,255,255,0.05)" }}>
+      <Clock className="h-3 w-3" style={{ color: bad ? "hsl(350 90% 72%)" : "rgba(255,255,255,0.35)" }} />
+      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/45">{label}</span>
+      <span className={cn("font-display text-[13px] font-semibold tabular-nums", bad ? "text-rose-300" : "text-white/80")}>{value}</span>
+    </span>
+  );
+}
+
 export default function AdminDashboardPage() {
   const [pulse, setPulse] = useState<Pulse>(empty);
   const [series, setSeries] = useState<{ day: string; signups: number }[]>([]);
+  const [liveOps, setLiveOps] = useState<LiveOps | null>(null);
+  const [sla, setSla] = useState<Sla | null>(null);
+  const [activity, setActivity] = useState<Activity_[]>([]);
+  const [trending, setTrending] = useState<Trend[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // Lightweight live refresh — the "right now" strip, SLA, and feed.
+  const pollLive = useCallback(async () => {
+    const [lo, sl, af] = await Promise.all([
+      supabase.rpc("admin_live_ops" as never),
+      supabase.rpc("admin_sla" as never),
+      supabase.rpc("admin_activity_feed" as never, { _limit: 18 } as never),
+    ]) as Array<{ data: unknown; error: unknown }>;
+    if (!lo.error && lo.data) setLiveOps(((lo.data as LiveOps[]) ?? [])[0] ?? null);
+    if (!sl.error && sl.data) setSla(((sl.data as Sla[]) ?? [])[0] ?? null);
+    if (!af.error && af.data) setActivity((af.data as Activity_[]) ?? []);
+  }, []);
 
   const load = useCallback(async (silent = false) => {
     if (silent) setRefreshing(true); else setLoading(true);
@@ -93,15 +148,22 @@ export default function AdminDashboardPage() {
       }
       setSeries(Array.from(buckets.entries()).map(([k, v]) => ({ day: k.slice(5), signups: v })));
 
+      // Phase-1 command-center widgets.
+      const tr = await supabase.rpc("admin_trending" as never, { _limit: 6 } as never) as { data: unknown; error: unknown };
+      if (!tr.error && tr.data) setTrending((tr.data as Trend[]) ?? []);
+      await pollLive();
+
       setLastUpdated(new Date());
     } catch (e) {
       console.error("[AdminDashboard] load error", e);
     } finally {
       setLoading(false); setRefreshing(false);
     }
-  }, []);
+  }, [pollLive]);
 
   useEffect(() => { void load(); }, [load]);
+  // Auto-refresh the live strip + feed every 20s.
+  useEffect(() => { const id = window.setInterval(() => { void pollLive(); }, 20000); return () => window.clearInterval(id); }, [pollLive]);
 
   const cards = useMemo<ActionCard[]>(() => {
     const items: ActionCard[] = [];
@@ -138,6 +200,29 @@ export default function AdminDashboardPage() {
       }
     >
       <div className="space-y-14">
+        {/* Live-ops strip — the "right now", auto-refreshing every 20s */}
+        <div className="flex flex-wrap items-center gap-x-9 gap-y-4">
+          <span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-emerald-300/80">
+            <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" /><span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" /></span>
+            Live now
+          </span>
+          <LiveStat icon={Eye} label="visitors · 5m" value={liveOps?.active_visitors_5m ?? 0} />
+          <LiveStat icon={Radio} label="live rooms" value={liveOps?.live_rooms ?? 0} />
+          <LiveStat icon={Clapperboard} label="rendering" value={liveOps?.renders_in_flight ?? 0} />
+          <LiveStat icon={UserPlus} label="sign-ups · 1h" value={liveOps?.signups_1h ?? 0} />
+          <LiveStat icon={Film} label="published · 1h" value={liveOps?.published_1h ?? 0} />
+        </div>
+
+        {/* SLA / health chips */}
+        {sla && (
+          <div className="flex flex-wrap gap-3">
+            <SlaChip label="Failed · 24h" value={`${sla.failed_rate_24h ?? 0}%`} bad={(sla.failed_rate_24h ?? 0) > 10} />
+            <SlaChip label="Stuck renders" value={sla.stuck_renders} bad={sla.stuck_renders > 0} />
+            <SlaChip label="Oldest ticket" value={mins(sla.oldest_ticket_min)} bad={(sla.oldest_ticket_min ?? 0) > 1440} />
+            <SlaChip label="Oldest render" value={mins(sla.oldest_render_min)} bad={(sla.oldest_render_min ?? 0) > 60} />
+          </div>
+        )}
+
         {/* KPI rail — floating figures */}
         <div className="grid grid-cols-2 gap-x-10 gap-y-12 md:grid-cols-3 xl:grid-cols-6">
           <StatOrb index={0} aura={ORB_AURAS[0]} label="Total users" value={pulse.users.total_users} icon={Users} delta={pulse.users.signups_24h} deltaLabel="today" sparkData={spark} />
@@ -210,6 +295,62 @@ export default function AdminDashboardPage() {
                 ))}
               </div>
             </div>
+          </FloatSection>
+        </div>
+
+        {/* Live activity feed + Trending content */}
+        <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-[1fr_1fr]">
+          <FloatSection title="Live activity" meta="latest events">
+            {activity.length === 0 ? (
+              <div className="py-12 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/30">No activity yet.</div>
+            ) : (
+              <div className="max-h-[380px] space-y-1 overflow-y-auto pr-1">
+                {activity.map((a, i) => {
+                  const cfg = ACT[a.kind] ?? { icon: Activity, color: "rgba(255,255,255,0.5)" };
+                  const Icon = cfg.icon;
+                  return (
+                    <div key={a.kind + a.ref_id + i} className="flex items-center gap-3 rounded-lg px-2 py-2">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: `${cfg.color}1f`, color: cfg.color }}><Icon className="h-4 w-4" strokeWidth={1.9} /></span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[13.5px] text-white/85">{a.label}</span>
+                        <span className="block font-mono text-[9px] uppercase tracking-[0.14em] text-white/35">{a.kind.replace("_", " ")}</span>
+                      </span>
+                      <span className="shrink-0 font-mono text-[10px] tabular-nums text-white/40">{ago(a.occurred_at)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </FloatSection>
+
+          <FloatSection title={<span className="inline-flex items-center gap-2"><Flame className="h-3.5 w-3.5 text-amber-300" /> Trending</span>} meta="top reels by plays">
+            {trending.length === 0 ? (
+              <div className="py-12 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-white/30">No reels yet.</div>
+            ) : (
+              <div>
+                {trending.map((r, i) => (
+                  <FloatRow
+                    key={r.reel_id}
+                    last={i === trending.length - 1}
+                    left={
+                      <span className="flex items-center gap-3.5">
+                        <span className="w-5 text-center font-display text-[15px] font-semibold" style={{ color: i === 0 ? "hsl(45 100% 65%)" : "rgba(255,255,255,0.3)" }}>{i + 1}</span>
+                        <span className="min-w-0">
+                          <span className="block truncate font-display text-[14px] font-semibold text-white">{r.title}</span>
+                          <span className="block truncate font-mono text-[10px] uppercase tracking-[0.12em] text-white/40">{r.creator}</span>
+                        </span>
+                      </span>
+                    }
+                    right={
+                      <span className="flex items-center gap-3 font-mono text-[11px] tabular-nums text-white/55">
+                        <span className="inline-flex items-center gap-1"><Play className="h-3 w-3" />{compact(r.plays)}</span>
+                        {r.tips > 0 && <span className="inline-flex items-center gap-1 text-amber-300/80"><Coins className="h-3 w-3" />{compact(r.tips)}</span>}
+                      </span>
+                    }
+                  />
+                ))}
+              </div>
+            )}
           </FloatSection>
         </div>
 

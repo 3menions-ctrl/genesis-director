@@ -38,6 +38,11 @@ import { BridgeIntro as StudioIntro } from "@/components/intro/BridgeIntro";
 const INTRO_DURATION_MS = 7500; // full StudioIntro ceremony — every act plays through
 const INTRO_HOLD_MS     = 1000; // one-second hold on the final wordmark before video starts
 
+// Multi-emoji reactions for the immersive theater. Persisted to reel_reactions
+// (reel_id, reactor_id, reaction_url=emoji) — RLS lets a user toggle their own
+// and everyone read. A tap fires a floating burst + an optimistic count update.
+const REACTION_EMOJIS = ["🔥", "❤️", "😂", "😮", "👏", "🎬"] as const;
+
 export interface TheaterReel {
   id: string;
   title: string;
@@ -93,6 +98,11 @@ export function ImmersiveTheater({ reel, onClose, queue, onSwitch }: Props) {
   const [composeBody, setComposeBody] = useState("");
   const [posting, setPosting] = useState(false);
   const [commentLikes, setCommentLikes] = useState<Set<string>>(new Set());
+  // Emoji reactions (reel_reactions): aggregate counts, the viewer's own set,
+  // and transient floating bursts on tap.
+  const [reactionCounts, setReactionCounts] = useState<Record<string, number>>({});
+  const [myReactions, setMyReactions] = useState<Set<string>>(new Set());
+  const [bursts, setBursts] = useState<Array<{ id: number; emoji: string }>>([]);
   // Brand-ident intro is RETIRED — reels now play immediately. The
   // "Small Bridges" branded animation lives only on the landing entrance.
   // `introPlaying` stays false so the curtain never mounts; the dormant
@@ -183,12 +193,32 @@ export function ImmersiveTheater({ reel, onClose, queue, onSwitch }: Props) {
     setMuted(true);
     setPlaying(true);
     setComposeBody("");
+    setReactionCounts({});
+    setMyReactions(new Set());
+    setBursts([]);
     // Brand intro retired — the reel plays immediately, no pre-roll curtain.
     // Cancel any stray hold timer from a previous reel just in case.
     if (introHoldTimerRef.current !== null) {
       window.clearTimeout(introHoldTimerRef.current);
       introHoldTimerRef.current = null;
     }
+    // Load this reel's emoji reactions (public read) + the viewer's own set.
+    (async () => {
+      const { data } = await supabase
+        .from("reel_reactions" as never)
+        .select("reaction_url, reactor_id")
+        .eq("reel_id", reel.id);
+      const rows = (data ?? []) as Array<{ reaction_url: string; reactor_id: string }>;
+      const counts: Record<string, number> = {};
+      const mine = new Set<string>();
+      for (const r of rows) {
+        if (!r.reaction_url) continue;
+        counts[r.reaction_url] = (counts[r.reaction_url] ?? 0) + 1;
+        if (user && r.reactor_id === user.id) mine.add(r.reaction_url);
+      }
+      setReactionCounts(counts);
+      setMyReactions(mine);
+    })();
     // Optimistic: check if user already liked
     (async () => {
       if (!user) return;
@@ -296,6 +326,33 @@ export function ImmersiveTheater({ reel, onClose, queue, onSwitch }: Props) {
       toast.error(e instanceof Error ? e.message : "Couldn't update like");
     }
   }, [liked, reel, user]);
+
+  // Toggle an emoji reaction. Always fires a floating burst (feels alive),
+  // optimistically updates counts, and persists to reel_reactions.
+  const react = useCallback(async (emoji: string) => {
+    if (!reel) return;
+    if (!user) { toast.error("Sign in to react"); return; }
+    const had = myReactions.has(emoji);
+    const burstId = Date.now() + Math.floor(Math.random() * 1000);
+    setBursts((b) => [...b, { id: burstId, emoji }]);
+    window.setTimeout(() => setBursts((b) => b.filter((x) => x.id !== burstId)), 1400);
+    setMyReactions((s) => { const n = new Set(s); if (had) n.delete(emoji); else n.add(emoji); return n; });
+    setReactionCounts((c) => ({ ...c, [emoji]: Math.max(0, (c[emoji] ?? 0) + (had ? -1 : 1)) }));
+    try {
+      if (had) {
+        await supabase.from("reel_reactions" as never).delete()
+          .eq("reel_id", reel.id).eq("reactor_id", user.id).eq("reaction_url", emoji);
+      } else {
+        await supabase.from("reel_reactions" as never)
+          .insert({ reel_id: reel.id, reactor_id: user.id, reaction_url: emoji } as never);
+      }
+    } catch (e) {
+      // rollback membership + count on failure
+      setMyReactions((s) => { const n = new Set(s); if (had) n.add(emoji); else n.delete(emoji); return n; });
+      setReactionCounts((c) => ({ ...c, [emoji]: Math.max(0, (c[emoji] ?? 0) + (had ? 1 : -1)) }));
+      toast.error(e instanceof Error ? e.message : "Couldn't react");
+    }
+  }, [reel, user, myReactions]);
 
   const remix = useCallback(async () => {
     if (!reel) return;
@@ -574,6 +631,49 @@ export function ImmersiveTheater({ reel, onClose, queue, onSwitch }: Props) {
                     Up next: {next.title.length > 28 ? next.title.slice(0, 27) + "…" : next.title}
                   </button>
                 )}
+              </div>
+
+              {/* Emoji reactions — tap to react; floats a burst + persists to reel_reactions */}
+              <div className="relative mt-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  {REACTION_EMOJIS.map((em) => (
+                    <button
+                      key={em}
+                      type="button"
+                      onClick={() => void react(em)}
+                      aria-label={`React ${em}`}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 backdrop-blur-md transition-all active:scale-90",
+                        myReactions.has(em)
+                          ? "bg-white/20 ring-1 ring-white/40"
+                          : "bg-black/45 text-white/90 hover:bg-black/65",
+                      )}
+                    >
+                      <span className="text-[15px] leading-none">{em}</span>
+                      {reactionCounts[em] ? (
+                        <span className="font-mono text-[11px] text-white/85">{reactionCounts[em]}</span>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+                {/* floating burst layer — rises + fades on each tap */}
+                <div className="pointer-events-none absolute inset-x-0 bottom-8 z-50 overflow-visible">
+                  <AnimatePresence>
+                    {bursts.map((b, i) => (
+                      <motion.span
+                        key={b.id}
+                        initial={{ opacity: 0, y: 0, scale: 0.6 }}
+                        animate={{ opacity: [0, 1, 1, 0], y: -140, scale: 1.4 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 1.3, ease: "easeOut" }}
+                        className="absolute text-3xl"
+                        style={{ left: `${6 + (i % 6) * 11}%` }}
+                      >
+                        {b.emoji}
+                      </motion.span>
+                    ))}
+                  </AnimatePresence>
+                </div>
               </div>
             </div>
           )}

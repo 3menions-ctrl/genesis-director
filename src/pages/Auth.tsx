@@ -254,19 +254,32 @@ export default function Auth() {
 
   return (
     <div className="relative min-h-[100dvh] w-full bg-[#0a0b0f] text-foreground overflow-hidden">
-      {/* Cinematic film backdrop — phone/mobile only (desktop keeps the 2-pane hero). */}
-      <div className="pointer-events-none absolute inset-0 z-0 lg:hidden [&>*]:h-full [&>*]:w-full">
+      {/* Cinematic film backdrop — phone/mobile only (desktop keeps the 2-pane
+          hero). `fixed` so it covers UNDER the notch + home indicator on iPhone
+          (the global body has safe-area padding; fixed escapes it = immersive). */}
+      <div className="pointer-events-none fixed inset-0 z-0 lg:hidden [&>*]:h-full [&>*]:w-full">
         <AuthHeroStage bare />
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0b0f]/55 via-[#0a0b0f]/82 to-[#0a0b0f]/97" />
       </div>
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] min-h-[100dvh]">
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] lg:min-h-[100dvh]">
         {/* HERO — desktop only. */}
         <div className="hidden lg:block">
           <AuthHeroStage />
         </div>
 
-        {/* FORM column — borderless, generous spacing */}
-        <div className="relative flex items-center justify-center px-6 py-10 sm:px-10 md:py-14 lg:px-14">
+        {/* FORM column — iPhone gets a dedicated layout: a fixed, immersive,
+            scroll-centred container that respects the safe area and sits over
+            the film backdrop. `min-h-full` centres the form when it fits and
+            scrolls from the top when it's taller (small phones / keyboard).
+            Desktop (lg) reverts to the borderless grid cell. */}
+        <div className="fixed inset-0 z-10 overflow-y-auto lg:static lg:inset-auto lg:z-auto lg:overflow-visible">
+          <div
+            className="flex min-h-full items-center justify-center px-6 sm:px-10 lg:px-14"
+            style={{
+              paddingTop: "max(2.5rem, env(safe-area-inset-top))",
+              paddingBottom: "max(2.5rem, env(safe-area-inset-bottom))",
+            }}
+          >
           <motion.div
             initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
@@ -585,9 +598,10 @@ export default function Auth() {
                     </p>
                   </form>
 
-                  {/* Business account entry — only while creating an account */}
+                  {/* Business account entry — only while creating an account,
+                      and DESKTOP ONLY (hidden on phones per product). */}
                   {mode === "signup" && (
-                    <div className="mt-6">
+                    <div className="mt-6 hidden lg:block">
                       <div className="relative my-5" aria-hidden>
                         <div className="absolute inset-0 flex items-center">
                           <span className="w-full border-t border-white/[0.06]" />
@@ -620,6 +634,7 @@ export default function Auth() {
               )}
             </AnimatePresence>
           </motion.div>
+          </div>
         </div>
       </div>
     </div>

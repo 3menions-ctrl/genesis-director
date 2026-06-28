@@ -1219,7 +1219,7 @@ async function handleCinematicMode(params: {
   }
 
   // ENGINE ROUTING:
-  //   wan      → hollywood-pipeline (configured to dispatch to wan-ai/wan-2.5-t2v)
+  //   wan      → hollywood-pipeline (configured to dispatch to wan-video/wan-2.5-t2v)
   //   seedance → seedance-pipeline (also the forced engine for ALL breakouts)
   //   *        → hollywood-pipeline (kling default + veo + sora)
   //

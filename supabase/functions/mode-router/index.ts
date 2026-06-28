@@ -234,6 +234,9 @@ interface ModeRouterRequest {
   // Video engine selection — all modes now unified on Kling V3
   // 'kling' = avatar mode with native audio; anything else = standard T2V/I2V
   videoEngine?: 'wan' | 'kling' | 'veo' | 'seedance' | 'sora';
+  // Seedance native camera lock. Breakouts force true downstream; otherwise this
+  // explicit user-selected flag is forwarded to hollywood → generate-single-clip.
+  cameraFixed?: boolean;
   // Quality cores (4K upscale / 60fps interpolation). Forwarded to the
   // entry pipeline, which persists the intent for the finalizer to honor.
   qualityOptions?: { upscale4k?: boolean; fps60?: boolean };
@@ -634,6 +637,7 @@ serve(async (req) => {
           genre,
           mood,
           videoEngine, // CRITICAL: Forward engine selection to hollywood-pipeline
+          cameraFixed: request.cameraFixed, // Seedance camera lock (breakout forces true downstream)
           qualityOptions, // 4K / 60fps intent → persisted for the finalizer
           // Breakout template parameters - for platform UI shattering effect
           isBreakout,
@@ -992,6 +996,11 @@ async function handleAvatarCinematicMode(params: {
       userNarration: concept,
       preserveUserContent: true,
       videoEngine, // forward engine for DB lock / guard
+      // GATE KEY (regression #1): this path is seedance-only (guarded upstream) and
+      // runs hollywood's PARALLEL strategy, which auto-ran under the legacy
+      // seedance-pipeline. autoApprove:true bypasses the fail-closed approval gate
+      // (which keys on autoApprove===true, not requireApproval) so it auto-runs.
+      autoApprove: true,
     }),
   });
 
@@ -1181,6 +1190,7 @@ async function handleCinematicMode(params: {
   genre?: string;
   mood?: string;
   videoEngine?: 'wan' | 'kling' | 'veo' | 'seedance' | 'sora';
+  cameraFixed?: boolean;
   qualityOptions?: { upscale4k?: boolean; fps60?: boolean };
   // Breakout template parameters
   isBreakout?: boolean;
@@ -1198,7 +1208,7 @@ async function handleCinematicMode(params: {
   requireApproval?: boolean;
   supabase: any;
 }) {
-  const { projectId, userId, concept, referenceImageUrl, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, mode, genre, mood, videoEngine, qualityOptions, isBreakout, breakoutStartImageUrl, breakoutPlatform, breakoutDialogue, identityBible, characterLock, useTemplateShots, templateShotSequence, templateName, templateStyleAnchor, templateCharacters, templateEnvironmentLock, requireApproval, supabase } = params;
+  const { projectId, userId, concept, referenceImageUrl, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, mode, genre, mood, videoEngine, cameraFixed, qualityOptions, isBreakout, breakoutStartImageUrl, breakoutPlatform, breakoutDialogue, identityBible, characterLock, useTemplateShots, templateShotSequence, templateName, templateStyleAnchor, templateCharacters, templateEnvironmentLock, requireApproval, supabase } = params;
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -1254,6 +1264,8 @@ async function handleCinematicMode(params: {
       genre,
       mood,
       videoEngine: effectiveEngine, // CRITICAL: Forward engine selection (breakouts forced to seedance)
+      // Seedance camera lock — breakouts force true, else honor the user flag.
+      cameraFixed: isBreakout ? true : (cameraFixed ?? false),
       qualityOptions, // 4K / 60fps intent → entry pipeline persists for the finalizer
       // CRITICAL: Avatar mode flag survives the hop so generate-single-clip
       // applies avatar-specific routing (start image, dialogue, audio overlay).
@@ -1275,8 +1287,14 @@ async function handleCinematicMode(params: {
       templateEnvironmentLock,
       // Pause after the script is written so the user can approve it before any
       // clip renders. Parallel (seedance/breakout) auto-runs — gate bypassed
-      // above for engine parity with the legacy seedance-pipeline.
+      // for engine parity with the legacy seedance-pipeline.
       requireApproval: effectiveRequireApproval,
+      // GATE KEY (regression #1): hollywood's fail-closed approval gate keys ONLY
+      // on autoApprove===true and IGNORES requireApproval. Seedance narrative +
+      // forced-seedance breakouts auto-ran under the legacy seedance-pipeline, so
+      // pass autoApprove:true for the parallel engine to keep them auto-running.
+      // Sequential (cinematic/non-seedance) engines omit it → gate stays intact.
+      autoApprove: effectiveEngine === 'seedance' ? true : undefined,
     }),
   });
 

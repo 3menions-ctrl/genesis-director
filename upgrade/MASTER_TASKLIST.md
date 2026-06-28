@@ -30,7 +30,7 @@ Single source of truth. Supersedes and merges: `TASKLIST.md` (pipeline/editor/co
   HAVE: correct hold-aware logic in `_shared/pipeline-failure.ts`; zombie path ignores it → over-credit. DO: reuse `markProjectFailedAndRefund`. **Blocks T3.** Files: `zombie-cleanup`. *(TASKLIST A1.3)*
 - [ ] **T3 — Re-enable stuck-job recovery (watchdog/zombie crons)** · REVIVE · **P0** · M
   HAVE: full `pipeline-watchdog` + `zombie-cleanup` + `replicate-recovery.ts`, unscheduled (confirmed live: 3 jobs stuck 6–7h). DO: `pg_cron` schedule (mirror the credit-hold reconciler), set `WATCHDOG_RESUME_ENABLED`. **Depends on T2.** Files: migration, `pipeline-watchdog`. *(TASKLIST A1.2 + RUNTIME §3)*
-- [ ] **T4 — Boot env guard + workspace-loader timeout** · FIX · **P0** · S
+- [x] **T4 — Boot env guard + workspace-loader timeout** · FIX · **P0** · S · ✅ DONE (tsc+headless verified: config screen, 0 page errors)
   HAVE: `createClient` throws on missing env (white screen); `ProtectedRoute` profile/onboarding loaders have no timeout (infinite spin). DO: friendly env-missing screen; add a timeout→retry fallback to the profile-wait loader. Files: `src/integrations/supabase/client.ts`, `ProtectedRoute.tsx`. *(RUNTIME §2 — NEW, not in old TASKLIST)*
 - [ ] **T5 — Schema/types reconciliation** · FIX · **P1** · M
   HAVE: confirmed drift (`generation_mode` column gone; ~2,800-line `types.ts` drift; prod migration backlog). DO: reconcile `migration list`, regenerate `types.ts`, grep code for dropped/renamed columns. Files: migrations, `types.ts`, callers. *(RUNTIME §3 — NEW)*
@@ -47,7 +47,7 @@ Single source of truth. Supersedes and merges: `TASKLIST.md` (pipeline/editor/co
   HAVE: volume/fades/keyframe logic stranded in dead `PlayerCanvas` Effect A. DO: apply gain/fades in live `StitchedPlayer` (`rampElementGain`); animate opacity/scale via `getClipPropertyAt`; honor in T7 bake. Files: `StitchedPlayer.tsx`, `useAudioMixChain.ts`, `store.ts`. *(TASKLIST A2.3 + BLUEPRINT 1; pairs with T7/T8)*
 - [ ] **T10 — Real progress narration + honest stages** · WIRE · **P1** · M
   HAVE: backend emits `pipeline_state.{stage,message}`; UI ignores it and shows a fabricated % ramp + `Math.sin` waveform + a 3-state "8-phase" rail. DO: render real stage + rotating `message`; true determinate bar from clip counts; surface per-clip thumbnails as they land; drop the fake waveform. Pair: backend emits granular stage/message at each transition. Files: `Production.tsx`, `PipelineCreation.tsx`, `CinematicPipelineProgress.tsx`, `phases.ts`; backend `hollywood-pipeline`/`continue-production`/`seamless-stitcher`. *(TASKLIST A1.6+A3.3)*
-- [ ] **T11 — Celebrate completion + wire gamification** · WIRE · **P1** · S–M
+- [x] **T11 — Celebrate completion + wire gamification** · WIRE · **P1** · S–M · ✅ DONE (tsc+build verified)
   HAVE: `celebrate()` (confetti+sound) and full `useGamification` engine, both unused at render-done (success is a bare toast). DO: fire `celebrate()` + XP/streak/achievement on completion; richer success card (preview + share/download/edit). Files: `Production.tsx`, `celebrate.ts`, `useGamification.ts`, `gamification-event`. *(TASKLIST A3.1+A3.2)*
 - [ ] **T12 — Collapse duplicate visualizers** · UPGRADE · **P2** · S–M
   HAVE: `PipelineCreation` (full-screen) renders OVER `CinematicPipelineProgress` (inline) during a render. DO: keep one, feed it T10 data, remove the other. *(TASKLIST A3.4; do with T10)*

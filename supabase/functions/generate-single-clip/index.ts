@@ -63,11 +63,22 @@ function tuneForEngine(
       p += `\n\n[CAMERA] Cinematic anamorphic lens, deliberate movement, natural parallax. [LIGHT] Motivated practicals, soft key, controlled contrast.`;
     }
   } else if (engine === 'seedance') {
-    // Seedance 2.0 auto-frames; explicit lens/dolly jargon hurts it.
+    // Seedance 2.0 has NO native audio and auto-frames; explicit lens/dolly
+    // jargon hurts it, and dialogue/lip-sync/audio cues are dead weight (voice
+    // is muxed post-render by the stitcher). Strip both so the same prompt that
+    // drives the native-audio engines becomes Seedance-shaped here — making the
+    // shaping orchestrator-independent (the legacy seedance-pipeline used to do
+    // this externally).
     p = p.replace(/\b(85mm|24mm|35mm|50mm|anamorphic lens|dolly in|dolly out|pan left|pan right|zoom in|zoom out|crane shot|tracking shot)\b/gi, '')
+         // Strip dialogue/lip-sync/audio directives — Seedance can't voice them.
+         .replace(/\[(LIP-SYNC|AUDIO|DIALOGUE|VOICE|SOUND)\][^\n]*/gi, '')
+         .replace(/\b(lip[- ]sync|mouth shapes precisely match[^.]*\.|spoken dialogue|natural diegetic sound|ambient room tone)\b/gi, '')
          .replace(/\s{2,}/g, ' ').trim();
     if (!has(/\bphysics|inertia|specular|subsurface\b/i)) {
       p += `\n\nMotion: fluid hyperreal physics, weight and inertia honored. Lighting: photographic, motivated, believable specular highlights and skin subsurface scattering. Texture: filmic grain, no plastic CGI sheen.`;
+    }
+    if (!has(/\b24fps|photoreal|sharp focus\b/i)) {
+      p += `\n\n24fps, photoreal, sharp focus.`;
     }
   } else if (engine === 'veo') {
     // Veo 3 generates audio natively — explicit audio cues materially help.
@@ -375,6 +386,7 @@ async function createSeedancePrediction(
   aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
   durationSeconds: number = DEFAULT_CLIP_DURATION,
   endImageUrl?: string | null,
+  cameraFixed: boolean = false,
 ): Promise<{ predictionId: string }> {
   const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
   if (!REPLICATE_API_KEY) {
@@ -390,7 +402,11 @@ async function createSeedancePrediction(
     resolution: "1080p",
     aspect_ratio: aspectRatio,
     fps: 24,
-    camera_fixed: false,
+    // camera_fixed locks the virtual camera (no drift) — REQUIRED for breakout
+    // 4th-wall shots and identity-locked sequences. Threaded from the
+    // production_request so the orchestrator (not just the legacy seedance
+    // pipeline) can request a locked frame.
+    camera_fixed: cameraFixed,
     seed: Math.floor(Math.random() * 2147483647),
   };
 
@@ -1120,6 +1136,7 @@ serve(async (req) => {
       referenceImageUrl,
       sceneImageUrl,
       endImageUrl, // Optional target end-frame (Seedance 2.0 only)
+      cameraFixed = false, // Lock the virtual camera (Seedance) — breakout/identity-lock
       videoEngine: rawVideoEngine = "kling",
       isAvatarMode: isAvatarModeFlag = false, // Explicit flag — do NOT derive from videoEngine
       // Optional credit reservation handle. When present, we'll consume it on
@@ -1712,6 +1729,7 @@ serve(async (req) => {
         aspectRatio as '16:9' | '9:16' | '1:1',
         durationSeconds,
         endImageUrl, // Optional Seedance-only end-frame target
+        cameraFixed, // Locked camera for breakout / identity-lock shots
       );
       predictionId = seedanceResult.predictionId;
     } else if (videoEngine === 'runway') {

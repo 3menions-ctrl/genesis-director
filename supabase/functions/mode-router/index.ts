@@ -953,12 +953,11 @@ async function handleAvatarCinematicMode(params: {
   console.log(`[ModeRouter/AvatarCinematic] Routing to Hollywood Pipeline...`);
   console.log(`[ModeRouter/AvatarCinematic] User's speech text (${concept.length} chars): "${concept.substring(0, 100)}..."`);
 
-  // ENGINE ROUTING: Seedance avatars go to seedance-pipeline (Kling-only Hollywood
-  // would hard-reject). All others route to hollywood-pipeline.
-  const targetPipeline = (videoEngine === 'seedance')
-    ? 'seedance-pipeline'
-    : 'hollywood-pipeline';
-  console.log(`[ModeRouter/AvatarCinematic] Engine="${videoEngine}" → pipeline="${targetPipeline}"`);
+  // ENGINE ROUTING — UNIFIED: Seedance avatars now route to hollywood-pipeline
+  // too (it no longer hard-rejects seedance — it runs the PARALLEL dispatch
+  // strategy with TTS overlaid post-stitch). All engines share ONE orchestrator.
+  const targetPipeline = 'hollywood-pipeline';
+  console.log(`[ModeRouter/AvatarCinematic] Engine="${videoEngine}" → pipeline="${targetPipeline}" (unified)`);
 
   const pipelineResponse = await fetch(`${supabaseUrl}/functions/v1/${targetPipeline}`, {
     method: 'POST',
@@ -1218,18 +1217,21 @@ async function handleCinematicMode(params: {
     console.log(`[ModeRouter/Cinematic] 🛡️ BREAKOUT ENGINE LOCK: requested "${videoEngine}" overridden → "${effectiveEngine}"`);
   }
 
-  // ENGINE ROUTING:
-  //   wan      → hollywood-pipeline (configured to dispatch to wan-video/wan-2.5-t2v)
-  //   seedance → seedance-pipeline (also the forced engine for ALL breakouts)
-  //   *        → hollywood-pipeline (kling default + veo + sora)
-  //
-  // Wan currently piggybacks on hollywood-pipeline; the pipeline uses the
-  // `videoEngine` field to swap the Replicate model id, so this is just a
-  // routing shortcut, not a model swap.
-  const targetPipeline = (effectiveEngine === 'seedance')
-    ? 'seedance-pipeline'
-    : 'hollywood-pipeline';
-  console.log(`[ModeRouter/Cinematic] Engine="${effectiveEngine}" → pipeline="${targetPipeline}"`);
+  // ENGINE ROUTING — UNIFIED: ALL engines (incl. seedance + forced-seedance
+  // breakouts) now route to the single universal orchestrator hollywood-pipeline.
+  // Seedance no longer has a separate pipeline: hollywood selects the PARALLEL
+  // dispatch strategy for it at the Phase A/B seam (Promise.allSettled batch +
+  // last_frame_image continuity + post-mux audio). The legacy seedance-pipeline
+  // is left dormant (no callers) pending removal. `videoEngine` still selects the
+  // Replicate model id inside the spine.
+  const targetPipeline = 'hollywood-pipeline';
+  console.log(`[ModeRouter/Cinematic] Engine="${effectiveEngine}" → pipeline="${targetPipeline}" (unified)`);
+
+  // GATE PARITY (regression mitigation #2): seedance/breakouts auto-ran under the
+  // old seedance-pipeline. The parallel strategy must KEEP auto-running, so the
+  // fail-closed approval gate is bypassed for the parallel engine — matching the
+  // exact prior behavior. Script engines keep the existing shot-review gate.
+  const effectiveRequireApproval = (effectiveEngine === 'seedance') ? false : requireApproval;
 
   const pipelineResponse = await fetch(`${supabaseUrl}/functions/v1/${targetPipeline}`, {
     method: 'POST',
@@ -1272,9 +1274,9 @@ async function handleCinematicMode(params: {
       templateCharacters,
       templateEnvironmentLock,
       // Pause after the script is written so the user can approve it before any
-      // clip renders. Only hollywood-pipeline honors this; seedance-pipeline
-      // (and forced-seedance breakouts) auto-run, so it's a no-op there.
-      requireApproval,
+      // clip renders. Parallel (seedance/breakout) auto-runs — gate bypassed
+      // above for engine parity with the legacy seedance-pipeline.
+      requireApproval: effectiveRequireApproval,
     }),
   });
 

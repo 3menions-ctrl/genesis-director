@@ -40,7 +40,12 @@ pass; fix or downgrade the lint rule before making it a required check.)
   without Docker.
 - Migrations apply in timestamp order; prod has had out-of-band/Mgmt-API applies,
   so always check `supabase migration list` and reconcile history before a push.
-  As of 2026-06-27 prod == repo (0 pending).
+  ⚠️ STALE-CLAIM CORRECTED: `prod == repo (0 pending)` is NO LONGER true. The
+  `feat/creative-vfx-gen` branch carries ~24 migrations not on `main` (several
+  applied to prod out-of-band via the Mgmt API this session). Before merging,
+  reconcile with `supabase migration list`. Two same-timestamp collisions from
+  parallel-agent work were resolved by renaming the finishing/routing migrations
+  to `20260706008000`/`20260706009000`.
 - Money/credits live in `credit_transactions` (the ledger), NOT
   `profiles.credits_balance` (a cache).
 

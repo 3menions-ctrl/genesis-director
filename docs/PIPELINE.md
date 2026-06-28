@@ -149,8 +149,10 @@ flowchart TD
    *Open decision: do scriptless/quick-gen modes also pause, or stay exempt?*
 2. **Engine-slug reconciliation** — fix `model-catalog.ts` Wan slug to
    `wan-video/wan-2.5-t2v`; add a FE↔BE parity check so they can't drift.
-3. **Delete dead code** — the `python/**` engine is confirmed dead (live path is
-   edge fns + Replicate). Remove it and any orphaned references.
+3. ~~Delete dead code (`python/**`)~~ — **REVERSED.** `python/**` (breakout VFX,
+   comp_engine, photoreal) is **kept** as the procedural-VFX wedge, not deleted.
+   It is reference-only (not in the live edge-fn + Replicate path) — integrating
+   it (a Python edge runtime) is a separate effort, not cleanup.
 4. **Capability-driven dispatch** — fold the per-shot CAP check (Fig. 4) so a 7th
    engine is data, not new branches.
 5. **Quality post once, at finalize** — keep 4K/60fps as a single finalize pass,
@@ -158,7 +160,15 @@ flowchart TD
 
 ## 4. Production-superiority layers already shipped (this session)
 
-These plug into the design above and are **live in prod**:
+> ⚠️ "Shipped" = **edge functions deployed to prod**; the **UI lives only on
+> `feat/creative-vfx-gen` and is NOT merged to `main`**, so none of it is visible
+> on smallbridges.co until that branch merges + Vercel re-deploys. Also note: the
+> **Cast & Worlds library is a standalone reference library** — it does NOT yet
+> seed identity into generation (`director_cast` is not read by the pipeline).
+> "Best-of-N" was planned but **never built** (a separate "best-clip" quality
+> picker exists; do not confuse them).
+
+These plug into the design above (edge functions live in prod):
 - **Finishing Studio** — house-grade + 4K + 60fps finalize pass (Fig. 2 FIN).
 - **Per-shot model router** — Fig. 4, `routing_map` + `route-shots`.
 - **Universal lip-sync** — LatentSync over any engine's output (ASSETS/finalize).
@@ -240,7 +250,29 @@ shot-review. No client flag can leak a free render.
    through one loop. Keep stylize/motion-transfer on their handlers.
 3. **Stage 3 — fold the scriptless ops** (stylize, pose-transfer) into the loop.
    Delete the 5 handlers + the duplicate pipeline variant.
-4. **Stage 4 — cleanup.** Remove `python/**` (dead), reconcile `model-catalog.ts`
-   ↔ live slugs with a parity test, single capability table.
+4. **Stage 4 — cleanup.** Reconcile `model-catalog.ts` ↔ live slugs with a parity
+   test (editor catalog still shows stale `seedance-1-pro`/`kling-2-master`; the
+   live dispatch path is correct/verified), single capability table. (`python/**`
+   is **kept** — see §3.) Retire `seedance-pipeline` only after `api-v1` moves
+   onto the unified path.
 
 Each stage ships behind validation and is independently revertible.
+
+---
+
+## 7. Known open items (post-consolidation audit)
+
+Tracked so they don't become "why does this exist?" debt:
+- **`production-request.ts` is test-only scaffolding** — the canonical resolvers
+  aren't imported by runtime `mode-router` yet (Stage 1 normalization unfinished).
+  The *dispatch* unification is live; the *normalization* half is not.
+- **Cast & Worlds does not seed generation** — `director_cast` is a standalone
+  reference library; nothing reads it into a render. Wiring its reference image
+  as the project identity seed is an open feature.
+- **`requireApproval` is a dead flag** — kept for back-compat, ignored; gate keys
+  on `autoApprove`.
+- **`seedance-pipeline` is dormant** — reachable only via `api-v1`; mode-router no
+  longer routes to it.
+- **`free-tier-generate`** is orphaned (no free tier exists).
+- **Branch not merged** — all UI is on `feat/creative-vfx-gen`, invisible on the
+  live site until merge.

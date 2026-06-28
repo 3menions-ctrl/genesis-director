@@ -242,9 +242,10 @@ interface ModeRouterRequest {
   qualityOptions?: { upscale4k?: boolean; fps60?: boolean };
 
   // When true, the cinematic pipeline pauses at `awaiting_approval` after the
-  // script is written so the user can review/regenerate before any clip is
-  // rendered (Production page shows the ScriptApproval gate; resume-pipeline
-  // continues on approve). Only the hollywood-pipeline path honors this.
+  // @deprecated DEAD FLAG — no longer gates anything. The fail-closed approval
+  // gate in hollywood-pipeline keys ONLY on `autoApprove===true` (pausing is the
+  // default). This field is still accepted for backward-compat but is ignored;
+  // use `autoApprove` to opt OUT of the gate. Do not add new logic on this.
   requireApproval?: boolean;
 }
 
@@ -536,11 +537,12 @@ serve(async (req) => {
     // Route based on mode
     switch (mode) {
       case 'avatar':
-        // SEEDANCE LOCK: Seedance avatars MUST route through seedance-pipeline
-        // (generate-avatar-direct is Kling-only and would silently fall back).
-        // Use the cinematic avatar path which already engine-routes correctly.
+        // SEEDANCE AVATARS: route via the cinematic avatar path, which now
+        // dispatches to the UNIFIED hollywood-pipeline (parallel dispatch
+        // strategy) — NOT the legacy seedance-pipeline. generate-avatar-direct
+        // is Kling-only and would silently fall back, so we avoid it.
         if (videoEngine === 'seedance') {
-          console.log('[ModeRouter] Avatar + Seedance → routing through seedance-pipeline via cinematic avatar path');
+          console.log('[ModeRouter] Avatar + Seedance → hollywood-pipeline (parallel strategy) via cinematic avatar path');
           return await handleAvatarCinematicMode({
             projectId: projectId!,
             userId,

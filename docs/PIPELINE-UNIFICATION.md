@@ -1,5 +1,12 @@
 # One Pipeline, Many Branches — Unification Design & Execution Plan
 
+> ⚠️ **SUPERSEDED.** The authoritative pipeline design is now **`docs/PIPELINE.md`**
+> (canonical `production_request`, the per-shot operation abstraction, the
+> fail-closed gate, and the staged migration — partially executed this session:
+> seedance now runs through the unified `hollywood-pipeline` via a pluggable
+> dispatch strategy). This document is retained as alternative planning context;
+> where the two differ, `PIPELINE.md` wins.
+
 **Goal:** collapse the ~7 independent generation orchestrators into **one durable,
 staged pipeline** whose *only* per-case differences are **branches** (engine,
 mode, surface) — not separate codebases.

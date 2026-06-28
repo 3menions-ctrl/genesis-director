@@ -46,6 +46,7 @@ import { PipelineCreation } from '@/components/create/PipelineCreation';
 import { derivePipelineFromCounts, type PipelineProgress, type BoundaryType } from '@/lib/video/continuity';
 import { useCredits } from '@/contexts/CreditsContext';
 import { calculateCreditsForDurations } from '@/lib/creditSystem';
+import { celebrate, celebrateRender } from '@/lib/celebrate';
 
 // Soft look-strip gradients for the screenplay scene cards.
 const SCENE_GRADIENTS: [string, string][] = [
@@ -121,6 +122,8 @@ function ProductionContentInner() {
   const [auditScore, setAuditScore] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [startTime] = useState<number>(Date.now());
+  // Guards the render-complete celebration so it fires once per project (T11).
+  const celebratedProjectRef = useRef<string | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [completedClips, setCompletedClips] = useState(0);
   const [selectedClipUrl, setSelectedClipUrl] = useState<string | null>(null);
@@ -1007,6 +1010,32 @@ function ProductionContentInner() {
       return () => clearTimeout(timer);
     }
   }, [completedClips, expectedClipCount, projectStatus, autoStitchAttempted, isSimpleStitching, projectId, user, addLog, updateStageStatus]);
+
+  // T11 — Celebrate a finished render: confetti + sound + XP/streak, once per
+  // project. Watches the status transition so it fires regardless of which
+  // completion path (auto-stitch / realtime / manual) set 'completed'.
+  useEffect(() => {
+    if (projectStatus !== 'completed' || !projectId) return;
+    if (celebratedProjectRef.current === projectId) return;
+    celebratedProjectRef.current = projectId;
+
+    // First-ever completed video gets the special once-only moment; every
+    // subsequent render still celebrates (celebrate() returns false if already
+    // fired, so we fall back to the repeatable burst — no double confetti).
+    const firstTime = user?.id ? celebrate('first-video', user.id) : false;
+    if (!firstTime) celebrateRender();
+
+    // Gamification is best-effort — direct RPC (lighter than mounting the full
+    // gamification query stack here); errors are swallowed.
+    if (user?.id) {
+      supabase
+        .rpc('add_user_xp', { p_user_id: user.id, p_xp_amount: 50, p_reason: 'video_completed' })
+        .then(() => {}, () => {});
+      supabase
+        .rpc('update_user_streak', { p_user_id: user.id })
+        .then(() => {}, () => {});
+    }
+  }, [projectStatus, projectId, user?.id]);
 
 
   const handleRetryClip = async (clipIndex: number) => {

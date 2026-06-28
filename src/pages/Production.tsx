@@ -1524,6 +1524,7 @@ const transitionsData = useMemo(() =>
                   <Suspense fallback={<SectionLoader />}>
                     <GlassPanel className="p-6">
                       <ScriptReviewPanel
+                        projectId={projectId ?? undefined}
                         shots={scriptShots}
                         onApprove={handleApproveScript}
                         onRegenerate={handleRegenerateScript}

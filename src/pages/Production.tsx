@@ -680,6 +680,16 @@ function ProductionContentInner() {
         if (!project) return;
 
         setProjectStatus(project.status as string);
+        // Keep pipeline_state (stage / progress / message) live so the progress
+        // UI shows REAL backend narration instead of a fabricated ramp (T10).
+        if (project.pipeline_state) {
+          try {
+            const ps = typeof project.pipeline_state === 'string'
+              ? JSON.parse(project.pipeline_state)
+              : project.pipeline_state;
+            setPipelineState(ps as PipelineState);
+          } catch { /* ignore malformed */ }
+        }
         // PRIORITY: Check for manifest URL in pending_video_tasks first (realtime update)
         const realtimeTasks = parsePendingVideoTasks(project.pending_video_tasks);
         const realtimeManifestUrl = realtimeTasks?.manifestUrl;
@@ -1374,33 +1384,28 @@ const transitionsData = useMemo(() =>
       ? Math.max(expectedClipCount, avatarClips.length)
       : expectedClipCount;
     
-    // If no clips expected yet, use database progress (early pipeline stages)
+    // Real backend-reported progress (pipeline_state.progress / pending_video_tasks.progress).
+    // We prefer real signal over any fabricated ramp (T10 — honesty over false precision).
+    const backendProgress = typeof pipelineState?.progress === 'number' ? pipelineState.progress : progress;
+
+    // If no clips expected yet, trust the backend (early pipeline stages).
     if (effectiveExpected === 0) {
-      return progress;
+      return backendProgress;
     }
-    
-    // Per-clip progress weight
+
+    // Honest clip-count progress: only clips that have ACTUALLY completed count.
     const perClipWeight = 85 / effectiveExpected;
-    
-    // Completed clips get full weight
     const completedProgress = effectiveCompleted * perClipWeight;
-    
-    // Generating clips get partial weight that grows over time (simulates progress within a clip)
-    // Each tick (~3s) adds a bit, capping at 80% of per-clip weight
-    const generatingPartial = effectiveGenerating > 0
-      ? Math.min(perClipWeight * 0.8, (progressTick % 30) * (perClipWeight / 35)) * effectiveGenerating
-      : 0;
-    
-    // If stitching or later, show 85-95%
+
+    // Stitching / post: use the real backend value if it reports past the clip
+    // stage, otherwise hold at the clip ceiling (indeterminate, not fabricated).
     if (['stitching', 'post_production'].includes(projectStatus)) {
-      return 85 + Math.min(10, (progressTick % 10) * 1);
+      return Math.max(85, Math.min(98, backendProgress || 90));
     }
-    
-    const calculatedProgress = Math.min(completedProgress + generatingPartial, 85);
-    
-    // Ensure we never go below what we've shown before (monotonic increase)
-    return Math.max(calculatedProgress, Math.min(progress, calculatedProgress + 5));
-  }, [projectStatus, finalVideoUrl, expectedClipCount, completedClips, clipResults, progress, projectMode, avatarClips, progressTick]);
+
+    // The higher of honest clip-count and real backend progress — never invented.
+    return Math.min(95, Math.max(completedProgress, backendProgress));
+  }, [projectStatus, finalVideoUrl, expectedClipCount, completedClips, clipResults, progress, projectMode, avatarClips, pipelineState]);
 
   const failedClipsData = useMemo(() => 
     clipResults.filter(c => c.status === 'failed').map(c => ({
@@ -1439,6 +1444,26 @@ const transitionsData = useMemo(() =>
   // Live Continuity Engine progress model that drives the premium bridge.
   // Derived from the real clip counts, then enriched with shot labels +
   // inferred boundary types so the continuity chain reads like the film.
+  // Real "what's happening now" narration (T10): prefer the backend's own
+  // pipeline_state.message; otherwise rotate honest, stage-appropriate copy so
+  // the line never reads frozen (RESEARCH A3 — rotating microcopy, no fakery).
+  const liveMessage = useMemo<string | undefined>(() => {
+    const backend = (pipelineState as { message?: string } | null)?.message;
+    if (backend && backend.trim()) return backend;
+    const stage = pipelineStage || projectStatus || '';
+    const sets: Record<string, string[]> = {
+      preproduction: ['Reading your prompt…', 'Casting the scene…', 'Designing the shot list…'],
+      awaiting_approval: ['Waiting for your approval…'],
+      qualitygate: ['Locking character & world continuity…', 'Checking the script for consistency…'],
+      assets: ['Painting the storyboard…', 'Generating reference frames…'],
+      production: ['Filming the shots…', 'Chaining frames for continuity…', 'Directing the motion…'],
+      stitching: ['Stitching the cut together…', 'Aligning audio and video…'],
+      post_production: ['Mixing sound and music…', 'Final color and polish…'],
+    };
+    const pool = sets[stage] || ['Working on your film…', 'Rendering your scene…'];
+    return pool[progressTick % pool.length];
+  }, [pipelineState, pipelineStage, projectStatus, progressTick]);
+
   const livePipeline = useMemo<PipelineProgress>(() => {
     const shots = scriptShots ?? [];
     const generating = clipResults.filter((c) => c.status === 'generating').length;
@@ -1469,8 +1494,8 @@ const transitionsData = useMemo(() =>
           : 'CONTINUOUS';
       return { ...c, label: s?.title || c.label, boundaryType };
     });
-    return { ...base, clips };
-  }, [scriptShots, clipResults, projectStatus, completedClips, expectedClipCount, realTimeProgress]);
+    return { ...base, clips, message: liveMessage };
+  }, [scriptShots, clipResults, projectStatus, completedClips, expectedClipCount, realTimeProgress, liveMessage]);
 
   const showScriptApproval = isStandardMode && !!scriptShots && scriptShots.length > 0 && pipelineStage === 'awaiting_approval';
   // The Continuity Engine is the monitor for EVERY non-terminal standard-mode
@@ -1770,8 +1795,12 @@ const transitionsData = useMemo(() =>
                 </div>
               )}
 
-              {/* NEW: World-Class Cinematic Pipeline Animation */}
-              {!['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode) && (
+              {/* World-Class Cinematic Pipeline Animation. T12: during an active
+                  standard-mode build the full-screen <PipelineCreation> bridge
+                  already covers this — gate on !showBridge so the two
+                  visualizers don't stack (this still shows for terminal/error
+                  states, where showBridge is false). */}
+              {!['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode) && !showBridge && (
                 <ErrorBoundaryWrapper fallback={<MinimalFallback />}>
                   <Suspense fallback={<SectionLoader />}>
                     <CinematicPipelineProgress

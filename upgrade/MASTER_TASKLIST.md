@@ -45,11 +45,11 @@ Single source of truth. Supersedes and merges: `TASKLIST.md` (pipeline/editor/co
   HAVE: real equal-power canvas blend, but fires 320ms on every cut; user duration/kind ignored; a dead B-buffer effect. DO: drive the blend from `project.transitions[]` (kind+duration), default to hard cut; honor in preview AND the T7 bake. Files: `StitchedPlayer.tsx`, `PlayerCanvas.tsx`, `store.ts`. *(TASKLIST A2.2 + BLUEPRINT A1; pairs with T7)*
 - [ ] **T9 — Live per-clip audio/visual automation** · FIX · **P2** · M
   HAVE: volume/fades/keyframe logic stranded in dead `PlayerCanvas` Effect A. DO: apply gain/fades in live `StitchedPlayer` (`rampElementGain`); animate opacity/scale via `getClipPropertyAt`; honor in T7 bake. Files: `StitchedPlayer.tsx`, `useAudioMixChain.ts`, `store.ts`. *(TASKLIST A2.3 + BLUEPRINT 1; pairs with T7/T8)*
-- [ ] **T10 — Real progress narration + honest stages** · WIRE · **P1** · M
+- [x] **T10 — Real progress narration + honest stages** · WIRE · **P1** · M · ✅ DONE frontend (tsc+build+179 tests; backend emit half = staging)
   HAVE: backend emits `pipeline_state.{stage,message}`; UI ignores it and shows a fabricated % ramp + `Math.sin` waveform + a 3-state "8-phase" rail. DO: render real stage + rotating `message`; true determinate bar from clip counts; surface per-clip thumbnails as they land; drop the fake waveform. Pair: backend emits granular stage/message at each transition. Files: `Production.tsx`, `PipelineCreation.tsx`, `CinematicPipelineProgress.tsx`, `phases.ts`; backend `hollywood-pipeline`/`continue-production`/`seamless-stitcher`. *(TASKLIST A1.6+A3.3)*
 - [x] **T11 — Celebrate completion + wire gamification** · WIRE · **P1** · S–M · ✅ DONE (tsc+build verified)
   HAVE: `celebrate()` (confetti+sound) and full `useGamification` engine, both unused at render-done (success is a bare toast). DO: fire `celebrate()` + XP/streak/achievement on completion; richer success card (preview + share/download/edit). Files: `Production.tsx`, `celebrate.ts`, `useGamification.ts`, `gamification-event`. *(TASKLIST A3.1+A3.2)*
-- [ ] **T12 — Collapse duplicate visualizers** · UPGRADE · **P2** · S–M
+- [x] **T12 — Collapse duplicate visualizers** · UPGRADE · **P2** · S–M · ✅ DONE (gated inline behind !showBridge)
   HAVE: `PipelineCreation` (full-screen) renders OVER `CinematicPipelineProgress` (inline) during a render. DO: keep one, feed it T10 data, remove the other. *(TASKLIST A3.4; do with T10)*
 
 ## PHASE 2 — Quality revivals (P1–P2; wire dead scaffolding into the create flow — these are why the output isn't "awesome" yet)

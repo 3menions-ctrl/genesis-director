@@ -14,6 +14,7 @@ import {
   resolveOperation,
   resolveShotOperation,
   normalizeMode,
+  buildProductionRequest,
   HANDLER_COLLAPSE,
   type ProductionRequest,
 } from '../../../supabase/functions/_shared/production-request.ts';
@@ -112,6 +113,74 @@ describe('normalizeMode', () => {
     ['pose-transfer', 'motion-transfer'],
   ])('%s → %s', (ui, expected) => {
     expect(normalizeMode(ui)).toBe(expected);
+  });
+});
+
+describe('buildProductionRequest — normalizer parity with the legacy mode-router switch', () => {
+  it('text-to-video → script-generating t2v clip-loop, engine auto', () => {
+    const pr = buildProductionRequest({ mode: 'text-to-video', prompt: 'a city at dawn' });
+    expect(pr.mode).toBe('text');
+    expect(pr.script.generate).toBe(true);
+    expect(resolveEngine(pr)).toBe('kling'); // auto → kling base
+    expect(resolveOperation(pr)).toMatchObject({ operation: 't2v', executionLane: 'clip-loop' });
+  });
+
+  it('image-to-video → i2v with imageRef seed', () => {
+    const pr = buildProductionRequest({ mode: 'image-to-video', imageUrl: 'https://x/img.png', prompt: 'pan' });
+    expect(pr.mode).toBe('image');
+    expect(pr.inputs.imageRef).toBe('https://x/img.png');
+    expect(resolveOperation(pr)).toMatchObject({ operation: 'i2v', executionLane: 'clip-loop' });
+  });
+
+  it('avatar + seedance → CINEMATIC (script-generating, overlay audio, clip-loop)', () => {
+    const pr = buildProductionRequest({ mode: 'avatar', videoEngine: 'seedance', imageUrl: 'https://x/face.png' });
+    expect(pr.isAvatarMode).toBe(true);
+    expect(pr.script.generate).toBe(true);
+    expect(pr.cinematicMode).toBe(true);
+    expect(resolveAudioStrategy(pr)).toBe('overlay');
+    expect(resolveOperation(pr)).toMatchObject({ operation: 'avatar', executionLane: 'clip-loop' });
+  });
+
+  it('avatar (no seedance) → DIRECT (scriptless, verbatim TTS, single-pass leaf)', () => {
+    const pr = buildProductionRequest({ mode: 'avatar', imageUrl: 'https://x/face.png', prompt: 'hello world' });
+    expect(pr.script.generate).toBe(false);
+    expect(pr.script.preserveUserContent).toBe(true);
+    expect(pr.inputs.avatarRef).toBe('https://x/face.png');
+    expect(resolveOperation(pr)).toMatchObject({ executionLane: 'single-pass-effect', effectFn: 'generate-avatar-direct' });
+  });
+
+  it('video-to-video → scriptless stylize leaf with sourceVideo', () => {
+    const pr = buildProductionRequest({ mode: 'video-to-video', videoUrl: 'https://x/v.mp4', stylePreset: 'noir' });
+    expect(pr.script.generate).toBe(false);
+    expect(pr.inputs.sourceVideo).toBe('https://x/v.mp4');
+    expect(resolveOperation(pr)).toMatchObject({ effectFn: 'stylize-video', executionLane: 'single-pass-effect' });
+  });
+
+  it('motion-transfer → scriptless pose-transfer leaf with source + target', () => {
+    const pr = buildProductionRequest({ mode: 'motion-transfer', videoUrl: 'https://x/v.mp4', imageUrl: 'https://x/t.png' });
+    expect(pr.script.generate).toBe(false);
+    expect(pr.inputs.sourceVideo).toBe('https://x/v.mp4');
+    expect(pr.inputs.targetImage).toBe('https://x/t.png');
+    expect(resolveOperation(pr)).toMatchObject({ effectFn: 'motion-transfer', executionLane: 'single-pass-effect' });
+  });
+
+  it('breakout forces seedance regardless of requested engine', () => {
+    const pr = buildProductionRequest({ mode: 'text-to-video', isBreakout: true, videoEngine: 'kling' });
+    expect(pr.breakout.isBreakout).toBe(true);
+    expect(resolveEngine(pr)).toBe('seedance');
+  });
+
+  it('gate is FAIL-CLOSED: requireApproval always true; autoApprove only when explicitly true', () => {
+    expect(buildProductionRequest({ mode: 'text' }).gate).toEqual({ requireApproval: true, autoApprove: undefined });
+    expect(buildProductionRequest({ mode: 'text', autoApprove: true }).gate.autoApprove).toBe(true);
+    expect(buildProductionRequest({ mode: 'text', autoApprove: false }).gate.autoApprove).toBeUndefined();
+  });
+
+  it('format + audio carry through with safe defaults', () => {
+    const pr = buildProductionRequest({ mode: 'text', aspectRatio: '9:16', clipCount: 4, clipDuration: 10,
+      enableMusic: true, voiceId: 'bella', qualityOptions: { upscale4k: true, fps60: false } });
+    expect(pr.format).toMatchObject({ aspect: '9:16', clips: 4, duration: 10, quality: { upscale4k: true, fps60: false } });
+    expect(pr.audio).toMatchObject({ narration: true, music: true, voiceId: 'bella' });
   });
 });
 

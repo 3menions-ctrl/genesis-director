@@ -165,3 +165,82 @@ These plug into the design above and are **live in prod**:
 - **Storyboard/previz gate** — FLUX keyframes → `scene_images` seed (ASSETS).
 - **Cast & Worlds library** — reusable identity assets (`director_cast`) feeding
   the Identity Bible.
+
+---
+
+## 5. The unified pipeline (target) — one pipeline, everything is data
+
+**Goal:** one pipeline that produces *anything*, on *any* engine, under *any*
+continuity/pose-chaining. Today there are 5 mode handlers + 2 pipeline variants;
+they are the **same loop** wearing different clothes. Unify by making mode,
+engine, and continuity **inputs**, not branches.
+
+### One canonical request (the contract everything speaks)
+`mode-router` does ONE job: **normalize** every entry surface into a
+`production_request`, then hand it to the single pipeline.
+
+```jsonc
+{
+  "mode": "text|image|broll|avatar|video2video|motion-transfer",
+  "engine": "auto|kling|seedance|wan|veo|runway|sora",   // auto → per-shot router
+  "inputs": { "prompt":"", "image_ref":null, "source_video":null, "avatar_ref":null },
+  "script": { "generate": true, "shots": [] },           // generate=false → scriptless
+  "continuity": { "contract":"continuous|match|location-change|intro",
+                  "carryFrame":true, "endAnchor":null, "pose_chain":null,
+                  "identity_lock":"strict|loose|off" },
+  "format": { "aspect":"16:9","clips":6,"duration":5,"quality":{"upscale4k":false,"fps60":false} },
+  "audio": { "narration":true, "music":true, "voiceId":null },
+  "gate": { "require_approval": true }                    // FAIL-CLOSED, all modes (your call)
+}
+```
+
+### One per-shot operation (the only thing that varies)
+The single production loop dispatches each shot by an **operation** resolved from
+the request — every engine and mode reduces to one of these:
+
+| op | from mode | engine input | continuity |
+|---|---|---|---|
+| `t2v` | text/b-roll | prompt | start-frame chain |
+| `i2v` | image | image_ref + prompt | start-frame chain |
+| `avatar` | avatar (direct/cinematic) | avatar_ref + TTS | none / start-chain |
+| `stylize` | video-to-video | source_video + style | per-frame |
+| `pose-transfer` | motion-transfer | source_video + target | pose_chain |
+
+`generate-single-clip` already speaks engine-agnostic; the loop just selects the
+op + feeds the continuity contract (start/end frame, pose ref). **A 7th engine or
+a new op is a row in a table, not a new handler.**
+
+### Handler-collapse map
+| Today | Folds into the one loop as |
+|---|---|
+| handleCinematicMode | script=true · op t2v/i2v · router/lock engine |
+| handleAvatarCinematicMode | script=true · op avatar · engine seedance · audio overlay |
+| handleAvatarDirectMode | script=false · 1 shot · op avatar · Kling native audio |
+| handleStyleTransferMode | script=false · op stylize |
+| handleMotionTransferMode | script=false · op pose-transfer |
+| hollywood vs seedance pipeline | one pipeline; "seedance/breakout" = engine lock |
+
+### Fail-closed gate — ALL modes (decided)
+The gate moves to the **normalizer output**: every `production_request` is
+created `status=awaiting_approval` and the pipeline does NOT dispatch until an
+explicit approve (or a trusted `gate.require_approval=false`). Scriptless modes
+get a lightweight "confirm spend" approval; script modes get the existing
+shot-review. No client flag can leak a free render.
+
+---
+
+## 6. Staged migration (no big-bang on the fragile core)
+
+1. **Stage 1 — contract + gate (additive).** Land the `production_request`
+   normalizer in `mode-router` and the fail-closed gate; keep dispatching to the
+   existing 5 handlers unchanged. *Behavior change: everything pauses; nothing
+   else moves.* Validate the gate on each mode.
+2. **Stage 2 — op abstraction.** Introduce the per-shot `operation` resolver and
+   route the 3 cinematic-ish handlers (cinematic, avatar-cinematic, avatar-direct)
+   through one loop. Keep stylize/motion-transfer on their handlers.
+3. **Stage 3 — fold the scriptless ops** (stylize, pose-transfer) into the loop.
+   Delete the 5 handlers + the duplicate pipeline variant.
+4. **Stage 4 — cleanup.** Remove `python/**` (dead), reconcile `model-catalog.ts`
+   ↔ live slugs with a parity test, single capability table.
+
+Each stage ships behind validation and is independently revertible.

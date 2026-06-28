@@ -564,6 +564,14 @@ serve(async (req) => {
         breakout: pr.breakout.isBreakout,
         gate: pr.gate,
       }));
+      // PARITY CANARY (Stage 2 validation, observe-only): the normalizer's engine
+      // MUST equal the engine the live code actually persists/dispatches. A
+      // mismatch is the signal that it is NOT yet safe to make the normalizer
+      // load-bearing on the dispatch/spend path. Log only — never alter behavior.
+      // (docs/PIPELINE.md §6 "each stage ships behind validation".)
+      if (eng !== persistedEngine) {
+        console.warn(`[ModeRouter] ⚠️ engine-parity MISMATCH: normalizer=${eng} vs persisted=${persistedEngine} (mode=${pr.mode}, breakout=${pr.breakout.isBreakout}) — do NOT cut over until this is 0`);
+      }
     } catch (e) {
       console.error('[ModeRouter] production_request normalization failed (non-fatal):', e instanceof Error ? e.message : String(e));
     }

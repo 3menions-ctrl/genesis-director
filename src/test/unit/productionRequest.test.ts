@@ -184,6 +184,27 @@ describe('buildProductionRequest — normalizer parity with the legacy mode-rout
   });
 });
 
+describe('engine-parity canary — normalizer engine == legacy persisted-engine formula', () => {
+  // Mirrors mode-router: persistedEngine = isBreakout ? 'seedance' : (videoEngine || 'kling').
+  const persisted = (videoEngine: string | undefined, isBreakout: boolean) =>
+    isBreakout ? 'seedance' : (videoEngine || 'kling');
+
+  it.each([
+    [undefined, false],
+    ['kling', false],
+    ['veo', false],
+    ['seedance', false],
+    ['runway', false],
+    ['sora', false],
+    ['wan', false],
+    ['kling', true],   // breakout overrides → seedance
+    [undefined, true],
+  ] as const)('videoEngine=%s breakout=%s → engines agree', (videoEngine, isBreakout) => {
+    const pr = buildProductionRequest({ mode: 'text-to-video', videoEngine: videoEngine ?? null, isBreakout });
+    expect(resolveEngine(pr)).toBe(persisted(videoEngine ?? undefined, isBreakout));
+  });
+});
+
 describe('HANDLER_COLLAPSE table', () => {
   it('covers all 5 legacy handlers', () => {
     expect(Object.keys(HANDLER_COLLAPSE).sort()).toEqual([

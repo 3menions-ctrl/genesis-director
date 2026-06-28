@@ -1214,7 +1214,7 @@ serve(async (req) => {
     try {
       const { data: projRow } = await supabase
         .from('movie_projects')
-        .select('video_engine')
+        .select('video_engine, routing_map')
         .eq('id', projectId)
         .maybeSingle();
       const persistedEngine = (projRow?.video_engine as BackendEngine | null) || null;
@@ -1229,6 +1229,24 @@ serve(async (req) => {
         console.warn(
           `[SingleClip] ⚠️ No persisted video_engine for project ${projectId} — using body value "${rawVideoEngine}". This should not happen for projects created via mode-router.`
         );
+      }
+
+      // ═══ PER-SHOT ROUTER (Slice 2) ═══════════════════════════════════════
+      // A routing_map entry for THIS shot overrides the project engine — and
+      // ONLY when it names a valid engine. Anything malformed/absent is ignored
+      // and the project-locked engine above stands (zero behaviour change for
+      // un-routed projects). This is how "best model per shot" reaches render
+      // without weakening the decay guard.
+      const VALID_ENGINES: BackendEngine[] = ['wan', 'kling', 'veo', 'seedance', 'runway', 'sora'];
+      const rmap = (projRow as { routing_map?: Record<string, { engine?: string }> } | null)?.routing_map;
+      const routed = rmap?.[String(shotIndex)]?.engine;
+      if (routed && VALID_ENGINES.includes(routed as BackendEngine)) {
+        if (routed !== videoEngine) {
+          console.log(
+            `[SingleClip] 🧭 ROUTER: shot ${shotIndex} routed to "${routed}" (project engine "${videoEngine}")`,
+          );
+        }
+        videoEngine = routed as BackendEngine;
       }
     } catch (engineLookupErr) {
       console.warn(`[SingleClip] ⚠️ Engine lookup failed (using body value "${rawVideoEngine}"):`, engineLookupErr);

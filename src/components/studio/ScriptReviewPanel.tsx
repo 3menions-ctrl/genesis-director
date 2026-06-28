@@ -1,4 +1,4 @@
-import { useState, memo, forwardRef } from 'react';
+import { useState, useEffect, memo, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FileText, 
@@ -13,7 +13,10 @@ import {
   RotateCcw,
   Play,
   Clock,
-  Layers
+  Layers,
+  Cpu,
+  Wand2,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,6 +24,11 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { ENGINE_CAPS, type EngineToken, type ShotRouting } from '@/lib/editor/shot-engine-router';
+
+const CINEMA_TOKENS: EngineToken[] = ['veo', 'runway', 'sora'];
 
 export interface ScriptShot {
   id: string;
@@ -51,7 +59,10 @@ interface ScriptReviewPanelProps {
   isLoading?: boolean;
   totalDuration?: number;
   projectTitle?: string;
+  projectId?: string;
 }
+
+type RoutingEntry = { engine: EngineToken; engineLabel: string; reasons: string[] };
 
 const SCENE_TYPE_COLORS: Record<string, string> = {
   establishing: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
@@ -82,11 +93,90 @@ export const ScriptReviewPanel = memo(forwardRef<HTMLDivElement, ScriptReviewPan
   isLoading = false,
   totalDuration,
   projectTitle,
+  projectId,
 }: ScriptReviewPanelProps) {
   const [shots, setShots] = useState<ScriptShot[]>(initialShots);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editValue, setEditValue] = useState('');
   const [expandedShot, setExpandedShot] = useState<number | null>(null);
+
+  // ── Smart Route (per-shot model auto-router) ──────────────────────────
+  const [smartOn, setSmartOn] = useState(false);
+  const [routing, setRouting] = useState<Record<number, RoutingEntry>>({});
+  const [routingBusy, setRoutingBusy] = useState(false);
+  const [allowCinema, setAllowCinema] = useState(true);
+
+  // Hydrate an existing routing_map so the toggle reflects reality (the map is
+  // honored at render whether or not the toggle is shown).
+  useEffect(() => {
+    if (!projectId) return;
+    let active = true;
+    (async () => {
+      const { data } = await supabase
+        .from('movie_projects')
+        .select('routing_map')
+        .eq('id', projectId)
+        .maybeSingle();
+      if (!active) return;
+      const rm = (data?.routing_map ?? null) as Record<string, RoutingEntry> | null;
+      if (rm && Object.keys(rm).length) {
+        const map: Record<number, RoutingEntry> = {};
+        Object.entries(rm).forEach(([i, v]) => {
+          map[Number(i)] = { engine: v.engine, engineLabel: v.engineLabel, reasons: v.reasons || [] };
+        });
+        setRouting(map);
+        setSmartOn(true);
+      }
+    })();
+    return () => { active = false; };
+  }, [projectId]);
+
+  const persistRoutingMap = async (map: Record<number, RoutingEntry>) => {
+    if (!projectId) return;
+    const payload: Record<string, RoutingEntry> = {};
+    Object.entries(map).forEach(([i, v]) => { payload[i] = v; });
+    await supabase
+      .from('movie_projects')
+      .update({ routing_map: Object.keys(payload).length ? payload : null })
+      .eq('id', projectId);
+  };
+
+  const toggleSmart = async () => {
+    if (!projectId) { toast.error('Smart Route needs a saved project.'); return; }
+    if (smartOn) {
+      setSmartOn(false);
+      setRouting({});
+      await supabase.from('movie_projects').update({ routing_map: null }).eq('id', projectId);
+      return;
+    }
+    setRoutingBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('route-shots', { body: { projectId } });
+      if (error) throw error;
+      if (data?.success && Array.isArray(data.routing)) {
+        const map: Record<number, RoutingEntry> = {};
+        (data.routing as ShotRouting[]).forEach((r) => {
+          map[r.index] = { engine: r.engine, engineLabel: r.engineLabel, reasons: r.reasons };
+        });
+        setRouting(map);
+        setAllowCinema(!!data.allowCinema);
+        setSmartOn(true);
+        toast.success('Smart Route on — each shot matched to its best model.');
+      } else {
+        throw new Error(data?.message || data?.error || 'Routing failed');
+      }
+    } catch (e) {
+      toast.error('Couldn’t route shots', { description: (e instanceof Error ? e.message : '').slice(0, 120) });
+    } finally {
+      setRoutingBusy(false);
+    }
+  };
+
+  const overrideEngine = async (index: number, token: EngineToken) => {
+    const next = { ...routing, [index]: { engine: token, engineLabel: ENGINE_CAPS[token].label, reasons: ['manual override'] } };
+    setRouting(next);
+    await persistRoutingMap(next);
+  };
 
   const handleStartEdit = (index: number) => {
     setEditingIndex(index);
@@ -155,6 +245,39 @@ export const ScriptReviewPanel = memo(forwardRef<HTMLDivElement, ScriptReviewPan
         </div>
       </div>
 
+      {/* Smart Route — per-shot model auto-router (borderless, floating) */}
+      {projectId && (
+        <div
+          className="mb-4 sm:mb-5 flex items-center justify-between gap-3 rounded-2xl px-4 py-3 backdrop-blur-xl shrink-0"
+          style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.045), transparent)' }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-accent/12 text-accent">
+              <Cpu className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-white">Smart Route</p>
+              <p className="text-[11px] text-white/45">
+                {smartOn ? 'Each shot matched to its best model' : 'Render every shot on its best model'}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={toggleSmart}
+            disabled={routingBusy}
+            className={cn(
+              'inline-flex items-center gap-2 rounded-full px-4 h-9 text-[12.5px] font-medium transition-all',
+              smartOn ? 'bg-accent text-black' : 'bg-white/[0.06] text-white/70 hover:text-white',
+              routingBusy && 'opacity-60',
+            )}
+          >
+            {routingBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+            {smartOn ? 'On' : 'Auto-route'}
+          </button>
+        </div>
+      )}
+
       {/* Shots List - Flexible height */}
       <ScrollArea className="flex-1 min-h-0 pr-2 sm:pr-4 -mr-2 sm:-mr-4">
         <div className="space-y-2 sm:space-y-3 pb-4">
@@ -199,6 +322,11 @@ export const ScriptReviewPanel = memo(forwardRef<HTMLDivElement, ScriptReviewPan
                             <Badge variant="secondary" className="text-[9px] sm:text-[10px] px-1.5">
                               {shot.durationSeconds}s
                             </Badge>
+                            {routing[index] && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-accent/12 text-accent px-2 h-[18px] text-[9px] sm:text-[10px] font-medium">
+                                <Cpu className="w-2.5 h-2.5" /> {routing[index].engineLabel}
+                              </span>
+                            )}
                           </div>
                           
                           {/* Description - editable */}
@@ -299,7 +427,36 @@ export const ScriptReviewPanel = memo(forwardRef<HTMLDivElement, ScriptReviewPan
                               </div>
                             )}
                           </div>
-                          
+
+                          {/* Smart Route — routed engine + reasons + manual override */}
+                          {routing[index] && (
+                            <div className="mb-3" onClick={(e) => e.stopPropagation()}>
+                              <p className="text-[10px] sm:text-xs text-white/45 mb-1.5">
+                                Routed to <span className="text-accent">{routing[index].engineLabel}</span>
+                                {routing[index].reasons.length ? ` — ${routing[index].reasons.join(' · ')}` : ''}
+                              </p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {(Object.keys(ENGINE_CAPS) as EngineToken[])
+                                  .filter((t) => allowCinema || !CINEMA_TOKENS.includes(t))
+                                  .map((t) => (
+                                    <button
+                                      key={t}
+                                      type="button"
+                                      onClick={() => overrideEngine(index, t)}
+                                      className={cn(
+                                        'rounded-full px-2.5 h-6 text-[10px] transition-colors',
+                                        routing[index].engine === t
+                                          ? 'bg-accent text-black font-medium'
+                                          : 'bg-white/[0.05] text-white/55 hover:text-white',
+                                      )}
+                                    >
+                                      {ENGINE_CAPS[t].label}
+                                    </button>
+                                  ))}
+                              </div>
+                            </div>
+                          )}
+
                           {/* Full Description */}
                           <div className="mb-3">
                             <p className="text-xs sm:text-sm">{shot.description}</p>

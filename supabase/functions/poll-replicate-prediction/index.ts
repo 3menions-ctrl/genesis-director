@@ -258,9 +258,23 @@ serve(async (req) => {
         clipUpdate.last_frame_url = lastFrameUrl;
       }
 
-      await supabase.from('video_clips').update(clipUpdate)
+      // ATOMIC COMPLETION CLAIM — only the path (poll OR webhook) that actually
+      // flips status→completed proceeds to chain continue-production. The
+      // `.neq('status','completed')` turns the UPDATE into a conditional claim;
+      // zero rows back means the other path already completed this clip, so we
+      // must NOT double-dispatch the next clip / double-log cost (the race the
+      // audit flagged: poll+webhook both persisting and both chaining).
+      const { data: claimedRows } = await supabase.from('video_clips').update(clipUpdate)
         .eq('project_id', projectId)
-        .eq('shot_index', shotIndex);
+        .eq('shot_index', shotIndex)
+        .neq('status', 'completed')
+        .select('id');
+      if ((claimedRows?.length ?? 0) === 0) {
+        console.log(`[PollReplicate] Clip ${shotIndex + 1} already completed by another path — skipping chain (idempotent)`);
+        return new Response(JSON.stringify({ success: true, alreadyCompleted: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
       console.log(`[PollReplicate] ✅ Clip ${shotIndex + 1} stored and marked completed`);
 

@@ -112,7 +112,12 @@ const INTRO_BUCKET = "brand-assets";
 const INTRO_PATH = "intro/intro.mp4";
 
 const OUTPUT_BUCKET = "published-renders";
-const SIGNED_URL_TTL = 60 * 60 * 24; // 24 hours
+// Final rendered videos must NOT expire — the signed URL is written into
+// movie_projects.video_url and is what the player/reel/lobby load. A 24h TTL
+// made every finished film 404 the next day. Use a ~10-year TTL so the link is
+// effectively permanent while keeping the bucket private (token-gated).
+// (Proper long-term fix: a re-sign-on-load endpoint; tracked in the audit.)
+const SIGNED_URL_TTL = 60 * 60 * 24 * 3650; // ~10 years
 
 // Canonical pipeline constants, the aspect/format helpers, and the
 // command builder live in `../_shared/seamless-command.ts` so the

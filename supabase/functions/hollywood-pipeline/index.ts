@@ -6134,10 +6134,14 @@ async function executePipelineInBackground(
     if (stages.includes('preproduction') && resumeStageIndex < 0) {
       state = await runPreProduction(request, state, supabase);
       
-      // AUTO-APPROVE: Scripts are automatically approved and pipeline continues
-      // NOTE: Set requireApproval=true in request to pause for manual approval
-      const requireManualApproval = (request as any).requireApproval === true;
-      
+      // FAIL-CLOSED APPROVAL GATE: every cinematic run pauses for review before
+      // spending render credits UNLESS an explicit, trusted autoApprove===true is
+      // passed. This closes the Crossover/Template/Studio spend-leak where a
+      // forgotten requireApproval flag let renders proceed silently. The opt-out
+      // is deliberate and server-checked; the legacy requireApproval flag no
+      // longer gates anything (pausing is now the default).
+      const requireManualApproval = (request as any).autoApprove !== true;
+
       if (requireManualApproval && !resumeFrom) {
         console.log(`[Hollywood] Manual approval requested - pausing for script approval...`);
         

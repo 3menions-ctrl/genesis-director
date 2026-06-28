@@ -14,6 +14,54 @@ import tseslint from "typescript-eslint";
  *
  * If a rule starts producing noise without catching real bugs, it goes.
  */
+
+// ── Design-law guardrail ───────────────────────────────────────────────
+// Enforces the borderless / icon+text design law on surfaces already
+// migrated (see reports/design-law-audit/AUDIT.md). It flags the
+// highest-signal anti-patterns in className strings — solid button fills
+// and the `ring-1 ring-inset` glass-tile chrome — across both string
+// literals and `cn(...)`/template chunks. Deliberately narrow to avoid
+// false positives on inputs/dividers. Scoped (below) to cleaned dirs only;
+// expand the `files` list as more areas are migrated.
+// High-signal CTA fills only. `bg-primary text-primary-foreground` is
+// deliberately excluded — it's shared by chat bubbles / calendar cells, so
+// it would false-positive on legitimately-exempt surfaces.
+const FILLED_BUTTON_PATTERNS = [
+  /\bbg-foreground\s+text-background\b/,
+  /\bbg-white\s+text-black\b/,
+  /\bbg-white\s+text-\[#/,
+];
+const BORDERED_CARD_PATTERNS = [/\bring-1\s+ring-inset\b/];
+
+function makeClassNameRule(patterns, message) {
+  return {
+    meta: { type: "problem", docs: { description: message }, schema: [] },
+    create(context) {
+      const flag = (node, value) => {
+        if (typeof value !== "string") return;
+        if (patterns.some((re) => re.test(value))) context.report({ node, message });
+      };
+      return {
+        Literal(node) { flag(node, node.value); },
+        TemplateElement(node) { flag(node, node.value && node.value.raw); },
+      };
+    },
+  };
+}
+
+const designLaw = {
+  rules: {
+    "no-filled-button": makeClassNameRule(
+      FILLED_BUTTON_PATTERNS,
+      "Design law: no filled buttons — use borderless icon+text (drop the bg-* fill).",
+    ),
+    "no-bordered-card": makeClassNameRule(
+      BORDERED_CARD_PATTERNS,
+      "Design law: no bordered/ring cards — float content (drop `ring-1 ring-inset`).",
+    ),
+  },
+};
+
 export default tseslint.config(
   { ignores: ["dist", "supabase/functions/**", ".claude/**", "node_modules/**"] },
   {
@@ -56,6 +104,37 @@ export default tseslint.config(
       "no-console": ["warn", { allow: ["warn", "error"] }],
       // Promise constructors with throws that go nowhere.
       "no-async-promise-executor": "warn",
+    },
+  },
+
+  // ── Design-law guardrail — scoped to migrated surfaces ─────────────
+  // Severity is `warn` per this file's "warn first, escalate to error once
+  // the count hits zero" convention. It surfaces regressions (and a couple
+  // of remaining edge cases — a shadcn toast/calendar fill, a media badge
+  // ring) without breaking the build. Escalate to `error` once clean.
+  // Add more globs here as additional areas are migrated.
+  {
+    files: [
+      "src/components/ui/**/*.{ts,tsx}",
+      "src/components/shell/**/*.{ts,tsx}",
+      "src/components/foundation/**/*.{ts,tsx}",
+      "src/components/social/**/*.{ts,tsx}",
+      "src/components/theater/**/*.{ts,tsx}",
+      "src/components/lobby/**/*.{ts,tsx}",
+      "src/components/settings/**/*.{ts,tsx}",
+      "src/components/profile/**/*.{ts,tsx}",
+      "src/pages/Lobby.tsx",
+      "src/pages/Library.tsx",
+      "src/pages/Account.tsx",
+      "src/pages/Settings.tsx",
+      "src/pages/Profile.tsx",
+      "src/pages/Inbox.tsx",
+      "src/pages/account/**/*.{ts,tsx}",
+    ],
+    plugins: { "design-law": designLaw },
+    rules: {
+      "design-law/no-filled-button": "warn",
+      "design-law/no-bordered-card": "warn",
     },
   },
 );

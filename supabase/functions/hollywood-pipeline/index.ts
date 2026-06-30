@@ -4,6 +4,10 @@ import { checkMultipleContent } from "../_shared/content-safety.ts";
 import { notifyVideoStarted, notifyVideoComplete, notifyVideoFailed } from "../_shared/pipeline-notifications.ts";
 import { priceClipCredits } from "../_shared/engines.ts";
 import { persistQualityIntent } from "../_shared/quality-post.ts";
+// P0-1: persistVideoToStorage + the expiring-URL guard were USED here (clip +
+// final persistence) but never imported — a latent ReferenceError on the very
+// persistence path that protects finished films from the 24h signed-URL death.
+import { persistVideoToStorage, isTemporaryReplicateUrl } from "../_shared/video-persistence.ts";
 import { inferBoundaryType, auditClip } from "../_shared/continuity-contract.ts";
 import { enforceBreakoutScript } from "../_shared/breakout-guardrails.ts";
 import {

@@ -293,13 +293,39 @@ serve(async (req) => {
     console.log(`[FinalAssembly] - Clips: ${clipsProcessed}`);
     console.log(`[FinalAssembly] - Duration: ${totalDuration}s`);
 
+    // P0-1: seamless-stitcher returns a 24h Supabase *signed* URL into the
+    // private `published-renders` bucket. Persist it to durable public storage
+    // BEFORE storing it as the canonical video_url — otherwise every finished
+    // film 404s ~24h after render. persistVideoToStorage no-ops on URLs that are
+    // already durable (public), so this is safe for the clips-fallback path too.
+    let durableFinalVideoUrl = finalVideoUrl;
+    {
+      const { persistVideoToStorage, isTemporaryReplicateUrl } =
+        await import("../_shared/video-persistence.ts");
+      if (isTemporaryReplicateUrl(durableFinalVideoUrl)) {
+        const persisted = await persistVideoToStorage(
+          supabase,
+          durableFinalVideoUrl,
+          projectId,
+          { prefix: "final_video" },
+        );
+        if (!persisted) {
+          throw new Error(
+            "Final video produced but permanent storage failed (would expire ~24h)",
+          );
+        }
+        durableFinalVideoUrl = persisted;
+        console.log(`[FinalAssembly] ✓ Persisted final video to durable storage`);
+      }
+    }
+
     // Step 4: Final status update with FORCED RECONCILIATION
     // CRITICAL: This update MUST clear any previous 'failed' or 'error' status
     // when all clips have successfully completed. This is the final authority.
     const finalUpdate = {
       status: 'completed',
       pipeline_stage: 'completed', // Use 'completed' not 'complete' to match DB constraint
-      video_url: finalVideoUrl,
+      video_url: durableFinalVideoUrl,
       pending_video_tasks: {
         stage: 'complete',
         progress: 100,
@@ -307,7 +333,7 @@ serve(async (req) => {
         stitchedVideoUrl: stitchResult.stitchedVideoUrl || null,
         stitchPredictionId: stitchResult.stitchPredictionId || null,
         manifestUrl,
-        finalVideoUrl,
+        finalVideoUrl: durableFinalVideoUrl,
         hlsPlaylistUrl,
         mseClipUrls: stitchedClipUrls,
         clipCount: clipsProcessed,

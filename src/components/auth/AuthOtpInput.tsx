@@ -1,6 +1,7 @@
 /**
- * AuthOtpInput — six-cell OTP entry with auto-advance, paste-friendly
- * handling, backspace navigation, and a clean focus state.
+ * AuthOtpInput — `length`-cell OTP entry (defaults to 6; email signup uses 8)
+ * with auto-advance, paste-friendly handling, backspace navigation, and a clean
+ * focus state.
  *
  * Pure presentational — the parent owns the value + onComplete.
  */

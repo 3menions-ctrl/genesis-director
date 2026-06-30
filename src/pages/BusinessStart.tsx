@@ -16,7 +16,7 @@
  *   3. scale     — team size, your role, monthly volume, current tools
  *   4. brand     — brand voice + brand colors (live preview, lands on the org)
  *   5. account   — display name, password, enterprise toggles, team invites
- *   6. verify    — 6-digit email code
+ *   6. verify    — 8-digit email code
  *   7. provision — cinematic "building your workspace" while we consume the
  *                  intent, write the brand kit onto the organization, fire
  *                  invites, then drop into /business.
@@ -245,7 +245,7 @@ export default function BusinessStart() {
       const pw = passwordSchema.safeParse(form.password);
       if (!pw.success) e.password = pw.error.errors[0].message;
     }
-    if (currentStep === "verify" && (otp.length < 6 || otp.length > 8)) e.otp = "Enter the 6-digit code from your email";
+    if (currentStep === "verify" && otp.length !== 8) e.otp = "Enter the 8-digit code from your email";
     setErrors(e);
     return Object.keys(e).length === 0;
   }, [currentStep, form, otp]);
@@ -384,7 +384,7 @@ export default function BusinessStart() {
           toast.error(error.message || "Could not create your account.");
           return;
         }
-        toast.success("Check your inbox — we sent a 6-digit code.");
+        toast.success("Check your inbox — we sent an 8-digit code.");
         goTo(STEPS.indexOf("verify"), 1);
       } finally {
         setSubmitting(false);
@@ -724,7 +724,7 @@ export default function BusinessStart() {
                     <p className="text-[13px] text-white/60">
                       Code sent to <span className="text-white font-medium">{form.work_email}</span>
                     </p>
-                    <AuthOtpInput value={otp} onChange={setOtp} onComplete={() => { if (!submitting) void advance(); }} />
+                    <AuthOtpInput value={otp} onChange={setOtp} length={8} onComplete={() => { if (!submitting) void advance(); }} />
                     {errors.otp && <p className="text-[12px] text-rose-400">{errors.otp}</p>}
                     <button onClick={resend} className="text-[12.5px] text-white/55 hover:text-white underline underline-offset-4">
                       Resend code

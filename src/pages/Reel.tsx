@@ -339,6 +339,40 @@ export default function Reel() {
     };
   }, [id, user?.id]);
 
+  // ── P1-10: poll for completion while the reel is still rendering ──
+  // Previously "Still rendering…" never updated (the loader only ran on
+  // [id, user?.id]); a finished-or-dead render needed a manual refresh. Poll the
+  // project row every 5s while there's no playable output and self-clear once a
+  // video_url or timeline clips appear.
+  useEffect(() => {
+    if (!reel?.id) return;
+    const stillRendering = !reel.video_url && timelineClips.length === 0;
+    if (!stillRendering) return;
+    let cancelled = false;
+    const interval = setInterval(async () => {
+      const { data } = await supabase
+        .from("movie_projects")
+        .select("*")
+        .eq("id", reel.id)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      // Mirror the loader's HLS/manifest fallback for in-flight renders.
+      if (!data.video_url) {
+        const pt = (data as { pending_video_tasks?: { hlsPlaylistUrl?: string; manifestUrl?: string } }).pending_video_tasks;
+        if (pt?.hlsPlaylistUrl) data.video_url = pt.hlsPlaylistUrl;
+        else if (pt?.manifestUrl) data.video_url = pt.manifestUrl;
+      }
+      const players = await buildTimelineClips(data.id, (data as { editor_state?: unknown }).editor_state);
+      if (cancelled) return;
+      if (data.video_url || players.length > 0) {
+        setReel((prev) => (prev ? { ...prev, ...data } : prev));
+        setTimelineClips(players);
+        clearInterval(interval);
+      }
+    }, 5000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [reel?.id, reel?.video_url, timelineClips.length]);
+
   // ── Load the watch party (if URL carries ?party=:id) ─────────────
   useEffect(() => {
     if (!partyId) { setParty(null); return; }

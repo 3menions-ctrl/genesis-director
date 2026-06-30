@@ -43,14 +43,17 @@ export function useClipRecovery(projectId: string | null, userId: string | null)
     if (isMountedRef.current) setIsRecovering(true);
 
     try {
-      // Find clips stuck in "generating" for more than 2 minutes
+      // Find clips stuck in "generating" OR "processing" for more than 2 minutes.
+      // P1-11: 'processing' is a real interim status; querying only 'generating'
+      // missed processing-stuck clips entirely (only usePendingVideoRecovery
+      // covered both).
       const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
-      
+
       const { data: stuckClips, error } = await supabase
         .from('video_clips')
         .select('id, shot_index, veo_operation_name, status, updated_at')
         .eq('project_id', projectId)
-        .eq('status', 'generating')
+        .in('status', ['generating', 'processing'])
         .lt('updated_at', twoMinutesAgo);
 
       if (!isMountedRef.current) return result;
@@ -78,6 +81,10 @@ export function useClipRecovery(projectId: string | null, userId: string | null)
                 taskId: clip.veo_operation_name,
                 provider: 'replicate',
                 projectId,
+                // P1-11: without userId, check-video-status can't flip a truly
+                // failed prediction to 'failed' (the failure-write path is
+                // owner-scoped) — stuck clips stayed stuck.
+                userId,
                 shotIndex: clip.shot_index,
                 autoComplete: true,
               },

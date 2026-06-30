@@ -200,6 +200,9 @@ export function TimelinePlayer({ clips, poster, className, autoPlay = false }: P
           playsInline
           preload="auto"
           onEnded={() => key === activeKey && advance()}
+          // P1-9: a dead/expired clip URL used to freeze the whole reel (no
+          // spinner, no skip). Skip to the next clip on error instead of hanging.
+          onError={() => key === activeKey && advance()}
           onLoadedData={() => onLoaded(key)}
           onTimeUpdate={() => onActiveTime(key)}
           onClick={togglePlay}

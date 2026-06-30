@@ -7,6 +7,8 @@ project_id = "ywcwaumozoejierlfkgj"
     verify_jwt = false
   [functions.api-v1]
     verify_jwt = false
+  [functions.apply-breakout-vfx]
+    verify_jwt = false
   [functions.approve-clip-one]
     verify_jwt = false
   [functions.auth-email-hook]

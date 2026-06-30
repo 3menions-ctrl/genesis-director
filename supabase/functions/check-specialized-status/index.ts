@@ -368,8 +368,30 @@ async function handleMultiClipAvatar(
       
       console.log(`[CheckSpecializedStatus] ✅ Project COMPLETED with ${videoClipsArray.length} clips`);
     }
+  } else if (allDone && failedCount === totalCount && !hasAllVideos) {
+    // P1-6: every clip failed — mark the project terminally FAILED. Previously
+    // handleMultiClipAvatar only ever set status='completed', so a fully-failed
+    // avatar project hung in its prior status (e.g. 'processing') forever and the
+    // UI spun indefinitely. (Credit release/refund for failed jobs is handled by
+    // the recovery layer; this just makes the project terminal.)
+    console.log(`[CheckSpecializedStatus] ❌ ALL ${totalCount} clips failed - marking project failed`);
+    updateData.status = 'failed';
+    updateData.pipeline_state = {
+      ...pipelineStateUpdate,
+      stage: 'failed',
+      progress: 100,
+      message: 'Video generation failed — all clips errored.',
+      failedAt: new Date().toISOString(),
+    };
+    updateData.pending_video_tasks = {
+      ...freshTasks,
+      predictions: freshPredictions,
+      stage: 'failed',
+      error: 'all_clips_failed',
+      failedAt: new Date().toISOString(),
+    };
   }
-  
+
   // Final update with completion state
   const { error: updateError } = await supabase
     .from('movie_projects')

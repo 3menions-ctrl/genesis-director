@@ -36,6 +36,16 @@ const IGNORED_PATTERNS: RegExp[] = [
   /Failed to load resource.*sentry/i,
   /web-vitals/i,
   /Download the React DevTools/i,
+  // Environmental backend noise. In CI the app is built with a STUB Supabase
+  // URL (stub.supabase.co) that doesn't resolve, so the realtime WebSocket and
+  // best-effort fetches fail with ERR_NAME_NOT_RESOLVED. These are not editor
+  // bugs — the demo route is fully synthetic and never needs the backend. (The
+  // sibling editor-controls spec filters the same family. A real uncaught
+  // handler error still surfaces as "is not defined"/TypeError and is unfiltered.)
+  /WebSocket/i,
+  /realtime/i,
+  /supabase/i,
+  /net::ERR_/i,
 ];
 
 function isIgnorable(msg: ConsoleMessage): boolean {

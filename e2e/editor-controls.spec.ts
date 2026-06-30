@@ -244,6 +244,9 @@ test.describe("Editor — every modal panel opens via keyboard and closes", () =
   ];
 
   test("all 16 panels open + close with zero uncaught errors", async ({ page }) => {
+    // Heavy: reloads the editor fresh for each of the 16 panels (open + close +
+    // exit animation), which exceeds the 30s default. Triple the budget.
+    test.slow();
     const errors = await gotoEditor(page);
     const opened: Record<string, boolean> = {};
     const closed: Record<string, boolean> = {};

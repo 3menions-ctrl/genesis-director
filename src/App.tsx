@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, type ReactNode } from "react";
 // Sonner is the canonical toast system; the legacy `@/components/ui/toaster`
 // Radix-based renderer is no longer mounted to avoid duplicate stacking.
 // Callers should use `import { toast } from "sonner"` everywhere.
@@ -71,6 +71,24 @@ function LegacyParamRedirect({ to }: { to: string }) {
 function QueryPreservingRedirect({ to }: { to: string }) {
   const location = useLocation();
   return <Navigate to={`${to}${location.search}`} replace />;
+}
+
+// Access gate for the /editor/:id route. The synthetic /editor/demo sandbox
+// (buildDemoProject() — no Supabase, no auth, no user data; allowlisted in
+// publicRoutes.ts) is PUBLIC: it skips ProtectedRoute and the business
+// redirect so logged-out visitors and CI can open it. Every real project id
+// stays fully gated. We gate here rather than via a separate static
+// "/editor/demo" route so the ":id" param still resolves to "demo" and
+// useProject() actually loads the demo (a static route drops the param, leaving
+// project=null and the project-gated panels unmounted).
+function EditorAccessGate({ children }: { children: ReactNode }) {
+  const { id } = useParams<{ id?: string }>();
+  if (id === "demo") return <>{children}</>;
+  return (
+    <RedirectBusinessToModule base="/editor" target="/business/editor">
+      <ProtectedRoute>{children}</ProtectedRoute>
+    </RedirectBusinessToModule>
+  );
 }
 
 const Cinema = lazy(() => import("./pages/Cinema"));
@@ -833,22 +851,11 @@ const App = () => {
                   </RouteContainer>
                 } />
                 
-                {/* Public demo sandbox. /editor/demo loads fully synthetic
-                    buildDemoProject() data (no Supabase, no auth, no user
-                    data), so it is reachable logged-out — allowlisted in
-                    publicRoutes.ts and rendered WITHOUT ProtectedRoute or the
-                    business redirect. This is the deterministic editor
-                    entrypoint the CI/E2E suite drives. The static "/editor/demo"
-                    path out-ranks the dynamic "/editor/:id" below, so it wins
-                    the match; real projects still hit the gated route. */}
-                <Route path="/editor/demo" element={
-                  <RouteContainer fallbackMessage="Loading the cutting room…">
-                    <VideoEditorPage />
-                  </RouteContainer>
-                } />
                 {/* Video Editor - Twick Studio. Both /editor and /editor/:id
                     resolve to the same page; the editor reads `:id` from
-                    params or `?project=` from search. */}
+                    params or `?project=` from search. /editor/demo is the
+                    public synthetic sandbox — EditorAccessGate lets it through
+                    without auth while keeping every real project gated. */}
                 <Route path="/editor" element={
                   <RouteContainer fallbackMessage="Loading the cutting room…">
                     <RedirectBusinessToModule base="/editor" target="/business/editor">
@@ -860,11 +867,9 @@ const App = () => {
                 } />
                 <Route path="/editor/:id" element={
                   <RouteContainer fallbackMessage="Loading the cutting room…">
-                    <RedirectBusinessToModule base="/editor" target="/business/editor">
-                      <ProtectedRoute>
-                        <VideoEditorPage />
-                      </ProtectedRoute>
-                    </RedirectBusinessToModule>
+                    <EditorAccessGate>
+                      <VideoEditorPage />
+                    </EditorAccessGate>
                   </RouteContainer>
                 } />
                 

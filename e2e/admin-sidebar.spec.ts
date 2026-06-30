@@ -76,7 +76,21 @@ async function ensureSignedIn(page: Page) {
   await page.waitForURL((u) => !u.pathname.startsWith("/auth"), { timeout: 30_000 });
 }
 
+// This suite requires a real signed-in admin session (it clicks every /admin
+// sidebar item). Without PLAYWRIGHT_STORAGE_STATE or ADMIN_EMAIL+ADMIN_PASSWORD
+// it cannot run, so skip the WHOLE describe — including beforeAll. (The skip
+// inside ensureSignedIn ran too late: beforeAll fired first and failed in
+// credential-less CI.)
+const HAS_ADMIN_CREDS = !!(
+  process.env.PLAYWRIGHT_STORAGE_STATE ||
+  (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD)
+);
+
 test.describe("Admin sidebar navigation", () => {
+  test.skip(
+    !HAS_ADMIN_CREDS,
+    "Set PLAYWRIGHT_STORAGE_STATE or ADMIN_EMAIL+ADMIN_PASSWORD to run the admin sidebar e2e.",
+  );
   test.beforeAll(() => {
     expect(
       ENTRIES.length,

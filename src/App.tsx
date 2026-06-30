@@ -833,6 +833,19 @@ const App = () => {
                   </RouteContainer>
                 } />
                 
+                {/* Public demo sandbox. /editor/demo loads fully synthetic
+                    buildDemoProject() data (no Supabase, no auth, no user
+                    data), so it is reachable logged-out — allowlisted in
+                    publicRoutes.ts and rendered WITHOUT ProtectedRoute or the
+                    business redirect. This is the deterministic editor
+                    entrypoint the CI/E2E suite drives. The static "/editor/demo"
+                    path out-ranks the dynamic "/editor/:id" below, so it wins
+                    the match; real projects still hit the gated route. */}
+                <Route path="/editor/demo" element={
+                  <RouteContainer fallbackMessage="Loading the cutting room…">
+                    <VideoEditorPage />
+                  </RouteContainer>
+                } />
                 {/* Video Editor - Twick Studio. Both /editor and /editor/:id
                     resolve to the same page; the editor reads `:id` from
                     params or `?project=` from search. */}

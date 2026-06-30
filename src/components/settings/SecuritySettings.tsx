@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SessionsCard } from '@/components/security/SessionsCard';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
@@ -17,7 +18,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
-  Monitor, LogOut, KeyRound,
+  KeyRound,
   Trash2, AlertTriangle, Loader2, CheckCircle2, Eye, EyeOff, Download
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -75,17 +76,6 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
     }
   };
 
-  const handleSignOutAllDevices = async () => {
-    try {
-      const { error } = await supabase.auth.signOut({ scope: 'global' });
-      if (error) throw error;
-      navigate('/auth');
-      toast.success('Signed out of all devices');
-    } catch (error) {
-      console.error('Error signing out:', error);
-      toast.error('Failed to sign out of all devices');
-    }
-  };
 
   const handleExportData = async () => {
     setIsExporting(true);
@@ -302,37 +292,10 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
         transition={{ delay: 0.1 }}
         className="py-2"
       >
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Active sessions</div>
-            <h3 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>Your logged-in devices.</h3>
-          </div>
-          <Button
-            onClick={handleSignOutAllDevices}
-            variant="ghost"
-            className="text-white/70 hover:bg-white/[0.06] hover:text-white rounded-xl"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Sign Out All
-          </Button>
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex items-center justify-between p-4 rounded-xl">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                <Monitor className="w-4 h-4 text-emerald-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-white">Current Device</p>
-                <p className="text-xs text-white/30">Last active: Now</p>
-              </div>
-            </div>
-            <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/15 text-[10px] font-medium text-emerald-400 uppercase tracking-wider">
-              Active
-            </span>
-          </div>
-        </div>
+        {/* P2-6: real, manage-sessions-backed device list (list + per-session
+            revoke + sign-out-others/everywhere). Replaces the hardcoded fake
+            single-device placeholder that never reflected real sessions. */}
+        <SessionsCard glassCard="" />
       </motion.section>
 
       {/* Account Security Overview */}

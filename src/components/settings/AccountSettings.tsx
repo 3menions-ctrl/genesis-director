@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, memo, forwardRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSafeNavigation } from '@/lib/navigation';
 import { supabase } from '@/integrations/supabase/client';
+import { confirmAsync } from '@/components/ui/global-confirm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,6 +37,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
   
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [newEmail, setNewEmail] = useState('');
+  const [emailPassword, setEmailPassword] = useState(''); // P2-3: edge fn requires it
   const [emailError, setEmailError] = useState('');
   const [isChangingEmail, setIsChangingEmail] = useState(false);
   
@@ -71,17 +73,23 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
     const loadPrivacy = async () => {
       setIsLoadingPrivacy(true);
       try {
-        const { data } = await supabase
+        // P2-4: read the CANONICAL column that track_event actually checks
+        // (profiles.tracking_opted_out). The old code read user_gamification, a
+        // non-canonical copy that tracking never consults.
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('tracking_opted_out')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (prof) setTrackingOptedOut(prof.tracking_opted_out ?? false);
+        // Leaderboards are removed product-wide; force-hide regardless of stored pref.
+        const { data: gam } = await supabase
           .from('user_gamification')
-          .select('tracking_opted_out, hide_from_leaderboard')
+          .select('hide_from_leaderboard')
           .eq('user_id', user.id)
           .maybeSingle();
-        if (data) {
-          setTrackingOptedOut(data.tracking_opted_out ?? false);
-          // Leaderboards are removed product-wide; force-hide regardless of stored pref.
-          if (data.hide_from_leaderboard === false) {
-            await supabase.from('user_gamification').update({ hide_from_leaderboard: true }).eq('user_id', user.id);
-          }
+        if (gam?.hide_from_leaderboard === false) {
+          await supabase.from('user_gamification').update({ hide_from_leaderboard: true }).eq('user_id', user.id);
         }
       } catch (e) {
         console.error('Failed to load privacy prefs:', e);
@@ -99,10 +107,11 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
 
     setIsSavingPrivacy(true);
     try {
+      // P2-4: write the CANONICAL column track_event reads (profiles.tracking_opted_out).
       const { error } = await supabase
-        .from('user_gamification')
+        .from('profiles')
         .update({ [field]: value })
-        .eq('user_id', user.id);
+        .eq('id', user.id);
       if (error) throw error;
       toast.success('Privacy preference updated');
     } catch (e) {
@@ -115,6 +124,27 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // P2-5: deactivate inline. The button used to route to the redirect-only
+  // deactivate sub-page, which App.tsx sends straight back to /account — a dead
+  // end where nothing happened. Mirror the working SettingsDashboard.deactivate flow.
+  const handleDeactivate = async () => {
+    if (!user) return;
+    const ok = await confirmAsync({
+      title: 'Deactivate your account?',
+      description: 'Your profile will be hidden but your data stays. Sign back in anytime to reactivate.',
+      confirmLabel: 'Deactivate',
+      cancelLabel: 'Cancel',
+    });
+    if (!ok) return;
+    const { error } = await supabase
+      .from('profiles' as never)
+      .update({ deactivated_at: new Date().toISOString() } as never)
+      .eq('id', user.id);
+    if (error) { toast.error('Could not deactivate your account.'); return; }
+    await supabase.auth.signOut();
+    window.location.href = '/auth?deactivated=1';
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -204,6 +234,13 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
       return;
     }
 
+    // P2-3: the edge fn ALWAYS requires the current password to re-auth before
+    // changing email. Previously we sent only { newEmail } → 400 every time.
+    if (!emailPassword) {
+      setEmailError('Confirm your password to change your email');
+      return;
+    }
+
     setIsChangingEmail(true);
     setEmailError('');
 
@@ -215,7 +252,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
       }
 
       const response = await supabase.functions.invoke('update-user-email', {
-        body: { newEmail: newEmail.trim() },
+        body: { newEmail: newEmail.trim(), password: emailPassword },
         headers: {
           Authorization: `Bearer ${session.access_token}`
         }
@@ -226,6 +263,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
       toast.success('Confirmation email sent to your new address');
       setShowEmailDialog(false);
       setNewEmail('');
+      setEmailPassword('');
     } catch (error) {
       console.error('Error changing email:', error);
       toast.error('Couldn\'t change email. Please try again.');
@@ -556,7 +594,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             </p>
             <div className="mt-4">
               <Button
-                onClick={() => navigate('/settings/deactivate')}
+                onClick={handleDeactivate}
                 variant="ghost"
                 className="text-red-400/80 hover:bg-red-500/10 hover:text-red-300 rounded-xl"
               >
@@ -608,6 +646,18 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
                 </p>
               )}
             </div>
+
+            <div className="space-y-2">
+              <Label className="text-white/50 text-xs">Confirm your password</Label>
+              <Input
+                type="password"
+                value={emailPassword}
+                onChange={(e) => { setEmailPassword(e.target.value); setEmailError(''); }}
+                placeholder="Your password"
+                autoComplete="current-password"
+                className="bg-glass border-white/[0.08] text-white placeholder:text-white/20 rounded-xl"
+              />
+            </div>
           </div>
 
           <DialogFooter className="gap-2">
@@ -615,6 +665,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
               onClick={() => {
                 setShowEmailDialog(false);
                 setNewEmail('');
+                setEmailPassword('');
                 setEmailError('');
               }}
               variant="ghost"
@@ -624,7 +675,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             </Button>
             <Button
               onClick={handleEmailChange}
-              disabled={!newEmail || isChangingEmail}
+              disabled={!newEmail || !emailPassword || isChangingEmail}
               variant="ghost"
               className="text-foreground hover:bg-white/[0.06] rounded-xl"
             >

@@ -55,6 +55,28 @@ needs before it can be safely done.
 - **Needs:** your sign-off to set the secret on the deployed function (and a
   dev/staging soak first). No repo code change required to enable.
 
+## Batch 3 — free-tier charge-and-orphan (P1-4, free-tier half) — DEFERRED (schema)
+
+### 8. `free-tier-generate` has no result-delivery path
+- **What's wrong:** it consumes a daily free attempt, submits a Replicate
+  prediction, marks the attempt `'succeeded'` at SUBMIT (before it finishes),
+  registers no webhook, and returns only a `predictionId`. There is **no path
+  for the finished video to reach the user**: `free_tier_attempts` has no
+  result-URL column and its `status` CHECK allows only
+  `started/succeeded/failed/rate_limit/platform_cap/content` (no interim
+  `processing`). The function is also currently **uncalled** (no client invokes
+  it), so any fix is unverifiable here.
+- **Why deferred (not in Batch 3's schema-safe scope):** a correct fix needs a
+  SCHEMA change — either (a) add `output_url` (+ `processing` status) to
+  `free_tier_attempts` and a `replicate-webhook` branch that writes it by
+  `prediction_id`, or (b) rearchitect free-tier onto the existing
+  `movie_projects` + `video_clips` path (which already has webhook completion)
+  with a free/watermark flag. Both touch DB schema / the webhook handler and need
+  a live free-tier render to verify.
+- **Needs:** product decision on (a) vs (b), the migration, and a dev/staging
+  free-tier render to validate end-to-end. Do NOT half-fix (delivering a status
+  without the video URL still leaves the user's render orphaned).
+
 ### 7. `resume-avatar-pipeline` async-model rewrite
 - **What's wrong (repo):** only understands the legacy single
   `pipeline_state.predictionId`; throws for the modern

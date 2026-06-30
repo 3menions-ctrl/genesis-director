@@ -69,8 +69,20 @@ serve(async (req) => {
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
+  // ── Cleanup state, hoisted so catch/finally can always release the lock and
+  // revert the clip. Previously the lock was acquired inside the try and the
+  // catch could not see it, so a failed retry left the project lock held and the
+  // clip stuck in 'generating' forever — permanently un-retryable (P0-2). We own
+  // this lock for the WHOLE retry and hand it to generate-single-clip via
+  // ownedLockId so it reuses (not re-acquires → 409) the same lock.
+  let lockId: string | null = null;
+  let lockHeld = false;
+  let clipDbId: string | null = null;
+  let cleanupProjectId: string | null = null;
+
   try {
     const request: RetryRequest = await req.json();
+    cleanupProjectId = request.projectId ?? null;
 
     // ADMIN ON-BEHALF: an admin may retry a failed clip for any project from the
     // admin console. The retry then runs as the project OWNER — generation lock,
@@ -126,9 +138,9 @@ serve(async (req) => {
     // =========================================================
     // FAILSAFE: Acquire generation lock before retrying
     // =========================================================
-    const lockId = crypto.randomUUID();
+    lockId = crypto.randomUUID();
     const lockResult = await acquireGenerationLock(supabase, request.projectId, request.clipIndex, lockId);
-    
+
     if (!lockResult.acquired) {
       console.warn(`[RetryClip] ⚠️ Cannot retry - clip ${lockResult.blockedByClip} is currently generating`);
       return new Response(
@@ -142,6 +154,7 @@ serve(async (req) => {
       );
     }
     
+    lockHeld = true;
     console.log(`[RetryClip] ✓ Generation lock acquired: ${lockId}`);
     
     // =========================================================
@@ -151,9 +164,7 @@ serve(async (req) => {
       const continuityCheck = await checkContinuityReady(supabase, request.projectId, request.clipIndex);
       
       if (!continuityCheck.ready) {
-        // Release lock since we can't proceed
-        await releaseGenerationLock(supabase, request.projectId, lockId);
-        
+        // Lock is released by the finally block below.
         return new Response(
           JSON.stringify({
             success: false,
@@ -175,14 +186,15 @@ serve(async (req) => {
       .maybeSingle();
     
     if (clipError || !failedClip) {
-      await releaseGenerationLock(supabase, request.projectId, lockId);
       throw new Error(`Clip not found: ${clipError?.message}`);
     }
     
     if (failedClip.status !== 'failed') {
-      await releaseGenerationLock(supabase, request.projectId, lockId);
       throw new Error(`Clip is not in failed state: ${failedClip.status}`);
     }
+    // Remember which clip we are about to flip to 'generating' so the catch can
+    // revert it to 'failed' if anything downstream throws (keeps it re-retryable).
+    clipDbId = failedClip.id;
     
     // 2. Get project details for context
     const { data: project, error: projectError } = await supabase
@@ -332,6 +344,9 @@ serve(async (req) => {
       qualityTier: project.quality_tier || 'standard',
       aspectRatio: project.aspect_ratio || '16:9',
       isRetry: true,
+      // Hand our already-held lock to generate-single-clip so it REUSES it
+      // instead of re-acquiring (which 409s against this same lock → deadlock).
+      ownedLockId: lockId,
       videoEngine: persistedEngine,
       isAvatarMode,
     });
@@ -401,8 +416,9 @@ serve(async (req) => {
       })
       .eq('id', request.projectId);
     
-    // Note: Lock is released by generate-single-clip after completion
-    
+    // Lock is released by the finally block below (we own it for the whole
+    // retry; generate-single-clip reused it via ownedLockId and did NOT release).
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -423,11 +439,27 @@ serve(async (req) => {
     
   } catch (error) {
     console.error("[RetryClip] Error:", error);
-    
-    // Release lock on error (if we have the info)
-    // Note: The actual lock release might fail if we don't have the lockId,
-    // but generate-single-clip will handle releasing its own lock on error
-    
+
+    // CRITICAL (P0-2): revert the clip we flipped to 'generating' back to
+    // 'failed' so it stays re-retryable. Without this the clip is stranded in
+    // 'generating' forever and every future retry trips the
+    // `status === 'failed'` precondition above.
+    if (clipDbId) {
+      try {
+        await supabase
+          .from('video_clips')
+          .update({
+            status: 'failed',
+            error_message: error instanceof Error ? error.message : 'Retry failed',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', clipDbId)
+          .eq('status', 'generating');
+      } catch (revertErr) {
+        console.warn("[RetryClip] Failed to revert clip to 'failed':", revertErr);
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: false,
@@ -438,5 +470,17 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
+  } finally {
+    // We own the project generation lock for the entire retry (generate-single-clip
+    // reused it and did not release). Always release it here — on success, on
+    // early 409/continuity returns, and on error — so a failed retry can never
+    // leave the project permanently locked (P0-2).
+    if (lockHeld && lockId && cleanupProjectId) {
+      try {
+        await releaseGenerationLock(supabase, cleanupProjectId, lockId);
+      } catch (releaseErr) {
+        console.warn("[RetryClip] Failed to release generation lock:", releaseErr);
+      }
+    }
   }
 });

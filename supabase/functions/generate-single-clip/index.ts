@@ -1092,6 +1092,12 @@ serve(async (req) => {
   let userId: string | undefined;
   let shotIndex = 0;
   let clipId: string | undefined;
+  // When a caller (e.g. retry-failed-clip) already holds the project generation
+  // lock, it passes ownedLockId so we REUSE it instead of re-acquiring. Hoisted
+  // so the error path can tell "we own it" from "caller owns it" and avoid
+  // releasing a lock that belongs to the caller (which would orphan it / break
+  // the caller's own release + revert sequence). See P0-2 (retry deadlock).
+  let callerHeldLockId: string | null = null;
 
   try {
     const body = await req.json();
@@ -1143,7 +1149,13 @@ serve(async (req) => {
       // successful prediction creation and release it on any failure path so
       // concurrent renders cannot drift past the pre-flight check.
       holdId,
+      // Optional: the caller already holds the project generation lock and is
+      // handing it to us (retry-failed-clip). REUSE it; do not re-acquire (that
+      // would 409 against the caller's own lock and deadlock the retry) and do
+      // not release it (the caller owns the release + clip-status revert).
+      ownedLockId,
     } = body;
+    callerHeldLockId = ownedLockId || null;
     let startImageUrl: string | null | undefined = body.startImageUrl;
 
     if (!projectId || !prompt) {
@@ -1500,25 +1512,37 @@ serve(async (req) => {
     // =========================================================
     // FAILSAFE #2: Generation Mutex (prevent parallel generation)
     // =========================================================
-    const lockId = crypto.randomUUID();
-    const lockResult = await acquireGenerationLock(supabase, projectId, shotIndex, lockId);
-    
-    if (!lockResult.acquired) {
-      console.warn(`[SingleClip] ⚠️ Generation blocked by mutex - clip ${lockResult.blockedByClip} is generating`);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'GENERATION_LOCKED',
-          message: `Another clip (${lockResult.blockedByClip}) is currently generating`,
-          lockAgeSeconds: lockResult.lockAgeSeconds,
-        }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    let lockId: string;
+    if (callerHeldLockId) {
+      // REUSE the caller's lock (retry-failed-clip already acquired it). Acquiring
+      // again would hit acquire_generation_lock against the project's own active
+      // lock → 409 GENERATION_LOCKED → the retry could never run (P0-2 deadlock).
+      lockId = callerHeldLockId;
+      console.log(`[SingleClip] ✓ Reusing caller-held generation lock: ${lockId}`);
+    } else {
+      lockId = crypto.randomUUID();
+      const lockResult = await acquireGenerationLock(supabase, projectId, shotIndex, lockId);
+
+      if (!lockResult.acquired) {
+        console.warn(`[SingleClip] ⚠️ Generation blocked by mutex - clip ${lockResult.blockedByClip} is generating`);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'GENERATION_LOCKED',
+            message: `Another clip (${lockResult.blockedByClip}) is currently generating`,
+            lockAgeSeconds: lockResult.lockAgeSeconds,
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      console.log(`[SingleClip] ✓ Generation lock acquired: ${lockId}`);
     }
-    
-    console.log(`[SingleClip] ✓ Generation lock acquired: ${lockId}`);
-    
+
     const releaseLock = async () => {
+      // Never release a lock the caller owns — they release it after the retry's
+      // status reconciliation. Releasing here would let a parallel clip slip in.
+      if (callerHeldLockId) return;
       await releaseGenerationLock(supabase, projectId!, lockId);
     };
 
@@ -2277,7 +2301,10 @@ serve(async (req) => {
     // =========================================================
     // CRITICAL: Release lock on error
     // =========================================================
-    if (projectId) {
+    if (projectId && !callerHeldLockId) {
+      // Only release locks WE acquired. When callerHeldLockId is set the lock
+      // belongs to the caller (retry-failed-clip), which releases it itself in a
+      // finally + reverts the clip to 'failed'. Releasing here would race that.
       try {
         // Try to release any lock this function might have acquired
         // FIX #22: Use a valid UUID for lock release instead of empty string

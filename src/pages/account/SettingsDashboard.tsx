@@ -1645,7 +1645,9 @@ function PayoutAccountBlock({ creatorId }: { creatorId: string }) {
     setOpening(true);
     try {
       const { data, error } = await supabase.functions.invoke("stripe-connect-onboard", {
-        body: { return_path: "/account?tab=settings&m=creator" },
+        // P3: the fn reads body.returnUrl; the old field name was ignored, so the
+        // user landed on the default page after payout onboarding instead of here.
+        body: { returnUrl: "/account?tab=settings&m=creator" },
       });
       if (error) throw error;
       const url = (data as any)?.url;

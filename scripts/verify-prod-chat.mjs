@@ -1,0 +1,12 @@
+import { chromium } from "playwright";
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 1440, height: 1000 } });
+await p.goto("https://smallbridges.co/lobby", { waitUntil: "networkidle", timeout: 60000 });
+const wc = p.locator('[data-testid="world-chat"]');
+await wc.waitFor({ state: "visible", timeout: 20000 });
+const txt = await wc.innerText();
+console.log("contains 'THE WHOLE BUILDING':", txt.includes("THE WHOLE BUILDING") || txt.toLowerCase().includes("whole building"));
+console.log("header 'World Chat':", txt.includes("World Chat"));
+await wc.screenshot({ path: "/tmp/prod-wc2.png" });
+console.log("ok");
+await b.close();

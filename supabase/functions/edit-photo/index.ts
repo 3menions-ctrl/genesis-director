@@ -145,6 +145,15 @@ Deno.serve(async (req) => {
     // per-failure refunds, which would then over-refund).
     if (auth.isServiceRole) creditsCost = 0;
 
+    // P1-15: idempotency anchor for the credit DEDUCT *and* both REFUND paths.
+    // Declared at handler scope — previously it lived inside the deduct block, so
+    // the refund sites (separate if-blocks) referenced it out of scope and threw
+    // `ReferenceError: idemKey is not defined` BEFORE refund_credits ran. Result:
+    // on any AI-gateway failure the user was charged and never refunded.
+    const idemKey = editId
+      ? `edit-photo:${editId}`
+      : `edit-photo:auto:${auth.userId}:${Date.now() >> 16}`;
+
     // Charge credits for premium edits
     if (creditsCost > 0) {
       const { data: profile } = await supabase
@@ -166,13 +175,9 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Use editId as the idempotency anchor — every photo_edits row has a
-      // unique id, so client retries with the same editId can't double-charge.
-      // If editId is absent (rare ad-hoc edit) we fall back to a millisecond
-      // bucket per user to at least collapse rapid double-clicks.
-      const idemKey = editId
-        ? `edit-photo:${editId}`
-        : `edit-photo:auto:${auth.userId}:${Date.now() >> 16}`;
+      // idemKey is computed once at handler scope above (shared with the refund
+      // paths). Every photo_edits row has a unique id so retries with the same
+      // editId can't double-charge; ad-hoc edits fall back to a per-user ms bucket.
       const { data: deductOk, error: deductErr } = await supabase.rpc('deduct_credits', {
         p_user_id: auth.userId,
         p_amount: creditsCost,

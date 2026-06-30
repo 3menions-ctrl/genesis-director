@@ -35,6 +35,7 @@ const PUBLIC_EXACT: ReadonlySet<string> = new Set<string>([
   "/breakthrough-lab",
   "/films",
   "/pipeline-preview",
+  "/editor/demo", // synthetic buildDemoProject() sandbox — no Supabase/auth/user data; CI + E2E editor entrypoint. Exact match keeps real /editor/:id gated.
 
   // ── Content marketing / support ────────────────────────────
   "/blog",

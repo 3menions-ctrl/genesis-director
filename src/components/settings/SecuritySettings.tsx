@@ -29,6 +29,8 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
   const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  // P1-18: password accounts must re-auth to delete; passwordless send the phrase.
+  const [deletePassword, setDeletePassword] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [showPasswords, setShowPasswords] = useState({
@@ -121,9 +123,19 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
     }
   };
 
+  // Password accounts (an 'email' identity) must re-authenticate; passwordless
+  // (OAuth/passkey) accounts confirm with the exact server phrase instead.
+  const hasPasswordIdentity = (user?.identities ?? []).some(
+    (i) => i?.provider === 'email',
+  );
+
   const handleDeleteAccount = async () => {
     if (deleteConfirmation !== 'DELETE') {
       toast.error('Please type DELETE to confirm');
+      return;
+    }
+    if (hasPasswordIdentity && !deletePassword) {
+      toast.error('Enter your password to confirm deletion');
       return;
     }
 
@@ -135,7 +147,15 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
         return;
       }
 
+      // P1-18: the edge fn REQUIRES a body — a real password (password accounts)
+      // or the exact confirm phrase (passwordless). Previously we sent nothing →
+      // 400 every time, so account deletion was broken for everyone.
+      const body = hasPasswordIdentity
+        ? { password: deletePassword }
+        : { confirm: 'DELETE MY ACCOUNT' };
+
       const response = await supabase.functions.invoke('delete-user-account', {
+        body,
         headers: {
           Authorization: `Bearer ${session.access_token}`
         }
@@ -441,6 +461,20 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
                 className="bg-glass border-red-500/15 text-white placeholder:text-white/20 rounded-xl"
               />
             </div>
+
+            {hasPasswordIdentity && (
+              <div className="space-y-2">
+                <Label className="text-white/50 text-xs">Confirm your password</Label>
+                <Input
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  placeholder="Your password"
+                  autoComplete="current-password"
+                  className="bg-glass border-red-500/15 text-white placeholder:text-white/20 rounded-xl"
+                />
+              </div>
+            )}
           </div>
 
           <DialogFooter className="gap-2 flex-col-reverse sm:flex-row">
@@ -448,6 +482,7 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
               onClick={() => {
                 setShowDeleteDialog(false);
                 setDeleteConfirmation('');
+                setDeletePassword('');
               }}
               variant="ghost"
               className="text-white/40 hover:text-white rounded-xl w-full sm:w-auto"
@@ -456,7 +491,7 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
             </Button>
             <Button
               onClick={handleDeleteAccount}
-              disabled={deleteConfirmation !== 'DELETE' || isDeleting}
+              disabled={deleteConfirmation !== 'DELETE' || (hasPasswordIdentity && !deletePassword) || isDeleting}
               variant="ghost"
               className="text-red-300 hover:bg-red-500/10 rounded-xl w-full sm:w-auto"
             >

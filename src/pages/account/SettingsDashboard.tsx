@@ -2500,12 +2500,36 @@ function DataModule({ profile }: { profile: ProfileRow }) {
 
 function DeleteAccountDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [confirm, setConfirm] = useState("");
+  const [password, setPassword] = useState("");
+  // null = unknown (still loading identities). Password accounts must re-auth.
+  const [hasPassword, setHasPassword] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    let active = true;
+    void supabase.auth.getUser().then(({ data }) => {
+      if (!active) return;
+      const ids = (data?.user?.identities ?? []) as Array<{ provider?: string }>;
+      setHasPassword(ids.some((i) => i?.provider === "email"));
+    });
+    return () => { active = false; };
+  }, [open]);
+
   const submit = async () => {
     if (confirm !== "DELETE") return;
+    if (hasPassword && !password) {
+      toast.error("Enter your password to confirm.");
+      return;
+    }
     setBusy(true);
     try {
-      await supabase.functions.invoke("delete-user-account");
+      // P1-18: the edge fn REQUIRES a body — a real password (password accounts)
+      // or the exact confirm phrase (passwordless). Previously we sent nothing →
+      // 400 every time, so deletion was broken for everyone.
+      const body = hasPassword ? { password } : { confirm: "DELETE MY ACCOUNT" };
+      const { error } = await supabase.functions.invoke("delete-user-account", { body });
+      if (error) throw error;
       await supabase.auth.signOut();
       window.location.href = "/auth?deleted=1";
     } catch (e) {
@@ -2513,6 +2537,8 @@ function DeleteAccountDialog({ open, onClose }: { open: boolean; onClose: () => 
       setBusy(false);
     }
   };
+  const canSubmit =
+    confirm === "DELETE" && (hasPassword !== true || password.length > 0) && !busy;
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent>
@@ -2523,9 +2549,18 @@ function DeleteAccountDialog({ open, onClose }: { open: boolean; onClose: () => 
           </DialogDescription>
         </DialogHeader>
         <Input value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="DELETE" />
+        {hasPassword && (
+          <Input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Confirm your password"
+            autoComplete="current-password"
+          />
+        )}
         <DialogFooter>
           <Button variant="ghost" onClick={onClose} disabled={busy}>Cancel</Button>
-          <Button variant="destructive" disabled={confirm !== "DELETE" || busy} onClick={() => void submit()}>
+          <Button variant="destructive" disabled={!canSubmit} onClick={() => void submit()}>
             {busy && <Loader2 className="h-3 w-3 mr-2 animate-spin" />}I understand · Delete
           </Button>
         </DialogFooter>

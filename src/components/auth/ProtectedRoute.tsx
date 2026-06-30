@@ -37,6 +37,11 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
   const hasRenderedChildren = useRef(false);
   // Track if this is the initial mount
   const [isInitialMount, setIsInitialMount] = useState(true);
+  // Failsafe (T4): the profile-wait / onboarding loaders below have no natural
+  // exit. If the profile never resolves AND never errors (silent empty / hung
+  // fetch), the user is stranded on "Loading your workspace…" forever. This
+  // flips true after a grace period so we can offer recovery instead.
+  const [profileWaitTimedOut, setProfileWaitTimedOut] = useState(false);
   // Track the initial path to detect navigation
   const initialPathRef = useRef(location.pathname);
   // Track redirect state to prevent double-redirects
@@ -62,6 +67,17 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
       setAuthPhase('ready');
     }
   }, [loading, isSessionVerified]);
+
+  // Failsafe timer for the profile-wait loader (see profileWaitTimedOut).
+  useEffect(() => {
+    const stuckOnProfile = !!user?.id && !profile?.id && !profileError && authPhase === 'ready';
+    if (!stuckOnProfile) {
+      if (profileWaitTimedOut) setProfileWaitTimedOut(false);
+      return;
+    }
+    const t = setTimeout(() => setProfileWaitTimedOut(true), 12000);
+    return () => clearTimeout(t);
+  }, [user?.id, profile?.id, profileError, authPhase, profileWaitTimedOut]);
 
   // Mark initial mount complete after first render with valid session
   useEffect(() => {
@@ -217,6 +233,44 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
             <RefreshCw className="w-4 h-4" />
             Retry
           </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Failsafe (T4): profile wait exceeded the grace period without resolving or
+  // erroring — surface recovery instead of an infinite "Loading your workspace…".
+  if (user?.id && !profile?.id && !profileError && profileWaitTimedOut && !loading) {
+    return (
+      <div
+        className="fixed inset-0 z-[100] flex items-center justify-center"
+        style={{ backgroundColor: '#030303' }}
+      >
+        <div className="flex flex-col items-center gap-4 text-center max-w-sm px-6">
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+            <RefreshCw className="w-8 h-8 text-amber-400" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-white mb-1">This is taking longer than usual</h2>
+            <p className="text-zinc-400 text-sm">
+              We couldn't finish loading your workspace. Check your connection and try again.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => {
+                setProfileWaitTimedOut(false);
+                retryProfileFetch?.();
+              }}
+              className="gap-2 bg-white text-black hover:bg-white/90"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Retry
+            </Button>
+            <Button variant="ghost" onClick={() => window.location.reload()} className="text-zinc-300">
+              Reload
+            </Button>
+          </div>
         </div>
       </div>
     );

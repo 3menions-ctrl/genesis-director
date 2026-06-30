@@ -61,7 +61,10 @@ const CommentReactions = memo(function CommentReactions({ commentId }: { comment
           <span>{count}</span>
         </button>
       ))}
-      <div className="flex items-center gap-0.5 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      {/* P2-1: visible by default on touch (no hover); hover/focus-reveal on
+          desktop. Previously opacity-0 group-hover only → invisible & untappable
+          on mobile/iOS, so reacting to a comment did nothing. */}
+      <div className="flex items-center gap-0.5 ml-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
         {['🔥', '❤️', '😂'].map(emoji => (
           <button
             key={emoji}
@@ -182,7 +185,9 @@ const CommentItem = memo(function CommentItem({
         <CommentReactions commentId={comment.id} />
 
         {!isEditing && (
-          <div className="flex items-center gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          // P2-1: reply/edit/delete were opacity-0 group-hover only → unreachable
+          // on touch. Show by default on mobile; hover/focus-reveal on desktop.
+          <div className="flex items-center gap-2 mt-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
             <Button
               variant="ghost"
               size="sm"

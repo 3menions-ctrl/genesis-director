@@ -29,6 +29,7 @@ import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { StudioProvider } from "@/contexts/StudioContext";
 import { PageToneProvider } from "@/lib/page-tone";
 import { Spinner } from "@/components/ui/Spinner";
+import { GlobalConfirmHost } from "@/components/ui/global-confirm";
 import AdminApp from "./AdminApp";
 // The login page — without it, ProtectedRoute's redirect to /auth has nowhere
 // to land and the app loops to a blank screen. Lazy so it's its own chunk.
@@ -72,6 +73,11 @@ export default function AdminStandalone() {
             </AuthProvider>
           </BrowserRouter>
         </TooltipProvider>
+        {/* Confirm/prompt host — REQUIRED in the standalone/desktop shell.
+            Without it, confirmAsync/promptAsync fall back to native
+            window.confirm/window.prompt, and Electron does not implement
+            window.prompt() — so prompt-gated admin actions silently no-op. */}
+        <GlobalConfirmHost />
         <Sonner />
       </QueryClientProvider>
     </ErrorBoundary>

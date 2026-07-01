@@ -796,6 +796,21 @@
     );
   }
 
+  /* Mobile loading structure: skip rendering + reclaim decoded memory for
+     off-screen landing sections. Without this, iOS Safari decodes every
+     full-screen section backdrop up front and accumulates them during scroll
+     until the tab hits its memory budget and the renderer is killed ("A problem
+     repeatedly occurred"). content-visibility:auto bounds decoded memory to
+     roughly what's on-screen; `contain-intrinsic-size: auto <h>` remembers each
+     section's real height after first render so scrolling stays stable.
+     Coarse-pointer only — the desktop experience is untouched. */
+  @media (pointer: coarse) {
+    .cv-section {
+      content-visibility: auto;
+      contain-intrinsic-size: auto 90vh;
+    }
+  }
+
   /* Legacy support */
   .card-clean { @apply glass-card; }
   .card-dark { @apply glass-card-dark; }

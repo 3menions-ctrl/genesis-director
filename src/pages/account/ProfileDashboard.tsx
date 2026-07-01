@@ -22,6 +22,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion, useMotionValue, useTransform } from "framer-motion";
+import { ToolTile } from "@/components/foundation/Floating";
 import {
   Film,
   Eye,

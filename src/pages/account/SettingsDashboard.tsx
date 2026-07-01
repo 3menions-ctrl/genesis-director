@@ -1211,8 +1211,17 @@ function NotificationsModule({
   }, [profile.id]);
 
   const setPushPref = async (key: string, value: boolean) => {
+    // P3: optimistic, but surface + roll back on failure. Previously the error
+    // was swallowed, so a failed save looked successful then silently reverted
+    // on reload.
     setPushPrefs((p) => ({ ...p, [key]: value }));
-    await supabase.from("push_preferences" as never).upsert({ user_id: profile.id, [key]: value } as never);
+    const { error } = await supabase
+      .from("push_preferences" as never)
+      .upsert({ user_id: profile.id, [key]: value } as never);
+    if (error) {
+      setPushPrefs((p) => ({ ...p, [key]: !value }));
+      toast.error(safeErrorMessage(error, "Couldn't save that preference."));
+    }
   };
 
   return (
@@ -1519,9 +1528,17 @@ function CreatorModule({ profile, onSaved }: { profile: ProfileRow; onSaved?: ()
     return false;
   };
   const updateTier = async (id: string, patch: Partial<{ name: string; monthly_credits: number; perks: string; accent_hsl: string }>) => {
+    // P3: optimistic with rollback + toast. Previously a failed update silently
+    // persisted in the UI and reverted on reload.
+    const prev = tiers.find((t) => t.id === id);
     setTiers((p) => p.map((t) => t.id === id ? { ...t, ...patch } : t));
     const { error } = await supabase.from("patron_tiers" as never).update(patch as never).eq("id", id);
-    if (!error) onSaved?.();
+    if (error) {
+      if (prev) setTiers((p) => p.map((t) => t.id === id ? prev : t));
+      toast.error(safeErrorMessage(error, "Couldn't save the tier."));
+      return;
+    }
+    onSaved?.();
   };
   const removeTier = async (id: string) => {
     if (!(await confirmAsync({
@@ -1645,7 +1662,9 @@ function PayoutAccountBlock({ creatorId }: { creatorId: string }) {
     setOpening(true);
     try {
       const { data, error } = await supabase.functions.invoke("stripe-connect-onboard", {
-        body: { return_path: "/account?tab=settings&m=creator" },
+        // P3: the fn reads body.returnUrl; the old field name was ignored, so the
+        // user landed on the default page after payout onboarding instead of here.
+        body: { returnUrl: "/account?tab=settings&m=creator" },
       });
       if (error) throw error;
       const url = (data as any)?.url;
@@ -2500,12 +2519,36 @@ function DataModule({ profile }: { profile: ProfileRow }) {
 
 function DeleteAccountDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [confirm, setConfirm] = useState("");
+  const [password, setPassword] = useState("");
+  // null = unknown (still loading identities). Password accounts must re-auth.
+  const [hasPassword, setHasPassword] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    let active = true;
+    void supabase.auth.getUser().then(({ data }) => {
+      if (!active) return;
+      const ids = (data?.user?.identities ?? []) as Array<{ provider?: string }>;
+      setHasPassword(ids.some((i) => i?.provider === "email"));
+    });
+    return () => { active = false; };
+  }, [open]);
+
   const submit = async () => {
     if (confirm !== "DELETE") return;
+    if (hasPassword && !password) {
+      toast.error("Enter your password to confirm.");
+      return;
+    }
     setBusy(true);
     try {
-      await supabase.functions.invoke("delete-user-account");
+      // P1-18: the edge fn REQUIRES a body — a real password (password accounts)
+      // or the exact confirm phrase (passwordless). Previously we sent nothing →
+      // 400 every time, so deletion was broken for everyone.
+      const body = hasPassword ? { password } : { confirm: "DELETE MY ACCOUNT" };
+      const { error } = await supabase.functions.invoke("delete-user-account", { body });
+      if (error) throw error;
       await supabase.auth.signOut();
       window.location.href = "/auth?deleted=1";
     } catch (e) {
@@ -2513,6 +2556,8 @@ function DeleteAccountDialog({ open, onClose }: { open: boolean; onClose: () => 
       setBusy(false);
     }
   };
+  const canSubmit =
+    confirm === "DELETE" && (hasPassword !== true || password.length > 0) && !busy;
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent>
@@ -2523,9 +2568,18 @@ function DeleteAccountDialog({ open, onClose }: { open: boolean; onClose: () => 
           </DialogDescription>
         </DialogHeader>
         <Input value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="DELETE" />
+        {hasPassword && (
+          <Input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Confirm your password"
+            autoComplete="current-password"
+          />
+        )}
         <DialogFooter>
           <Button variant="ghost" onClick={onClose} disabled={busy}>Cancel</Button>
-          <Button variant="destructive" disabled={confirm !== "DELETE" || busy} onClick={() => void submit()}>
+          <Button variant="destructive" disabled={!canSubmit} onClick={() => void submit()}>
             {busy && <Loader2 className="h-3 w-3 mr-2 animate-spin" />}I understand · Delete
           </Button>
         </DialogFooter>

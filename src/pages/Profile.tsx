@@ -981,7 +981,7 @@ export default function Profile() {
                   <SectionLabel icon={ShieldCheck} label="Security" tone="emerald" />
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div><TwoFactorCard /></div>
-                    <div><SessionsCard /></div>
+                    <div><SessionsCard glassCard="" /></div>
                   </div>
                   <div className="mt-6">
                     <button

@@ -278,12 +278,14 @@ Deno.serve(async (req) => {
         await log(400, 0, 'missing prompt');
         return jsonResponse({ error: '`prompt` is required' }, 400);
       }
-      // Route to seedance-pipeline: it accepts a free-form concept, resolves
-      // userId via the service role (resolveEffectiveUserId), and CREATES its
-      // own project (generate-single-clip required a pre-existing projectId +
-      // camelCase userId, so the old wiring always failed). api-v1 already
-      // deducted credits, so skipCreditDeduction is honored (service-role only).
-      upstreamResp = await admin.functions.invoke('seedance-pipeline', {
+      // Route to the UNIFIED hollywood-pipeline (pipeline unification): it
+      // accepts a free-form concept, resolves userId via the service role, and
+      // CREATES its own project — same as mode-router. This retires the last
+      // live caller of the deprecated seedance-pipeline and gives the public API
+      // all the reliability fixes (durable URLs, atomic claim, recovery).
+      // autoApprove skips the approval gate (an API call must not park); api-v1
+      // already deducted credits, so skipCreditDeduction is honored (service-role).
+      upstreamResp = await admin.functions.invoke('hollywood-pipeline', {
         body: {
           concept: prompt,
           userId,
@@ -292,6 +294,8 @@ Deno.serve(async (req) => {
           aspectRatio: body.aspect_ratio || '16:9',
           videoEngine: 'seedance',
           skipCreditDeduction: true,
+          autoApprove: true,
+          requireApproval: false,
           source: 'api-v1',
         },
       }) as unknown as Response;

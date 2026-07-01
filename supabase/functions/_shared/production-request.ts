@@ -332,3 +332,39 @@ export function resolveHandlerKey(pr: ProductionRequest): HandlerKey {
       return 'handleCinematicMode';
   }
 }
+
+// ─── Canonical resolved plan (the golden-harness + unified-executor contract) ──
+// The single, fully-resolved description of HOW a request executes. As each mode
+// is folded into the unified clip-loop, the executor follows THIS plan; the
+// golden-render harness snapshots it per product type so a fold can't silently
+// change what runs.
+export interface ProductionPlan {
+  mode: ProductionMode;
+  handlerKey: HandlerKey;
+  engine: BackendEngine;
+  dispatchStrategy: DispatchStrategyKind;
+  audioStrategy: AudioStrategy;
+  operation: ShotOperation;
+  executionLane: ExecutionLane;
+  effectFn: 'stylize-video' | 'motion-transfer' | 'generate-avatar-direct' | null;
+  scriptGenerate: boolean;
+  /** Per-shot operation for the first 3 shots (no carried start image). */
+  shotOperations: ShotOperation[];
+}
+
+export function resolvePlan(pr: ProductionRequest): ProductionPlan {
+  const engine = resolveEngine(pr);
+  const op = resolveOperation(pr);
+  return {
+    mode: pr.mode,
+    handlerKey: resolveHandlerKey(pr),
+    engine,
+    dispatchStrategy: resolveDispatchStrategy(engine),
+    audioStrategy: resolveAudioStrategy(pr),
+    operation: op.operation,
+    executionLane: op.executionLane,
+    effectFn: op.effectFn ?? null,
+    scriptGenerate: pr.script.generate,
+    shotOperations: [0, 1, 2].map((i) => resolveShotOperation(pr, i, false)),
+  };
+}

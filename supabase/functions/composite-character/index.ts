@@ -77,14 +77,17 @@ serve(async (req) => {
     
     const characterInput = characterImageUrl || `data:image/jpeg;base64,${characterBase64}`;
     
-    const bgRemovalResponse = await fetch("https://api.replicate.com/v1/predictions", {
+    // Replicate runs a model by SLUG via the model-predictions endpoint. The
+    // bare /v1/predictions endpoint requires a 64-hex version HASH, so passing
+    // a slug there ("version":"lucataco/remove-bg") 422s. Use the model
+    // endpoint like studio-image does.
+    const bgRemovalResponse = await fetch("https://api.replicate.com/v1/models/lucataco/remove-bg/predictions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${REPLICATE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        version: "lucataco/remove-bg",
         input: {
           image: characterInput,
         },
@@ -144,14 +147,13 @@ serve(async (req) => {
     const compositingPrompt = `A professional presenter standing ${placement === "center" ? "in the center" : placement === "left" ? "on the left side" : "on the right side"} of the frame, facing the camera, ready to speak. Natural lighting matching the environment. The person is dressed professionally and has a confident, friendly expression.`;
     
     // Use FLUX Fill for natural compositing
-    const compositeResponse = await fetch("https://api.replicate.com/v1/predictions", {
+    const compositeResponse = await fetch("https://api.replicate.com/v1/models/black-forest-labs/flux-1.1-pro/predictions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${REPLICATE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        version: "black-forest-labs/flux-1.1-pro",
         input: {
           prompt: compositingPrompt,
           image: extractedCharacterUrl,

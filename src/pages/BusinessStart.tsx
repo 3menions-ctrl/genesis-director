@@ -16,7 +16,7 @@
  *   3. scale     — team size, your role, monthly volume, current tools
  *   4. brand     — brand voice + brand colors (live preview, lands on the org)
  *   5. account   — display name, password, enterprise toggles, team invites
- *   6. verify    — 6-digit email code
+ *   6. verify    — 8-digit email code
  *   7. provision — cinematic "building your workspace" while we consume the
  *                  intent, write the brand kit onto the organization, fire
  *                  invites, then drop into /business.
@@ -47,6 +47,7 @@ import { toast } from "sonner";
 import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/ui/Logo";
+import { GlassPanel, GlassButton } from "@/components/foundation/Floating";
 import { AuthOtpInput } from "@/components/auth/AuthOtpInput";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import heroEnterprise from "@/assets/onboarding/hero-enterprise.jpg";
@@ -244,7 +245,7 @@ export default function BusinessStart() {
       const pw = passwordSchema.safeParse(form.password);
       if (!pw.success) e.password = pw.error.errors[0].message;
     }
-    if (currentStep === "verify" && (otp.length < 6 || otp.length > 8)) e.otp = "Enter the 6-digit code from your email";
+    if (currentStep === "verify" && otp.length !== 8) e.otp = "Enter the 8-digit code from your email";
     setErrors(e);
     return Object.keys(e).length === 0;
   }, [currentStep, form, otp]);
@@ -383,7 +384,7 @@ export default function BusinessStart() {
           toast.error(error.message || "Could not create your account.");
           return;
         }
-        toast.success("Check your inbox — we sent a 6-digit code.");
+        toast.success("Check your inbox — we sent an 8-digit code.");
         goTo(STEPS.indexOf("verify"), 1);
       } finally {
         setSubmitting(false);
@@ -537,10 +538,10 @@ export default function BusinessStart() {
                             "group relative min-h-[120px] p-5 rounded-2xl text-left flex flex-col gap-2.5 overflow-hidden backdrop-blur-xl transition-all",
                             active
                               ? "bg-primary/[0.16] shadow-[0_0_0_1px_hsla(212,100%,62%,0.5),0_18px_50px_-16px_hsla(212,100%,55%,0.75)]"
-                              : "bg-white/[0.04] hover:bg-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
+                              : "hover:bg-white/[0.05]",
                           )}
                         >
-                          <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-md", active ? "bg-primary/[0.22]" : "bg-white/[0.06]")}>
+                          <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-md transition-colors", active ? "bg-primary/[0.22]" : "bg-white/[0.06] group-hover:bg-white/[0.1]")}>
                             <Icon className="w-5 h-5 text-[hsla(212,100%,72%,0.95)]" />
                           </div>
                           <p className="text-[15px] font-semibold text-white">{label}</p>
@@ -615,7 +616,7 @@ export default function BusinessStart() {
                               className={cn("relative p-4 rounded-2xl text-left backdrop-blur-xl transition-all",
                                 active
                                   ? "bg-primary/[0.16] shadow-[0_0_0_1px_hsla(212,100%,62%,0.5),0_16px_44px_-18px_hsla(212,100%,55%,0.7)]"
-                                  : "bg-white/[0.04] hover:bg-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]")}>
+                                  : "hover:bg-white/[0.05]")}>
                               <p className="text-[14px] font-semibold">{label}</p>
                               <p className="text-[12px] text-white/55 mt-1">{desc}</p>
                               {active && <CheckDot />}
@@ -723,7 +724,7 @@ export default function BusinessStart() {
                     <p className="text-[13px] text-white/60">
                       Code sent to <span className="text-white font-medium">{form.work_email}</span>
                     </p>
-                    <AuthOtpInput value={otp} onChange={setOtp} onComplete={() => { if (!submitting) void advance(); }} />
+                    <AuthOtpInput value={otp} onChange={setOtp} length={8} onComplete={() => { if (!submitting) void advance(); }} />
                     {errors.otp && <p className="text-[12px] text-rose-400">{errors.otp}</p>}
                     <button onClick={resend} className="text-[12.5px] text-white/55 hover:text-white underline underline-offset-4">
                       Resend code
@@ -770,15 +771,14 @@ export default function BusinessStart() {
               className="inline-flex items-center gap-2 h-11 px-4 rounded-full text-white/65 hover:text-white text-sm transition-colors disabled:opacity-40">
               <ArrowLeft className="w-4 h-4" /> Back
             </button>
-            <button onClick={advance} disabled={submitting}
-              className="inline-flex items-center gap-2 h-12 px-7 rounded-full text-sm font-semibold text-black bg-white hover:bg-white/90 shadow-[0_8px_30px_-8px_rgba(255,255,255,0.4)] transition-all disabled:opacity-60">
+            <GlassButton onClick={advance} disabled={submitting} tone="solid" size="lg" className="px-7 font-semibold">
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : (
                 <>
                   {currentStep === "account" ? "Create workspace" : currentStep === "verify" ? "Verify & launch" : "Continue"}
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
-            </button>
+            </GlassButton>
           </div>
         </div>
       )}
@@ -791,7 +791,7 @@ function PreviewCard({ form, plan }: { form: Form; plan: { id: string; label: st
   const objective = OBJECTIVES.find((o) => o.id === form.objective)?.label;
   const voice = VOICES.find((v) => v.id === form.brand_voice)?.label;
   return (
-    <div className="rounded-3xl bg-white/[0.05] backdrop-blur-2xl overflow-hidden shadow-[0_30px_80px_-30px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.06)]">
+    <GlassPanel className="overflow-hidden">
       <div className="h-20 relative" style={{ background: `linear-gradient(135deg, ${form.brand_primary}, ${form.brand_accent})` }}>
         <div className="absolute inset-0 bg-black/20" />
         <div className="absolute -bottom-5 left-5 w-12 h-12 rounded-2xl bg-[#0c0e14]/90 backdrop-blur-md flex items-center justify-center shadow-xl shadow-black/50">
@@ -827,7 +827,7 @@ function PreviewCard({ form, plan }: { form: Form; plan: { id: string; label: st
           <span className="text-[11px] text-white/40 ml-1">Brand kit</span>
         </div>
       </div>
-    </div>
+    </GlassPanel>
   );
 }
 function PreviewRow({ label, value }: { label: string; value?: string }) {
@@ -932,7 +932,7 @@ function Toggle({
   return (
     <button onClick={() => onChange(!on)}
       className={cn("w-full flex items-center gap-3 p-3.5 rounded-xl text-left transition-all backdrop-blur-md",
-        on ? "bg-primary/[0.14] shadow-[0_0_0_1px_hsla(212,100%,62%,0.45)]" : "bg-white/[0.04] hover:bg-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]")}>
+        on ? "bg-primary/[0.14] shadow-[0_0_0_1px_hsla(212,100%,62%,0.45)]" : "hover:bg-white/[0.05]")}>
       <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0 backdrop-blur-md", on ? "bg-primary/[0.2]" : "bg-white/[0.06]")}>
         <Icon className="w-4 h-4 text-[hsla(212,100%,72%,0.95)]" />
       </div>

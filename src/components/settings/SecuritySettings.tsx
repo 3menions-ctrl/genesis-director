@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SessionsCard } from '@/components/security/SessionsCard';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
@@ -17,7 +18,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
-  Monitor, LogOut,
+  KeyRound,
   Trash2, AlertTriangle, Loader2, CheckCircle2, Eye, EyeOff, Download
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -29,6 +30,8 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
   const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  // P1-18: password accounts must re-auth to delete; passwordless send the phrase.
+  const [deletePassword, setDeletePassword] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [showPasswords, setShowPasswords] = useState({
@@ -73,17 +76,6 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
     }
   };
 
-  const handleSignOutAllDevices = async () => {
-    try {
-      const { error } = await supabase.auth.signOut({ scope: 'global' });
-      if (error) throw error;
-      navigate('/auth');
-      toast.success('Signed out of all devices');
-    } catch (error) {
-      console.error('Error signing out:', error);
-      toast.error('Failed to sign out of all devices');
-    }
-  };
 
   const handleExportData = async () => {
     setIsExporting(true);
@@ -121,9 +113,19 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
     }
   };
 
+  // Password accounts (an 'email' identity) must re-authenticate; passwordless
+  // (OAuth/passkey) accounts confirm with the exact server phrase instead.
+  const hasPasswordIdentity = (user?.identities ?? []).some(
+    (i) => i?.provider === 'email',
+  );
+
   const handleDeleteAccount = async () => {
     if (deleteConfirmation !== 'DELETE') {
       toast.error('Please type DELETE to confirm');
+      return;
+    }
+    if (hasPasswordIdentity && !deletePassword) {
+      toast.error('Enter your password to confirm deletion');
       return;
     }
 
@@ -135,7 +137,15 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
         return;
       }
 
+      // P1-18: the edge fn REQUIRES a body — a real password (password accounts)
+      // or the exact confirm phrase (passwordless). Previously we sent nothing →
+      // 400 every time, so account deletion was broken for everyone.
+      const body = hasPasswordIdentity
+        ? { password: deletePassword }
+        : { confirm: 'DELETE MY ACCOUNT' };
+
       const response = await supabase.functions.invoke('delete-user-account', {
+        body,
         headers: {
           Authorization: `Bearer ${session.access_token}`
         }
@@ -186,9 +196,10 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
           {!isChangingPassword && (
             <Button
               onClick={() => setIsChangingPassword(true)}
-              variant="outline"
-              className="border-white/[0.08] text-white/70 hover:bg-glass-hover hover:text-white hover:border-white/[0.15] rounded-xl"
+              variant="ghost"
+              className="text-white/70 hover:bg-white/[0.06] hover:text-white rounded-xl"
             >
+              <KeyRound className="w-4 h-4 mr-2" />
               Change Password
             </Button>
           )}
@@ -258,12 +269,13 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
               <Button
                 onClick={handlePasswordChange}
                 disabled={isSavingPassword || !passwordForm.newPassword || !passwordForm.confirmPassword || passwordForm.newPassword !== passwordForm.confirmPassword}
-                className="bg-[hsl(215,100%,55%)] hover:bg-[hsl(215,100%,62%)] text-white rounded-xl shadow-lg shadow-[hsl(215,100%,60%)]/22"
+                variant="ghost"
+                className="text-foreground hover:bg-white/[0.06] rounded-xl"
               >
                 {isSavingPassword ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
-                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  <CheckCircle2 className="w-4 h-4 mr-2 text-[hsl(215,100%,72%)]" />
                 )}
                 Update Password
               </Button>
@@ -280,37 +292,10 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
         transition={{ delay: 0.1 }}
         className="py-2"
       >
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Active sessions</div>
-            <h3 className="mt-2 font-display italic text-[clamp(1.4rem,2.2vw,1.9rem)] font-light tracking-tight text-foreground" style={{ fontFamily: "'Fraunces', serif" }}>Your logged-in devices.</h3>
-          </div>
-          <Button
-            onClick={handleSignOutAllDevices}
-            variant="outline"
-            className="border-white/[0.08] text-white/70 hover:bg-glass-hover hover:text-white rounded-xl"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Sign Out All
-          </Button>
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex items-center justify-between p-4 rounded-xl bg-glass border border-white/[0.05]">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/15 flex items-center justify-center">
-                <Monitor className="w-4 h-4 text-emerald-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-white">Current Device</p>
-                <p className="text-xs text-white/30">Last active: Now</p>
-              </div>
-            </div>
-            <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/15 text-[10px] font-medium text-emerald-400 uppercase tracking-wider">
-              Active
-            </span>
-          </div>
-        </div>
+        {/* P2-6: real, manage-sessions-backed device list (list + per-session
+            revoke + sign-out-others/everywhere). Replaces the hardcoded fake
+            single-device placeholder that never reflected real sessions. */}
+        <SessionsCard glassCard="" />
       </motion.section>
 
       {/* Account Security Overview */}
@@ -331,7 +316,7 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
             { label: '2FA Enabled', value: 'No', valueColor: 'text-white/40' },
             { label: 'Account Created', value: memberSince },
           ].map((item, i) => (
-            <div key={i} className="p-4 rounded-xl bg-glass border border-white/[0.05]">
+            <div key={i} className="p-4 rounded-xl">
               <p className="text-[10px] text-white/30 uppercase tracking-wider font-medium">{item.label}</p>
               <div className="flex items-center gap-2 mt-1.5">
                 {item.icon}
@@ -357,8 +342,8 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
           <Button
             onClick={handleExportData}
             disabled={isExporting}
-            variant="outline"
-            className="border-white/[0.08] text-white/70 hover:bg-glass-hover hover:text-white rounded-xl"
+            variant="ghost"
+            className="text-white/70 hover:bg-white/[0.06] hover:text-white rounded-xl"
           >
             {isExporting ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -370,18 +355,18 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
         </div>
       </motion.section>
 
-      {/* Danger Zone — kept red border to give destructive action visual weight */}
+      {/* Danger Zone — red tint + top hairline give destructive action weight (borderless) */}
       <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25 }}
-        className="relative rounded-2xl overflow-hidden border border-red-500/10 bg-red-500/[0.02] backdrop-blur-sm p-6"
+        className="relative rounded-2xl overflow-hidden bg-red-500/[0.02] backdrop-blur-sm p-6"
       >
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/20 to-transparent" />
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className={cn(iconBoxClass, "bg-red-500/10 border border-red-500/15")}>
+            <div className={cn(iconBoxClass, "bg-red-500/10")}>
               <Trash2 className="w-5 h-5 text-red-400/80" />
             </div>
             <div>
@@ -391,9 +376,10 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
           </div>
           <Button
             onClick={() => setShowDeleteDialog(true)}
-            variant="outline"
-            className="border-red-500/20 text-red-400/80 hover:bg-red-500/10 hover:border-red-500/30 rounded-xl"
+            variant="ghost"
+            className="text-red-400/80 hover:bg-red-500/10 hover:text-red-300 rounded-xl"
           >
+            <Trash2 className="w-4 h-4 mr-2" />
             Delete Account
           </Button>
         </div>
@@ -404,7 +390,7 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
         <DialogContent className="bg-background/98 backdrop-blur-2xl border-red-500/15 rounded-2xl max-w-[calc(100vw-2rem)] sm:max-w-md mx-auto max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-5 h-5 text-red-400" />
               </div>
               <DialogTitle className="text-white text-base sm:text-lg">Delete Account</DialogTitle>
@@ -416,7 +402,7 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
           </DialogHeader>
 
           <div className="space-y-4 py-3">
-            <div className="p-3 sm:p-4 rounded-xl bg-red-500/[0.08] border border-red-500/15">
+            <div className="p-3 sm:p-4 rounded-xl bg-red-500/[0.08]">
               <p className="text-xs sm:text-sm text-red-400">
                 <strong>Warning:</strong> You will lose access to:
               </p>
@@ -438,6 +424,20 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
                 className="bg-glass border-red-500/15 text-white placeholder:text-white/20 rounded-xl"
               />
             </div>
+
+            {hasPasswordIdentity && (
+              <div className="space-y-2">
+                <Label className="text-white/50 text-xs">Confirm your password</Label>
+                <Input
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  placeholder="Your password"
+                  autoComplete="current-password"
+                  className="bg-glass border-red-500/15 text-white placeholder:text-white/20 rounded-xl"
+                />
+              </div>
+            )}
           </div>
 
           <DialogFooter className="gap-2 flex-col-reverse sm:flex-row">
@@ -445,6 +445,7 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
               onClick={() => {
                 setShowDeleteDialog(false);
                 setDeleteConfirmation('');
+                setDeletePassword('');
               }}
               variant="ghost"
               className="text-white/40 hover:text-white rounded-xl w-full sm:w-auto"
@@ -453,8 +454,9 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
             </Button>
             <Button
               onClick={handleDeleteAccount}
-              disabled={deleteConfirmation !== 'DELETE' || isDeleting}
-              className="bg-red-600 hover:bg-red-500 text-white rounded-xl w-full sm:w-auto"
+              disabled={deleteConfirmation !== 'DELETE' || (hasPasswordIdentity && !deletePassword) || isDeleting}
+              variant="ghost"
+              className="text-red-300 hover:bg-red-500/10 rounded-xl w-full sm:w-auto"
             >
               {isDeleting ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

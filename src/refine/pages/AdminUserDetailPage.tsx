@@ -26,6 +26,7 @@ import { AdminPageShell } from "../components/AdminPageShell";
 import { FloatSection, FloatTable, FloatStat, StatusPill, DeckButton } from "@/admin/ui/primitives";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/Spinner";
+import { confirmAsync, promptAsync } from "@/components/ui/global-confirm";
 
 interface UserDetail {
   profile: {
@@ -212,20 +213,21 @@ export default function AdminUserDetailPage() {
     reason?: string,
     confirmCopy?: string,
   ) => {
-    if (confirmCopy && !window.confirm(confirmCopy)) return;
+    if (confirmCopy && !(await confirmAsync({ title: "Confirm action", description: confirmCopy, destructive: true }))) return;
     setActing(true);
     try {
       const { data, error } = await supabase.functions.invoke("admin-user-action", {
         body: { action, userId, reason },
       });
       if (error) throw error;
-      const payload = data as { ok: boolean; error?: string; action_link?: string; warning?: string };
+      const payload = data as { ok: boolean; error?: string; action_link?: string; emailed?: boolean; warning?: string };
       if (!payload.ok) throw new Error(payload.error ?? "Action failed");
-      toast.success("Action complete");
+      toast.success(payload.emailed ? "Email sent to the user" : "Action complete");
       if (payload.action_link) {
         try { await navigator.clipboard.writeText(payload.action_link); } catch {}
-        toast.success("Action link copied to clipboard");
+        toast.success(payload.emailed ? "Link also copied to clipboard" : "Action link copied to clipboard");
       }
+      if (payload.warning) toast(payload.warning);
       if (action === "delete") {
         toast.success("User account deleted");
         navigate("/admin/users", { replace: true });
@@ -240,11 +242,23 @@ export default function AdminUserDetailPage() {
   };
 
   const grantCredits = async () => {
-    const amountRaw = window.prompt("Grant how many credits? (1–10,000)");
-    if (!amountRaw) return;
+    const amountRaw = await promptAsync({
+      title: "Grant credits",
+      description: "How many credits to grant? (1–10,000)",
+      inputType: "number",
+      placeholder: "100",
+      confirmLabel: "Next",
+      required: true,
+    });
+    if (amountRaw === null) return;
     const amount = parseInt(amountRaw, 10);
     if (!Number.isFinite(amount) || amount <= 0) return toast.error("Invalid amount");
-    const reason = window.prompt("Reason for grant?") ?? "";
+    const reason = (await promptAsync({
+      title: "Grant credits",
+      description: "Reason for this grant?",
+      placeholder: "e.g. goodwill / support adjustment",
+      confirmLabel: "Grant",
+    })) ?? "";
     setActing(true);
     try {
       const { error } = await supabase.rpc("admin_grant_credits" as never, {
@@ -263,7 +277,13 @@ export default function AdminUserDetailPage() {
   };
 
   const suspend = async () => {
-    const reason = window.prompt("Reason for suspension?");
+    const reason = await promptAsync({
+      title: "Suspend account",
+      description: "Reason for suspension?",
+      placeholder: "e.g. ToS violation",
+      confirmLabel: "Suspend",
+      required: true,
+    });
     if (!reason) return;
     setActing(true);
     try {
@@ -282,7 +302,7 @@ export default function AdminUserDetailPage() {
   };
 
   const restore = async () => {
-    if (!window.confirm("Restore this account? They will regain access on next sign-in.")) return;
+    if (!(await confirmAsync({ title: "Restore account", description: "Restore this account? They will regain access on next sign-in.", confirmLabel: "Restore" }))) return;
     setActing(true);
     try {
       const { error } = await supabase.rpc("admin_unsuspend_account", { p_target_user: userId });
@@ -297,15 +317,21 @@ export default function AdminUserDetailPage() {
   };
 
   const revokeSessions = async () => {
-    if (!window.confirm("Force sign-out of every active session for this user?")) return;
+    if (!(await confirmAsync({ title: "Revoke all sessions", description: "Force sign-out of every active session for this user? This invalidates their refresh tokens immediately.", confirmLabel: "Revoke", destructive: true }))) return;
     setActing(true);
     try {
-      const { error } = await supabase.rpc("admin_revoke_user_sessions" as never, {
+      // admin_revoke_user_sessions now does a REAL hard revoke: deletes the
+      // user's auth.sessions (cascades refresh_tokens) AND bumps
+      // security_version. (The admin-force-logout edge fn's
+      // auth.admin.signOut(userId) call is a no-op — the SDK treats that arg as
+      // a JWT — so we go through the is_admin-gated RPC instead.)
+      const { data, error } = await supabase.rpc("admin_revoke_user_sessions" as never, {
         p_target_user: userId,
         p_reason: "manual_admin_action",
       } as never);
       if (error) throw error;
-      toast.success("Sessions revoked");
+      const revoked = (data as { sessions_revoked?: number } | null)?.sessions_revoked ?? 0;
+      toast.success(revoked > 0 ? `Revoked ${revoked} active session(s)` : "Sessions revoked");
       void load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Revoke failed");
@@ -534,13 +560,20 @@ export default function AdminUserDetailPage() {
                   label="Delete account"
                   tone="destructive"
                   disabled={isSelf || isTargetAdmin || acting}
-                  onClick={() =>
-                    callEdgeAction(
+                  onClick={async () => {
+                    const reason = await promptAsync({
+                      title: "Delete account",
+                      description: "Why are you deleting this account? (recorded in the audit log)",
+                      placeholder: "e.g. user request / spam",
+                      confirmLabel: "Next",
+                    });
+                    if (reason === null) return;
+                    await callEdgeAction(
                       "delete",
-                      window.prompt("Why are you deleting this account?") ?? "manual_delete",
+                      reason || "manual_delete",
                       `Permanently delete this user? This wipes auth.users, profiles, projects, credits, and every cascaded record. Cannot be undone.`,
-                    )
-                  }
+                    );
+                  }}
                 />
                 {isTargetAdmin && (
                   <p className="text-[10px] text-white/35 mt-2 leading-relaxed">

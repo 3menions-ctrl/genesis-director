@@ -7,6 +7,7 @@ import { csvRow } from "@/lib/csvSafe";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/global-confirm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -144,7 +145,12 @@ export default function AdminUsersPage() {
   };
 
   const runBulkSuspend = async () => {
-    if (!window.confirm(`Suspend ${selected.size} user(s)? Admins and your own account are skipped automatically.`)) return;
+    if (!(await confirmAsync({
+      title: "Bulk suspend",
+      description: `Suspend ${selected.size} user(s)? Admins and your own account are skipped automatically.`,
+      confirmLabel: "Suspend",
+      destructive: true,
+    }))) return;
     setBulkBusy(true);
     try {
       const { data, error } = await supabase.rpc("admin_bulk_suspend" as never, {

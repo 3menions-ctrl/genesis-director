@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { CheckCircle2, Download, Sparkles, ExternalLink, Loader2, Film } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BrandedVideoPlayer } from '@/components/intro/BrandedVideoPlayer';
+import { FinishingStudio } from '@/components/production/FinishingStudio';
+import { DialogueLipSync } from '@/components/production/DialogueLipSync';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -183,6 +185,16 @@ export const ProductionFinalVideo = memo(forwardRef<HTMLDivElement, ProductionFi
         {/* Bottom gradient */}
         <div className="absolute bottom-0 inset-x-0 h-20 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
       </div>
+
+      {/* Dialogue Lip-Sync — per-clip, renders itself only when there are
+          dialogue clips to sync. */}
+      {projectId && !isManifest && <DialogueLipSync projectId={projectId} />}
+
+      {/* Finishing Studio — post-production grade + 4K + 60fps. Only for real
+          stitched films (a manifest can't be finished as a single file). */}
+      {projectId && !isManifest && (
+        <FinishingStudio projectId={projectId} masterUrl={videoUrl} />
+      )}
     </motion.div>
   );
 }));

@@ -38,6 +38,11 @@ import { EXTENDED_ENVIRONMENTS } from "@/data/environment-extensions";
 import { ReferenceImageUpload } from "@/components/studio/ReferenceImageUpload";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { GlassPanel } from "@/components/foundation/Floating";
+
+// Borderless/floating design system — a quiet hairline divider used in place of
+// drawn container borders (see CLAUDE.md "borderless/floating/icons" rule).
+const HAIRLINE = "h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent";
 
 const ImageStudioHub = lazy(() => import("./ImageStudioHub").then((m) => ({ default: m.ImageStudioHub })));
 const PhotoEditorHub = lazy(() => import("@/components/photo-editor/PhotoEditorHub").then((m) => ({ default: m.PhotoEditorHub })));
@@ -129,9 +134,10 @@ function EngineCard({ spec, active, disabled, costFor, onSelect }: {
   return (
     <button type="button" onClick={onSelect} disabled={disabled}
       className={[
-        "group relative flex flex-col rounded-2xl p-4 text-left transition-all ring-1 ring-inset",
-        active ? "bg-[hsl(var(--accent)/0.10)] ring-[hsl(var(--accent)/0.55)]"
-               : "bg-[hsl(var(--foreground)/0.03)] ring-white/[0.05] hover:bg-[hsl(var(--foreground)/0.06)]",
+        "group relative flex flex-col rounded-2xl p-4 text-left transition-all",
+        active
+          ? "bg-[hsl(var(--accent)/0.10)] shadow-[inset_0_1px_0_hsl(0_0%_100%/0.08),0_22px_50px_-30px_hsl(var(--accent)/0.6)]"
+          : "hover:bg-[hsl(var(--foreground)/0.04)]",
         disabled ? "cursor-not-allowed opacity-40" : "hover:-translate-y-0.5",
       ].join(" ")}>
       {active && <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full" style={{ background: ACCENT }}><Check className="h-3 w-3 text-accent-foreground" /></span>}
@@ -149,7 +155,8 @@ function EngineCard({ spec, active, disabled, costFor, onSelect }: {
         {is4k && <Chip>4K</Chip>}
         {spec.supportsAvatar && <Chip>Avatars</Chip>}
       </div>
-      <div className="mt-3 flex items-center justify-between border-t border-white/[0.04] pt-2.5">
+      <div className="mt-3 h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <div className="mt-2.5 flex items-center justify-between">
         <span className="font-mono text-[10px] text-muted-foreground">up to {spec.maxDuration}s</span>
         <span className="font-mono text-[11px] font-medium" style={{ color: ACCENT }}>{cost === 0 ? "Free" : `${cost} cr`}</span>
       </div>
@@ -162,9 +169,9 @@ function Chip({ children }: { children: React.ReactNode }) {
 function Pill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button type="button" onClick={onClick}
-      className={["rounded-full px-3.5 py-1.5 text-[12.5px] font-medium transition-colors ring-1 ring-inset",
-        active ? "bg-[hsl(var(--accent)/0.14)] text-foreground ring-[hsl(var(--accent)/0.5)]"
-               : "bg-[hsl(var(--foreground)/0.03)] text-muted-foreground ring-white/[0.05] hover:text-foreground"].join(" ")}>
+      className={["rounded-full px-3.5 py-1.5 text-[12.5px] font-medium transition-colors",
+        active ? "bg-[hsl(var(--accent)/0.16)] text-foreground shadow-[inset_0_1px_0_hsl(0_0%_100%/0.08)]"
+               : "text-muted-foreground hover:bg-[hsl(var(--foreground)/0.05)] hover:text-foreground"].join(" ")}>
       {children}
     </button>
   );
@@ -287,7 +294,7 @@ function GenerateModule({ sel, setSel, onStartCreation, initialPrompt }: { sel: 
       <div className="flex-1 overflow-y-auto px-6 py-7 sm:px-9">
         <div className="mx-auto max-w-3xl">
           {/* mode */}
-          <div className="inline-flex gap-1 rounded-full bg-[hsl(var(--foreground)/0.04)] p-1 ring-1 ring-inset ring-white/[0.05]">
+          <div className="inline-flex gap-1 rounded-full bg-[hsl(var(--foreground)/0.04)] p-1 backdrop-blur-xl">
             {MODES.map((m) => (
               <button key={m.id} type="button" onClick={() => setMode(m.id)}
                 className={["inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-medium transition-colors",
@@ -311,10 +318,10 @@ function GenerateModule({ sel, setSel, onStartCreation, initialPrompt }: { sel: 
 
           {/* avatar: chosen cast member */}
           {mode === "avatar" && (
-            <div className="mt-5 flex items-center gap-3 rounded-2xl bg-[hsl(var(--foreground)/0.035)] shadow-[0_18px_44px_-26px_rgba(0,0,0,0.75)] p-3 ring-1 ring-inset ring-white/[0.05]">
+            <div className="mt-5 flex items-center gap-3 rounded-2xl p-3">
               {sel.avatar ? (
                 <>
-                  <img src={sel.avatar.imageUrl} alt={sel.avatar.name} className="h-12 w-12 rounded-xl object-cover" />
+                  <img src={sel.avatar.imageUrl} alt={sel.avatar.name} className="h-12 w-12 rounded-xl object-cover shadow-[0_14px_30px_-16px_rgba(0,0,0,0.8)]" />
                   <div className="flex-1"><div className="text-[14px] font-medium text-foreground">{sel.avatar.name}</div><div className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">your presenter</div></div>
                 </>
               ) : (
@@ -323,8 +330,8 @@ function GenerateModule({ sel, setSel, onStartCreation, initialPrompt }: { sel: 
             </div>
           )}
 
-          {/* prompt */}
-          <div className="mt-5 rounded-2xl bg-[hsl(var(--foreground)/0.035)] shadow-[0_18px_44px_-26px_rgba(0,0,0,0.75)] p-1 ring-1 ring-inset ring-white/[0.05] focus-within:ring-[hsl(var(--accent)/0.4)]">
+          {/* prompt — the composer is the one allowed translucent surface */}
+          <GlassPanel className="mt-5 p-1 transition-shadow focus-within:shadow-[0_30px_80px_-40px_hsl(0_0%_0%/0.75),inset_0_1px_0_hsl(var(--accent)/0.35)]">
             <textarea value={prompt} onChange={(e) => setPrompt(e.target.value.slice(0, 1000))}
               placeholder={MODES.find((m) => m.id === mode)!.hint} rows={3}
               className="w-full resize-none bg-transparent px-4 py-3 text-[15px] leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/50" />
@@ -336,7 +343,7 @@ function GenerateModule({ sel, setSel, onStartCreation, initialPrompt }: { sel: 
                 </span>
               )}
             </div>
-          </div>
+          </GlassPanel>
 
           {/* engine */}
           <SectionLabel icon={Cpu}>Engine</SectionLabel>
@@ -348,7 +355,7 @@ function GenerateModule({ sel, setSel, onStartCreation, initialPrompt }: { sel: 
 
           {/* format */}
           <SectionLabel icon={Film}>Format</SectionLabel>
-          <div className="space-y-4 rounded-2xl bg-[hsl(var(--foreground)/0.035)] shadow-[0_18px_44px_-26px_rgba(0,0,0,0.75)] p-4 ring-1 ring-inset ring-white/[0.05]">
+          <div className="space-y-4">
             <Row label="Aspect">{ASPECTS.map((a) => <Pill key={a.id} active={aspect === a.id} onClick={() => setAspect(a.id)}>{a.id} · {a.label}</Pill>)}</Row>
             <Row label="Quality">{spec.qualityProfiles.map((q) => <Pill key={q.id} active={profile.id === q.id} onClick={() => setProfileId(q.id)}>{q.label}</Pill>)}</Row>
             <Row label="Duration">{spec.durations.map((d) => <Pill key={d} active={safeDuration === d} onClick={() => setDuration(d)}>{d}s</Pill>)}</Row>
@@ -365,7 +372,7 @@ function GenerateModule({ sel, setSel, onStartCreation, initialPrompt }: { sel: 
           <AnimatePresence>
             {showAdvanced && (
               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                <div className="mt-3 grid gap-4 rounded-2xl bg-[hsl(var(--foreground)/0.035)] shadow-[0_18px_44px_-26px_rgba(0,0,0,0.75)] p-4 ring-1 ring-inset ring-white/[0.05] sm:grid-cols-2">
+                <div className="mt-3 grid gap-4 sm:grid-cols-2">
                   <Field label="Genre"><Select value={genre} onChange={setGenre} options={GENRES} /></Field>
                   <Field label="Mood"><Select value={mood} onChange={setMood} options={MOODS} /></Field>
                   <Toggle label="Narration" icon={Mic} on={narration} onClick={() => setNarration((v) => !v)} />
@@ -378,7 +385,7 @@ function GenerateModule({ sel, setSel, onStartCreation, initialPrompt }: { sel: 
                           onChange={(e) => setNarrationText(e.target.value)}
                           rows={3}
                           placeholder="Type the exact voiceover to bake into the script — or leave blank and we'll write it from your prompt."
-                          className="w-full resize-none rounded-xl bg-[hsl(var(--foreground)/0.04)] px-3.5 py-2.5 text-[13px] leading-relaxed text-foreground placeholder:text-muted-foreground/70 ring-1 ring-inset ring-white/[0.06] outline-none transition focus:ring-white/20"
+                          className="w-full resize-none rounded-xl bg-[hsl(var(--foreground)/0.04)] px-3.5 py-2.5 text-[13px] leading-relaxed text-foreground placeholder:text-muted-foreground/70 outline-none transition focus:bg-[hsl(var(--foreground)/0.06)]"
                         />
                         <p className="mt-1.5 text-[11px] text-muted-foreground/70">
                           Baked into the generated script as the voiceover. Leave empty to auto-write narration.
@@ -451,7 +458,7 @@ function CastModule({ sel, setSel }: { sel: Selections; setSel: (s: Selections) 
         <div className="relative max-w-sm flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search avatars…"
-            className="w-full rounded-full bg-[hsl(var(--foreground)/0.04)] py-2.5 pl-9 pr-4 text-[13px] text-foreground outline-none ring-1 ring-inset ring-white/[0.05] focus:ring-[hsl(var(--accent)/0.4)]" />
+            className="w-full rounded-full bg-[hsl(var(--foreground)/0.04)] py-2.5 pl-9 pr-4 text-[13px] text-foreground outline-none transition focus:bg-[hsl(var(--foreground)/0.07)]" />
         </div>
         {!isLoading && filtered.length > 0 && (
           <span className="text-[11.5px] font-medium text-muted-foreground tabular-nums">
@@ -473,7 +480,7 @@ function CastModule({ sel, setSel }: { sel: Selections; setSel: (s: Selections) 
               return (
                 <button key={t.id} type="button"
                   onClick={() => setSel({ ...sel, avatar: { id: t.id, name: t.name, imageUrl: t.face_image_url, voiceId } })}
-                  className={["group relative overflow-hidden rounded-xl ring-1 ring-inset transition-all", on ? "ring-2 ring-[hsl(var(--accent)/0.85)]" : "ring-white/[0.05] hover:-translate-y-0.5"].join(" ")}>
+                  className={["group relative overflow-hidden rounded-xl transition-all", on ? "ring-2 ring-inset ring-[hsl(var(--accent)/0.85)]" : "shadow-[0_16px_36px_-24px_rgba(0,0,0,0.8)] hover:-translate-y-0.5"].join(" ")}>
                   <img src={t.face_image_url} alt={t.name} loading="lazy" className="aspect-square w-full object-cover" />
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-1.5 text-left text-[10px] font-medium text-white">{t.name}</div>
                   {on && <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full" style={{ background: ACCENT }}><Check className="h-3 w-3 text-accent-foreground" /></span>}
@@ -486,7 +493,7 @@ function CastModule({ sel, setSel }: { sel: Selections; setSel: (s: Selections) 
           {pageCount > 1 && (
             <div className="mt-6 flex items-center justify-center gap-3">
               <button type="button" onClick={() => goTo(page - 1)} disabled={page === 0}
-                className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--foreground)/0.04)] px-4 py-2 text-[12px] text-foreground ring-1 ring-inset ring-white/[0.05] transition-colors hover:bg-[hsl(var(--foreground)/0.08)] disabled:opacity-40 disabled:pointer-events-none">
+                className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--foreground)/0.04)] px-4 py-2 text-[12px] text-foreground transition-colors hover:bg-[hsl(var(--foreground)/0.08)] disabled:opacity-40 disabled:pointer-events-none">
                 <ArrowLeft className="h-3.5 w-3.5" /> Prev
               </button>
               <span className="text-[12px] tabular-nums text-muted-foreground">
@@ -495,7 +502,7 @@ function CastModule({ sel, setSel }: { sel: Selections; setSel: (s: Selections) 
                 {start + 1}–{Math.min(start + CAST_PAGE, filtered.length)} of {filtered.length}
               </span>
               <button type="button" onClick={() => goTo(page + 1)} disabled={page >= pageCount - 1}
-                className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--foreground)/0.04)] px-4 py-2 text-[12px] text-foreground ring-1 ring-inset ring-white/[0.05] transition-colors hover:bg-[hsl(var(--foreground)/0.08)] disabled:opacity-40 disabled:pointer-events-none">
+                className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--foreground)/0.04)] px-4 py-2 text-[12px] text-foreground transition-colors hover:bg-[hsl(var(--foreground)/0.08)] disabled:opacity-40 disabled:pointer-events-none">
                 Next <ArrowRight className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -565,7 +572,7 @@ function CastBuilder({ sel, setSel }: { sel: Selections; setSel: (s: Selections)
   };
 
   return (
-    <div className="mb-6 rounded-2xl bg-[hsl(var(--foreground)/0.035)] shadow-[0_18px_44px_-26px_rgba(0,0,0,0.75)] ring-1 ring-inset ring-white/[0.05]">
+    <GlassPanel className="mb-6">
       <button type="button" onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left">
         <span className="inline-flex items-center gap-2.5">
@@ -581,10 +588,11 @@ function CastBuilder({ sel, setSel }: { sel: Selections; setSel: (s: Selections)
       <AnimatePresence>
         {open && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-            <div className="grid gap-4 border-t border-white/[0.04] px-4 py-4 sm:grid-cols-2">
+            <div className="px-4 pt-1"><div className={HAIRLINE} /></div>
+            <div className="grid gap-4 px-4 py-4 sm:grid-cols-2">
               <Field label="Name">
                 <input value={name} onChange={(e) => setName(e.target.value.slice(0, 60))} placeholder="e.g. Mara Vance"
-                  className="w-full rounded-lg bg-[hsl(var(--foreground)/0.05)] px-3 py-2 text-[13px] text-foreground outline-none ring-1 ring-inset ring-white/[0.05] focus:ring-[hsl(var(--accent)/0.4)]" />
+                  className="w-full rounded-lg bg-[hsl(var(--foreground)/0.05)] px-3 py-2 text-[13px] text-foreground outline-none transition focus:bg-[hsl(var(--foreground)/0.08)]" />
               </Field>
               <Field label="Gender">
                 <div className="flex gap-2">
@@ -595,21 +603,21 @@ function CastBuilder({ sel, setSel }: { sel: Selections; setSel: (s: Selections)
               <Field label="Age range"><Select value={ageRange} onChange={setAgeRange} options={AGE_RANGES.map((a) => a.id)} /></Field>
               <Field label="Ethnicity">
                 <input value={ethnicity} onChange={(e) => setEthnicity(e.target.value.slice(0, 60))} list="cast-ethnicity-presets" placeholder="e.g. East Asian"
-                  className="w-full rounded-lg bg-[hsl(var(--foreground)/0.05)] px-3 py-2 text-[13px] text-foreground outline-none ring-1 ring-inset ring-white/[0.05] focus:ring-[hsl(var(--accent)/0.4)]" />
+                  className="w-full rounded-lg bg-[hsl(var(--foreground)/0.05)] px-3 py-2 text-[13px] text-foreground outline-none transition focus:bg-[hsl(var(--foreground)/0.08)]" />
                 <datalist id="cast-ethnicity-presets">{ETHNICITY_PRESETS.map((e) => <option key={e} value={e} />)}</datalist>
               </Field>
               <div className="sm:col-span-2">
                 <Field label="Style (optional)">
                   <input value={style} onChange={(e) => setStyle(e.target.value.slice(0, 120))} placeholder="e.g. tailored navy suit, warm studio lighting"
-                    className="w-full rounded-lg bg-[hsl(var(--foreground)/0.05)] px-3 py-2 text-[13px] text-foreground outline-none ring-1 ring-inset ring-white/[0.05] focus:ring-[hsl(var(--accent)/0.4)]" />
+                    className="w-full rounded-lg bg-[hsl(var(--foreground)/0.05)] px-3 py-2 text-[13px] text-foreground outline-none transition focus:bg-[hsl(var(--foreground)/0.08)]" />
                 </Field>
               </div>
 
               {error && <p className="text-[12px] text-red-400 sm:col-span-2">{error}</p>}
 
               {preview && (
-                <div className="flex items-center gap-4 rounded-xl bg-[hsl(var(--foreground)/0.04)] p-3 ring-1 ring-inset ring-white/[0.05] sm:col-span-2">
-                  <img src={preview.frontImageUrl} alt={name || "Custom avatar"} loading="lazy" className="h-20 w-20 rounded-xl object-cover" />
+                <div className="flex items-center gap-4 rounded-xl p-3 sm:col-span-2">
+                  <img src={preview.frontImageUrl} alt={name || "Custom avatar"} loading="lazy" className="h-20 w-20 rounded-xl object-cover shadow-[0_18px_40px_-20px_rgba(0,0,0,0.85)]" />
                   <div className="flex-1">
                     <div className="text-[14px] font-medium text-foreground">{name.trim() || "Custom avatar"}</div>
                     <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">your generated presenter</div>
@@ -636,7 +644,7 @@ function CastBuilder({ sel, setSel }: { sel: Selections; setSel: (s: Selections)
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </GlassPanel>
   );
 }
 
@@ -651,7 +659,7 @@ function WorldsModule({ sel, setSel }: { sel: Selections; setSel: (s: Selections
           return (
             <button key={e.id} type="button"
               onClick={() => setSel({ ...sel, env: on ? null : { id: e.id, name: e.name, image: e.image, description: e.description } })}
-              className={["group relative overflow-hidden rounded-xl ring-1 ring-inset transition-all", on ? "ring-[hsl(var(--accent)/0.7)]" : "ring-white/[0.05] hover:-translate-y-0.5"].join(" ")}>
+              className={["group relative overflow-hidden rounded-xl transition-all", on ? "ring-2 ring-inset ring-[hsl(var(--accent)/0.7)]" : "shadow-[0_16px_36px_-24px_rgba(0,0,0,0.8)] hover:-translate-y-0.5"].join(" ")}>
               <img src={e.image} alt={e.name} loading="lazy" className="aspect-video w-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 p-2.5 text-left"><div className="text-[12px] font-semibold text-white">{e.name}</div><div className="font-mono text-[8px] uppercase tracking-[0.18em] text-white/55">{e.category}</div></div>
@@ -715,8 +723,8 @@ function VoiceModule({ sel, setSel }: { sel: Selections; setSel: (s: Selections)
               tabIndex={0}
               onClick={() => setSel({ ...sel, voiceId: on ? null : v.id, voiceName: on ? null : v.name })}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSel({ ...sel, voiceId: on ? null : v.id, voiceName: on ? null : v.name }); } }}
-              className={["flex cursor-pointer items-center justify-between rounded-xl p-4 text-left ring-1 ring-inset transition-colors outline-none",
-                on ? "bg-[hsl(var(--accent)/0.1)] ring-[hsl(var(--accent)/0.5)]" : "bg-[hsl(var(--foreground)/0.03)] ring-white/[0.05] hover:bg-[hsl(var(--foreground)/0.06)]"].join(" ")}>
+              className={["flex cursor-pointer items-center justify-between rounded-xl p-4 text-left transition-colors outline-none",
+                on ? "bg-[hsl(var(--accent)/0.1)] shadow-[inset_0_1px_0_hsl(0_0%_100%/0.08)]" : "hover:bg-[hsl(var(--foreground)/0.05)]"].join(" ")}>
               <span className="inline-flex items-center gap-3 min-w-0">
                 <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[hsl(var(--accent)/0.12)] shrink-0"><Mic className="h-4 w-4" style={{ color: ACCENT }} /></span>
                 <span className="min-w-0"><span className="block text-[14px] font-medium text-foreground">{v.name}</span><span className="block truncate text-[12px] text-muted-foreground">{v.tone}</span></span>
@@ -765,8 +773,8 @@ function LookModule({ sel, setSel }: { sel: Selections; setSel: (s: Selections) 
           const on = sel.look === l;
           return (
             <button key={l} type="button" onClick={() => setSel({ ...sel, look: on ? null : l })}
-              className={["flex items-center justify-between rounded-xl px-4 py-3 text-left text-[13px] ring-1 ring-inset transition-colors",
-                on ? "bg-[hsl(var(--accent)/0.1)] text-foreground ring-[hsl(var(--accent)/0.5)]" : "bg-[hsl(var(--foreground)/0.03)] text-muted-foreground ring-white/[0.05] hover:text-foreground"].join(" ")}>
+              className={["flex items-center justify-between rounded-xl px-4 py-3 text-left text-[13px] transition-colors",
+                on ? "bg-[hsl(var(--accent)/0.1)] text-foreground shadow-[inset_0_1px_0_hsl(0_0%_100%/0.08)]" : "text-muted-foreground hover:bg-[hsl(var(--foreground)/0.05)] hover:text-foreground"].join(" ")}>
               {l} {on && <Check className="h-4 w-4" style={{ color: ACCENT }} />}
             </button>
           );
@@ -782,7 +790,7 @@ function StoryModule({ sel, setSel }: { sel: Selections; setSel: (s: Selections)
     <ModuleScroll title="Story" subtitle="Write a logline or beat sheet — it seeds every scene's prompt in Generate.">
       <textarea value={sel.story} onChange={(e) => setSel({ ...sel, story: e.target.value.slice(0, 2000) })}
         placeholder="A retired detective is pulled back for one last case in a rain-soaked neon city…" rows={10}
-        className="w-full max-w-2xl resize-none rounded-2xl bg-[hsl(var(--foreground)/0.035)] shadow-[0_18px_44px_-26px_rgba(0,0,0,0.75)] p-4 text-[14px] leading-relaxed text-foreground outline-none ring-1 ring-inset ring-white/[0.05] focus:ring-[hsl(var(--accent)/0.4)]" />
+        className="w-full max-w-2xl resize-none rounded-2xl bg-[hsl(var(--foreground)/0.035)] p-4 text-[14px] leading-relaxed text-foreground outline-none transition focus:bg-[hsl(var(--foreground)/0.06)]" />
       <p className="mt-2 font-mono text-[10px] text-muted-foreground/60">{sel.story.length}/2000</p>
     </ModuleScroll>
   );
@@ -794,7 +802,7 @@ type TemplatesTab = "breakouts" | "crossovers";
 function TemplatesModule({ sel, onStartCreation }: { sel: Selections; onStartCreation: (c: Record<string, unknown>) => void }) {
   const [tab, setTab] = useState<TemplatesTab>("breakouts");
   const tabSwitch = (
-    <div className="mb-6 inline-flex gap-1 rounded-full bg-[hsl(var(--foreground)/0.04)] p-1 ring-1 ring-inset ring-white/[0.05]">
+    <div className="mb-6 inline-flex gap-1 rounded-full bg-[hsl(var(--foreground)/0.04)] p-1 backdrop-blur-xl">
       {([["breakouts", "Breakouts"], ["crossovers", "Crossovers"]] as const).map(([id, label]) => (
         <button key={id} type="button" onClick={() => setTab(id)}
           className={["rounded-full px-4 py-1.5 text-[13px] font-medium transition-colors",
@@ -836,7 +844,7 @@ function BreakoutsPanel({ sel, onStartCreation, tabSwitch }: { sel: Selections; 
     <div className="flex h-full flex-col">
       <ModuleScroll title="Templates" subtitle="4th-wall breakouts — your cast bursts out of a post, mirror or billboard. Seedance-only, identity-locked.">
         {tabSwitch}
-        <div className="mb-5 flex items-center gap-3 rounded-2xl bg-[hsl(var(--foreground)/0.035)] shadow-[0_18px_44px_-26px_rgba(0,0,0,0.75)] p-3 ring-1 ring-inset ring-white/[0.05]">
+        <div className="mb-5 flex items-center gap-3 rounded-2xl p-3">
           {sel.avatar ? (
             <><img src={sel.avatar.imageUrl} alt={sel.avatar.name} className="h-12 w-12 rounded-xl object-cover" /><div className="flex-1"><div className="text-[14px] font-medium text-foreground">{sel.avatar.name}</div><div className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">breaks out</div></div></>
           ) : <div className="text-[13px] text-muted-foreground">Pick a presenter in the <span className="text-foreground">Cast</span> module first →</div>}
@@ -846,8 +854,8 @@ function BreakoutsPanel({ sel, onStartCreation, tabSwitch }: { sel: Selections; 
             const on = platform === b.id;
             return (
               <button key={b.id} type="button" onClick={() => setPlatform(b.id)}
-                className={["rounded-xl p-3.5 text-left ring-1 ring-inset transition-all",
-                  on ? "bg-[hsl(var(--accent)/0.1)] ring-[hsl(var(--accent)/0.55)]" : "bg-[hsl(var(--foreground)/0.03)] ring-white/[0.05] hover:-translate-y-0.5"].join(" ")}>
+                className={["rounded-xl p-3.5 text-left transition-all",
+                  on ? "bg-[hsl(var(--accent)/0.1)] shadow-[inset_0_1px_0_hsl(0_0%_100%/0.08)]" : "hover:bg-[hsl(var(--foreground)/0.04)] hover:-translate-y-0.5"].join(" ")}>
                 <div className="text-[13px] font-semibold text-foreground">{b.label}</div>
                 <div className="mt-1 text-[11.5px] leading-snug text-muted-foreground">{b.desc}</div>
               </button>
@@ -856,7 +864,7 @@ function BreakoutsPanel({ sel, onStartCreation, tabSwitch }: { sel: Selections; 
         </div>
         <SectionLabel icon={Mic}>Line they speak (optional)</SectionLabel>
         <input value={dialogue} onChange={(e) => setDialogue(e.target.value.slice(0, 200))} placeholder="You were never supposed to find this…"
-          className="w-full max-w-2xl rounded-xl bg-[hsl(var(--foreground)/0.03)] px-4 py-3 text-[14px] text-foreground outline-none ring-1 ring-inset ring-white/[0.05] focus:ring-[hsl(var(--accent)/0.4)]" />
+          className="w-full max-w-2xl rounded-xl bg-[hsl(var(--foreground)/0.03)] px-4 py-3 text-[14px] text-foreground outline-none transition focus:bg-[hsl(var(--foreground)/0.06)]" />
         <SectionLabel icon={Film}>Aspect</SectionLabel>
         <div className="flex gap-2">{ASPECTS.map((a) => <Pill key={a.id} active={aspect === a.id} onClick={() => setAspect(a.id)}>{a.id} · {a.label}</Pill>)}</div>
       </ModuleScroll>
@@ -909,7 +917,7 @@ function CrossoversPanel({ sel, onStartCreation, tabSwitch }: { sel: Selections;
     <div className="flex h-full flex-col">
       <ModuleScroll title="Templates" subtitle="Crossovers — drop your cast into a viral world: phones, billboards, holograms, paintings and more.">
         {tabSwitch}
-        <div className="mb-5 flex items-center gap-3 rounded-2xl bg-[hsl(var(--foreground)/0.035)] shadow-[0_18px_44px_-26px_rgba(0,0,0,0.75)] p-3 ring-1 ring-inset ring-white/[0.05]">
+        <div className="mb-5 flex items-center gap-3 rounded-2xl p-3">
           {sel.avatar ? (
             <><img src={sel.avatar.imageUrl} alt={sel.avatar.name} className="h-12 w-12 rounded-xl object-cover" /><div className="flex-1"><div className="text-[14px] font-medium text-foreground">{sel.avatar.name}</div><div className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">your subject</div></div></>
           ) : <div className="text-[13px] text-muted-foreground">Pick a presenter in the <span className="text-foreground">Cast</span> module to use subject-locked crossovers →</div>}
@@ -923,7 +931,7 @@ function CrossoversPanel({ sel, onStartCreation, tabSwitch }: { sel: Selections;
               const on = picked === b.id;
               return (
                 <button key={b.id} type="button" onClick={() => setPicked(b.id)}
-                  className={["group relative overflow-hidden rounded-xl ring-1 ring-inset transition-all text-left", on ? "ring-[hsl(var(--accent)/0.7)]" : "ring-white/[0.05] hover:-translate-y-0.5"].join(" ")}>
+                  className={["group relative overflow-hidden rounded-xl transition-all text-left", on ? "ring-2 ring-inset ring-[hsl(var(--accent)/0.7)]" : "shadow-[0_16px_36px_-24px_rgba(0,0,0,0.8)] hover:-translate-y-0.5"].join(" ")}>
                   {b.thumbnailUrl ? (
                     <img src={b.thumbnailUrl} alt={b.name} loading="lazy" className="aspect-video w-full object-cover" />
                   ) : (
@@ -984,7 +992,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 function Stepper({ value, min, max, onChange }: { value: number; min: number; max: number; onChange: (n: number) => void }) {
   return (
-    <span className="inline-flex items-center gap-3 rounded-full bg-[hsl(var(--foreground)/0.05)] px-3 py-1.5 ring-1 ring-inset ring-white/[0.05]">
+    <span className="inline-flex items-center gap-3 rounded-full bg-[hsl(var(--foreground)/0.05)] px-3 py-1.5">
       <button type="button" onClick={() => onChange(Math.max(min, value - 1))} className="text-muted-foreground hover:text-foreground">−</button>
       <span className="w-6 text-center font-mono text-[13px] text-foreground">{value}</span>
       <button type="button" onClick={() => onChange(Math.min(max, value + 1))} className="text-muted-foreground hover:text-foreground">+</button>
@@ -997,7 +1005,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function Select({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) {
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg bg-[hsl(var(--foreground)/0.05)] px-3 py-2 text-[13px] capitalize text-foreground outline-none ring-1 ring-inset ring-white/[0.05]">
+      className="w-full rounded-lg bg-[hsl(var(--foreground)/0.05)] px-3 py-2 text-[13px] capitalize text-foreground outline-none">
       {options.map((o) => <option key={o} value={o} className="bg-background capitalize">{o}</option>)}
     </select>
   );
@@ -1005,8 +1013,8 @@ function Select({ value, onChange, options }: { value: string; onChange: (v: str
 function Toggle({ label, icon: Icon, on, onClick }: { label: string; icon: LucideIcon; on: boolean; onClick: () => void }) {
   return (
     <button type="button" onClick={onClick}
-      className={["inline-flex items-center justify-between rounded-lg px-3 py-2 text-[13px] ring-1 ring-inset transition-colors",
-        on ? "bg-[hsl(var(--accent)/0.12)] text-foreground ring-[hsl(var(--accent)/0.4)]" : "bg-[hsl(var(--foreground)/0.04)] text-muted-foreground ring-white/[0.05]"].join(" ")}>
+      className={["inline-flex items-center justify-between rounded-lg px-3 py-2 text-[13px] transition-colors",
+        on ? "bg-[hsl(var(--accent)/0.12)] text-foreground shadow-[inset_0_1px_0_hsl(0_0%_100%/0.08)]" : "bg-[hsl(var(--foreground)/0.04)] text-muted-foreground hover:text-foreground"].join(" ")}>
       <span className="inline-flex items-center gap-2"><Icon className="h-3.5 w-3.5" /> {label}</span>
       <span className={["h-3.5 w-3.5 rounded-full", on ? "" : "ring-1 ring-inset ring-current"].join(" ")} style={on ? { background: ACCENT } : undefined} />
     </button>

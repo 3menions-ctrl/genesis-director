@@ -37,7 +37,7 @@ export function BusinessShell({ children }: { children: ReactNode }) {
           ) : !currentOrg ? (
             <div className="flex min-h-[60vh] items-center justify-center px-6">
               <div className="max-w-md text-center">
-                <div className="w-14 h-14 mx-auto mb-4 rounded-2xl ring-1 ring-white/10 bg-white/[0.03] flex items-center justify-center">
+                <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.015] flex items-center justify-center">
                   <Building2 className="w-6 h-6 text-[hsl(215,100%,68%)]" />
                 </div>
                 <h2 className="text-xl font-display italic font-light text-white/90 tracking-[-0.01em]">No workspace selected</h2>

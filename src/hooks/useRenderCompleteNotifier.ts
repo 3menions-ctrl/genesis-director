@@ -25,11 +25,14 @@ import { useAuth } from "@/contexts/AuthContext";
 const ACTIVE_STATUSES = new Set([
   "draft",
   "generating",
+  "processing", // P2-30: a real movie_projects status — its omission skipped the
+  //              completion toast for projects that passed through 'processing'.
   "rendering",
   "stitching",
 ]);
 
-const COMPLETED_STATUSES = new Set(["completed"]);
+// P2-30: some writers set the singular 'complete'; accept both so the toast fires.
+const COMPLETED_STATUSES = new Set(["completed", "complete"]);
 
 export function useRenderCompleteNotifier() {
   const { user } = useAuth();

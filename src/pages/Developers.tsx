@@ -156,10 +156,10 @@ export default function Developers() {
             {CAPABILITIES.map((c) => (
               <li
                 key={c.title}
-                className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 backdrop-blur-sm hover:border-white/[0.12] transition-colors"
+                className="group p-2 transition-colors"
               >
-                <div className="w-11 h-11 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center mb-4">
-                  <c.icon className="w-5 h-5 text-foreground/70" strokeWidth={1.6} />
+                <div className="w-11 h-11 rounded-xl bg-accent/[0.08] flex items-center justify-center mb-4 transition-colors group-hover:bg-accent/[0.14]">
+                  <c.icon className="w-5 h-5 text-foreground/70 transition-colors group-hover:text-accent" strokeWidth={1.6} />
                 </div>
                 <h3 className="text-[15px] font-medium text-foreground mb-1.5">{c.title}</h3>
                 <p className="text-[13px] leading-relaxed text-muted-foreground/65">{c.body}</p>
@@ -301,7 +301,7 @@ export default function Developers() {
               </span>
             </h2>
           </div>
-          <pre className="rounded-2xl border border-white/[0.06] bg-black/40 p-5 text-[12.5px] leading-relaxed text-white/80 font-mono overflow-x-auto">
+          <pre className="rounded-2xl bg-black/40 p-5 text-[12.5px] leading-relaxed text-white/80 font-mono overflow-x-auto">
 {`curl -X POST https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/api-v1/videos \\
   -H "x-api-key: apx_live_..." \\
   -H "Content-Type: application/json" \\
@@ -335,7 +335,8 @@ export default function Developers() {
         </section>
 
         {/* Contact for access */}
-        <section className="rounded-3xl border border-white/[0.06] bg-white/[0.02] p-8 sm:p-10 backdrop-blur-sm">
+        <section>
+          <div aria-hidden className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-10" />
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="max-w-xl">
               <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono">◆ Get access</div>

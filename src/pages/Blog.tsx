@@ -14,10 +14,9 @@ import { useMemo, useState, lazy, Suspense } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Calendar, Clock, User, Tag, Share2, ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { SafeMarkdownRenderer } from '@/components/content/SafeMarkdownRenderer';
 import { MarketingHeader } from '@/components/marketing/MarketingHeader';
+import { GlassButton } from '@/components/foundation/Floating';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { BLOG_ARTICLES, BLOG_CATEGORIES, type BlogArticle } from '@/content/blog';
 
@@ -182,23 +181,24 @@ function ArticleDetail({ article }: { article: BlogArticle }) {
             </div>
 
             {article.tags.length > 0 && (
-              <div className="mt-12 pt-8 border-t border-white/10 flex flex-wrap items-center gap-2">
-                <Tag className="w-4 h-4 text-white/55" />
-                {article.tags.map((tag) => (
-                  <Badge key={tag} variant="outline" className="border-white/20 text-white/60">{tag}</Badge>
-                ))}
-              </div>
+              <>
+                <div aria-hidden className="mt-12 h-px bg-gradient-to-r from-white/15 via-white/5 to-transparent" />
+                <div className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <Tag className="w-4 h-4 text-white/55" />
+                  {article.tags.map((tag) => (
+                    <span key={tag} className="text-[11px] font-mono uppercase tracking-[0.18em] text-white/55">{tag}</span>
+                  ))}
+                </div>
+              </>
             )}
 
-            <div className="mt-8 flex items-center gap-3">
-              <Button variant="outline" size="sm" onClick={share}
-                className="border-white/20 text-white/60 hover:bg-white/5 hover:text-white">
-                <Share2 className="w-4 h-4 mr-2" /> Share Article
-              </Button>
-              <Button size="sm" onClick={() => { window.location.href = '/auth?mode=signup'; }}
-                className="rounded-full bg-white text-black hover:bg-white/90">
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <GlassButton size="sm" onClick={share}>
+                <Share2 className="w-4 h-4" /> Share Article
+              </GlassButton>
+              <GlassButton size="sm" tone="solid" onClick={() => { window.location.href = '/auth?mode=signup'; }}>
                 Try Small Bridges free
-              </Button>
+              </GlassButton>
             </div>
           </motion.article>
 
@@ -273,8 +273,9 @@ function BlogIndex() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55 }}
-            className="border-y border-white/12 py-7 mb-14"
+            className="py-7 mb-14"
           >
+            <div aria-hidden className="mb-7 h-px bg-gradient-to-r from-transparent via-white/12 to-transparent" />
             <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
               <div>
                 <div className="text-[10px] font-mono uppercase tracking-[0.42em] text-white/45 mb-2">
@@ -293,6 +294,7 @@ function BlogIndex() {
               Editor's note — tutorials, comparisons, and playbooks for turning a line of text into
               cinema. No cover art here; the pictures are in the prompts.
             </p>
+            <div aria-hidden className="mt-7 h-px bg-gradient-to-r from-transparent via-white/12 to-transparent" />
           </motion.header>
 
           {/* ── Cover story (only on All) ──────────────────────────────── */}
@@ -432,7 +434,7 @@ function ArticleNotFound() {
     <div className="min-h-screen bg-black flex flex-col items-center justify-center text-center px-6">
       <h1 className="text-2xl font-bold text-white mb-3">Article not found</h1>
       <p className="text-white/55 mb-6">It may have moved or been retired.</p>
-      <Link to="/blog" className="h-10 px-5 inline-flex items-center rounded-full bg-white text-black text-sm font-medium">Back to Blog</Link>
+      <GlassButton to="/blog" tone="solid" size="sm">Back to Blog</GlassButton>
     </div>
   );
 }

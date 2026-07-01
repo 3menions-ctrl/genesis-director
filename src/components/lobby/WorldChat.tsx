@@ -12,9 +12,10 @@ import { useMemo, useRef, useState, useLayoutEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
-import { Send, MessagesSquare, Loader2, ImagePlus, X } from "lucide-react";
+import { Send, MessagesSquare, Loader2, LogIn, ImagePlus, X, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorldChat, type WorldChatMessage } from "@/hooks/useWorldChat";
+import { confirmAsync } from "@/components/ui/global-confirm";
 import { cn } from "@/lib/utils";
 
 const MAX_LEN = 500;
@@ -63,17 +64,19 @@ function MessageRow({
   m,
   isOwn,
   onOpenImage,
+  onDelete,
 }: {
   m: Row;
   isOwn: boolean;
   onOpenImage: (url: string) => void;
+  onDelete?: () => void;
 }) {
   const name = m.display_name?.trim() || "Director";
   const hue = useMemo(() => authorHue(m.user_id || name), [m.user_id, name]);
   const initial = name.charAt(0).toUpperCase();
 
   return (
-    <div className={cn("group flex gap-2.5 px-1.5 transition-colors", m.grouped ? "mt-0.5 py-0.5" : "mt-2.5 py-0.5")}>
+    <div className={cn("group relative flex gap-2.5 px-1.5 transition-colors", m.grouped ? "mt-0.5 py-0.5" : "mt-2.5 py-0.5")}>
       {/* gutter: avatar on a new burst, hover-time on continuations */}
       <div className="w-8 shrink-0">
         {m.grouped ? (
@@ -127,6 +130,18 @@ function MessageRow({
           </button>
         )}
       </div>
+
+      {onDelete && (
+        <button
+          type="button"
+          onClick={onDelete}
+          aria-label="Delete message"
+          title="Delete message"
+          className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-white/[0.06] text-muted-foreground opacity-0 transition-all hover:bg-[hsl(350_90%_70%/0.18)] hover:text-[hsl(350_90%_72%)] focus:opacity-100 group-hover:opacity-100"
+        >
+          <Trash2 className="h-3 w-3" />
+        </button>
+      )}
     </div>
   );
 }
@@ -134,7 +149,7 @@ function MessageRow({
 export function WorldChat({ className }: { className?: string }) {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { messages, loading, sending, send, uploadImage, canSend } = useWorldChat();
+  const { messages, loading, sending, send, uploadImage, deleteMessage, canSend, onlineCount } = useWorldChat();
   const [draft, setDraft] = useState("");
   const [pendingImage, setPendingImage] = useState<{ url: string; name: string } | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -217,6 +232,18 @@ export function WorldChat({ className }: { className?: string }) {
     }
   };
 
+  const handleDelete = async (id: number) => {
+    const ok = await confirmAsync({
+      title: "Delete message?",
+      description: "This removes it from the chat for everyone.",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!ok) return;
+    const res = await deleteMessage(id);
+    if (!res.ok) toast.error("Couldn't delete — try again.");
+  };
+
   return (
     <div
       data-testid="world-chat"
@@ -224,7 +251,6 @@ export function WorldChat({ className }: { className?: string }) {
         "flex h-[480px] flex-col overflow-hidden rounded-[20px] ring-1 ring-white/[0.06] shadow-[0_24px_60px_-32px_rgba(0,0,0,0.8)]",
         className
       )}
-      style={{ background: "linear-gradient(180deg, hsl(0 0% 100% / .05), hsl(0 0% 100% / .015))" }}
     >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/[0.05] px-5 pt-4 pb-3">
@@ -238,8 +264,8 @@ export function WorldChat({ className }: { className?: string }) {
           </div>
         </div>
         <span className="flex items-center gap-1.5 rounded-full bg-[hsl(160_60%_50%/0.1)] px-2 py-1 font-mono text-[9px] uppercase tracking-[0.2em] text-[hsl(160_60%_55%)]">
-          <span className="h-1.5 w-1.5 rounded-full bg-[hsl(160_60%_50%)] shadow-[0_0_8px_hsl(160_60%_50%)]" />
-          live
+          <span className="h-1.5 w-1.5 rounded-full bg-[hsl(160_60%_50%)] shadow-[0_0_8px_hsl(160_60%_50%)] animate-pulse" />
+          {onlineCount > 0 ? `${onlineCount} online` : "live"}
         </span>
       </div>
 
@@ -269,7 +295,12 @@ export function WorldChat({ className }: { className?: string }) {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                 >
-                  <MessageRow m={m} isOwn={!!ownId && m.user_id === ownId} onOpenImage={setLightbox} />
+                  <MessageRow
+                    m={m}
+                    isOwn={!!ownId && m.user_id === ownId}
+                    onOpenImage={setLightbox}
+                    onDelete={!!ownId && m.user_id === ownId ? () => handleDelete(m.id) : undefined}
+                  />
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -331,8 +362,9 @@ export function WorldChat({ className }: { className?: string }) {
           <button
             type="button"
             onClick={() => navigate("/auth?next=/lobby")}
-            className="w-full rounded-2xl bg-white/[0.04] px-4 py-3 text-[12.5px] font-medium text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[12.5px] font-medium text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground"
           >
+            <LogIn className="h-3.5 w-3.5" />
             Sign in to join the conversation →
           </button>
         )}

@@ -148,10 +148,10 @@ export const ENGINES: Record<VideoEngineKey, EngineDefinition> = {
   wan: {
     key: "wan",
     label: "Wan 2.5 — Free",
-    modelOwner: "wan-ai",
+    modelOwner: "wan-video",
     modelName: "wan-2.5-t2v",
-    modelId: "wan-ai/wan-2.5-t2v",
-    endpoint: "https://api.replicate.com/v1/models/wan-ai/wan-2.5-t2v/predictions",
+    modelId: "wan-video/wan-2.5-t2v",
+    endpoint: "https://api.replicate.com/v1/models/wan-video/wan-2.5-t2v/predictions",
     durations: [5, 10],
     defaultDuration: 5,
     minDuration: 5,

@@ -12,12 +12,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LifeBuoy, Send, Loader2, ChevronDown, ChevronRight, Shield, Clock, CheckCircle2 } from 'lucide-react';
+import { LifeBuoy, Send, Loader2, ChevronDown, ChevronRight, Shield, Clock, CheckCircle2, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 
-const glassCard = "relative backdrop-blur-2xl bg-[hsla(220,14%,4%,0.55)] border border-[hsla(215,100%,60%,0.10)] rounded-2xl";
+const glassCard = "relative backdrop-blur-2xl rounded-2xl";
 
 interface SupportTicket {
   id: string;
@@ -139,18 +139,17 @@ export function SupportInbox({ className, defaultExpanded }: { className?: strin
         </div>
         <Button
           size="sm"
-          variant={composing ? 'outline' : 'default'}
+          variant="ghost"
           onClick={() => setComposing((v) => !v)}
-          className={composing
-            ? "border-[hsla(215,100%,60%,0.25)] text-foreground hover:bg-[hsla(215,100%,60%,0.08)]"
-            : "bg-[hsl(215,100%,60%)] hover:bg-[hsl(215,100%,55%)] text-foreground"}
+          className="gap-1.5 text-foreground hover:bg-white/[0.06]"
         >
+          {composing ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
           {composing ? 'Cancel' : 'New message'}
         </Button>
       </div>
 
       {composing && (
-        <div className="mb-5 space-y-2 p-4 rounded-xl bg-[hsla(220,14%,5%,0.6)] border border-[hsla(215,100%,60%,0.18)]">
+        <div className="mb-5 space-y-2 p-4 rounded-xl">
           <Input
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
@@ -170,8 +169,8 @@ export function SupportInbox({ className, defaultExpanded }: { className?: strin
             <span className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono inline-flex items-center gap-1.5">
               <Shield className="w-3 h-3" /> Sent privately to small-bridges admins
             </span>
-            <Button size="sm" disabled={sending || !subject.trim() || !message.trim()} onClick={handleSend}
-              className="bg-[hsl(215,100%,60%)] hover:bg-[hsl(215,100%,55%)] text-foreground gap-1.5">
+            <Button size="sm" variant="ghost" disabled={sending || !subject.trim() || !message.trim()} onClick={handleSend}
+              className="text-[hsl(215,100%,72%)] hover:bg-white/[0.06] gap-1.5">
               {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               Send
             </Button>
@@ -199,10 +198,8 @@ export function SupportInbox({ className, defaultExpanded }: { className?: strin
                 <div
                   key={t.id}
                   className={cn(
-                    "rounded-xl border transition-all",
-                    isOpen
-                      ? "bg-[hsla(215,100%,60%,0.05)] border-[hsla(215,100%,60%,0.28)]"
-                      : "bg-[hsla(220,14%,5%,0.5)] border-white/[0.05] hover:border-[hsla(215,100%,60%,0.18)]"
+                    "rounded-xl transition-all",
+                    isOpen ? "bg-white/[0.03]" : "hover:bg-white/[0.02]"
                   )}
                 >
                   <button
@@ -226,12 +223,12 @@ export function SupportInbox({ className, defaultExpanded }: { className?: strin
 
                   {isOpen && (
                     <div className="px-3 pb-3 space-y-3">
-                      <div className="p-3 rounded-lg bg-[hsla(220,14%,3%,0.6)] border border-white/[0.05]">
+                      <div className="p-3 rounded-lg">
                         <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-mono mb-1">You wrote</p>
                         <p className="text-sm text-foreground/90 whitespace-pre-wrap">{t.message}</p>
                       </div>
                       {hasReply ? (
-                        <div className="p-3 rounded-lg bg-[hsla(215,100%,60%,0.06)] border border-[hsla(215,100%,60%,0.25)]">
+                        <div className="p-3 rounded-lg bg-[hsla(215,100%,60%,0.06)]">
                           <p className="text-[10px] uppercase tracking-[0.3em] text-[hsl(215,100%,72%)] font-mono mb-1 flex items-center gap-1.5">
                             <Shield className="w-3 h-3" /> Small Bridges admin
                             {t.replied_at && (

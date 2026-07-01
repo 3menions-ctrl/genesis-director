@@ -79,7 +79,7 @@ type EngineCapabilities = {
 const ENGINE_CAPS: Record<EngineKey, EngineCapabilities> = {
   // Alibaba's Wan 2.5 — the free-tier engine. Always shown first.
   wan: {
-    label: 'Wan 2.5', model: 'wan-ai/wan-2.5-t2v',
+    label: 'Wan 2.5', model: 'wan-video/wan-2.5-t2v',
     tagline: 'Free tier · Alibaba Wan', badge: 'FREE',
     supportsT2V: true, supportsI2V: true, supportsLipSync: false, supportsNativeAudio: false,
     aspectRatios: ['16:9', '9:16', '1:1'], durations: [5, 10],

@@ -232,7 +232,18 @@ serve(async (req) => {
         clipUpdate.last_frame_url = lastFrameUrl;
       }
       
-      await supabase.from('video_clips').update(clipUpdate).eq('id', clip.id);
+      // ATOMIC COMPLETION CLAIM — only the path (webhook OR poll) that actually
+      // flips status→completed proceeds. `.neq('status','completed')` makes the
+      // UPDATE a conditional claim; zero rows back = the poller already completed
+      // this clip, so we must NOT re-record media / re-chain / double-log cost.
+      const { data: claimedRows } = await supabase.from('video_clips')
+        .update(clipUpdate).eq('id', clip.id).neq('status', 'completed').select('id');
+      if ((claimedRows?.length ?? 0) === 0) {
+        console.log(`[ReplicateWebhook] Clip ${clip.shot_index + 1} already completed by another path — ignoring (idempotent)`);
+        return new Response(JSON.stringify({ success: true, duplicate: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       console.log(`[ReplicateWebhook] ✅ Clip ${clip.shot_index + 1} marked completed with stored URL`);
 
       // MEDIA LIBRARY: durable record of the completed video clip.

@@ -15,20 +15,11 @@
  * ────────────────────────────────────────────────────────────────────
  *  IMPLEMENTATION NOTE
  *
- *  Supabase Edge Functions run on Deno Deploy with no native ffmpeg.
- *  Two viable strategies:
- *
- *  A) `ffmpeg-wasm` (browser/WASM build) executed inside the edge fn.
- *     Works but is slow and memory-bound (~1.5GB heap cap). Fine for
- *     short user videos (<60s @ 1080p) which is most of our traffic.
- *
- *  B) Background worker (Cloudflare Workers / Railway / Replicate) that
- *     does the muxing and writes back to Supabase storage. Faster for
- *     long renders; needs a separate deploy target.
- *
- *  This function is the entry point either way — the actual muxing
- *  happens behind `runMux()`. The default implementation is the WASM
- *  path; swap it for the worker call when you're ready.
+ *  Supabase Edge Functions run on Deno Deploy with no native ffmpeg, so the
+ *  intro-prepend is delegated to seamless-stitcher (clips mode,
+ *  includeIntro:true), which runs the real ffmpeg concat on a Replicate cog and
+ *  returns a stored MP4. This function just authenticates, delegates, and
+ *  returns a durable URL (falling back to the un-branded source on failure).
  *
  *  Prerequisite assets (one-time setup):
  *    • Upload `intro.mp4` (a pre-rendered ~7.5s 1080p version of the
@@ -115,86 +106,56 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Confirm the intro asset exists. If not, gracefully fall back to
-    // signing the original URL — we'd rather give the user their video
-    // un-branded than fail outright.
-    const introExists = await checkIntroExists(supabase);
-    if (!introExists) {
-      console.warn("[brand-video-download] intro.mp4 missing — returning source url");
-      return ok({ url: videoUrl, branded: false, reason: "intro_missing" });
+    // P1-13: prepend the brand intro via the REAL ffmpeg path (seamless-stitcher
+    // clips mode, includeIntro:true — cog-ffmpeg concat). The previous local mux
+    // naively byte-concatenated two complete MP4 containers (duplicate
+    // ftyp/moov) → an unplayable file. The stitcher also handles a missing intro
+    // gracefully (continues without the pre-roll), so no existence check is needed.
+    const { data: stitchResult, error: stitchError } = await supabase.functions.invoke(
+      "seamless-stitcher",
+      {
+        body: {
+          clips: [{ url: videoUrl }],
+          sessionId: `branded-${projectId ?? userId}-${Date.now()}`,
+          includeIntro: true,
+        },
+      },
+    );
+    if (stitchError) {
+      // Fail safe to the un-branded source — a valid video beats a corrupt one.
+      console.warn("[brand-video-download] stitch failed, returning source url:", stitchError.message);
+      return ok({ url: videoUrl, branded: false, reason: "stitch_failed" });
     }
 
-    // Run the mux. May take 10-90s depending on source length.
-    const brandedBytes = await runMux({ supabase, sourceUrl: videoUrl });
+    let brandedUrl =
+      (stitchResult as { finalVideoUrl?: string; url?: string })?.finalVideoUrl ??
+      (stitchResult as { url?: string })?.url ??
+      null;
+    if (!brandedUrl) {
+      return ok({ url: videoUrl, branded: false, reason: "no_output" });
+    }
 
-    // Upload to the output bucket.
-    const key = `${userId ?? "anon"}/${projectId ?? crypto.randomUUID()}-${Date.now()}.mp4`;
-    const { error: uploadErr } = await supabase.storage
-      .from(OUTPUT_BUCKET)
-      .upload(key, brandedBytes, { contentType: "video/mp4", upsert: false });
-    if (uploadErr) throw uploadErr;
+    // P0-1: the stitcher returns a 24h signed URL — persist it durably.
+    const { persistVideoToStorage, isTemporaryReplicateUrl } = await import(
+      "../_shared/video-persistence.ts"
+    );
+    if (isTemporaryReplicateUrl(brandedUrl)) {
+      const persisted = await persistVideoToStorage(
+        supabase as unknown as Parameters<typeof persistVideoToStorage>[0],
+        brandedUrl,
+        projectId ?? userId,
+        { prefix: "branded" },
+      );
+      if (persisted) brandedUrl = persisted;
+    }
 
-    const { data: signed, error: signErr } = await supabase.storage
-      .from(OUTPUT_BUCKET)
-      .createSignedUrl(key, SIGNED_URL_TTL);
-    if (signErr) throw signErr;
-
-    return ok({ url: signed.signedUrl, branded: true });
+    return ok({ url: brandedUrl, branded: true });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown";
     console.error("[brand-video-download] failed:", msg);
     return ko({ error: msg });
   }
 });
-
-async function checkIntroExists(supabase: ReturnType<typeof createClient>): Promise<boolean> {
-  try {
-    const { data } = await supabase.storage.from(INTRO_BUCKET).list("intro", { limit: 10 });
-    return !!data?.some((f) => f.name === "intro.mp4");
-  } catch { return false; }
-}
-
-/**
- * runMux — the actual concat + transcode.
- *
- * Default implementation: stream both files into a single MP4 by
- * concatenating raw byte ranges. THIS ONLY WORKS for two MP4s that
- * share the exact same codec parameters (H.264 / yuv420p / same fps /
- * same SAR / same audio config).
- *
- * For mixed-codec inputs you need a real ffmpeg pass. The recommended
- * path is to swap this body for a fetch() to a Replicate / Render /
- * Modal endpoint running ffmpeg, which receives both URLs and returns
- * the muxed bytes. Wrap that fetch here so the public contract of this
- * function never changes.
- */
-async function runMux({
-  supabase,
-  sourceUrl,
-}: {
-  supabase: ReturnType<typeof createClient>;
-  sourceUrl: string;
-}): Promise<Uint8Array> {
-  // Download intro from storage
-  const { data: introBlob, error: introErr } = await supabase.storage
-    .from(INTRO_BUCKET)
-    .download(INTRO_PATH);
-  if (introErr || !introBlob) throw new Error("intro.mp4 download failed");
-  const introBytes = new Uint8Array(await introBlob.arrayBuffer());
-
-  // Download source video
-  const srcRes = await fetch(sourceUrl);
-  if (!srcRes.ok) throw new Error(`source fetch ${srcRes.status}`);
-  const sourceBytes = new Uint8Array(await srcRes.arrayBuffer());
-
-  // Naive byte-level concat — placeholder until the real ffmpeg path is wired.
-  // For most production traffic you'll want to call out to an ffmpeg worker
-  // here (see header comment).
-  const out = new Uint8Array(introBytes.length + sourceBytes.length);
-  out.set(introBytes, 0);
-  out.set(sourceBytes, introBytes.length);
-  return out;
-}
 
 function ok(body: unknown): Response {
   return new Response(JSON.stringify({ ok: true, ...(body as object) }), {

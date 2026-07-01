@@ -270,8 +270,7 @@ function WorkspaceHint() {
         className={cn(
           "mt-7 inline-flex items-center gap-2 px-5 py-3",
           RADIUS.chip,
-          "bg-gradient-to-br from-accent/15 to-accent/5",
-          "transition-all hover:from-accent/25 hover:to-accent/10",
+          "transition-colors hover:bg-white/[0.06]",
         )}
       >
         <Briefcase className="h-3.5 w-3.5 text-accent" strokeWidth={1.5} />

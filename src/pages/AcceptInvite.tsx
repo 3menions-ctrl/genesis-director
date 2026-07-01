@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { Button } from '@/components/ui/button';
+import { GlassButton } from '@/components/foundation/Floating';
 import { Building2, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -116,7 +116,7 @@ export default function AcceptInvite() {
         </h1>
         <p className="text-[13px] text-white/55 font-light mb-6">{message || 'Please wait.'}</p>
         {status === 'error' && (
-          <Button onClick={() => navigate('/projects')}>Go to projects</Button>
+          <GlassButton tone="accent" onClick={() => navigate('/projects')}>Go to projects</GlassButton>
         )}
       </div>
     </div>

@@ -37,14 +37,13 @@ import {
   Stars,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { FoundationShell } from "@/components/foundation/FoundationShell";
 import { EditorialCanvas, EditorialEyebrow, EditorialHeadline } from "@/components/foundation/EditorialCanvas";
 import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { GlassButton } from "@/components/foundation/Floating";
 
 import {
   getAllEnvironmentBlueprints,
@@ -199,7 +198,7 @@ const EnvironmentCard = memo(function EnvironmentCard({
       <div
         className={cn(
           "relative aspect-[3/4] rounded-2xl overflow-hidden",
-          "bg-white/[0.03] backdrop-blur shadow-[0_18px_50px_-26px_hsla(0,0%,0%,0.7)]",
+          "shadow-[0_18px_50px_-26px_hsla(0,0%,0%,0.7)]",
           "transition-all duration-500",
           hover && "-translate-y-0.5 shadow-[0_30px_80px_-20px_hsla(48,95%,70%,0.35)]",
         )}
@@ -528,8 +527,10 @@ function EnvironmentsContent() {
   const activeBlueprint = drawerOpenId ? getEnvironmentBlueprint(drawerOpenId) ?? null : null;
 
   const handleApply = useCallback((bp: EnvironmentBlueprint) => {
+    // P1-16: don't toast "Applied" here — it was premature (fired before navigation
+    // and even when the destination couldn't resolve the env). The /create page's
+    // loadEnvironment now owns the success toast once the scene is actually applied.
     navigate(moduleLink(`/create?environment=${bp.id}`));
-    toast.success(`Applied scene "${bp.name}"`);
     setDrawerOpenId(null);
   }, [navigate, moduleLink]);
 
@@ -710,21 +711,17 @@ function FloatingStat({
 function EmptyState({ onReset }: { onReset: () => void }) {
   return (
     <div className="text-center py-20">
-      <div className="mx-auto mb-5 inline-flex items-center justify-center w-14 h-14 rounded-full bg-white/[0.04] backdrop-blur shadow-[0_12px_36px_-20px_hsla(0,0%,0%,0.8)]">
-        <Mountain className="w-6 h-6 text-foreground/55" />
+      <div className="mx-auto mb-5 inline-flex items-center justify-center w-14 h-14 text-foreground/45">
+        <Mountain className="w-8 h-8" />
       </div>
       <h3 className="text-xl font-display italic text-foreground/95 mb-2">No environments matched</h3>
       <p className="text-[13px] text-foreground/55 mb-5 max-w-sm mx-auto">
         Try clearing a filter — your world + setting combination might be too narrow.
       </p>
-      <Button
-        variant="ghost"
-        className="border-transparent bg-white/[0.04] backdrop-blur text-foreground hover:bg-white/[0.08] rounded-full shadow-[0_8px_24px_-16px_hsla(0,0%,0%,0.7)]"
-        onClick={onReset}
-      >
+      <GlassButton size="sm" onClick={onReset}>
         Clear filters
-        <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-      </Button>
+        <ArrowRight className="w-3.5 h-3.5" />
+      </GlassButton>
     </div>
   );
 }

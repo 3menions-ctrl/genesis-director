@@ -21,6 +21,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { confirmAsync } from "@/components/ui/global-confirm";
 import { BusinessPage, StatCard, SectionHead } from "@/components/business/BusinessPage";
+import { GlassPanel } from "@/components/foundation/Floating";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
@@ -131,7 +132,7 @@ export default function BusinessTemplates() {
           <Link
             key={def.id}
             to={`/create?template=${def.id}`}
-            className="group relative rounded-2xl overflow-hidden ring-1 ring-white/[0.06] hover:ring-[hsl(215,90%,55%)]/40 bg-white/[0.02] transition-all"
+            className="group relative rounded-2xl overflow-hidden transition-all"
           >
             <div className="aspect-[4/3] overflow-hidden bg-black/40">
               {def.thumbnailUrl && (
@@ -163,8 +164,8 @@ export default function BusinessTemplates() {
       {loading ? (
         <div className="flex items-center gap-3 py-16 text-white/50"><Spinner size="sm" tone="muted" /><span className={cn(TYPE_META)}>Loading…</span></div>
       ) : rows.length === 0 ? (
-        <div className="rounded-2xl bg-gradient-to-br from-[hsl(215_40%_10%)]/40 to-[#0a0a0f] px-6 py-16 text-center">
-          <span className="inline-flex w-14 h-14 items-center justify-center rounded-2xl bg-white/[0.04] ring-1 ring-white/10"><LayoutTemplate className="w-6 h-6 text-[hsl(215,100%,72%)]" strokeWidth={1.4} /></span>
+        <div className="px-6 py-16 text-center">
+          <span className="inline-flex w-14 h-14 items-center justify-center rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.015]"><LayoutTemplate className="w-6 h-6 text-[hsl(215,100%,72%)]" strokeWidth={1.4} /></span>
           <h3 className="mt-5 font-display italic font-light text-[22px] text-white tracking-[-0.01em]">No templates yet.</h3>
           <p className="mt-2 text-[13px] text-white/55">Save a named template so the team has a shared reference for production setups.</p>
           {canCreate && (
@@ -183,7 +184,7 @@ export default function BusinessTemplates() {
             <div key={r.id} className="group relative rounded-2xl transition-all p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="inline-flex w-10 h-10 items-center justify-center rounded-xl bg-white/[0.04] ring-1 ring-white/10 shrink-0">
+                  <span className="inline-flex w-10 h-10 items-center justify-center rounded-xl bg-gradient-to-br from-white/[0.08] to-white/[0.015] shrink-0">
                     <LayoutTemplate className="w-4.5 h-4.5 text-[hsl(215,100%,72%)]" strokeWidth={1.6} />
                   </span>
                   <div className="min-w-0">
@@ -203,7 +204,7 @@ export default function BusinessTemplates() {
                 )}
               </div>
               {r.description && <p className="mt-4 text-[12.5px] text-white/55 font-light line-clamp-3">{r.description}</p>}
-              <div className="mt-4 pt-3 border-t border-white/[0.05] flex items-center justify-between text-[10px] font-mono uppercase tracking-[0.16em] text-white/45">
+              <div className="relative mt-4 pt-3 before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent before:content-[''] flex items-center justify-between text-[10px] font-mono uppercase tracking-[0.16em] text-white/45">
                 <span>{r.use_count} uses</span>
                 <span>{new Date(r.created_at).toLocaleDateString()}</span>
               </div>
@@ -214,7 +215,8 @@ export default function BusinessTemplates() {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => !saving && setOpen(false)}>
-          <div className="w-full max-w-lg rounded-2xl bg-[#0a0a0f] p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+          <GlassPanel className="p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-display italic font-light text-[20px] text-white tracking-[-0.01em]">New template</h2>
               <button type="button" onClick={() => !saving && setOpen(false)} className="p-1 text-white/45 hover:text-white transition" aria-label="Close"><X className="w-4 h-4" /></button>
@@ -268,6 +270,7 @@ export default function BusinessTemplates() {
                 {saving ? "Saving…" : "Save template"}
               </button>
             </div>
+          </GlassPanel>
           </div>
         </div>
       )}

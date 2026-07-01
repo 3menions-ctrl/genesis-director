@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { BusinessPage, SectionHead, Badge, EmptyState } from "@/components/business/BusinessPage";
+import { GlassButton } from "@/components/foundation/Floating";
 import { cn } from "@/lib/utils";
 
 const INPUT_CLS =
@@ -289,9 +290,9 @@ export default function BusinessDistribution() {
               return (
                 <button key={p.id} type="button" disabled={!canEdit} aria-pressed={active} onClick={() => toggleChannel(p.id)}
                   className={cn(
-                    "inline-flex items-center gap-2 px-3.5 h-9 rounded-full text-[13px] font-light ring-1 transition-all",
-                    active ? "ring-[hsl(215_90%_60%/0.45)] bg-[hsl(215_90%_55%/0.12)] text-[hsl(215,100%,82%)]"
-                           : "ring-white/[0.08] bg-white/[0.02] text-white/60 hover:text-white/90 hover:ring-white/15",
+                    "inline-flex items-center gap-2 px-3.5 h-9 rounded-full text-[13px] font-light transition-all",
+                    active ? "bg-[hsl(215_90%_55%/0.16)] text-[hsl(215,100%,82%)]"
+                           : "bg-white/[0.04] text-white/60 hover:text-white/90 hover:bg-white/[0.07]",
                     !canEdit && "opacity-50 cursor-not-allowed",
                   )}>
                   <Icon className="w-3.5 h-3.5" strokeWidth={1.7} />
@@ -312,11 +313,10 @@ export default function BusinessDistribution() {
             <input type="datetime-local" value={scheduledAt} disabled={!canEdit} onChange={(e) => setScheduledAt(e.target.value)}
               className={cn(INPUT_CLS, "h-11 disabled:opacity-50 [color-scheme:dark]")} />
           </label>
-          <button type="button" onClick={publish} disabled={!canPublish}
-            className="inline-flex items-center justify-center gap-2 rounded-full px-6 h-12 bg-[hsl(215,90%,55%)] text-white text-[14px] font-medium hover:bg-[hsl(215,90%,60%)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+          <GlassButton tone="accent" size="lg" onClick={publish} disabled={!canPublish}>
             {publishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" strokeWidth={1.8} />}
             {scheduledAt ? "Schedule" : "Publish"} to {channels.length || 0} channel{channels.length === 1 ? "" : "s"}
-          </button>
+          </GlassButton>
         </div>
         {!canEdit && <p className="text-[12px] text-white/40">You need Producer access or higher to connect channels or publish.</p>}
       </div>
@@ -356,7 +356,7 @@ function ChannelCard({ provider, canEdit, busy, onConnect, onDisconnect }: {
     <div className="rounded-2xl p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl ring-1 ring-white/[0.08] bg-white/[0.03] flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-white/[0.05] flex items-center justify-center shrink-0">
             <Icon className="w-5 h-5 text-white/70" strokeWidth={1.6} />
           </div>
           <div className="min-w-0">
@@ -376,19 +376,14 @@ function ChannelCard({ provider, canEdit, busy, onConnect, onDisconnect }: {
 
       <div className="mt-4 flex items-center gap-2">
         {connected ? (
-          <button type="button" disabled={!canEdit || busy} onClick={onDisconnect}
-            className="inline-flex items-center gap-2 rounded-full px-4 h-9 ring-1 ring-white/[0.1] text-white/70 hover:text-rose-300 hover:ring-rose-400/30 text-[12.5px] disabled:opacity-50 transition-colors">
+          <GlassButton tone="neutral" size="sm" disabled={!canEdit || busy} onClick={onDisconnect}>
             {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Unlink className="w-3.5 h-3.5" />} Disconnect
-          </button>
+          </GlassButton>
         ) : (
-          <button type="button" disabled={!canEdit || busy} onClick={onConnect}
-            className={cn(
-              "inline-flex items-center gap-2 rounded-full px-4 h-9 text-[12.5px] font-medium transition-colors disabled:opacity-50",
-              provider.configured ? "bg-[hsl(215,90%,55%)] text-white hover:bg-[hsl(215,90%,60%)]" : "ring-1 ring-white/[0.1] text-white/60 hover:text-white/90",
-            )}>
+          <GlassButton tone={provider.configured ? "accent" : "neutral"} size="sm" disabled={!canEdit || busy} onClick={onConnect}>
             {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : provider.configured ? <Link2 className="w-3.5 h-3.5" /> : <Plug className="w-3.5 h-3.5" />}
             {provider.configured ? "Connect" : "Setup required"}
-          </button>
+          </GlassButton>
         )}
       </div>
     </div>
@@ -402,7 +397,7 @@ function JobRow({ job }: { job: DistJob }) {
   const whenLabel = job.posted_at ? "Posted" : job.scheduled_at ? "Scheduled" : "Created";
   return (
     <div className="flex items-center gap-3 rounded-2xl px-4 py-3">
-      <div className="w-9 h-9 rounded-lg ring-1 ring-white/[0.08] bg-white/[0.03] flex items-center justify-center shrink-0">
+      <div className="w-9 h-9 rounded-lg bg-white/[0.05] flex items-center justify-center shrink-0">
         <Icon className="w-4 h-4 text-white/65" strokeWidth={1.6} />
       </div>
       <div className="min-w-0 flex-1">

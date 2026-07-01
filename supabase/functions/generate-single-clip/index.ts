@@ -63,11 +63,22 @@ function tuneForEngine(
       p += `\n\n[CAMERA] Cinematic anamorphic lens, deliberate movement, natural parallax. [LIGHT] Motivated practicals, soft key, controlled contrast.`;
     }
   } else if (engine === 'seedance') {
-    // Seedance 2.0 auto-frames; explicit lens/dolly jargon hurts it.
+    // Seedance 2.0 has NO native audio and auto-frames; explicit lens/dolly
+    // jargon hurts it, and dialogue/lip-sync/audio cues are dead weight (voice
+    // is muxed post-render by the stitcher). Strip both so the same prompt that
+    // drives the native-audio engines becomes Seedance-shaped here — making the
+    // shaping orchestrator-independent (the legacy seedance-pipeline used to do
+    // this externally).
     p = p.replace(/\b(85mm|24mm|35mm|50mm|anamorphic lens|dolly in|dolly out|pan left|pan right|zoom in|zoom out|crane shot|tracking shot)\b/gi, '')
+         // Strip dialogue/lip-sync/audio directives — Seedance can't voice them.
+         .replace(/\[(LIP-SYNC|AUDIO|DIALOGUE|VOICE|SOUND)\][^\n]*/gi, '')
+         .replace(/\b(lip[- ]sync|mouth shapes precisely match[^.]*\.|spoken dialogue|natural diegetic sound|ambient room tone)\b/gi, '')
          .replace(/\s{2,}/g, ' ').trim();
     if (!has(/\bphysics|inertia|specular|subsurface\b/i)) {
       p += `\n\nMotion: fluid hyperreal physics, weight and inertia honored. Lighting: photographic, motivated, believable specular highlights and skin subsurface scattering. Texture: filmic grain, no plastic CGI sheen.`;
+    }
+    if (!has(/\b24fps|photoreal|sharp focus\b/i)) {
+      p += `\n\n24fps, photoreal, sharp focus.`;
     }
   } else if (engine === 'veo') {
     // Veo 3 generates audio natively — explicit audio cues materially help.
@@ -375,6 +386,7 @@ async function createSeedancePrediction(
   aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
   durationSeconds: number = DEFAULT_CLIP_DURATION,
   endImageUrl?: string | null,
+  cameraFixed: boolean = false,
 ): Promise<{ predictionId: string }> {
   const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
   if (!REPLICATE_API_KEY) {
@@ -390,7 +402,11 @@ async function createSeedancePrediction(
     resolution: "1080p",
     aspect_ratio: aspectRatio,
     fps: 24,
-    camera_fixed: false,
+    // camera_fixed locks the virtual camera (no drift) — REQUIRED for breakout
+    // 4th-wall shots and identity-locked sequences. Threaded from the
+    // production_request so the orchestrator (not just the legacy seedance
+    // pipeline) can request a locked frame.
+    camera_fixed: cameraFixed,
     seed: Math.floor(Math.random() * 2147483647),
   };
 
@@ -1076,6 +1092,12 @@ serve(async (req) => {
   let userId: string | undefined;
   let shotIndex = 0;
   let clipId: string | undefined;
+  // When a caller (e.g. retry-failed-clip) already holds the project generation
+  // lock, it passes ownedLockId so we REUSE it instead of re-acquiring. Hoisted
+  // so the error path can tell "we own it" from "caller owns it" and avoid
+  // releasing a lock that belongs to the caller (which would orphan it / break
+  // the caller's own release + revert sequence). See P0-2 (retry deadlock).
+  let callerHeldLockId: string | null = null;
 
   try {
     const body = await req.json();
@@ -1120,13 +1142,20 @@ serve(async (req) => {
       referenceImageUrl,
       sceneImageUrl,
       endImageUrl, // Optional target end-frame (Seedance 2.0 only)
+      cameraFixed = false, // Lock the virtual camera (Seedance) — breakout/identity-lock
       videoEngine: rawVideoEngine = "kling",
       isAvatarMode: isAvatarModeFlag = false, // Explicit flag — do NOT derive from videoEngine
       // Optional credit reservation handle. When present, we'll consume it on
       // successful prediction creation and release it on any failure path so
       // concurrent renders cannot drift past the pre-flight check.
       holdId,
+      // Optional: the caller already holds the project generation lock and is
+      // handing it to us (retry-failed-clip). REUSE it; do not re-acquire (that
+      // would 409 against the caller's own lock and deadlock the retry) and do
+      // not release it (the caller owns the release + clip-status revert).
+      ownedLockId,
     } = body;
+    callerHeldLockId = ownedLockId || null;
     let startImageUrl: string | null | undefined = body.startImageUrl;
 
     if (!projectId || !prompt) {
@@ -1214,7 +1243,7 @@ serve(async (req) => {
     try {
       const { data: projRow } = await supabase
         .from('movie_projects')
-        .select('video_engine')
+        .select('video_engine, routing_map')
         .eq('id', projectId)
         .maybeSingle();
       const persistedEngine = (projRow?.video_engine as BackendEngine | null) || null;
@@ -1229,6 +1258,24 @@ serve(async (req) => {
         console.warn(
           `[SingleClip] ⚠️ No persisted video_engine for project ${projectId} — using body value "${rawVideoEngine}". This should not happen for projects created via mode-router.`
         );
+      }
+
+      // ═══ PER-SHOT ROUTER (Slice 2) ═══════════════════════════════════════
+      // A routing_map entry for THIS shot overrides the project engine — and
+      // ONLY when it names a valid engine. Anything malformed/absent is ignored
+      // and the project-locked engine above stands (zero behaviour change for
+      // un-routed projects). This is how "best model per shot" reaches render
+      // without weakening the decay guard.
+      const VALID_ENGINES: BackendEngine[] = ['wan', 'kling', 'veo', 'seedance', 'runway', 'sora'];
+      const rmap = (projRow as { routing_map?: Record<string, { engine?: string }> } | null)?.routing_map;
+      const routed = rmap?.[String(shotIndex)]?.engine;
+      if (routed && VALID_ENGINES.includes(routed as BackendEngine)) {
+        if (routed !== videoEngine) {
+          console.log(
+            `[SingleClip] 🧭 ROUTER: shot ${shotIndex} routed to "${routed}" (project engine "${videoEngine}")`,
+          );
+        }
+        videoEngine = routed as BackendEngine;
       }
     } catch (engineLookupErr) {
       console.warn(`[SingleClip] ⚠️ Engine lookup failed (using body value "${rawVideoEngine}"):`, engineLookupErr);
@@ -1465,25 +1512,37 @@ serve(async (req) => {
     // =========================================================
     // FAILSAFE #2: Generation Mutex (prevent parallel generation)
     // =========================================================
-    const lockId = crypto.randomUUID();
-    const lockResult = await acquireGenerationLock(supabase, projectId, shotIndex, lockId);
-    
-    if (!lockResult.acquired) {
-      console.warn(`[SingleClip] ⚠️ Generation blocked by mutex - clip ${lockResult.blockedByClip} is generating`);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'GENERATION_LOCKED',
-          message: `Another clip (${lockResult.blockedByClip}) is currently generating`,
-          lockAgeSeconds: lockResult.lockAgeSeconds,
-        }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    let lockId: string;
+    if (callerHeldLockId) {
+      // REUSE the caller's lock (retry-failed-clip already acquired it). Acquiring
+      // again would hit acquire_generation_lock against the project's own active
+      // lock → 409 GENERATION_LOCKED → the retry could never run (P0-2 deadlock).
+      lockId = callerHeldLockId;
+      console.log(`[SingleClip] ✓ Reusing caller-held generation lock: ${lockId}`);
+    } else {
+      lockId = crypto.randomUUID();
+      const lockResult = await acquireGenerationLock(supabase, projectId, shotIndex, lockId);
+
+      if (!lockResult.acquired) {
+        console.warn(`[SingleClip] ⚠️ Generation blocked by mutex - clip ${lockResult.blockedByClip} is generating`);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'GENERATION_LOCKED',
+            message: `Another clip (${lockResult.blockedByClip}) is currently generating`,
+            lockAgeSeconds: lockResult.lockAgeSeconds,
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      console.log(`[SingleClip] ✓ Generation lock acquired: ${lockId}`);
     }
-    
-    console.log(`[SingleClip] ✓ Generation lock acquired: ${lockId}`);
-    
+
     const releaseLock = async () => {
+      // Never release a lock the caller owns — they release it after the retry's
+      // status reconciliation. Releasing here would let a parallel clip slip in.
+      if (callerHeldLockId) return;
       await releaseGenerationLock(supabase, projectId!, lockId);
     };
 
@@ -1694,6 +1753,7 @@ serve(async (req) => {
         aspectRatio as '16:9' | '9:16' | '1:1',
         durationSeconds,
         endImageUrl, // Optional Seedance-only end-frame target
+        cameraFixed, // Locked camera for breakout / identity-lock shots
       );
       predictionId = seedanceResult.predictionId;
     } else if (videoEngine === 'runway') {
@@ -2241,7 +2301,10 @@ serve(async (req) => {
     // =========================================================
     // CRITICAL: Release lock on error
     // =========================================================
-    if (projectId) {
+    if (projectId && !callerHeldLockId) {
+      // Only release locks WE acquired. When callerHeldLockId is set the lock
+      // belongs to the caller (retry-failed-clip), which releases it itself in a
+      // finally + reverts the clip to 'failed'. Releasing here would race that.
       try {
         // Try to release any lock this function might have acquired
         // FIX #22: Use a valid UUID for lock release instead of empty string

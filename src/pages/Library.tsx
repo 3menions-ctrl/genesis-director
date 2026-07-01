@@ -216,7 +216,7 @@ export default function Library() {
     navigate(`/r/${pick.id}`);
   };
 
-  // DELETE handler — confirmed via dialog state then writes to DB.
+  // DELETE handler — confirmed via dialog state then deletes via the edge fn.
   // Optimistic remove from UI; if the delete fails we put it back and
   // toast the error.
   const [pendingDelete, setPendingDelete] = useState<LibraryProject | null>(null);
@@ -226,11 +226,18 @@ export default function Library() {
     setPendingDelete(null);
     setDeletedIds((s) => new Set(s).add(target.id));
     try {
-      const { error } = await supabase
-        .from("movie_projects")
-        .delete()
-        .eq("id", target.id);
-      if (error) throw error;
+      // P1-19: route through delete-project (same as StudioContext) instead of a
+      // raw movie_projects.delete(). The edge fn cancels in-flight Replicate
+      // predictions (stops ongoing spend), batch-deletes storage (final video,
+      // clips, thumbnails, frames, HLS), and cleans non-cascade children. A raw
+      // delete orphaned all storage AND hard-failed (FK RESTRICT) for projects
+      // with genesis_scene_clips rows — those films couldn't be deleted at all.
+      const { data, error } = await supabase.functions.invoke("delete-project", {
+        body: { projectId: target.id },
+      });
+      if (error || !data?.success) {
+        throw new Error(data?.error || error?.message || "Deletion failed");
+      }
       toast.success(`Deleted "${target.name ?? "Untitled"}"`);
     } catch (e) {
       setDeletedIds((s) => {
@@ -281,7 +288,7 @@ export default function Library() {
                   title="Open a random film"
                   className={cn(
                     "group inline-flex items-center gap-2 px-4 py-3", RADIUS.chip,
-                    "bg-white/[0.04] text-foreground/80 transition-all hover:bg-white/[0.07] hover:text-foreground",
+                    "text-foreground/80 transition-colors hover:bg-white/[0.06] hover:text-foreground",
                   )}
                 >
                   <Shuffle className="h-4 w-4 text-accent/80 transition-transform group-hover:rotate-12" strokeWidth={1.5} />
@@ -292,8 +299,7 @@ export default function Library() {
                 onClick={() => navigate("/studio?new=1")}
                 className={cn(
                   "group inline-flex items-center gap-2 px-5 py-3", RADIUS.chip,
-                  "bg-gradient-to-br from-accent/15 to-accent/5",
-                  "text-foreground transition-all hover:from-accent/25 hover:to-accent/10",
+                  "text-foreground transition-colors hover:bg-white/[0.06]",
                 )}
               >
                 <Plus className="h-4 w-4 text-accent" strokeWidth={1.5} />
@@ -318,7 +324,7 @@ export default function Library() {
 
           {/* ── Render-paused banner: provider out of credit (402) */}
           {billingBlocked && (
-            <div className="mt-8 flex items-start gap-3 rounded-2xl border border-amber-400/30 bg-amber-400/[0.08] px-5 py-4">
+            <div className="mt-8 flex items-start gap-3 rounded-2xl px-5 py-4">
               <Flame className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" strokeWidth={1.5} />
               <div className="text-[13px] leading-relaxed text-amber-100/90">
                 <span className="font-semibold text-amber-200">Rendering is paused — out of render credit.</span>{" "}
@@ -353,10 +359,10 @@ export default function Library() {
                   key={c.id}
                   onClick={() => setCategory(c.id)}
                   className={cn(
-                    "relative h-9 px-4 rounded-full text-[12.5px] inline-flex items-center gap-2 transition-all",
+                    "relative h-9 px-4 rounded-full text-[12.5px] inline-flex items-center gap-2 transition-colors",
                     active
-                      ? "bg-white/[0.06] text-white"
-                      : "bg-white/[0.02] text-foreground/75 hover:bg-white/[0.05] hover:text-foreground",
+                      ? "text-white"
+                      : "text-foreground/75 hover:bg-white/[0.06] hover:text-foreground",
                   )}
                 >
                   <span>{c.label}</span>
@@ -395,18 +401,19 @@ export default function Library() {
             </div>
 
             {/* Sort — segmented, borderless */}
-            <div className="inline-flex items-center gap-1 self-start rounded-full bg-white/[0.03] p-1 sm:self-auto">
+            <div className="inline-flex items-center gap-1 self-start rounded-full p-1 sm:self-auto">
               <ArrowUpDown className="ml-2 mr-0.5 h-3 w-3 text-muted-foreground/40" strokeWidth={1.5} />
               {(Object.keys(SORTS) as SortKey[]).map((k) => (
                 <button
                   key={k}
                   onClick={() => setSort(k)}
                   className={cn(
-                    "rounded-full px-3 py-1.5 text-[12px] transition-colors",
-                    sort === k ? "bg-white/[0.08] text-foreground" : "text-muted-foreground/65 hover:text-foreground",
+                    "relative rounded-full px-3 py-1.5 text-[12px] transition-colors",
+                    sort === k ? "text-foreground" : "text-muted-foreground/65 hover:bg-white/[0.06] hover:text-foreground",
                   )}
                 >
                   {SORTS[k].label}
+                  {sort === k && <CenterLine />}
                 </button>
               ))}
             </div>
@@ -451,13 +458,13 @@ export default function Library() {
                   onClick={loadMore}
                   disabled={loading}
                   className={cn(
-                    "rounded-full bg-white/[0.03] px-5 py-2.5 text-[12px] uppercase tracking-[0.2em]",
+                    "inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[12px] uppercase tracking-[0.2em]",
                     "text-muted-foreground/70 transition-colors",
                     "hover:bg-white/[0.06] hover:text-foreground",
                     "disabled:opacity-50",
                   )}
                 >
-                  {loading ? "Loading…" : "Load more"}
+                  <Plus className="h-3.5 w-3.5" strokeWidth={1.5} /> {loading ? "Loading…" : "Load more"}
                 </button>
               </div>
             )}
@@ -708,7 +715,7 @@ function HeroPlayer({
               onClick={onOpen}
               className={cn(
                 "inline-flex items-center gap-2 px-5 h-11 rounded-full",
-                "bg-white text-black hover:bg-white/85 transition-colors",
+                "text-white transition-colors hover:bg-white/[0.06]",
                 "text-[13.5px] font-medium",
               )}
             >
@@ -952,8 +959,8 @@ function CardActionButton({
       onClick={onClick}
       className={cn(
         "inline-flex items-center gap-1 px-2.5 h-7 rounded-full text-[11.5px]",
-        "bg-black/55 backdrop-blur-md text-white/85",
-        "hover:bg-black/75 hover:text-white transition-colors",
+        "text-white/85",
+        "hover:bg-white/[0.06] hover:text-white transition-colors",
       )}
     >
       {icon}
@@ -1044,8 +1051,7 @@ function EmptyLibrary({ onNew }: { onNew: () => void }) {
         className={cn(
           "mt-8 inline-flex items-center gap-2 px-5 py-3",
           RADIUS.chip,
-          "bg-gradient-to-br from-accent/15 to-accent/5",
-          "transition-all hover:from-accent/25",
+          "text-foreground transition-colors hover:bg-white/[0.06]",
         )}
       >
         <Plus className="h-4 w-4 text-accent" strokeWidth={1.5} />
@@ -1068,10 +1074,11 @@ function CategoryEmpty({ onReset }: { onReset: () => void }) {
         onClick={onReset}
         className={cn(
           "mt-6 inline-flex items-center gap-2 px-4 h-9 rounded-full",
-          "bg-white/[0.04] text-foreground/75",
-          "hover:bg-white/[0.08] hover:text-foreground transition-colors",
+          "text-foreground/75",
+          "hover:bg-white/[0.06] hover:text-foreground transition-colors",
         )}
       >
+        <Film className="h-3.5 w-3.5" strokeWidth={1.5} />
         <span className="text-[12.5px]">Show all films</span>
       </button>
     </div>
@@ -1158,17 +1165,16 @@ function ConfirmDelete({
               <button
                 type="button"
                 onClick={onCancel}
-                className="px-5 h-10 rounded-full text-[13px] text-muted-foreground/75 hover:text-foreground transition-colors"
+                className="inline-flex items-center gap-2 px-5 h-10 rounded-full text-[13px] text-muted-foreground/75 hover:text-foreground transition-colors"
               >
-                Cancel
+                <CloseIcon className="h-4 w-4" strokeWidth={1.6} /> Cancel
               </button>
               <button
                 type="button"
                 onClick={onConfirm}
                 className={cn(
                   "px-5 h-10 rounded-full inline-flex items-center gap-2 text-[13px]",
-                  "bg-gradient-to-br from-red-500/20 to-red-500/[0.06]",
-                  "text-foreground hover:from-red-500/30 transition-all",
+                  "text-red-200 transition-colors hover:bg-red-500/[0.10]",
                 )}
               >
                 <Trash2 className="h-4 w-4 text-red-300" strokeWidth={1.8} />

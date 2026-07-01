@@ -73,6 +73,8 @@ import {
   TYPE_META,
   RADIUS,
 } from "@/lib/design-system";
+import { GlassButton, GlassPanel } from "@/components/foundation/Floating";
+import { PublicReelCTA } from "@/components/reel/PublicReelCTA";
 
 interface ReelData {
   id: string;
@@ -227,7 +229,12 @@ export default function Reel() {
     title: reel?.title
       ? `${reel.title} — Small Bridges`
       : "Reel — Small Bridges",
-    description: "Watch a cinematic Small Bridges production.",
+    description: reel?.creator?.display_name
+      ? `${reel.creator.display_name} made this with a single prompt on Small Bridges. Make your own cinematic AI video — free.`
+      : "Watch a cinematic AI film made on Small Bridges. Make your own from a single prompt — free.",
+    canonicalPath: id ? `/r/${id}` : undefined,
+    ogImage: reel?.thumbnail_url ?? undefined,
+    ogType: "video.other",
   });
 
   // ── Load the reel ─────────────────────────────────────────────────
@@ -338,6 +345,40 @@ export default function Reel() {
     };
   }, [id, user?.id]);
 
+  // ── P1-10: poll for completion while the reel is still rendering ──
+  // Previously "Still rendering…" never updated (the loader only ran on
+  // [id, user?.id]); a finished-or-dead render needed a manual refresh. Poll the
+  // project row every 5s while there's no playable output and self-clear once a
+  // video_url or timeline clips appear.
+  useEffect(() => {
+    if (!reel?.id) return;
+    const stillRendering = !reel.video_url && timelineClips.length === 0;
+    if (!stillRendering) return;
+    let cancelled = false;
+    const interval = setInterval(async () => {
+      const { data } = await supabase
+        .from("movie_projects")
+        .select("*")
+        .eq("id", reel.id)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      // Mirror the loader's HLS/manifest fallback for in-flight renders.
+      if (!data.video_url) {
+        const pt = (data as { pending_video_tasks?: { hlsPlaylistUrl?: string; manifestUrl?: string } }).pending_video_tasks;
+        if (pt?.hlsPlaylistUrl) data.video_url = pt.hlsPlaylistUrl;
+        else if (pt?.manifestUrl) data.video_url = pt.manifestUrl;
+      }
+      const players = await buildTimelineClips(data.id, (data as { editor_state?: unknown }).editor_state);
+      if (cancelled) return;
+      if (data.video_url || players.length > 0) {
+        setReel((prev) => (prev ? { ...prev, ...data } : prev));
+        setTimelineClips(players);
+        clearInterval(interval);
+      }
+    }, 5000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [reel?.id, reel?.video_url, timelineClips.length]);
+
   // ── Load the watch party (if URL carries ?party=:id) ─────────────
   useEffect(() => {
     if (!partyId) { setParty(null); return; }
@@ -364,6 +405,10 @@ export default function Reel() {
   }, [partyId]);
 
   const isOwner = !!user && reel?.user_id === user.id;
+  // Logged-out visitor arriving via a shared link. RLS guarantees `reel` is
+  // only ever a public/published reel here; we show a read-only view (no
+  // reactions/comments, which need auth) capped with a signup CTA.
+  const isAnon = !user;
 
   // ── Download ─────────────────────────────────────────────────────
   // Fetch the video as a blob and save it. A plain <a download> on a
@@ -550,18 +595,14 @@ export default function Reel() {
               ? "Only the director can view it."
               : "It may have been removed or the link is wrong."}
           </p>
-          <button
-            onClick={() => navigate("/library")}
-            className={cn(
-              "mt-8 inline-flex items-center gap-2 px-5 py-3",
-              RADIUS.chip,
-              "bg-white/[0.03] text-foreground/85",
-              "transition-colors hover:bg-white/[0.06]",
-            )}
+          <GlassButton
+            onClick={() => navigate(isAnon ? "/" : "/library")}
+            className="mt-8"
+            ariaLabel={isAnon ? "Explore Small Bridges" : "Back to Library"}
           >
             <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
-            <span className="text-[13px]">Back to Library</span>
-          </button>
+            <span>{isAnon ? "Explore Small Bridges" : "Back to Library"}</span>
+          </GlassButton>
         </div>
       </FoundationShell>
     );
@@ -605,14 +646,16 @@ export default function Reel() {
           transition={{ duration: 0.3, ease: EASE_PREMIUM }}
         >
           <Link
-            to="/library"
+            to={isAnon ? "/" : "/library"}
             className={cn(
               "inline-flex items-center gap-2 text-muted-foreground/65",
               "transition-colors hover:text-foreground",
             )}
           >
             <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.5} />
-            <span className={cn(TYPE_EYEBROW, "text-current")}>Library</span>
+            <span className={cn(TYPE_EYEBROW, "text-current")}>
+              {isAnon ? "Small Bridges" : "Library"}
+            </span>
           </Link>
         </motion.div>
 
@@ -763,24 +806,32 @@ export default function Reel() {
           </motion.div>
         )}
 
-        {/* Reactions + comments */}
-        <motion.div
-          initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: EASE_PREMIUM, delay: 0.15 }}
-          className="mt-10"
-        >
-          <VideoReactionsBar projectId={reel.id} />
-        </motion.div>
+        {/* Reactions + comments (require auth) OR the signup CTA for anon. A
+            logged-out visitor arrived via a shared link — convert them instead
+            of showing interaction surfaces they can't use. */}
+        {isAnon ? (
+          <PublicReelCTA creatorName={reel.creator?.display_name} />
+        ) : (
+          <>
+            <motion.div
+              initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: EASE_PREMIUM, delay: 0.15 }}
+              className="mt-10"
+            >
+              <VideoReactionsBar projectId={reel.id} />
+            </motion.div>
 
-        <motion.div
-          initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: EASE_PREMIUM, delay: 0.2 }}
-          className="mt-8"
-        >
-          <VideoCommentsSection projectId={reel.id} />
-        </motion.div>
+            <motion.div
+              initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: EASE_PREMIUM, delay: 0.2 }}
+              className="mt-8"
+            >
+              <VideoCommentsSection projectId={reel.id} />
+            </motion.div>
+          </>
+        )}
       </div>
 
       {/* ── Watch Party sidebar — mounts whenever ?party=:id is set
@@ -846,32 +897,26 @@ export default function Reel() {
             </SheetDescription>
           </SheetHeader>
           <div className="mt-6 flex flex-col gap-3">
-            <div
-              className={cn(
-                "flex items-center justify-between gap-3 rounded-xl",
-                "bg-white/[0.03] px-4 py-3",
-              )}
-            >
+            <GlassPanel className="flex items-center justify-between gap-3 px-4 py-3">
               <code className="truncate text-[13px] text-foreground/85">
                 {`${window.location.origin}/r/${reel.id}?party=${partyId ?? ""}`}
               </code>
-              <button
+              <GlassButton
+                size="sm"
+                tone="accent"
+                className="shrink-0"
+                ariaLabel="Copy watch-party link"
                 onClick={async () => {
                   await navigator.clipboard.writeText(
                     `${window.location.origin}/r/${reel.id}?party=${partyId ?? ""}`,
                   );
                   toast.success("Link copied");
                 }}
-                className={cn(
-                  "shrink-0 rounded-full bg-[hsl(var(--accent)/0.12)]",
-                  "px-3 py-1.5 text-[12px] text-foreground",
-                  "transition-colors hover:bg-[hsl(var(--accent)/0.2)]",
-                )}
               >
-                <Sparkles className="mr-1 inline h-3 w-3 text-accent" />
+                <Sparkles className="h-3 w-3 text-accent" />
                 Copy
-              </button>
-            </div>
+              </GlassButton>
+            </GlassPanel>
             <p className={cn(TYPE_META, "text-muted-foreground/55")}>
               The chat lives in the sidebar. Your playback is broadcast every
               second to everyone in the room.
@@ -898,21 +943,17 @@ function ActionPill({
   tone?: "default" | "accent";
 }) {
   return (
-    <button
+    <GlassButton
       onClick={onClick}
-      className={cn(
-        "inline-flex items-center gap-2 rounded-full px-4 py-2.5",
-        "backdrop-blur-md transition-all",
-        tone === "accent"
-          ? "bg-[hsl(var(--accent)/0.12)] hover:bg-[hsl(var(--accent)/0.2)]"
-          : "bg-[hsl(var(--foreground)/0.03)] hover:bg-[hsl(var(--foreground)/0.06)]",
-      )}
+      size="sm"
+      tone={tone === "accent" ? "accent" : "neutral"}
+      ariaLabel={label}
     >
       <Icon
         className={cn("h-3.5 w-3.5", tone === "accent" ? "text-accent" : "text-muted-foreground/75")}
         strokeWidth={1.5}
       />
-      <span className="text-[13px] text-foreground">{label}</span>
-    </button>
+      <span>{label}</span>
+    </GlassButton>
   );
 }

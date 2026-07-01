@@ -85,11 +85,13 @@ async function seedSandbox(context: BrowserContext): Promise<void> {
     },
     [STORAGE_KEY, session] as const,
   );
-  // Abort the demo's external sample media (videos/posters) so the page
-  // doesn't hang on `load` and the console stays quiet. The controls don't
-  // depend on the media actually decoding.
-  await context.route(/(picsum\.photos|media\.w3\.org|www\.w3schools\.com|test-videos\.co\.uk)/, (route) =>
-    route.abort(),
+  // Abort the demo's sample media (same-origin clips + any external poster) so
+  // the page doesn't hang on `load` or spend CI wall-clock downloading multi-MB
+  // video on every editor mount. The controls don't depend on the media
+  // actually decoding — this keeps each editor load fast and deterministic.
+  await context.route(
+    /\.(mp4|webm)(\?|$)|picsum\.photos|media\.w3\.org|www\.w3schools\.com|test-videos\.co\.uk/i,
+    (route) => route.abort(),
   );
   // Answer every Supabase HTTP call locally — never reaches a real backend.
   await context.route("**/*supabase.co/**", (route) => {
@@ -200,9 +202,14 @@ async function closeOpenDialog(page: Page): Promise<boolean> {
     if (await x.count()) await x.click({ force: true }).catch(() => {}); // blockEscClose panels
     await page.waitForTimeout(200);
   }
-  // Wait out the Surface exit animation (~0.34s) before declaring closed.
+  // Wait out the Surface exit animation before declaring closed — BOTH the
+  // dialog AND its backdrop. The backdrop is a `fixed inset-0 z-40` overlay that
+  // outlives the [role=dialog] node during its fade-out; if it lingers it
+  // intercepts the next TopStatusBar button click, and Playwright's auto-wait
+  // then hangs on actionability for the whole test timeout (the 6-min flake).
   try {
     await expect(dialog(page)).toHaveCount(0, { timeout: 2_500 });
+    await expect(page.getByTestId("surface-backdrop")).toHaveCount(0, { timeout: 2_500 });
     return true;
   } catch {
     return false;
@@ -244,14 +251,18 @@ test.describe("Editor — every modal panel opens via keyboard and closes", () =
   ];
 
   test("all 16 panels open + close with zero uncaught errors", async ({ page }) => {
+    // Single editor session for all 16 panels. (Previously this reloaded the
+    // whole NLE per panel — 16 hydrations × ~20s on CI blew past even a 6-min
+    // budget. We instead close each panel and assert a clean slate before the
+    // next open, so a panel that resists closing still fails fast rather than
+    // cascading.) test.slow() keeps headroom for CI's slow hydration.
+    test.slow();
     const errors = await gotoEditor(page);
     const opened: Record<string, boolean> = {};
     const closed: Record<string, boolean> = {};
 
     for (const panel of PANELS) {
-      // Fresh editor per panel — a panel that resists closing then can't
-      // cascade into the next assertion.
-      await loadEditor(page);
+      // Clean slate carried over from the previous panel's close.
       await expect(dialog(page)).toHaveCount(0);
       await page.keyboard.press(panel.key);
       try {
@@ -290,15 +301,24 @@ test.describe("Editor — TopStatusBar buttons open their panels", () => {
   ];
 
   test("each chrome button opens a dialog", async ({ page }) => {
+    // Heavy: opens + closes 7 panels (each with its own exit animation) on top
+    // of CI's slow hydration. Triple the budget like the 16-panel sweep.
+    test.slow();
     const errors = await gotoEditor(page);
     const results: Record<string, "PASS" | "FAIL"> = {};
 
     for (const label of BUTTONS) {
       await expect(dialog(page)).toHaveCount(0);
+      // Belt-and-suspenders: also ensure no backdrop lingers from the prior
+      // panel before we click, so the click can't be intercepted.
+      await expect(page.getByTestId("surface-backdrop")).toHaveCount(0);
       const btn = page.locator(`[aria-label="${label}"]`).first();
       await expect(btn, `button "${label}" present`).toHaveCount(1);
-      await btn.click();
       try {
+        // Bounded click: if something still intercepts, fail this button fast
+        // (recorded FAIL) instead of hanging on actionability for the whole
+        // test timeout.
+        await btn.click({ timeout: 8_000 });
         await expect(dialog(page)).toHaveCount(1, { timeout: 5_000 });
         results[label] = "PASS";
       } catch {

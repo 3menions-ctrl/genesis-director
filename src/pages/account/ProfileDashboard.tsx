@@ -1201,7 +1201,7 @@ export default function ProfileDashboard() {
               <div id="profile-settings-panel" className="scroll-mt-24">
                 <ErrorBoundary
                   fallback={
-                    <div className="rounded-2xl bg-white/[0.03] p-6 text-center shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)]">
+                    <div className="relative p-6 text-center">
                       <p className="text-[14px] text-foreground/85">The inline editor hit a snag.</p>
                       <Link to="/account?tab=settings" className="mt-3 inline-flex items-center gap-2 text-[12px] font-mono uppercase tracking-[0.22em] text-accent hover:text-foreground">
                         Open full settings <ChevronRight className="h-3.5 w-3.5" />
@@ -1371,7 +1371,7 @@ function AtAGlanceCard({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl bg-white/[0.015] backdrop-blur p-5 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)]">
+      <div className="relative pt-1">
         <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.32em] mb-4 inline-flex items-center gap-2")}>
           ◆ At a glance
         </div>
@@ -1452,7 +1452,7 @@ function HighlightsPanel({
   if (highlights.length === 0 && !isOwner) return null;
 
   return (
-    <aside className="rounded-2xl bg-white/[0.025] backdrop-blur p-5 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)]">
+    <aside className="relative pt-1">
       <div className="flex items-center justify-between gap-3 mb-4">
         <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.32em] inline-flex items-center gap-2")}>
           <Pin className="h-3 w-3 text-accent/85" strokeWidth={1.7} />
@@ -1533,7 +1533,7 @@ function HighlightsEditor({
   const anyPublished = films.some((f) => f.published);
   const atCap = pinnedCount >= MAX_PINNED_HIGHLIGHTS;
   return (
-    <section className="rounded-2xl bg-white/[0.03] backdrop-blur p-6 sm:p-7">
+    <section className="relative pt-2">
       <div className="flex items-center justify-between gap-3 mb-1">
         <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.32em] inline-flex items-center gap-2")}>
           <Pin className="h-3 w-3 text-accent/85" strokeWidth={1.7} />
@@ -1673,7 +1673,7 @@ function FilmsGallery({
           ))}
         </div>
       ) : films.length === 0 ? (
-        <div className="rounded-2xl bg-white/[0.015] py-16 px-6 text-center shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)]">
+        <div className="relative py-16 px-6 text-center">
           <Film className="h-7 w-7 mx-auto text-muted-foreground/45" strokeWidth={1.3} />
           <div className="mt-4 font-display italic text-[20px] text-foreground/90" style={{ fontFamily: "'Fraunces', serif" }}>
             {isOwner ? "No films yet." : "No public films yet."}
@@ -1796,7 +1796,7 @@ function ProofStatsCard({
     { key: "fol", label: "Followers", value: followers, Icon: UserCheck },
   ];
   return (
-    <div className="rounded-2xl bg-white/[0.015] backdrop-blur p-5 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)]">
+    <div className="relative pt-1">
       <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.32em] mb-4 inline-flex items-center gap-2")}>
         ◆ The proof
       </div>
@@ -3272,7 +3272,7 @@ function StatsRow({
   ];
 
   return (
-    <section className="rounded-2xl bg-white/[0.03] backdrop-blur p-6 sm:p-7">
+    <section className="relative pt-2">
       <header className="mb-7">
         <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em]")}>
           ◆ The numbers
@@ -3411,7 +3411,7 @@ function ActivityHeatmap({
   };
 
   return (
-    <section className="h-full rounded-2xl bg-white/[0.03] backdrop-blur p-6 sm:p-7">
+    <section className="relative h-full pt-2">
       <header className="flex items-end justify-between gap-3 flex-wrap mb-7">
         <div>
           <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em]")}>
@@ -3510,7 +3510,7 @@ function AchievementsFloat({
   achievements: Array<{ label: string; sub: string; tier: 1 | 2 | 3 }>;
 }) {
   return (
-    <section className="h-full rounded-2xl bg-white/[0.03] backdrop-blur p-6 sm:p-7">
+    <section className="relative h-full pt-2">
       <header className="flex items-end justify-between gap-3 mb-7">
         <div>
           <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em]")}>
@@ -3729,7 +3729,7 @@ function DirectorReelMaker({
   };
 
   return (
-    <section className="rounded-2xl bg-white/[0.03] backdrop-blur p-6 sm:p-7">
+    <section className="relative pt-2">
       <header className="mb-6">
         <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em] inline-flex items-center gap-2")}>
           <Sparkles className="h-3 w-3 text-accent/85" strokeWidth={1.6} />
@@ -3864,7 +3864,7 @@ function CompletenessMeter({
   const missing = items.filter((i) => !i.done).slice(0, 4);
   if (pct === 100) return null;
   return (
-    <section className="rounded-2xl bg-white/[0.03] backdrop-blur p-6 sm:p-7">
+    <section className="relative pt-2">
       <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.34em] mb-3 inline-flex items-center gap-2")}>
         <Target className="h-3 w-3 text-accent/80" strokeWidth={1.6} />
         ◆ Profile completeness · <span className="tabular-nums text-accent/85">{pct}%</span>

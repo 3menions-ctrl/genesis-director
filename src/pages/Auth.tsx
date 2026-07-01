@@ -9,7 +9,7 @@
  * Flows handled:
  *   - Sign in (email + password)
  *   - Create account (email + password + agree-to-terms + strength meter)
- *   - OTP verification after signup (six-cell code, paste-friendly)
+ *   - OTP verification after signup (8-cell code, paste-friendly)
  *   - Resend code + "use a different email" escape hatches
  *
  * Notable upgrades vs. the prior 1,046-line version:
@@ -96,6 +96,9 @@ export default function Auth() {
   const { startNavigation } = useNavigationLoading();
   const reducedMotion = useReducedMotion();
   const [searchParams] = useSearchParams();
+  // Referral code from a /auth?ref=CODE invite link. Recorded after signup so
+  // the inviter is credited once this new user completes their first render.
+  const refCode = searchParams.get("ref");
 
   const initialMode: Mode = searchParams.get("mode") === "signup" ? "signup" : "signin";
   const nextParam = (() => {
@@ -213,7 +216,7 @@ export default function Auth() {
 
   // ── OTP submit ─────────────────────────────────────────────────────
   const submitOtp = useCallback(async () => {
-    if (!pendingEmail || otp.length < 6) return;
+    if (!pendingEmail || otp.length < 8) return;
     setVerifying(true);
     setBanner(null);
     try {
@@ -232,13 +235,23 @@ export default function Auth() {
       window.sessionStorage.setItem(INTRO_FLAG, "1");
       const { data: { user: u } } = await supabase.auth.getUser();
       if (u) celebrate("first-publish", u.id);
+      // Attribute the referral (best-effort, non-blocking). The RPC records a
+      // pending redemption; the inviter is only credited on this user's first
+      // render. Self-referral / stale-account guards live server-side.
+      if (u && refCode) {
+        void supabase
+          .rpc("attribute_referral" as never, { p_code: refCode } as never)
+          .then(({ error: refErr }) => {
+            if (refErr) console.warn("referral attribution failed", refErr.message);
+          });
+      }
       toast.success("You're in. Welcome to the studio.");
     } catch (err) {
       setBanner(classifyAuthError(err instanceof Error ? err.message : ""));
     } finally {
       setVerifying(false);
     }
-  }, [pendingEmail, otp]);
+  }, [pendingEmail, otp, refCode]);
 
   const resendCode = useCallback(async () => {
     if (!pendingEmail) return;
@@ -322,7 +335,7 @@ export default function Auth() {
                       onChange={setOtp}
                       onComplete={() => { void submitOtp(); }}
                       disabled={verifying}
-                      length={6}
+                      length={8}
                     />
                   </div>
 
@@ -330,7 +343,7 @@ export default function Auth() {
                     <Button
                       type="button"
                       onClick={() => { void submitOtp(); }}
-                      disabled={verifying || otp.length < 6}
+                      disabled={verifying || otp.length < 8}
                       className="w-full h-12 rounded-xl text-[14px] font-medium"
                     >
                       {verifying ? (

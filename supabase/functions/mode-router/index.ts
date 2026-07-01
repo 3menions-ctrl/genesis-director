@@ -234,14 +234,18 @@ interface ModeRouterRequest {
   // Video engine selection — all modes now unified on Kling V3
   // 'kling' = avatar mode with native audio; anything else = standard T2V/I2V
   videoEngine?: 'wan' | 'kling' | 'veo' | 'seedance' | 'sora';
+  // Seedance native camera lock. Breakouts force true downstream; otherwise this
+  // explicit user-selected flag is forwarded to hollywood → generate-single-clip.
+  cameraFixed?: boolean;
   // Quality cores (4K upscale / 60fps interpolation). Forwarded to the
   // entry pipeline, which persists the intent for the finalizer to honor.
   qualityOptions?: { upscale4k?: boolean; fps60?: boolean };
 
   // When true, the cinematic pipeline pauses at `awaiting_approval` after the
-  // script is written so the user can review/regenerate before any clip is
-  // rendered (Production page shows the ScriptApproval gate; resume-pipeline
-  // continues on approve). Only the hollywood-pipeline path honors this.
+  // @deprecated DEAD FLAG — no longer gates anything. The fail-closed approval
+  // gate in hollywood-pipeline keys ONLY on `autoApprove===true` (pausing is the
+  // default). This field is still accepted for backward-compat but is ignored;
+  // use `autoApprove` to opt OUT of the gate. Do not add new logic on this.
   requireApproval?: boolean;
 }
 
@@ -350,19 +354,53 @@ serve(async (req) => {
 
     if (activeProjects && activeProjects.length > 0) {
       const existing = activeProjects[0];
-      console.log(`[ModeRouter] BLOCKED: User ${userId} already has active project ${existing.id} (${existing.status})`);
-      
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'active_project_exists',
-          message: `You already have an active project "${existing.title}" in progress. Please wait for it to complete or cancel it before starting a new one.`,
-          existingProjectId: existing.id,
-          existingProjectTitle: existing.title,
-          existingProjectStatus: existing.status,
-        }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+
+      // P1-3: an ABANDONED, unapproved draft must not permanently block new
+      // creations. If the only blocker is an `awaiting_approval` project older
+      // than the stale-draft TTL, auto-expire it (cancel + release its
+      // pre-approval credit hold) and proceed, instead of 409-ing forever.
+      // (cancel-project can't be invoked here — it binds to the JWT user and
+      // rejects service-role calls — so release the hold directly.)
+      const STALE_DRAFT_MS = 30 * 60 * 1000; // 30 minutes
+      const ageMs = Date.now() - new Date(existing.created_at as string).getTime();
+      let autoExpired = false;
+      if (existing.status === 'awaiting_approval' && ageMs > STALE_DRAFT_MS) {
+        console.log(`[ModeRouter] Auto-expiring stale awaiting_approval draft ${existing.id} (age ${Math.round(ageMs / 60000)}m)`);
+        try {
+          const { releasePipelineCredits } = await import('../_shared/pipeline-credits.ts');
+          await releasePipelineCredits({
+            supabase,
+            projectId: existing.id,
+            reason: 'Abandoned unapproved draft auto-expired',
+          });
+          await supabase
+            .from('movie_projects')
+            .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+            .eq('id', existing.id);
+          autoExpired = true;
+          console.log(`[ModeRouter] ✓ Stale draft ${existing.id} expired; proceeding with new creation`);
+        } catch (expireErr) {
+          console.warn('[ModeRouter] Auto-expire failed; will 409:', expireErr);
+        }
+      }
+
+      if (!autoExpired) {
+        console.log(`[ModeRouter] BLOCKED: User ${userId} already has active project ${existing.id} (${existing.status})`);
+
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'active_project_exists',
+            message: `You already have an active project "${existing.title}" in progress. Please wait for it to complete or cancel it before starting a new one.`,
+            existingProjectId: existing.id,
+            existingProjectTitle: existing.title,
+            existingProjectStatus: existing.status,
+            // Signals the client may offer a one-click "cancel & start new".
+            canCancel: true,
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     console.log(`[ModeRouter] ✓ No active projects, proceeding with creation`);
@@ -533,11 +571,12 @@ serve(async (req) => {
     // Route based on mode
     switch (mode) {
       case 'avatar':
-        // SEEDANCE LOCK: Seedance avatars MUST route through seedance-pipeline
-        // (generate-avatar-direct is Kling-only and would silently fall back).
-        // Use the cinematic avatar path which already engine-routes correctly.
+        // SEEDANCE AVATARS: route via the cinematic avatar path, which now
+        // dispatches to the UNIFIED hollywood-pipeline (parallel dispatch
+        // strategy) — NOT the legacy seedance-pipeline. generate-avatar-direct
+        // is Kling-only and would silently fall back, so we avoid it.
         if (videoEngine === 'seedance') {
-          console.log('[ModeRouter] Avatar + Seedance → routing through seedance-pipeline via cinematic avatar path');
+          console.log('[ModeRouter] Avatar + Seedance → hollywood-pipeline (parallel strategy) via cinematic avatar path');
           return await handleAvatarCinematicMode({
             projectId: projectId!,
             userId,
@@ -634,6 +673,7 @@ serve(async (req) => {
           genre,
           mood,
           videoEngine, // CRITICAL: Forward engine selection to hollywood-pipeline
+          cameraFixed: request.cameraFixed, // Seedance camera lock (breakout forces true downstream)
           qualityOptions, // 4K / 60fps intent → persisted for the finalizer
           // Breakout template parameters - for platform UI shattering effect
           isBreakout,
@@ -953,12 +993,11 @@ async function handleAvatarCinematicMode(params: {
   console.log(`[ModeRouter/AvatarCinematic] Routing to Hollywood Pipeline...`);
   console.log(`[ModeRouter/AvatarCinematic] User's speech text (${concept.length} chars): "${concept.substring(0, 100)}..."`);
 
-  // ENGINE ROUTING: Seedance avatars go to seedance-pipeline (Kling-only Hollywood
-  // would hard-reject). All others route to hollywood-pipeline.
-  const targetPipeline = (videoEngine === 'seedance')
-    ? 'seedance-pipeline'
-    : 'hollywood-pipeline';
-  console.log(`[ModeRouter/AvatarCinematic] Engine="${videoEngine}" → pipeline="${targetPipeline}"`);
+  // ENGINE ROUTING — UNIFIED: Seedance avatars now route to hollywood-pipeline
+  // too (it no longer hard-rejects seedance — it runs the PARALLEL dispatch
+  // strategy with TTS overlaid post-stitch). All engines share ONE orchestrator.
+  const targetPipeline = 'hollywood-pipeline';
+  console.log(`[ModeRouter/AvatarCinematic] Engine="${videoEngine}" → pipeline="${targetPipeline}" (unified)`);
 
   const pipelineResponse = await fetch(`${supabaseUrl}/functions/v1/${targetPipeline}`, {
     method: 'POST',
@@ -993,6 +1032,11 @@ async function handleAvatarCinematicMode(params: {
       userNarration: concept,
       preserveUserContent: true,
       videoEngine, // forward engine for DB lock / guard
+      // GATE KEY (regression #1): this path is seedance-only (guarded upstream) and
+      // runs hollywood's PARALLEL strategy, which auto-ran under the legacy
+      // seedance-pipeline. autoApprove:true bypasses the fail-closed approval gate
+      // (which keys on autoApprove===true, not requireApproval) so it auto-runs.
+      autoApprove: true,
     }),
   });
 
@@ -1182,6 +1226,7 @@ async function handleCinematicMode(params: {
   genre?: string;
   mood?: string;
   videoEngine?: 'wan' | 'kling' | 'veo' | 'seedance' | 'sora';
+  cameraFixed?: boolean;
   qualityOptions?: { upscale4k?: boolean; fps60?: boolean };
   // Breakout template parameters
   isBreakout?: boolean;
@@ -1199,7 +1244,7 @@ async function handleCinematicMode(params: {
   requireApproval?: boolean;
   supabase: any;
 }) {
-  const { projectId, userId, concept, referenceImageUrl, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, mode, genre, mood, videoEngine, qualityOptions, isBreakout, breakoutStartImageUrl, breakoutPlatform, breakoutDialogue, identityBible, characterLock, useTemplateShots, templateShotSequence, templateName, templateStyleAnchor, templateCharacters, templateEnvironmentLock, requireApproval, supabase } = params;
+  const { projectId, userId, concept, referenceImageUrl, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, mode, genre, mood, videoEngine, cameraFixed, qualityOptions, isBreakout, breakoutStartImageUrl, breakoutPlatform, breakoutDialogue, identityBible, characterLock, useTemplateShots, templateShotSequence, templateName, templateStyleAnchor, templateCharacters, templateEnvironmentLock, requireApproval, supabase } = params;
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -1218,18 +1263,21 @@ async function handleCinematicMode(params: {
     console.log(`[ModeRouter/Cinematic] 🛡️ BREAKOUT ENGINE LOCK: requested "${videoEngine}" overridden → "${effectiveEngine}"`);
   }
 
-  // ENGINE ROUTING:
-  //   wan      → hollywood-pipeline (configured to dispatch to wan-ai/wan-2.5-t2v)
-  //   seedance → seedance-pipeline (also the forced engine for ALL breakouts)
-  //   *        → hollywood-pipeline (kling default + veo + sora)
-  //
-  // Wan currently piggybacks on hollywood-pipeline; the pipeline uses the
-  // `videoEngine` field to swap the Replicate model id, so this is just a
-  // routing shortcut, not a model swap.
-  const targetPipeline = (effectiveEngine === 'seedance')
-    ? 'seedance-pipeline'
-    : 'hollywood-pipeline';
-  console.log(`[ModeRouter/Cinematic] Engine="${effectiveEngine}" → pipeline="${targetPipeline}"`);
+  // ENGINE ROUTING — UNIFIED: ALL engines (incl. seedance + forced-seedance
+  // breakouts) now route to the single universal orchestrator hollywood-pipeline.
+  // Seedance no longer has a separate pipeline: hollywood selects the PARALLEL
+  // dispatch strategy for it at the Phase A/B seam (Promise.allSettled batch +
+  // last_frame_image continuity + post-mux audio). The legacy seedance-pipeline
+  // is left dormant (no callers) pending removal. `videoEngine` still selects the
+  // Replicate model id inside the spine.
+  const targetPipeline = 'hollywood-pipeline';
+  console.log(`[ModeRouter/Cinematic] Engine="${effectiveEngine}" → pipeline="${targetPipeline}" (unified)`);
+
+  // GATE PARITY (regression mitigation #2): seedance/breakouts auto-ran under the
+  // old seedance-pipeline. The parallel strategy must KEEP auto-running, so the
+  // fail-closed approval gate is bypassed for the parallel engine — matching the
+  // exact prior behavior. Script engines keep the existing shot-review gate.
+  const effectiveRequireApproval = (effectiveEngine === 'seedance') ? false : requireApproval;
 
   const pipelineResponse = await fetch(`${supabaseUrl}/functions/v1/${targetPipeline}`, {
     method: 'POST',
@@ -1252,6 +1300,8 @@ async function handleCinematicMode(params: {
       genre,
       mood,
       videoEngine: effectiveEngine, // CRITICAL: Forward engine selection (breakouts forced to seedance)
+      // Seedance camera lock — breakouts force true, else honor the user flag.
+      cameraFixed: isBreakout ? true : (cameraFixed ?? false),
       qualityOptions, // 4K / 60fps intent → entry pipeline persists for the finalizer
       // CRITICAL: Avatar mode flag survives the hop so generate-single-clip
       // applies avatar-specific routing (start image, dialogue, audio overlay).
@@ -1272,9 +1322,15 @@ async function handleCinematicMode(params: {
       templateCharacters,
       templateEnvironmentLock,
       // Pause after the script is written so the user can approve it before any
-      // clip renders. Only hollywood-pipeline honors this; seedance-pipeline
-      // (and forced-seedance breakouts) auto-run, so it's a no-op there.
-      requireApproval,
+      // clip renders. Parallel (seedance/breakout) auto-runs — gate bypassed
+      // for engine parity with the legacy seedance-pipeline.
+      requireApproval: effectiveRequireApproval,
+      // GATE KEY (regression #1): hollywood's fail-closed approval gate keys ONLY
+      // on autoApprove===true and IGNORES requireApproval. Seedance narrative +
+      // forced-seedance breakouts auto-ran under the legacy seedance-pipeline, so
+      // pass autoApprove:true for the parallel engine to keep them auto-running.
+      // Sequential (cinematic/non-seedance) engines omit it → gate stays intact.
+      autoApprove: effectiveEngine === 'seedance' ? true : undefined,
     }),
   });
 

@@ -55,11 +55,13 @@ describe('mode-router — avatar engine routing (Seedance Lock)', () => {
     expect(seedanceBranchIdx).toBeLessThan(directCallIdx);
   });
 
-  it('routes avatar+seedance through a pipeline that targets seedance-pipeline', () => {
-    // The cinematic avatar path is the engine-aware dispatcher and resolves
-    // `targetPipeline = 'seedance-pipeline'` when engine === 'seedance'.
+  it('routes avatar+seedance through the cinematic avatar dispatcher (now unified → hollywood-pipeline)', () => {
+    // UNIFIED PIPELINE: seedance avatars still branch into the cinematic avatar
+    // path, but that path now targets the single universal orchestrator
+    // `hollywood-pipeline` (which selects the PARALLEL dispatch strategy for
+    // seedance). The legacy seedance-pipeline is dormant.
     expect(modeRouter).toMatch(/handleAvatarCinematicMode\(/);
-    expect(modeRouter).toMatch(/seedance-pipeline/);
+    expect(modeRouter).toMatch(/const targetPipeline = 'hollywood-pipeline'/);
   });
 
   it('handleAvatarCinematicMode accepts videoEngine for engine-aware dispatch', () => {

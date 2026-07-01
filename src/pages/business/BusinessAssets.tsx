@@ -282,16 +282,16 @@ export default function BusinessAssets() {
           onDragOver={onDragOver}
           onDragLeave={onDragLeave}
           className={cn(
-            "mt-3 group relative flex flex-col items-center justify-center text-center gap-3 rounded-2xl px-6 py-9 ring-1 border border-dashed transition-colors cursor-pointer",
+            "mt-3 group relative flex flex-col items-center justify-center text-center gap-3 rounded-2xl px-6 py-9 border border-dashed transition-colors cursor-pointer",
             dragActive
-              ? "ring-[hsl(215_90%_60%/0.5)] border-[hsl(215_90%_60%/0.6)] bg-[hsl(215_90%_55%/0.08)]"
-              : "ring-white/[0.07] border-white/[0.12] bg-white/[0.015] hover:bg-white/[0.03] hover:border-white/20",
+              ? "border-[hsl(215_90%_60%/0.55)] bg-[hsl(215_90%_55%/0.07)]"
+              : "border-white/[0.1] hover:bg-white/[0.02] hover:border-white/15",
             uploading && "pointer-events-none opacity-70",
           )}
         >
           <span className={cn(
-            "inline-flex w-12 h-12 items-center justify-center rounded-2xl ring-1 transition-colors",
-            dragActive ? "ring-[hsl(215_90%_60%/0.4)] bg-[hsl(215_90%_55%/0.12)]" : "ring-white/[0.07] bg-gradient-to-br from-white/[0.06] to-white/[0.015]",
+            "inline-flex w-12 h-12 items-center justify-center rounded-2xl transition-colors",
+            dragActive ? "bg-[hsl(215_90%_55%/0.12)]" : "bg-gradient-to-br from-white/[0.08] to-white/[0.015]",
           )}>
             {uploading
               ? <Spinner size="sm" tone="inherit" />
@@ -393,7 +393,7 @@ export default function BusinessAssets() {
               const meta = KIND_META[a.kind] ?? KIND_META.other;
               const isImage = (a.mime_type ?? "").startsWith("image/");
               return (
-                <StaggerItem key={a.id} className="group rounded-2xl overflow-hidden ring-1 ring-white/[0.07] bg-white/[0.015] hover:ring-white/20 transition-all">
+                <StaggerItem key={a.id} className="group rounded-2xl overflow-hidden transition-all">
                   <div className="aspect-square relative flex items-center justify-center" style={isImage ? CHECKER : undefined}>
                     {isImage ? (
                       <img src={signedUrls[a.id] ?? ""} alt={a.name} loading="lazy" className="absolute inset-0 w-full h-full object-contain p-3" />

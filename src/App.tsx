@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, type ReactNode } from "react";
 // Sonner is the canonical toast system; the legacy `@/components/ui/toaster`
 // Radix-based renderer is no longer mounted to avoid duplicate stacking.
 // Callers should use `import { toast } from "sonner"` everywhere.
@@ -16,6 +16,7 @@ import { CreditsProvider } from "@/contexts/CreditsContext";
 import { PageToneProvider } from "@/lib/page-tone";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { GatedRoutes } from "@/components/auth/GatedRoutes";
 import { ADMIN_ENABLED } from "./admin/adminEnabled";
 import { AdminBounce } from "./admin/AdminBounce";
 import { AnalyticsTracker } from "./components/analytics/AnalyticsTracker";
@@ -70,6 +71,24 @@ function LegacyParamRedirect({ to }: { to: string }) {
 function QueryPreservingRedirect({ to }: { to: string }) {
   const location = useLocation();
   return <Navigate to={`${to}${location.search}`} replace />;
+}
+
+// Access gate for the /editor/:id route. The synthetic /editor/demo sandbox
+// (buildDemoProject() — no Supabase, no auth, no user data; allowlisted in
+// publicRoutes.ts) is PUBLIC: it skips ProtectedRoute and the business
+// redirect so logged-out visitors and CI can open it. Every real project id
+// stays fully gated. We gate here rather than via a separate static
+// "/editor/demo" route so the ":id" param still resolves to "demo" and
+// useProject() actually loads the demo (a static route drops the param, leaving
+// project=null and the project-gated panels unmounted).
+function EditorAccessGate({ children }: { children: ReactNode }) {
+  const { id } = useParams<{ id?: string }>();
+  if (id === "demo") return <>{children}</>;
+  return (
+    <RedirectBusinessToModule base="/editor" target="/business/editor">
+      <ProtectedRoute>{children}</ProtectedRoute>
+    </RedirectBusinessToModule>
+  );
 }
 
 const Cinema = lazy(() => import("./pages/Cinema"));
@@ -143,6 +162,7 @@ const Press = lazy(() => import("./pages/Press"));
 // ExtractThumbnails removed — orphan utility with no nav entry
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Avatars = lazy(() => import("./pages/Avatars"));
+const Cast = lazy(() => import("./pages/Cast"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const VideoEditorPage = lazy(() => import("./pages/VideoEditor"));
 
@@ -283,6 +303,11 @@ const App = () => {
                     wander into the consumer-account app surfaces. */}
                 <BusinessWorldIsolation />
                 <AnalyticsTracker />
+                {/* Gated by default: every route is behind login except the
+                    public allowlist in src/lib/publicRoutes.ts (landing +
+                    marketing/legal/auth). Any non-public path is bounced to
+                    /auth before its page mounts. */}
+                <GatedRoutes>
                 <Routes>
                 {/* Public routes - each wrapped for isolation */}
                 {/* Immersive cinema landing is the single home page. */}
@@ -683,6 +708,14 @@ const App = () => {
                     </RedirectBusinessToModule>
                   </RouteContainer>
                 } />
+
+                <Route path="/cast" element={
+                  <RouteContainer fallbackMessage="Opening your cast…">
+                    <ProtectedRoute>
+                      <Cast />
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
                 
                 {/* Script Review now lives as a step inside the Studio
                     pipeline — generate → script ready → review → render.
@@ -811,9 +844,9 @@ const App = () => {
                     LegacyParamRedirect resolves :id / :userId / :videoId. */}
                 <Route path="/video/:videoId" element={<LegacyParamRedirect to="/r" />} />
 
-                {/* ── Entertainment Hub — the public watch experience ── */}
-                {/* These are reachable without auth (you should be able
-                    to browse + watch reels signed out, like YouTube). */}
+                {/* ── Entertainment Hub — the watch experience ── */}
+                {/* Login required: the app is gated by default (see
+                    <GatedRoutes>), so these are NOT browsable signed out. */}
                 <Route path="/lobby" element={
                   <RouteContainer fallbackMessage="Reading the room…">
                     <Lobby />
@@ -829,7 +862,9 @@ const App = () => {
                 
                 {/* Video Editor - Twick Studio. Both /editor and /editor/:id
                     resolve to the same page; the editor reads `:id` from
-                    params or `?project=` from search. */}
+                    params or `?project=` from search. /editor/demo is the
+                    public synthetic sandbox — EditorAccessGate lets it through
+                    without auth while keeping every real project gated. */}
                 <Route path="/editor" element={
                   <RouteContainer fallbackMessage="Loading the cutting room…">
                     <RedirectBusinessToModule base="/editor" target="/business/editor">
@@ -841,11 +876,9 @@ const App = () => {
                 } />
                 <Route path="/editor/:id" element={
                   <RouteContainer fallbackMessage="Loading the cutting room…">
-                    <RedirectBusinessToModule base="/editor" target="/business/editor">
-                      <ProtectedRoute>
-                        <VideoEditorPage />
-                      </ProtectedRoute>
-                    </RedirectBusinessToModule>
+                    <EditorAccessGate>
+                      <VideoEditorPage />
+                    </EditorAccessGate>
                   </RouteContainer>
                 } />
                 
@@ -854,13 +887,15 @@ const App = () => {
                     <WidgetLanding />
                   </RouteContainer>
                 } />
-                {/* Viral public share — unauthenticated. RLS-gated by project_shares.is_public. */}
+                {/* Public share — now login-gated (app is gated by default).
+                    Still RLS-gated by project_shares.is_public at the DB. */}
                 <Route path="/p/:slug" element={
                   <RouteContainer fallbackMessage="Loading…">
                     <PublicShare />
                   </RouteContainer>
                 } />
-                {/* Minimal iframe-friendly player. No shell, no auth. */}
+                {/* Minimal iframe-friendly player. No shell. Now login-gated
+                    (app is gated by default) — embeds require a signed-in viewer. */}
                 <Route path="/embed/:slug" element={
                   <RouteContainer fallbackMessage="">
                     <EmbedPlayer />
@@ -901,6 +936,7 @@ const App = () => {
                   </RouteContainer>
                 } />
                 </Routes>
+                </GatedRoutes>
                 {/* Lazy-loaded global widgets — Suspense fallback is
                     null because none of these are needed for initial
                     paint. Each component reads from context internally;

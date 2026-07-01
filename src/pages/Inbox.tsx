@@ -239,13 +239,13 @@ export default function Inbox() {
 
             {/* Quick actions */}
             <div className="flex flex-wrap items-center gap-2 shrink-0">
-              <Link to="/search?tab=people" className="inline-flex items-center gap-2 h-9 px-4 rounded-full bg-white/[0.04] hover:bg-white/[0.07] text-[11.5px] font-mono uppercase tracking-[0.22em] text-foreground/90 transition-colors">
+              <Link to="/search?tab=people" className="inline-flex items-center gap-2 h-9 px-4 rounded-full hover:bg-white/[0.06] text-[11.5px] font-mono uppercase tracking-[0.22em] text-foreground/90 transition-colors">
                 <Plus className="h-3.5 w-3.5" />New thread
               </Link>
               <button
                 type="button"
                 onClick={() => setLane("rooms")}
-                className="inline-flex items-center gap-2 h-9 px-4 rounded-full bg-white/[0.04] hover:bg-white/[0.07] text-[11.5px] font-mono uppercase tracking-[0.22em] text-foreground/90 transition-colors"
+                className="inline-flex items-center gap-2 h-9 px-4 rounded-full hover:bg-white/[0.06] text-[11.5px] font-mono uppercase tracking-[0.22em] text-foreground/90 transition-colors"
               >
                 <Users className="h-3.5 w-3.5" />Rooms
               </button>
@@ -256,14 +256,6 @@ export default function Inbox() {
               A single glass strip with five "wells" separated by hairlines.
               Reads as one editorial band, not a row of cards. */}
           <div className="mt-9 relative">
-            <div
-              aria-hidden
-              className="absolute inset-0 rounded-3xl backdrop-blur-2xl"
-              style={{
-                background: "linear-gradient(180deg, hsl(0 0% 100% / 0.025) 0%, hsl(0 0% 100% / 0.01) 100%)",
-                boxShadow: "0 24px 60px -30px hsl(0 0% 0% / 0.5), inset 0 1px 0 hsl(0 0% 100% / 0.06)",
-              }}
-            />
             <div className="relative grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
               <SummaryTile Icon={MessageSquare} label="DMs today"      value={daySummary.dms_today}      tone="accent" />
               <SummaryTile Icon={MessageCircle} label="Comments"       value={daySummary.comments_today} tone="accent" />
@@ -500,7 +492,7 @@ function PeopleLane({ onOpen, userId }: { onOpen: (partnerId: string) => void; u
           cta={rows.length === 0 ? { label: "Find people", to: "/search?tab=people" } : undefined}
         />
       ) : (
-        <ul className="rounded-2xl bg-white/[0.02] overflow-hidden">
+        <ul className="rounded-2xl overflow-hidden">
           {filtered.map((r) => {
             const isPinned = pinned.has(r.partner_id);
             const isArchived = archived.has(r.partner_id);
@@ -845,10 +837,7 @@ function DmThread({ userId, partnerId, onClose, reducedMotion }: { userId: strin
       className="relative overflow-hidden flex flex-col rounded-3xl"
       style={{
         minHeight: "70vh",
-        background: "linear-gradient(180deg, hsl(0 0% 100% / 0.025) 0%, hsl(0 0% 100% / 0.005) 100%)",
-        backdropFilter: "blur(40px)",
-        WebkitBackdropFilter: "blur(40px)",
-        boxShadow: "0 32px 80px -30px hsl(0 0% 0% / 0.6), inset 0 1px 0 hsl(0 0% 100% / 0.07)",
+        boxShadow: "0 32px 80px -30px hsl(0 0% 0% / 0.6)",
       }}
     >
       {/* Header */}
@@ -912,7 +901,7 @@ function DmThread({ userId, partnerId, onClose, reducedMotion }: { userId: strin
 
       {/* Reply preview */}
       {replyTo && (
-        <div className="px-5 py-2 bg-white/[0.02] flex items-center gap-2">
+        <div className="px-5 py-2 flex items-center gap-2">
           <Reply className="h-3.5 w-3.5 text-muted-foreground/65" />
           <div className="min-w-0 flex-1 text-[12px] text-muted-foreground/85 truncate">
             Replying to <span className="text-foreground/95">{replyTo.content}</span>
@@ -1165,7 +1154,7 @@ function TipDialog({ open, onClose, onSend, recipientName }: { open: boolean; on
           <p className="text-[11.5px] text-muted-foreground/65">90% goes to {recipientName}, 10% to the platform.</p>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="ghost" onClick={onClose}><X className="h-3.5 w-3.5 mr-2" />Cancel</Button>
           <Button onClick={() => void onSend(amount, message)}>
             <Coins className="h-3.5 w-3.5 mr-2" />Send {amount} cr
           </Button>
@@ -1242,7 +1231,7 @@ function AiVideoReplyDialog({
               </button>
             ))}
           </div>
-          <div className="rounded-xl bg-white/[0.04] p-4 text-[14px] leading-relaxed italic text-foreground/95" style={{ fontFamily: "'Fraunces', serif" }}>
+          <div className="rounded-xl p-4 text-[14px] leading-relaxed italic text-foreground/95" style={{ fontFamily: "'Fraunces', serif" }}>
             {draft}
           </div>
           <p className="text-[11.5px] text-muted-foreground/65">
@@ -1250,7 +1239,7 @@ function AiVideoReplyDialog({
           </p>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose} disabled={generating}>Cancel</Button>
+          <Button variant="ghost" onClick={onClose} disabled={generating}><X className="h-3.5 w-3.5 mr-2" />Cancel</Button>
           <Button variant="ghost" onClick={() => onPrompt(draft)} disabled={generating}>
             <Send className="h-3.5 w-3.5 mr-2" />Use as text
           </Button>
@@ -1505,8 +1494,8 @@ function BrandInquiryDetailDialog({
           </div>
         )}
         <DialogFooter>
-          <Button variant="ghost" onClick={() => void resolve("archived")} disabled={busy || !row}>Archive</Button>
-          <Button variant="ghost" onClick={() => void resolve("declined")} disabled={busy || !row}>Decline</Button>
+          <Button variant="ghost" onClick={() => void resolve("archived")} disabled={busy || !row}><Archive className="h-3.5 w-3.5 mr-2" />Archive</Button>
+          <Button variant="ghost" onClick={() => void resolve("declined")} disabled={busy || !row}><X className="h-3.5 w-3.5 mr-2" />Decline</Button>
           <Button onClick={() => void resolve("accepted")} disabled={busy || !row}>
             <Check className="h-3.5 w-3.5 mr-2" />Accept & reply
           </Button>
@@ -1518,7 +1507,7 @@ function BrandInquiryDetailDialog({
 
 function StatCard({ label, value, tone }: { label: string; value: string; tone?: "amber" }) {
   return (
-    <div className="rounded-xl bg-white/[0.04] p-4">
+    <div className="rounded-xl p-4">
       <div className={cn(TYPE_META, "text-muted-foreground/65 tracking-[0.22em]")}>{label}</div>
       <div className={cn("mt-1 font-display italic tabular-nums leading-none", tone === "amber" ? "text-amber-200" : "text-foreground")}
         style={{ fontFamily: "'Fraunces', serif", fontSize: "clamp(1.4rem, 2.2vw, 1.9rem)" }}>
@@ -1608,11 +1597,11 @@ function EmptyState({
         {sub && <p className="mt-3 text-[13.5px] text-muted-foreground/70 max-w-md mx-auto leading-relaxed">{sub}</p>}
         {cta && (
           cta.to ? (
-            <Link to={cta.to} className="inline-flex mt-6 items-center gap-2 h-10 px-5 rounded-full bg-accent/15 hover:bg-accent/25 text-[12px] font-mono uppercase tracking-[0.22em] text-foreground transition-all">
+            <Link to={cta.to} className="inline-flex mt-6 items-center gap-2 h-10 px-5 rounded-full hover:bg-white/[0.06] text-[12px] font-mono uppercase tracking-[0.22em] text-foreground transition-all">
               {cta.label} <ChevronRight className="h-3.5 w-3.5" />
             </Link>
           ) : (
-            <button type="button" onClick={cta.onClick} className="inline-flex mt-6 items-center gap-2 h-10 px-5 rounded-full bg-accent/15 hover:bg-accent/25 text-[12px] font-mono uppercase tracking-[0.22em] text-foreground transition-all">
+            <button type="button" onClick={cta.onClick} className="inline-flex mt-6 items-center gap-2 h-10 px-5 rounded-full hover:bg-white/[0.06] text-[12px] font-mono uppercase tracking-[0.22em] text-foreground transition-all">
               {cta.label} <ChevronRight className="h-3.5 w-3.5" />
             </button>
           )
@@ -1917,8 +1906,8 @@ function FeedItem({
           </div>
           {p.username && <div className="text-[12px] text-muted-foreground/65 truncate mt-0.5">@{p.username}</div>}
         </div>
-        <Button size="sm" variant="ghost" onClick={() => void onReject(p.request_id)}>Decline</Button>
-        <Button size="sm" onClick={() => void onAccept(p.request_id)}>Accept</Button>
+        <Button size="sm" variant="ghost" onClick={() => void onReject(p.request_id)}><X className="h-3.5 w-3.5 mr-1.5" />Decline</Button>
+        <Button size="sm" onClick={() => void onAccept(p.request_id)}><Check className="h-3.5 w-3.5 mr-1.5" />Accept</Button>
       </div>
     );
   }
@@ -2015,7 +2004,7 @@ function ReelPreview({ reelId }: { reelId: string }) {
   return (
     <Link
       to={`/r/${reel.id}`}
-      className="not-prose mb-2 block rounded-xl overflow-hidden bg-white/[0.04] hover:bg-white/[0.07] transition-all"
+      className="not-prose mb-2 block rounded-xl overflow-hidden hover:bg-white/[0.06] transition-all"
     >
       <div className="relative aspect-video bg-black">
         {reel.thumbnail_url ? (
@@ -2128,7 +2117,7 @@ function RoomGroup({ title, rooms, onOpen }: { title: string; rooms: RoomRow[]; 
   return (
     <section>
       <div className={cn(TYPE_META, "text-muted-foreground/55 tracking-[0.30em] mb-3")}>{title}</div>
-      <ul className="rounded-2xl bg-white/[0.02] overflow-hidden">
+      <ul className="rounded-2xl overflow-hidden">
         {rooms.map((r) => (
           <li key={r.id}>
             <button
@@ -2238,7 +2227,7 @@ function NewRoomButton({ onCreated }: { onCreated: () => void | Promise<void> })
               {(["patron", "crew"] as const).map((k) => (
                 <button key={k} type="button" onClick={() => setKind(k)} className={cn(
                   "relative flex-1 px-4 py-3 rounded-xl transition-colors text-left",
-                  kind === k ? "bg-white/[0.06]" : "bg-white/[0.02] hover:bg-white/[0.04]"
+                  kind === k ? "bg-white/[0.06]" : "hover:bg-white/[0.04]"
                 )}>
                   {kind === k && <CenterLine />}
                   <div className="text-[13px] font-medium inline-flex items-center gap-2">
@@ -2270,9 +2259,9 @@ function NewRoomButton({ onCreated }: { onCreated: () => void | Promise<void> })
             )}
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setOpen(false)} disabled={busy}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setOpen(false)} disabled={busy}><X className="h-3.5 w-3.5 mr-2" />Cancel</Button>
             <Button onClick={() => void create()} disabled={busy || !name.trim()}>
-              {busy && <Loader2 className="h-3 w-3 mr-2 animate-spin" />}Create room
+              {busy ? <Loader2 className="h-3 w-3 mr-2 animate-spin" /> : <Users className="h-3 w-3 mr-2" />}Create room
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2362,10 +2351,7 @@ function RoomDetail({ room, userId, reducedMotion, onClose }: { room: RoomRow; u
       className="relative overflow-hidden flex flex-col rounded-3xl"
       style={{
         minHeight: "70vh",
-        background: "linear-gradient(180deg, hsl(0 0% 100% / 0.025) 0%, hsl(0 0% 100% / 0.005) 100%)",
-        backdropFilter: "blur(40px)",
-        WebkitBackdropFilter: "blur(40px)",
-        boxShadow: "0 32px 80px -30px hsl(0 0% 0% / 0.6), inset 0 1px 0 hsl(0 0% 100% / 0.07)",
+        boxShadow: "0 32px 80px -30px hsl(0 0% 0% / 0.6)",
       }}
     >
       <header className="px-5 py-4 flex items-center gap-3">

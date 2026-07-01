@@ -114,6 +114,7 @@ export function Surface({
               context. */}
           <motion.div
             aria-hidden
+            data-testid="surface-backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

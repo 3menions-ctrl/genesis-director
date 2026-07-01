@@ -33,7 +33,6 @@ import {
 } from "lucide-react";
 import { IconFilterTile, IconFilterRow } from "@/components/ui/IconFilterTile";
 import { CenterLine } from "@/components/ui/CenterLine";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
@@ -42,6 +41,7 @@ import { FoundationShell } from "@/components/foundation/FoundationShell";
 import { EditorialCanvas, EditorialEyebrow, EditorialHeadline } from "@/components/foundation/EditorialCanvas";
 import { AutoGallery } from "@/components/foundation/AutoGallery";
 import { HeroGalleryBackdrop } from "@/components/foundation/HeroGalleryBackdrop";
+import { GlassPanel, GlassButton, SectionLabel } from "@/components/foundation/Floating";
 import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { CreditsDisplay } from "@/components/studio/CreditsDisplay";
@@ -700,47 +700,47 @@ const TrainingContent = memo(function TrainingContent() {
 
           {/* Step navigation footer */}
           <div className="mt-8 flex items-center justify-between">
-            <Button
-              variant="ghost"
+            <GlassButton
               size="sm"
               disabled={activeStep === 0}
               onClick={() => setActiveStep(s => Math.max(0, s - 1))}
-              className="rounded-full bg-white/[0.04] hover:bg-white/[0.08] backdrop-blur"
             >
-              <ArrowLeft className="w-3.5 h-3.5 mr-1.5" />
+              <ArrowLeft className="w-3.5 h-3.5" />
               Back
-            </Button>
+            </GlassButton>
             <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-foreground/40">
               Step {activeStep + 1} of {WIZARD_STEPS.length}
             </span>
-            <Button
+            <GlassButton
               size="sm"
+              tone="solid"
               disabled={activeStep === WIZARD_STEPS.length - 1 || !isStepComplete(activeStep)}
               onClick={() => setActiveStep(s => Math.min(WIZARD_STEPS.length - 1, s + 1))}
-              className="rounded-full bg-foreground text-background hover:bg-foreground/90"
             >
               Next
-              <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-            </Button>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </GlassButton>
           </div>
         </main>
 
         {/* RIGHT: STICKY PREVIEW + GENERATE */}
         <aside className="lg:sticky lg:top-6 lg:self-start space-y-4">
           {generatedVideoUrl ? (
-            <div className="rounded-2xl bg-white/[0.03] shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)] backdrop-blur overflow-hidden">
-              <BrandedVideoPlayer src={generatedVideoUrl} className="w-full aspect-video" />
-              <div className="p-3 flex items-center justify-between gap-2">
+            <div className="space-y-3">
+              <div className="overflow-hidden rounded-2xl shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)]">
+                <BrandedVideoPlayer src={generatedVideoUrl} className="w-full aspect-video" />
+              </div>
+              <div className="flex items-center justify-between gap-2">
                 <a href={generatedVideoUrl} download="training-video.mp4">
-                  <Button size="sm" variant="ghost" className="rounded-full bg-white/[0.04] hover:bg-white/[0.08]">
-                    <Download className="w-3.5 h-3.5 mr-1.5" />
+                  <GlassButton size="sm">
+                    <Download className="w-3.5 h-3.5" />
                     Download
-                  </Button>
+                  </GlassButton>
                 </a>
-                <Button size="sm" variant="ghost" onClick={handleReset} className="rounded-full">
-                  <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+                <GlassButton size="sm" onClick={handleReset}>
+                  <RotateCcw className="w-3.5 h-3.5" />
                   New video
-                </Button>
+                </GlassButton>
               </div>
             </div>
           ) : (
@@ -752,10 +752,8 @@ const TrainingContent = memo(function TrainingContent() {
           )}
 
           {/* Cost + ETA */}
-          <div className="rounded-2xl bg-white/[0.03] shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)] backdrop-blur p-4">
-            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-foreground/40 mb-3">
-              Render plan
-            </div>
+          <GlassPanel className="p-4">
+            <SectionLabel className="mb-3">Render plan</SectionLabel>
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
                 <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-foreground/40">Engine</div>
@@ -868,25 +866,26 @@ const TrainingContent = memo(function TrainingContent() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
+          </GlassPanel>
 
           {/* Generate CTA */}
-          <Button
+          <GlassButton
             size="lg"
+            tone="solid"
             onClick={handleGenerate}
             disabled={!canGenerate}
-            className="w-full h-12 rounded-xl bg-foreground text-background hover:bg-foreground/90 font-medium"
+            className="w-full"
           >
             {isGenerating ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating…</>
+              <><Loader2 className="w-4 h-4 animate-spin" />Generating…</>
             ) : (
-              <><Wand2 className="w-4 h-4 mr-2" />Generate training video<ArrowRight className="w-4 h-4 ml-2" /></>
+              <><Wand2 className="w-4 h-4" />Generate training video<ArrowRight className="w-4 h-4" /></>
             )}
-          </Button>
+          </GlassButton>
 
           {/* Progress */}
           {isGenerating && (
-            <div className="rounded-2xl bg-white/[0.03] shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)] backdrop-blur p-4">
+            <div className="p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-foreground/40">{generationStep.replace(/_/g, " ")}</span>
                 <span className="font-mono text-[10px] tabular-nums text-foreground/65">{progress}%</span>
@@ -955,7 +954,7 @@ function ScriptStep({
       </div>
 
       {/* Textarea */}
-      <div className="rounded-2xl bg-white/[0.03] shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)] backdrop-blur p-4">
+      <GlassPanel className="p-4">
         <Textarea
           value={scriptText}
           onChange={(e) => onChange(e.target.value.slice(0, 500))}
@@ -963,20 +962,21 @@ function ScriptStep({
           placeholder="Today's training is one of those things that sounds simple — until you try it. So let's walk through it together…"
           className="resize-none bg-transparent border-0 p-0 text-[14.5px] leading-relaxed text-foreground placeholder:text-foreground/35 focus-visible:ring-0"
         />
-        <div className="mt-3 pt-3 flex items-center justify-between text-[10px] font-mono uppercase tracking-[0.18em] text-foreground/45">
+        <div className="my-3 h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+        <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-[0.18em] text-foreground/45">
           <span>{wordCount} words · ~{speechEstimateSec}s spoken {activeVoice ? `@ ${activeVoice.name}'s pace` : ""}</span>
           <span className="tabular-nums">{scriptText.length}/500</span>
         </div>
-      </div>
+      </GlassPanel>
 
       {/* Starter templates */}
       <div className="mt-6">
-        <h3 className="font-mono text-[10px] uppercase tracking-[0.22em] text-foreground/40 mb-3">Or start with a template</h3>
+        <SectionLabel className="mb-3">Or start with a template</SectionLabel>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {SCRIPT_STARTERS.map(s => (
             <button key={s.id}
               onClick={() => { onChange(s.text); onToneChange(s.tone); }}
-              className="text-left rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] backdrop-blur p-4 transition-all"
+              className="text-left rounded-2xl p-4 transition-all hover:bg-white/[0.04]"
             >
               <div className="flex items-baseline justify-between mb-2">
                 <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-foreground/55">{s.label}</span>
@@ -1113,8 +1113,8 @@ function VoiceCard({
       className={cn(
         "group relative rounded-2xl p-4 cursor-pointer transition-all",
         isSelected
-          ? "bg-amber-500/[0.05] shadow-[0_15px_45px_-12px_hsla(45,95%,60%,0.35)]"
-          : "bg-white/[0.03] hover:bg-white/[0.05] backdrop-blur",
+          ? "shadow-[0_15px_45px_-12px_hsla(45,95%,60%,0.35)] ring-1 ring-amber-400/30"
+          : "hover:bg-white/[0.04]",
       )}
     >
       <div className="flex items-start justify-between gap-3 mb-2">
@@ -1277,7 +1277,7 @@ function CharacterStep({
       )}
 
       {source === "upload" && (
-        <div className="rounded-2xl bg-white/[0.03] shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)] backdrop-blur p-6">
+        <GlassPanel className="p-6">
           <input ref={inputRef} type="file" accept="image/*" onChange={onUploadChange} className="hidden" />
           {uploadedImage ? (
             <div className="flex items-center gap-5">
@@ -1285,9 +1285,9 @@ function CharacterStep({
               <div className="flex-1">
                 <h4 className="text-[14px] font-medium text-foreground/95 mb-1">Your presenter</h4>
                 <p className="text-[11px] text-foreground/55 mb-3">Upload a different photo if you want to retake.</p>
-                <Button size="sm" variant="ghost" onClick={onUploadClick} className="rounded-full bg-white/[0.04] hover:bg-white/[0.08]">
-                  <Upload className="w-3.5 h-3.5 mr-1.5" />Replace photo
-                </Button>
+                <GlassButton size="sm" onClick={onUploadClick}>
+                  <Upload className="w-3.5 h-3.5" />Replace photo
+                </GlassButton>
               </div>
             </div>
           ) : (
@@ -1297,11 +1297,11 @@ function CharacterStep({
               <div className="text-[11px] text-foreground/45">JPG / PNG · max 10MB · front-facing for best results</div>
             </button>
           )}
-        </div>
+        </GlassPanel>
       )}
 
       {source === "webcam" && (
-        <div className="rounded-2xl bg-white/[0.03] shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)] backdrop-blur p-8 text-center">
+        <div className="p-8 text-center">
           <Camera className="w-7 h-7 mx-auto mb-3 text-foreground/55" />
           <h4 className="text-[14px] font-medium text-foreground/95 mb-1">Webcam capture coming soon</h4>
           <p className="text-[11px] text-foreground/55">In the meantime, use Upload to provide your photo.</p>

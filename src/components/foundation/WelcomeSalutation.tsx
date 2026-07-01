@@ -117,7 +117,6 @@ export function WelcomeSalutation() {
           <div
             className={cn(
               "relative flex items-center gap-3.5 rounded-2xl px-5 py-3.5",
-              "border border-white/[0.12]",
               "bg-[hsl(220_30%_6%/0.72)] backdrop-blur-2xl",
               "shadow-[0_24px_70px_-20px_hsl(0_0%_0%/0.85)]",
             )}

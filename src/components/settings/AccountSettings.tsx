@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, memo, forwardRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSafeNavigation } from '@/lib/navigation';
 import { supabase } from '@/integrations/supabase/client';
+import { confirmAsync } from '@/components/ui/global-confirm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,6 +37,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
   
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [newEmail, setNewEmail] = useState('');
+  const [emailPassword, setEmailPassword] = useState(''); // P2-3: edge fn requires it
   const [emailError, setEmailError] = useState('');
   const [isChangingEmail, setIsChangingEmail] = useState(false);
   
@@ -71,17 +73,23 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
     const loadPrivacy = async () => {
       setIsLoadingPrivacy(true);
       try {
-        const { data } = await supabase
+        // P2-4: read the CANONICAL column that track_event actually checks
+        // (profiles.tracking_opted_out). The old code read user_gamification, a
+        // non-canonical copy that tracking never consults.
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('tracking_opted_out')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (prof) setTrackingOptedOut(prof.tracking_opted_out ?? false);
+        // Leaderboards are removed product-wide; force-hide regardless of stored pref.
+        const { data: gam } = await supabase
           .from('user_gamification')
-          .select('tracking_opted_out, hide_from_leaderboard')
+          .select('hide_from_leaderboard')
           .eq('user_id', user.id)
           .maybeSingle();
-        if (data) {
-          setTrackingOptedOut(data.tracking_opted_out ?? false);
-          // Leaderboards are removed product-wide; force-hide regardless of stored pref.
-          if (data.hide_from_leaderboard === false) {
-            await supabase.from('user_gamification').update({ hide_from_leaderboard: true }).eq('user_id', user.id);
-          }
+        if (gam?.hide_from_leaderboard === false) {
+          await supabase.from('user_gamification').update({ hide_from_leaderboard: true }).eq('user_id', user.id);
         }
       } catch (e) {
         console.error('Failed to load privacy prefs:', e);
@@ -99,10 +107,11 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
 
     setIsSavingPrivacy(true);
     try {
+      // P2-4: write the CANONICAL column track_event reads (profiles.tracking_opted_out).
       const { error } = await supabase
-        .from('user_gamification')
+        .from('profiles')
         .update({ [field]: value })
-        .eq('user_id', user.id);
+        .eq('id', user.id);
       if (error) throw error;
       toast.success('Privacy preference updated');
     } catch (e) {
@@ -115,6 +124,27 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // P2-5: deactivate inline. The button used to route to the redirect-only
+  // deactivate sub-page, which App.tsx sends straight back to /account — a dead
+  // end where nothing happened. Mirror the working SettingsDashboard.deactivate flow.
+  const handleDeactivate = async () => {
+    if (!user) return;
+    const ok = await confirmAsync({
+      title: 'Deactivate your account?',
+      description: 'Your profile will be hidden but your data stays. Sign back in anytime to reactivate.',
+      confirmLabel: 'Deactivate',
+      cancelLabel: 'Cancel',
+    });
+    if (!ok) return;
+    const { error } = await supabase
+      .from('profiles' as never)
+      .update({ deactivated_at: new Date().toISOString() } as never)
+      .eq('id', user.id);
+    if (error) { toast.error('Could not deactivate your account.'); return; }
+    await supabase.auth.signOut();
+    window.location.href = '/auth?deactivated=1';
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -204,6 +234,13 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
       return;
     }
 
+    // P2-3: the edge fn ALWAYS requires the current password to re-auth before
+    // changing email. Previously we sent only { newEmail } → 400 every time.
+    if (!emailPassword) {
+      setEmailError('Confirm your password to change your email');
+      return;
+    }
+
     setIsChangingEmail(true);
     setEmailError('');
 
@@ -215,7 +252,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
       }
 
       const response = await supabase.functions.invoke('update-user-email', {
-        body: { newEmail: newEmail.trim() },
+        body: { newEmail: newEmail.trim(), password: emailPassword },
         headers: {
           Authorization: `Bearer ${session.access_token}`
         }
@@ -226,6 +263,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
       toast.success('Confirmation email sent to your new address');
       setShowEmailDialog(false);
       setNewEmail('');
+      setEmailPassword('');
     } catch (error) {
       console.error('Error changing email:', error);
       toast.error('Couldn\'t change email. Please try again.');
@@ -267,8 +305,8 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
         {!isEditing ? (
           <Button
             onClick={() => setIsEditing(true)}
-            variant="outline"
-            className="border-white/[0.08] text-white/70 hover:bg-glass-hover hover:text-white hover:border-white/[0.15] rounded-xl transition-all"
+            variant="ghost"
+            className="text-white/70 hover:bg-white/[0.06] hover:text-white rounded-xl transition-colors"
           >
             <Edit3 className="w-4 h-4 mr-2" />
             Edit Profile
@@ -296,12 +334,13 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             <Button
               onClick={handleSave}
               disabled={isSaving}
-              className="bg-[hsl(215,100%,55%)] hover:bg-[hsl(215,100%,62%)] text-white rounded-xl shadow-lg shadow-[hsl(215,100%,60%)]/22"
+              variant="ghost"
+              className="text-foreground hover:bg-white/[0.06] rounded-xl transition-colors"
             >
               {isSaving ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               ) : (
-                <Save className="w-4 h-4 mr-2" />
+                <Save className="w-4 h-4 mr-2 text-[hsl(215,100%,72%)]" />
               )}
               Save Changes
             </Button>
@@ -488,7 +527,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             { label: 'Account Tier', value: tierInfo.label, icon: <Crown className={cn("w-4 h-4", tierInfo.color)} />, valueColor: tierInfo.color },
             { label: 'Status', value: 'Active', icon: <CheckCircle2 className="w-4 h-4 text-emerald-400" />, valueColor: 'text-emerald-400' },
           ].map((item, i) => (
-            <div key={i} className="p-4 rounded-xl bg-glass border border-white/[0.05] hover:border-white/[0.1] transition-colors">
+            <div key={i} className="p-4 rounded-xl">
               <p className="text-[10px] text-white/30 uppercase tracking-wider font-medium">{item.label}</p>
               <div className="flex items-center gap-2 mt-1.5">
                 {item.icon}
@@ -516,7 +555,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 rounded-xl bg-glass border border-white/[0.05]">
+          <div className="flex items-center justify-between p-4 rounded-xl">
             <div className="pr-4">
               <p className="text-sm font-medium text-white">Opt out of activity tracking</p>
               <p className="text-xs text-white/35 mt-0.5">Stop usage-pattern analytics on your account. Your data stays private to you regardless.</p>
@@ -528,7 +567,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             />
           </div>
 
-          <div className="p-4 rounded-xl bg-glass border border-white/[0.05]">
+          <div className="p-4 rounded-xl">
             <p className="text-sm font-medium text-white">No public ranking</p>
             <p className="text-xs text-white/35 mt-0.5">
               Leaderboards, XP and ranking points have been removed. Your credits, usage and activity are visible only to you.
@@ -545,7 +584,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
         className="py-2"
       >
         <div className="flex items-start gap-4">
-          <div className="w-11 h-11 rounded-xl bg-red-500/10 border border-red-500/15 flex items-center justify-center shrink-0">
+          <div className="w-11 h-11 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
             <UserX className="w-5 h-5 text-red-400/80" />
           </div>
           <div className="flex-1">
@@ -555,9 +594,9 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             </p>
             <div className="mt-4">
               <Button
-                onClick={() => navigate('/settings/deactivate')}
-                variant="outline"
-                className="border-red-500/20 text-red-400/80 hover:bg-red-500/10 hover:text-red-300 hover:border-red-500/30 rounded-xl"
+                onClick={handleDeactivate}
+                variant="ghost"
+                className="text-red-400/80 hover:bg-red-500/10 hover:text-red-300 rounded-xl"
               >
                 <Power className="w-4 h-4 mr-2" />
                 Deactivate Account
@@ -583,7 +622,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            <div className="p-4 rounded-xl bg-glass border border-white/[0.06]">
+            <div className="p-4 rounded-xl">
               <p className="text-xs text-white/30 uppercase tracking-wider">Current email</p>
               <p className="text-white font-medium mt-1 text-sm">{user?.email}</p>
             </div>
@@ -607,6 +646,18 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
                 </p>
               )}
             </div>
+
+            <div className="space-y-2">
+              <Label className="text-white/50 text-xs">Confirm your password</Label>
+              <Input
+                type="password"
+                value={emailPassword}
+                onChange={(e) => { setEmailPassword(e.target.value); setEmailError(''); }}
+                placeholder="Your password"
+                autoComplete="current-password"
+                className="bg-glass border-white/[0.08] text-white placeholder:text-white/20 rounded-xl"
+              />
+            </div>
           </div>
 
           <DialogFooter className="gap-2">
@@ -614,6 +665,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
               onClick={() => {
                 setShowEmailDialog(false);
                 setNewEmail('');
+                setEmailPassword('');
                 setEmailError('');
               }}
               variant="ghost"
@@ -623,13 +675,14 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             </Button>
             <Button
               onClick={handleEmailChange}
-              disabled={!newEmail || isChangingEmail}
-              className="bg-[hsl(215,100%,55%)] hover:bg-[hsl(215,100%,62%)] text-white rounded-xl"
+              disabled={!newEmail || !emailPassword || isChangingEmail}
+              variant="ghost"
+              className="text-foreground hover:bg-white/[0.06] rounded-xl"
             >
               {isChangingEmail ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               ) : (
-                <Mail className="w-4 h-4 mr-2" />
+                <Mail className="w-4 h-4 mr-2 text-[hsl(215,100%,72%)]" />
               )}
               Send Confirmation
             </Button>

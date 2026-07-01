@@ -230,45 +230,17 @@ async function expandImageToAspectRatio(
     return { expanded: false, imageUrl };
   }
   
-  console.log(`[analyze-reference-image] Expanding image from ${currentOrientation.veoAspectRatio} to ${targetAspectRatio}`);
-  
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  
-  try {
-    // Call the expand-image-aspect-ratio edge function
-    const response = await fetch(`${supabaseUrl}/functions/v1/expand-image-aspect-ratio`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-      },
-      body: JSON.stringify({
-        imageUrl,
-        targetAspectRatio,
-        environmentPrompt,
-      }),
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[analyze-reference-image] Expansion failed:', errorText);
-      // Fall back to original image
-      return { expanded: false, imageUrl };
-    }
-    
-    const result = await response.json();
-    
-    if (result.expanded && result.imageUrl) {
-      console.log('[analyze-reference-image] Image successfully expanded:', result.imageUrl);
-      return { expanded: true, imageUrl: result.imageUrl };
-    }
-    
-    return { expanded: false, imageUrl };
-  } catch (err) {
-    console.error('[analyze-reference-image] Expansion error:', err);
-    // Fall back to original image on error
-    return { expanded: false, imageUrl };
-  }
+  // P2-27: aspect-ratio outpainting is NOT implemented. The previous code POSTed
+  // to a sibling outpaint edge function that does not exist, so every call 404'd
+  // and was swallowed — silently returning the original image while logging
+  // misleading "Expanding…"/"Expansion failed" errors. Return the original
+  // honestly (no doomed round-trip) until a real outpaint fn is wired.
+  // NOTE: keep `environmentPrompt` in the signature for when that lands.
+  void environmentPrompt;
+  console.log(
+    `[analyze-reference-image] Aspect-ratio expansion (${currentOrientation.veoAspectRatio}→${targetAspectRatio}) not implemented — using original image`,
+  );
+  return { expanded: false, imageUrl };
 }
 
 serve(async (req) => {

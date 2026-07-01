@@ -14,6 +14,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { BusinessPage, SectionHead, EmptyState } from "@/components/business/BusinessPage";
+import { GlassButton } from "@/components/foundation/Floating";
 import {
   ChartCard, AreaTrend, DonutChart, ChartLegend, TrendStat, DataTable, Sparkline,
   bucketByDay, periodDelta,
@@ -211,16 +212,15 @@ export default function BusinessAnalytics() {
       title="Telemetry."
       subtitle="Credit burn, output, and per-member usage across the workspace. Switch the window to compare trends."
       actions={
-        <button type="button" onClick={exportCsv} disabled={loading || a.stats.length === 0}
-          className="inline-flex items-center gap-2 rounded-full px-4 h-11 ring-1 ring-white/[0.1] text-white/80 hover:text-white hover:ring-white/20 text-[13px] transition-colors disabled:opacity-40">
+        <GlassButton tone="neutral" onClick={exportCsv} disabled={loading || a.stats.length === 0}>
           <Download className="w-4 h-4" strokeWidth={1.8} /> Export CSV
-        </button>
+        </GlassButton>
       }
     >
       {/* Range control */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className={cn(TYPE_META, "text-white/45")}>Window</div>
-        <div className="flex items-center gap-1 p-1 rounded-xl ring-1 ring-white/[0.07] bg-white/[0.015]">
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.04]">
           {RANGES.map((r) => (
             <button key={r} type="button" onClick={() => setRange(r)}
               className={cn(

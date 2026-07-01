@@ -30,6 +30,7 @@ import { StudioTabs } from "@/components/studio/StudioTabs";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Spinner } from "@/components/ui/Spinner";
 import { CenterLine } from "@/components/ui/CenterLine";
+import { GlassButton } from "@/components/foundation/Floating";
 import { cn } from "@/lib/utils";
 
 // ── Shared shapes ───────────────────────────────────────────────────────────
@@ -432,9 +433,9 @@ function ReelGrid({ reels }: { reels: ReelHit[] }) {
         <Link
           key={r.id}
           to={`/r/${r.id}`}
-          className="group rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] overflow-hidden transition-colors"
+          className="group block"
         >
-          <div className="aspect-video bg-black/40 relative">
+          <div className="aspect-video bg-black/40 relative rounded-2xl overflow-hidden">
             {r.thumbnail_url && (
               <img src={r.thumbnail_url} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
             )}
@@ -450,7 +451,7 @@ function ReelGrid({ reels }: { reels: ReelHit[] }) {
               {r.play_count.toLocaleString()}
             </div>
           </div>
-          <div className="p-3">
+          <div className="pt-3">
             <div className="text-[13px] text-foreground truncate">{r.title}</div>
             {r.creator_name && (
               <div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground/75 truncate">
@@ -483,7 +484,7 @@ function PersonCard({
   following: boolean;
 }) {
   return (
-    <div className="group relative flex items-start gap-3 rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] p-4 transition-colors">
+    <div className="group relative flex items-start gap-3 rounded-2xl p-4 transition-colors hover:bg-white/[0.03]">
       <Link to={`/c/${id}`} className="flex items-start gap-3 min-w-0 flex-1">
         {avatar ? (
           <img src={avatar} alt="" className="w-12 h-12 rounded-full object-cover shrink-0" />
@@ -608,16 +609,9 @@ function NoResults({ q }: { q: string }) {
       <p className="text-muted-foreground text-[13px] mb-6">
         Be the first to make something here.
       </p>
-      <Link
-        to="/studio"
-        className="inline-flex items-center gap-2 h-11 px-5 rounded-full text-[11px] font-mono uppercase tracking-[0.22em] text-foreground"
-        style={{
-          background: "linear-gradient(180deg, hsla(215,100%,60%,0.22) 0%, hsla(215,100%,55%,0.10) 100%)",
-          boxShadow: "0 0 18px hsla(215,100%,60%,0.30), inset 0 1px 0 hsla(0,0%,100%,0.10)",
-        }}
-      >
+      <GlassButton to="/studio" tone="accent" className="font-mono uppercase tracking-[0.22em] text-[11px]">
         <Wand2 className="w-3.5 h-3.5" />Make it
-      </Link>
+      </GlassButton>
     </div>
   );
 }

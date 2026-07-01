@@ -1,0 +1,11 @@
+import { chromium } from "playwright";
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 1440, height: 980 }, deviceScaleFactor: 2 });
+await page.goto("http://localhost:7777/lobby", { waitUntil: "networkidle", timeout: 60000 });
+const wc = page.locator('[data-testid="world-chat"]');
+await wc.waitFor({ state: "visible", timeout: 15000 });
+await wc.scrollIntoViewIfNeeded();
+await page.waitForTimeout(1200);
+await wc.screenshot({ path: "/tmp/world-chat-panel.png" });
+console.log("panel shot ok");
+await browser.close();

@@ -290,13 +290,30 @@ export function ImmersiveTheater({ reel, onClose, queue, onSwitch }: Props) {
         { event: "INSERT", schema: "public", table: "reel_comments", filter: `reel_id=eq.${reel.id}` },
         (payload) => {
           const row = payload.new as Comment;
-          // Skip our own optimistic inserts (they're already in the list)
-          setComments((prev) => prev.some((c) => c.id === row.id) ? prev : [...prev, row]);
+          // Our own optimistic inserts are already in the list (and enriched).
+          if (user && row.author_id === user.id) {
+            setComments((prev) => prev.some((c) => c.id === row.id) ? prev : [...prev, row]);
+            return;
+          }
+          // P3: the realtime payload carries no joined author, so another user's
+          // live comment rendered as "Anonymous" until reload. Enrich from
+          // profiles_public before appending.
+          void (async () => {
+            const { data: prof } = await supabase
+              .from("profiles_public")
+              .select("id, display_name, avatar_url")
+              .eq("id", row.author_id)
+              .maybeSingle();
+            const enriched: Comment = prof
+              ? { ...row, author: { id: prof.id, display_name: prof.display_name, avatar_url: prof.avatar_url } }
+              : row;
+            setComments((prev) => prev.some((c) => c.id === enriched.id) ? prev : [...prev, enriched]);
+          })();
         },
       )
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
-  }, [reel]);
+  }, [reel, user]);
 
   // Bump play_count once per reel-mount via track_reel_play. Best effort.
   useEffect(() => {
@@ -624,8 +641,7 @@ export function ImmersiveTheater({ reel, onClose, queue, onSwitch }: Props) {
                   <button
                     type="button"
                     onClick={() => onSwitch?.(next)}
-                    className="basis-full lg:basis-auto lg:ml-3 inline-flex items-center justify-center gap-2.5 h-10 px-5 rounded-full text-[11px] font-mono uppercase tracking-[0.24em] text-white/95 backdrop-blur-md transition-all hover:bg-white/[0.10]"
-                    style={{ background: "hsl(var(--accent)/0.18)", boxShadow: "inset 0 0 0 1px hsl(var(--accent)/0.40)" }}
+                    className="basis-full lg:basis-auto lg:ml-3 inline-flex items-center justify-center gap-2.5 h-10 px-5 rounded-full text-[11px] font-mono uppercase tracking-[0.24em] text-white/95 backdrop-blur-md transition-all hover:bg-white/[0.06]"
                   >
                     <Sparkles className="h-3.5 w-3.5 text-accent" strokeWidth={1.5} />
                     Up next: {next.title.length > 28 ? next.title.slice(0, 27) + "…" : next.title}
@@ -643,10 +659,8 @@ export function ImmersiveTheater({ reel, onClose, queue, onSwitch }: Props) {
                       onClick={() => void react(em)}
                       aria-label={`React ${em}`}
                       className={cn(
-                        "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 backdrop-blur-md transition-all active:scale-90",
-                        myReactions.has(em)
-                          ? "bg-white/20 ring-1 ring-white/40"
-                          : "bg-black/45 text-white/90 hover:bg-black/65",
+                        "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 backdrop-blur-md transition-all active:scale-90 hover:bg-white/[0.06]",
+                        myReactions.has(em) ? "text-white" : "text-white/90",
                       )}
                     >
                       <span className="text-[15px] leading-none">{em}</span>
@@ -727,7 +741,7 @@ export function ImmersiveTheater({ reel, onClose, queue, onSwitch }: Props) {
               </div>
 
               {/* Composer */}
-              <footer className="px-6 py-4 border-t border-white/[0.05] bg-white/[0.012]">
+              <footer className="px-6 py-4 border-t border-white/[0.05]">
                 <div className="flex items-end gap-2">
                   <textarea
                     ref={composerRef}
@@ -796,24 +810,14 @@ function ActionPill({
   const hue = activeHue ?? "var(--accent)";
   const isVar = hue.startsWith("var");
   const color = isVar ? "hsl(var(--accent))" : `hsl(${hue})`;
-  const bg = active
-    ? (isVar ? "hsl(var(--accent)/0.16)" : `hsla(${hue} / 0.16)`)
-    : "hsl(0 0% 100% / 0.04)";
-  const ring = active
-    ? (isVar ? "hsl(var(--accent)/0.40)" : `hsla(${hue} / 0.40)`)
-    : "hsl(0 0% 100% / 0.08)";
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-2 h-10 px-5 rounded-full text-[12px] font-mono uppercase tracking-[0.24em] backdrop-blur-2xl transition-all",
+        "inline-flex items-center gap-2 h-10 px-5 rounded-full text-[12px] font-mono uppercase tracking-[0.24em] backdrop-blur-2xl transition-all hover:bg-white/[0.06]",
         active ? "text-foreground" : "text-foreground/85 hover:text-foreground",
       )}
-      style={{
-        background: bg,
-        boxShadow: `inset 0 0 0 1px ${ring}` + (highlight ? `, 0 0 24px -8px ${color}` : ""),
-      }}
     >
       <Icon
         className="h-3.5 w-3.5"

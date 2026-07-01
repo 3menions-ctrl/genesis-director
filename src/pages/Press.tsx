@@ -15,12 +15,25 @@ import {
   Cpu,
   CreditCard,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/Logo";
 import { PageHero } from "@/components/page/PageHero";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { PhotoBand } from "@/components/marketing/PhotoBand";
 import { Footer } from "@/components/cinema/Footer";
+import { GlassButton, SectionLabel } from "@/components/foundation/Floating";
+
+/** Shared borderless glass pill for anchor actions (mailto / download) that
+ *  can't route through GlassButton's react-router Link. Mirrors the GlassButton
+ *  look: top-light gradient, inner hairline, soft lift — no hard border. */
+const GLASS_PILL =
+  "inline-flex items-center justify-center gap-2 rounded-full h-12 px-6 text-[14px] font-medium text-white/90 hover:text-white bg-white/[0.06] hover:bg-white/[0.1] backdrop-blur-xl shadow-[inset_0_1px_0_hsl(0_0%_100%/0.10),0_10px_30px_-16px_hsl(0_0%_0%/0.8)] transition-all duration-300 hover:-translate-y-0.5";
+const GLASS_PILL_SM =
+  "inline-flex items-center justify-center gap-2 rounded-full h-9 px-4 text-[12.5px] font-medium text-white/85 hover:text-white bg-white/[0.06] hover:bg-white/[0.1] backdrop-blur-xl shadow-[inset_0_1px_0_hsl(0_0%_100%/0.10)] transition-all duration-300 hover:-translate-y-0.5";
+
+/** Hairline divider — the only grouping rule allowed on content. */
+function Hairline({ className = "" }: { className?: string }) {
+  return <div aria-hidden className={`h-px bg-gradient-to-r from-transparent via-white/10 to-transparent ${className}`} />;
+}
 
 const FAST_FACTS = [
   { icon: Building2, label: "Company", value: "Small Bridges Studio LLC" },
@@ -99,16 +112,16 @@ export default function Press() {
           meta="Updated June 22, 2026"
           actions={
             <>
-              <Button asChild size="lg" className="rounded-2xl gap-2">
-                <a href="#press-release">
-                  <FileText className="w-4 h-4" /> Read the release
-                </a>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="rounded-2xl gap-2 border-white/20 bg-white/[0.02] text-white hover:bg-white/[0.06]">
-                <a href="mailto:cole@smallbridges.co">
-                  <Mail className="w-4 h-4" /> Media inquiries
-                </a>
-              </Button>
+              <GlassButton
+                tone="solid"
+                size="lg"
+                onClick={() => document.getElementById("press-release")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              >
+                <FileText className="w-4 h-4" /> Read the release
+              </GlassButton>
+              <a href="mailto:cole@smallbridges.co" className={GLASS_PILL}>
+                <Mail className="w-4 h-4" /> Media inquiries
+              </a>
             </>
           }
         />
@@ -125,14 +138,15 @@ export default function Press() {
         {/* ── 1. Press release (featured) ───────────────────────────── */}
         <motion.section id="press-release" {...sectionFade} className="mt-16 scroll-mt-24">
           <div className="flex items-center gap-3 mb-6">
-            <span className="text-[10px] font-mono uppercase tracking-[0.4em] text-white/45">Featured</span>
-            <span className="h-px flex-1 bg-white/[0.08]" />
+            <SectionLabel className="text-white/45">Featured</SectionLabel>
+            <span className="h-px flex-1 bg-gradient-to-r from-white/12 to-transparent" />
           </div>
 
-          <article className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.025] p-8 sm:p-12 lg:p-16">
+          <article className="relative overflow-hidden px-1 sm:px-2">
             <div aria-hidden className="pointer-events-none absolute -top-24 -right-24 w-[420px] h-[420px] rounded-full bg-indigo-500/10 blur-[120px]" />
             <div className="relative">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.1] bg-white/[0.04] px-3.5 py-1.5 text-[11px] font-mono uppercase tracking-[0.28em] text-white/70">
+              <div className="inline-flex items-center gap-2.5 text-[11px] font-mono uppercase tracking-[0.28em] text-white/70">
+                <span className="h-1.5 w-1.5 rounded-full bg-indigo-400/80 shadow-[0_0_10px_hsl(238_80%_70%/0.7)]" />
                 For Immediate Release
               </div>
 
@@ -175,7 +189,7 @@ export default function Press() {
                   Bridges is betting that the next wave of filmmakers will start with a prompt rather than a budget.
                 </p>
 
-                <blockquote className="my-8 rounded-2xl border-l-2 border-indigo-400/70 bg-white/[0.03] py-5 pl-6 pr-5">
+                <blockquote className="my-10 border-l-2 border-indigo-400/70 bg-transparent py-1 pl-6 pr-5">
                   <Quote className="w-7 h-7 text-white/20 mb-3" />
                   <p className="text-white/90 text-lg leading-relaxed italic">
                     “We started Small Bridges because the best storytelling tools were locked behind studios and steep
@@ -194,7 +208,8 @@ export default function Press() {
               </div>
 
               {/* Boilerplate */}
-              <div className="mt-12 rounded-2xl border border-white/[0.07] bg-black/40 p-6 sm:p-8 max-w-3xl">
+              <div className="mt-12 max-w-3xl">
+                <Hairline className="mb-7" />
                 <h3 className="text-sm font-semibold tracking-wide text-white/90">About Small Bridges</h3>
                 <p className="mt-3 text-[14.5px] leading-[1.7] text-white/65">
                   Small Bridges makes cinematic, studio-grade video generation accessible to any creator or business. Its
@@ -219,19 +234,20 @@ export default function Press() {
         {/* ── 2. Company at a glance ────────────────────────────────── */}
         <motion.section {...sectionFade} className="mt-20">
           <div className="flex items-center gap-3 mb-6">
-            <span className="text-[10px] font-mono uppercase tracking-[0.4em] text-white/45">Fast facts</span>
-            <span className="h-px flex-1 bg-white/[0.08]" />
+            <SectionLabel className="text-white/45">Fast facts</SectionLabel>
+            <span className="h-px flex-1 bg-gradient-to-r from-white/12 to-transparent" />
           </div>
           <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-[-0.02em]">Company at a glance</h2>
           <p className="mt-3 text-white/55 max-w-2xl">The essentials, ready to quote.</p>
 
-          <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Hairline className="mt-8" />
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3">
             {FAST_FACTS.map((fact) => (
               <div
                 key={fact.label}
-                className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-6 transition-colors hover:border-white/[0.14]"
+                className="group relative px-1 py-6 transition-colors sm:px-5"
               >
-                <div className="flex items-center gap-2.5 text-white/45">
+                <div className="flex items-center gap-2.5 text-white/45 transition-colors group-hover:text-white/65">
                   <fact.icon className="w-4 h-4" />
                   <span className="text-[11px] font-mono uppercase tracking-[0.22em]">{fact.label}</span>
                 </div>
@@ -239,13 +255,14 @@ export default function Press() {
               </div>
             ))}
           </div>
+          <Hairline />
         </motion.section>
 
         {/* ── 3. Media kit / brand assets ───────────────────────────── */}
         <motion.section {...sectionFade} className="mt-20">
           <div className="flex items-center gap-3 mb-6">
-            <span className="text-[10px] font-mono uppercase tracking-[0.4em] text-white/45">Media kit</span>
-            <span className="h-px flex-1 bg-white/[0.08]" />
+            <SectionLabel className="text-white/45">Media kit</SectionLabel>
+            <span className="h-px flex-1 bg-gradient-to-r from-white/12 to-transparent" />
           </div>
           <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-[-0.02em]">Brand assets &amp; screenshots</h2>
           <p className="mt-3 text-white/55 max-w-2xl">
@@ -257,7 +274,7 @@ export default function Press() {
             {PRODUCT_SHOTS.map((shot) => (
               <figure
                 key={shot.src}
-                className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02]"
+                className="group relative overflow-hidden rounded-2xl"
               >
                 <img
                   src={shot.src}
@@ -271,7 +288,7 @@ export default function Press() {
                   <a
                     href={shot.src}
                     download
-                    className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/50 px-3 py-1.5 text-[11px] text-white/85 backdrop-blur-md transition-colors hover:bg-white/15"
+                    className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full bg-black/40 px-3 py-1.5 text-[11px] text-white/85 backdrop-blur-md shadow-[inset_0_1px_0_hsl(0_0%_100%/0.10)] transition-colors hover:bg-white/15"
                   >
                     <Download className="w-3.5 h-3.5" /> Download
                   </a>
@@ -280,44 +297,40 @@ export default function Press() {
             ))}
           </div>
 
-          {/* Asset download tiles */}
-          <div className="mt-5 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Asset download tiles — floating, hairline-grouped */}
+          <Hairline className="mt-8" />
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4">
             {MEDIA_KIT.map((asset) => (
               <div
                 key={asset.title}
-                className="flex flex-col rounded-2xl border border-white/[0.07] bg-white/[0.025] p-6 transition-colors hover:border-white/[0.14]"
+                className="group flex flex-col px-1 py-7 sm:px-5"
               >
-                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03]">
+                <div className="mb-5 flex h-12 w-12 items-center justify-center text-white/70">
                   {asset.isLogo ? (
                     <Logo size="sm" />
                   ) : (
-                    asset.icon && <asset.icon className="w-5 h-5 text-white/70" />
+                    asset.icon && <asset.icon className="w-5 h-5" />
                   )}
                 </div>
                 <h3 className="font-semibold">{asset.title}</h3>
                 <p className="mt-1.5 text-[13px] leading-relaxed text-white/55 flex-1">{asset.desc}</p>
-                <Button
-                  asChild
-                  variant="outline"
-                  size="sm"
-                  className="mt-5 gap-2 rounded-xl border-white/15 bg-transparent text-white hover:bg-white/[0.07]"
-                >
-                  <a href={asset.href} download>
-                    <Download className="w-4 h-4" /> {asset.cta}
-                  </a>
-                </Button>
+                <a href={asset.href} download className={`${GLASS_PILL_SM} mt-5 self-start`}>
+                  <Download className="w-4 h-4" /> {asset.cta}
+                </a>
               </div>
             ))}
           </div>
+          <Hairline />
         </motion.section>
 
         {/* ── 4. Press contact ──────────────────────────────────────── */}
         <motion.section {...sectionFade} className="mt-20 mb-8">
-          <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.025] p-10 sm:p-14 text-center">
+          <Hairline className="mb-14" />
+          <div className="relative text-center">
             <div aria-hidden className="pointer-events-none absolute -bottom-24 left-1/2 -translate-x-1/2 w-[520px] h-[320px] rounded-full bg-indigo-500/10 blur-[130px]" />
             <div className="relative mx-auto max-w-xl">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.1] bg-white/[0.04]">
-                <Mail className="w-6 h-6 text-white/80" />
+              <div className="mx-auto flex h-14 w-14 items-center justify-center text-white/80">
+                <Mail className="w-6 h-6" />
               </div>
               <h2 className="mt-6 font-display text-3xl sm:text-4xl font-bold tracking-[-0.02em]">Press contact</h2>
               <p className="mt-3 text-white/60 leading-relaxed">
@@ -325,16 +338,12 @@ export default function Press() {
                 directly. We typically respond within one business day.
               </p>
               <div className="mt-7 flex flex-col sm:flex-row items-center justify-center gap-3">
-                <Button asChild size="lg" className="rounded-2xl gap-2">
-                  <a href="mailto:cole@smallbridges.co">
-                    <Mail className="w-5 h-5" /> cole@smallbridges.co
-                  </a>
-                </Button>
-                <Button asChild size="lg" variant="outline" className="rounded-2xl gap-2 border-white/15 bg-transparent text-white hover:bg-white/[0.07]">
-                  <Link to="/contact">
-                    Contact page <ArrowRight className="w-4 h-4" />
-                  </Link>
-                </Button>
+                <a href="mailto:cole@smallbridges.co" className={GLASS_PILL}>
+                  <Mail className="w-5 h-5" /> cole@smallbridges.co
+                </a>
+                <GlassButton to="/contact" size="lg">
+                  Contact page <ArrowRight className="w-4 h-4" />
+                </GlassButton>
               </div>
             </div>
           </div>

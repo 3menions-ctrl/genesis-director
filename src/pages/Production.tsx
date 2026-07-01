@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo, memo, Suspense, lazy } from 'react';
-import { useSearchParams, useParams, Link } from 'react-router-dom';
+import { useSearchParams, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -12,9 +12,8 @@ import type {
   StageStatus, ClipResult, PipelineLog, ProductionProject,
 } from './production/types';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
-import { cn } from '@/lib/utils';
+import { GlassPanel, GlassButton, FloatingSection } from '@/components/foundation/Floating';
 import { parsePendingVideoTasks } from '@/types/pending-video-tasks';
 import { useClipRecovery } from '@/hooks/useClipRecovery';
 import { ErrorBoundaryWrapper, ErrorBoundary } from '@/components/ui/error-boundary';
@@ -46,6 +45,7 @@ import { PipelineCreation } from '@/components/create/PipelineCreation';
 import { derivePipelineFromCounts, type PipelineProgress, type BoundaryType } from '@/lib/video/continuity';
 import { useCredits } from '@/contexts/CreditsContext';
 import { calculateCreditsForDurations } from '@/lib/creditSystem';
+import { celebrate, celebrateRender } from '@/lib/celebrate';
 
 // Soft look-strip gradients for the screenplay scene cards.
 const SCENE_GRADIENTS: [string, string][] = [
@@ -121,6 +121,8 @@ function ProductionContentInner() {
   const [auditScore, setAuditScore] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [startTime] = useState<number>(Date.now());
+  // Guards the render-complete celebration so it fires once per project (T11).
+  const celebratedProjectRef = useRef<string | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [completedClips, setCompletedClips] = useState(0);
   const [selectedClipUrl, setSelectedClipUrl] = useState<string | null>(null);
@@ -677,6 +679,16 @@ function ProductionContentInner() {
         if (!project) return;
 
         setProjectStatus(project.status as string);
+        // Keep pipeline_state (stage / progress / message) live so the progress
+        // UI shows REAL backend narration instead of a fabricated ramp (T10).
+        if (project.pipeline_state) {
+          try {
+            const ps = typeof project.pipeline_state === 'string'
+              ? JSON.parse(project.pipeline_state)
+              : project.pipeline_state;
+            setPipelineState(ps as PipelineState);
+          } catch { /* ignore malformed */ }
+        }
         // PRIORITY: Check for manifest URL in pending_video_tasks first (realtime update)
         const realtimeTasks = parsePendingVideoTasks(project.pending_video_tasks);
         const realtimeManifestUrl = realtimeTasks?.manifestUrl;
@@ -1007,6 +1019,32 @@ function ProductionContentInner() {
       return () => clearTimeout(timer);
     }
   }, [completedClips, expectedClipCount, projectStatus, autoStitchAttempted, isSimpleStitching, projectId, user, addLog, updateStageStatus]);
+
+  // T11 — Celebrate a finished render: confetti + sound + XP/streak, once per
+  // project. Watches the status transition so it fires regardless of which
+  // completion path (auto-stitch / realtime / manual) set 'completed'.
+  useEffect(() => {
+    if (projectStatus !== 'completed' || !projectId) return;
+    if (celebratedProjectRef.current === projectId) return;
+    celebratedProjectRef.current = projectId;
+
+    // First-ever completed video gets the special once-only moment; every
+    // subsequent render still celebrates (celebrate() returns false if already
+    // fired, so we fall back to the repeatable burst — no double confetti).
+    const firstTime = user?.id ? celebrate('first-video', user.id) : false;
+    if (!firstTime) celebrateRender();
+
+    // Gamification is best-effort — direct RPC (lighter than mounting the full
+    // gamification query stack here); errors are swallowed.
+    if (user?.id) {
+      supabase
+        .rpc('add_user_xp', { p_user_id: user.id, p_xp_amount: 50, p_reason: 'video_completed' })
+        .then(() => {}, () => {});
+      supabase
+        .rpc('update_user_streak', { p_user_id: user.id })
+        .then(() => {}, () => {});
+    }
+  }, [projectStatus, projectId, user?.id]);
 
 
   const handleRetryClip = async (clipIndex: number) => {
@@ -1345,33 +1383,28 @@ const transitionsData = useMemo(() =>
       ? Math.max(expectedClipCount, avatarClips.length)
       : expectedClipCount;
     
-    // If no clips expected yet, use database progress (early pipeline stages)
+    // Real backend-reported progress (pipeline_state.progress / pending_video_tasks.progress).
+    // We prefer real signal over any fabricated ramp (T10 — honesty over false precision).
+    const backendProgress = typeof pipelineState?.progress === 'number' ? pipelineState.progress : progress;
+
+    // If no clips expected yet, trust the backend (early pipeline stages).
     if (effectiveExpected === 0) {
-      return progress;
+      return backendProgress;
     }
-    
-    // Per-clip progress weight
+
+    // Honest clip-count progress: only clips that have ACTUALLY completed count.
     const perClipWeight = 85 / effectiveExpected;
-    
-    // Completed clips get full weight
     const completedProgress = effectiveCompleted * perClipWeight;
-    
-    // Generating clips get partial weight that grows over time (simulates progress within a clip)
-    // Each tick (~3s) adds a bit, capping at 80% of per-clip weight
-    const generatingPartial = effectiveGenerating > 0
-      ? Math.min(perClipWeight * 0.8, (progressTick % 30) * (perClipWeight / 35)) * effectiveGenerating
-      : 0;
-    
-    // If stitching or later, show 85-95%
+
+    // Stitching / post: use the real backend value if it reports past the clip
+    // stage, otherwise hold at the clip ceiling (indeterminate, not fabricated).
     if (['stitching', 'post_production'].includes(projectStatus)) {
-      return 85 + Math.min(10, (progressTick % 10) * 1);
+      return Math.max(85, Math.min(98, backendProgress || 90));
     }
-    
-    const calculatedProgress = Math.min(completedProgress + generatingPartial, 85);
-    
-    // Ensure we never go below what we've shown before (monotonic increase)
-    return Math.max(calculatedProgress, Math.min(progress, calculatedProgress + 5));
-  }, [projectStatus, finalVideoUrl, expectedClipCount, completedClips, clipResults, progress, projectMode, avatarClips, progressTick]);
+
+    // The higher of honest clip-count and real backend progress — never invented.
+    return Math.min(95, Math.max(completedProgress, backendProgress));
+  }, [projectStatus, finalVideoUrl, expectedClipCount, completedClips, clipResults, progress, projectMode, avatarClips, pipelineState]);
 
   const failedClipsData = useMemo(() => 
     clipResults.filter(c => c.status === 'failed').map(c => ({
@@ -1410,6 +1443,26 @@ const transitionsData = useMemo(() =>
   // Live Continuity Engine progress model that drives the premium bridge.
   // Derived from the real clip counts, then enriched with shot labels +
   // inferred boundary types so the continuity chain reads like the film.
+  // Real "what's happening now" narration (T10): prefer the backend's own
+  // pipeline_state.message; otherwise rotate honest, stage-appropriate copy so
+  // the line never reads frozen (RESEARCH A3 — rotating microcopy, no fakery).
+  const liveMessage = useMemo<string | undefined>(() => {
+    const backend = (pipelineState as { message?: string } | null)?.message;
+    if (backend && backend.trim()) return backend;
+    const stage = pipelineStage || projectStatus || '';
+    const sets: Record<string, string[]> = {
+      preproduction: ['Reading your prompt…', 'Casting the scene…', 'Designing the shot list…'],
+      awaiting_approval: ['Waiting for your approval…'],
+      qualitygate: ['Locking character & world continuity…', 'Checking the script for consistency…'],
+      assets: ['Painting the storyboard…', 'Generating reference frames…'],
+      production: ['Filming the shots…', 'Chaining frames for continuity…', 'Directing the motion…'],
+      stitching: ['Stitching the cut together…', 'Aligning audio and video…'],
+      post_production: ['Mixing sound and music…', 'Final color and polish…'],
+    };
+    const pool = sets[stage] || ['Working on your film…', 'Rendering your scene…'];
+    return pool[progressTick % pool.length];
+  }, [pipelineState, pipelineStage, projectStatus, progressTick]);
+
   const livePipeline = useMemo<PipelineProgress>(() => {
     const shots = scriptShots ?? [];
     const generating = clipResults.filter((c) => c.status === 'generating').length;
@@ -1440,8 +1493,8 @@ const transitionsData = useMemo(() =>
           : 'CONTINUOUS';
       return { ...c, label: s?.title || c.label, boundaryType };
     });
-    return { ...base, clips };
-  }, [scriptShots, clipResults, projectStatus, completedClips, expectedClipCount, realTimeProgress]);
+    return { ...base, clips, message: liveMessage };
+  }, [scriptShots, clipResults, projectStatus, completedClips, expectedClipCount, realTimeProgress, liveMessage]);
 
   const showScriptApproval = isStandardMode && !!scriptShots && scriptShots.length > 0 && pipelineStage === 'awaiting_approval';
   // The Continuity Engine is the monitor for EVERY non-terminal standard-mode
@@ -1512,12 +1565,9 @@ const transitionsData = useMemo(() =>
                       : 'Preparing your scene…'
                 }
                 actions={
-                  <button
-                    onClick={() => navigate('/projects')}
-                    className="h-9 px-4 rounded-full bg-glass hover:bg-glass-active text-sm text-white/70 hover:text-white transition-colors"
-                  >
+                  <GlassButton onClick={() => navigate('/projects')} size="sm" tone="neutral">
                     Back to library
-                  </button>
+                  </GlassButton>
                 }
               />
               <div className="space-y-5 pb-24">
@@ -1526,19 +1576,18 @@ const transitionsData = useMemo(() =>
               {scriptShots && scriptShots.length > 0 && pipelineStage === 'awaiting_approval' && (
                 <ErrorBoundaryWrapper fallback={<MinimalFallback />}>
                   <Suspense fallback={<SectionLoader />}>
-                    <Card className="glass-card bg-white/[0.03]">
-                      <CardContent className="p-6">
-                        <ScriptReviewPanel
-                          shots={scriptShots}
-                          onApprove={handleApproveScript}
-                          onRegenerate={handleRegenerateScript}
-                          onCancel={() => navigate('/projects')}
-                          isLoading={isApprovingScript}
-                          totalDuration={scriptShots.reduce((sum, shot) => sum + (shot.durationSeconds || 6), 0)}
-                          projectTitle={projectTitle}
-                        />
-                      </CardContent>
-                    </Card>
+                    <GlassPanel className="p-6">
+                      <ScriptReviewPanel
+                        projectId={projectId ?? undefined}
+                        shots={scriptShots}
+                        onApprove={handleApproveScript}
+                        onRegenerate={handleRegenerateScript}
+                        onCancel={() => navigate('/projects')}
+                        isLoading={isApprovingScript}
+                        totalDuration={scriptShots.reduce((sum, shot) => sum + (shot.durationSeconds || 6), 0)}
+                        projectTitle={projectTitle}
+                      />
+                    </GlassPanel>
                   </Suspense>
                 </ErrorBoundaryWrapper>
               )}
@@ -1701,48 +1750,37 @@ const transitionsData = useMemo(() =>
                   draft awaiting review so the user lands on the
                   approval surface first. */}
               {projectId && (isComplete || completedClips > 0) && (
-                <div className="mt-6 rounded-2xl bg-[hsl(var(--accent)/0.08)] p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
-                  <div className="min-w-0 flex-1">
-                    <p
-                      className="font-display italic text-[18px] text-foreground/95 leading-snug"
-                      style={{ fontFamily: "'Fraunces', serif" }}
-                    >
-                      Ready to cut?
-                    </p>
-                    <p className="mt-1 text-[13px] text-muted-foreground/75 leading-snug">
-                      Open this project in the Editor — magnetic timeline, crossfades, color grades, AI co-director, and the script lens all in one surface.
-                    </p>
+                <FloatingSection className="mt-6" aura="hsl(var(--accent))" aside="right">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 py-1">
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className="font-display italic text-[18px] text-foreground/95 leading-snug"
+                        style={{ fontFamily: "'Fraunces', serif" }}
+                      >
+                        Ready to cut?
+                      </p>
+                      <p className="mt-1 text-[13px] text-muted-foreground/75 leading-snug">
+                        Open this project in the Editor — magnetic timeline, crossfades, color grades, AI co-director, and the script lens all in one surface.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2 shrink-0">
+                      <GlassButton to={`/editor/${projectId}?tab=stage`} tone="accent" size="md" className="font-display italic">
+                        Open in Editor
+                      </GlassButton>
+                      <GlassButton to={`/editor/${projectId}?tab=script`} tone="neutral" size="md">
+                        Review script
+                      </GlassButton>
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-2 shrink-0">
-                    <Link
-                      to={`/editor/${projectId}?tab=stage`}
-                      className={cn(
-                        "inline-flex items-center gap-2 px-4 h-10 rounded-full",
-                        "bg-[hsl(var(--accent)/0.16)] text-accent",
-                        "text-[13px] font-display italic",
-                        "hover:bg-[hsl(var(--accent)/0.24)] transition-colors",
-                      )}
-                      style={{ fontFamily: "'Fraunces', serif" }}
-                    >
-                      Open in Editor
-                    </Link>
-                    <Link
-                      to={`/editor/${projectId}?tab=script`}
-                      className={cn(
-                        "inline-flex items-center gap-2 px-4 h-10 rounded-full",
-                        "bg-white/[0.04] text-foreground/85",
-                        "text-[13px]",
-                        "hover:bg-white/[0.07] transition-colors",
-                      )}
-                    >
-                      Review script
-                    </Link>
-                  </div>
-                </div>
+                </FloatingSection>
               )}
 
-              {/* NEW: World-Class Cinematic Pipeline Animation */}
-              {!['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode) && (
+              {/* World-Class Cinematic Pipeline Animation. T12: during an active
+                  standard-mode build the full-screen <PipelineCreation> bridge
+                  already covers this — gate on !showBridge so the two
+                  visualizers don't stack (this still shows for terminal/error
+                  states, where showBridge is false). */}
+              {!['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode) && !showBridge && (
                 <ErrorBoundaryWrapper fallback={<MinimalFallback />}>
                   <Suspense fallback={<SectionLoader />}>
                     <CinematicPipelineProgress
@@ -1815,12 +1853,10 @@ const transitionsData = useMemo(() =>
 
               {/* Stitch Progress - Simple inline message */}
               {projectId && ['stitching', 'post_production', 'processing'].includes(projectStatus) && (
-                <Card className="bg-white/5">
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                    <span className="text-white/70">Stitching video clips together...</span>
-                  </CardContent>
-                </Card>
+                <div className="flex items-center gap-3 py-3">
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                  <span className="text-white/70">Stitching video clips together...</span>
+                </div>
               )}
 
               </div>

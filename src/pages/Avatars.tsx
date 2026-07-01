@@ -47,6 +47,7 @@ import {
   EditorialEyebrow,
   EditorialHeadline,
 } from "@/components/foundation/EditorialCanvas";
+import { GlassButton, FloatingStat } from "@/components/foundation/Floating";
 import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useAvatarTemplatesQuery } from "@/hooks/useAvatarTemplatesQuery";
@@ -488,7 +489,7 @@ function SearchBar({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Search by name, vibe, archetype, or tag…"
-        className="w-full h-12 rounded-full bg-white/[0.04] border border-transparent pl-11 pr-11 text-[14px] text-foreground placeholder:text-muted-foreground/45 outline-none focus:bg-white/[0.06] transition-colors backdrop-blur-xl shadow-[0_8px_30px_-18px_hsl(220_40%_2%/0.7)]"
+        className="w-full h-12 rounded-full bg-white/[0.04] pl-11 pr-11 text-[14px] text-foreground placeholder:text-muted-foreground/45 outline-none focus:bg-white/[0.06] transition-colors backdrop-blur-xl shadow-[0_8px_30px_-18px_hsl(220_40%_2%/0.7)]"
       />
       {value && (
         <button
@@ -518,7 +519,7 @@ function TypeTabs({
   return (
     <div
       role="tablist"
-      className="inline-flex items-center gap-1 rounded-full p-1 border border-transparent bg-white/[0.03] backdrop-blur-xl shadow-[0_10px_30px_-18px_hsl(220_40%_2%/0.7)]"
+      className="inline-flex items-center gap-1 rounded-full p-1 bg-white/[0.03] backdrop-blur-xl shadow-[0_10px_30px_-18px_hsl(220_40%_2%/0.7)]"
     >
       {TYPE_TABS.map((t) => {
         const active = value === t.id;
@@ -594,7 +595,7 @@ function SortPicker({
             key={id}
             onClick={() => onChange(id)}
             className={cn(
-              "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[11px] tracking-tight transition-colors border border-transparent",
+              "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[11px] tracking-tight transition-colors",
               active
                 ? "relative text-foreground after:absolute after:-bottom-0.5 after:left-1/2 after:h-[2px] after:w-6 after:-ml-3 after:rounded-full after:bg-white after:shadow-[0_0_8px_-1px_rgba(255,255,255,0.45)] after:content-['']"
                 : "text-muted-foreground/70 hover:text-foreground/90",
@@ -628,7 +629,7 @@ function CategoryChips({
             key={c.id}
             onClick={() => onChange(c.id)}
             className={cn(
-              "shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[12px] tracking-tight transition-colors border border-transparent",
+              "shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[12px] tracking-tight transition-colors",
               active
                 ? "relative text-foreground after:absolute after:-bottom-0.5 after:left-1/2 after:h-[2px] after:w-6 after:-ml-3 after:rounded-full after:bg-white after:shadow-[0_0_8px_-1px_rgba(255,255,255,0.45)] after:content-['']"
                 : "text-muted-foreground/70 hover:text-foreground/90",
@@ -836,17 +837,12 @@ function GlassFrame({
       <div
         className={cn(
           "relative overflow-hidden rounded-[22px]",
-          "border border-transparent",
-          "bg-gradient-to-br from-white/[0.06] via-white/[0.02] to-white/[0.01]",
-          "backdrop-blur-2xl",
-          "shadow-[0_30px_80px_-24px_hsl(220_40%_2%/0.85),inset_0_1px_0_hsl(0_0%_100%/0.10)]",
           "transition-shadow duration-500",
-          "group-hover:shadow-[0_40px_120px_-24px_hsl(220_40%_2%/0.92),inset_0_1px_0_hsl(0_0%_100%/0.14),0_0_60px_-12px_hsl(var(--accent)/0.45)]",
         )}
       >
         {/* Picture-frame mat — soft glass inset around the portrait */}
         <div className="p-[10px]">
-          <div className="relative aspect-[3/4] overflow-hidden rounded-[14px]">
+          <div className="relative aspect-[3/4] overflow-hidden rounded-[14px] shadow-[0_30px_80px_-30px_hsl(220_40%_2%/0.85)] transition-shadow duration-500 group-hover:shadow-[0_40px_120px_-28px_hsl(220_40%_2%/0.9)]">
             <OptimizedAvatarImage
               src={imageUrl}
               alt={avatar.name}
@@ -1105,7 +1101,6 @@ function DetailPopup({
         className={cn(
           "relative w-full max-w-[1100px] max-h-[92dvh]",
           "overflow-hidden rounded-[28px]",
-          "border border-transparent",
           "bg-gradient-to-br from-[hsl(220_30%_6%/0.95)] via-[hsl(220_30%_4%/0.96)] to-[hsl(220_30%_3%/0.98)]",
           "backdrop-blur-2xl",
           "shadow-[0_80px_200px_-50px_hsl(0_0%_0%/0.85),0_30px_80px_-30px_hsl(var(--accent)/0.22),inset_0_1px_0_hsl(0_0%_100%/0.06)]",
@@ -1115,7 +1110,7 @@ function DetailPopup({
         <button
           onClick={onClose}
           aria-label="Close"
-          className="absolute top-4 right-4 z-40 inline-flex h-9 w-9 items-center justify-center rounded-full border border-transparent bg-[hsl(220_30%_4%/0.7)] backdrop-blur-xl text-foreground/80 hover:text-foreground hover:bg-[hsl(220_30%_4%/0.9)] transition-colors shadow-[0_6px_18px_-6px_hsl(220_40%_2%/0.8)]"
+          className="absolute top-4 right-4 z-40 inline-flex h-9 w-9 items-center justify-center rounded-full bg-[hsl(220_30%_4%/0.7)] backdrop-blur-xl text-foreground/80 hover:text-foreground hover:bg-[hsl(220_30%_4%/0.9)] transition-colors shadow-[0_6px_18px_-6px_hsl(220_40%_2%/0.8)]"
         >
           <X className="h-4 w-4" strokeWidth={1.5} />
         </button>
@@ -1218,13 +1213,13 @@ function DetailPopup({
 
               {/* Voice */}
               <Section eyebrow="Voice">
-                <div className="flex items-center gap-3 rounded-2xl border border-transparent bg-white/[0.03] p-3.5 shadow-[0_10px_30px_-20px_hsl(220_40%_2%/0.7)]">
+                <div className="flex items-center gap-3">
                   <button
                     onClick={togglePlay}
                     disabled={!hasAudio}
                     aria-label={playing ? "Pause" : "Play voice sample"}
                     className={cn(
-                      "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-transparent",
+                      "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
                       "bg-[hsl(var(--accent)/0.16)] text-accent shadow-[0_0_16px_-6px_hsl(216_80%_50%/0.4)]",
                       "hover:bg-[hsl(var(--accent)/0.22)] transition-colors",
                       "disabled:opacity-40 disabled:cursor-not-allowed",
@@ -1259,7 +1254,7 @@ function DetailPopup({
                     {avatar.tags.map((t) => (
                       <span
                         key={t}
-                        className="inline-flex items-center rounded-full border border-transparent bg-white/[0.04] px-2.5 py-1 text-[11px] tracking-tight text-muted-foreground/75"
+                        className="inline-flex items-center rounded-full bg-white/[0.04] px-2.5 py-1 text-[11px] tracking-tight text-muted-foreground/75"
                       >
                         {t}
                       </span>
@@ -1271,30 +1266,21 @@ function DetailPopup({
               {/* Stats */}
               {avatar.use_count != null && avatar.use_count > 0 && (
                 <Section eyebrow="Filmography">
-                  <div className="rounded-2xl border border-transparent bg-white/[0.03] p-4 shadow-[0_10px_30px_-20px_hsl(220_40%_2%/0.7)]">
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-display text-3xl font-light text-foreground tabular-nums">
-                        {avatar.use_count.toLocaleString()}
-                      </span>
-                      <span className={cn(TYPE_META, "text-muted-foreground/60")}>
-                        scenes directed
-                      </span>
-                    </div>
-                  </div>
+                  <FloatingStat
+                    value={avatar.use_count.toLocaleString()}
+                    label="scenes directed"
+                  />
                 </Section>
               )}
             </div>
 
             {/* Footer — Add-to-cast toggle + Cast-in-Studio primary CTA */}
             <div className="shrink-0 bg-[hsl(220_30%_4%/0.6)] backdrop-blur-2xl px-6 py-5 sm:px-8 lg:px-10 flex flex-col sm:flex-row gap-3">
-              <button
+              <GlassButton
                 onClick={onToggleCast}
-                className={cn(
-                  "shrink-0 inline-flex items-center justify-center gap-2 h-12 px-5 rounded-full text-[12.5px] font-mono uppercase tracking-[0.22em] transition-all border border-transparent",
-                  inCast
-                    ? "bg-[hsl(var(--accent)/0.2)] text-accent hover:bg-[hsl(var(--accent)/0.28)] shadow-[0_0_18px_-6px_hsl(216_80%_50%/0.45)]"
-                    : "bg-white/[0.04] text-foreground/85 hover:bg-white/[0.07]",
-                )}
+                size="lg"
+                tone={inCast ? "accent" : "neutral"}
+                className="shrink-0 font-mono uppercase tracking-[0.22em] text-[12.5px]"
               >
                 {inCast ? (
                   <>
@@ -1307,19 +1293,17 @@ function DetailPopup({
                     <span>Add to Cast</span>
                   </>
                 )}
-              </button>
-              <button
+              </GlassButton>
+              <GlassButton
                 onClick={onCast}
-                className={cn(
-                  "group flex-1 inline-flex items-center justify-center gap-2 h-12 rounded-full border border-transparent",
-                  "bg-gradient-to-br from-accent/25 to-accent/10 shadow-[0_0_22px_-6px_hsl(216_80%_50%/0.45)]",
-                  "text-foreground transition-all hover:from-accent/35 hover:to-accent/15",
-                )}
+                size="lg"
+                tone="accent"
+                className="group flex-1 text-[13.5px]"
               >
                 <Sparkles className="h-4 w-4 text-accent" strokeWidth={1.5} />
-                <span className="text-[13.5px]">Cast {avatar.name} in Studio</span>
+                <span>Cast {avatar.name} in Studio</span>
                 <ArrowRight className="h-4 w-4 text-accent transition-transform group-hover:translate-x-0.5" strokeWidth={1.5} />
-              </button>
+              </GlassButton>
             </div>
           </div>
         </div>
@@ -1347,7 +1331,7 @@ function Section({
 
 function Pill({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-transparent bg-white/[0.04] px-2.5 py-1 text-[11px] tracking-tight text-foreground/85 capitalize">
+    <span className="inline-flex items-center rounded-full bg-white/[0.04] px-2.5 py-1 text-[11px] tracking-tight text-foreground/85 capitalize">
       {label}
     </span>
   );
@@ -1368,8 +1352,7 @@ function FocusedAvatarCard({ avatar }: { avatar: BackdropAvatar | null }) {
       className={cn(
         "md:w-[300px] flex-shrink-0",
         "flex flex-col justify-end",
-        "rounded-2xl px-5 py-6 md:py-8",
-        "border border-transparent bg-white/[0.03] backdrop-blur-xl shadow-[0_20px_60px_-30px_hsl(220_40%_2%/0.8)]",
+        "px-5 py-6 md:py-8",
       )}
       aria-live="polite"
     >
@@ -1422,7 +1405,7 @@ function GridSkeleton() {
       {Array.from({ length: 10 }).map((_, i) => (
         <div
           key={i}
-          className="rounded-2xl border border-transparent bg-white/[0.03] overflow-hidden shadow-[0_14px_40px_-26px_hsl(220_40%_2%/0.7)]"
+          className="rounded-2xl bg-white/[0.03] overflow-hidden shadow-[0_14px_40px_-26px_hsl(220_40%_2%/0.7)]"
         >
           <div className="aspect-[3/4] w-full bg-[hsl(220_30%_8%)] animate-pulse" />
           <div className="p-3.5 space-y-2">
@@ -1448,16 +1431,9 @@ function EmptyState({ onReset }: { onReset: () => void }) {
       <p className="mt-4 max-w-md mx-auto text-[13px] font-light leading-relaxed text-muted-foreground/65">
         Nothing in the vault fits those filters. Reset and try again.
       </p>
-      <button
-        onClick={onReset}
-        className={cn(
-          "mt-8 inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-transparent",
-          "bg-[hsl(var(--accent)/0.14)] text-foreground shadow-[0_0_18px_-6px_hsl(216_80%_50%/0.4)]",
-          "transition-colors hover:bg-[hsl(var(--accent)/0.2)]",
-        )}
-      >
+      <GlassButton onClick={onReset} tone="accent" className="mt-8">
         <span className="text-[13px]">Reset filters</span>
-      </button>
+      </GlassButton>
     </div>
   );
 }
@@ -1497,7 +1473,7 @@ function CastBar({
       <div
         className={cn(
           "pointer-events-auto w-full max-w-[1100px]",
-          "rounded-2xl border border-transparent",
+          "rounded-2xl",
           "bg-gradient-to-br from-[hsl(220_30%_6%/0.92)] via-[hsl(220_30%_4%/0.96)] to-[hsl(220_30%_3%/0.97)]",
           "backdrop-blur-2xl",
           "shadow-[0_40px_120px_-30px_hsl(0_0%_0%/0.85),inset_0_1px_0_hsl(0_0%_100%/0.06)]",
@@ -1574,7 +1550,7 @@ function CastBar({
             onClick={onClear}
             aria-label="Clear cast"
             className={cn(
-              "inline-flex items-center justify-center h-9 w-9 rounded-full border border-transparent",
+              "inline-flex items-center justify-center h-9 w-9 rounded-full",
               "bg-white/[0.04] text-muted-foreground/70",
               "hover:text-foreground hover:bg-[hsl(var(--destructive)/0.18)] transition-colors",
             )}
@@ -1584,7 +1560,7 @@ function CastBar({
           <button
             onClick={onOpen}
             className={cn(
-              "group inline-flex items-center justify-center gap-2 h-9 px-4 rounded-full border border-transparent",
+              "group inline-flex items-center justify-center gap-2 h-9 px-4 rounded-full",
               "bg-gradient-to-br from-accent/25 to-accent/10 text-foreground shadow-[0_0_20px_-6px_hsl(216_80%_50%/0.45)]",
               "transition-all hover:from-accent/35 hover:to-accent/15",
             )}
@@ -1613,17 +1589,10 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
         The avatar library failed to load. Try again — usually a transient
         network blip.
       </p>
-      <button
-        onClick={onRetry}
-        className={cn(
-          "mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-transparent",
-          "bg-white/[0.04] text-foreground shadow-[0_10px_30px_-20px_hsl(220_40%_2%/0.7)]",
-          "transition-colors hover:bg-white/[0.07]",
-        )}
-      >
+      <GlassButton onClick={onRetry} className="mt-6">
         <Loader2 className="h-4 w-4" strokeWidth={1.5} />
         <span className="text-[13px]">Retry</span>
-      </button>
+      </GlassButton>
     </div>
   );
 }

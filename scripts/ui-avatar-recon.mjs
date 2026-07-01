@@ -1,0 +1,40 @@
+import { chromium } from 'playwright';
+import { readFileSync } from 'node:fs';
+function env(k){ for (const f of ['.env','.env.local']){ try{ const l=readFileSync(f,'utf8').split('\n').find(x=>x.startsWith(k+'=')); if(l) return l.slice(k.length+1).trim().replace(/^["']|["']$/g,''); }catch{} } return ''; }
+const URL=env('VITE_SUPABASE_URL'), ANON=env('VITE_SUPABASE_PUBLISHABLE_KEY'), SR=env('SUPABASE_SERVICE_ROLE_KEY');
+const REF=URL.replace('https://','').split('.')[0]; const KEY=`sb-${REF}-auth-token`;
+const stamp=Date.now(), email=`uiav-${stamp}@smallbridges.test`, pass=`Ux!${stamp}aB`;
+const uid=(await (await fetch(`${URL}/auth/v1/admin/users`,{method:'POST',headers:{apikey:SR,Authorization:`Bearer ${SR}`,'Content-Type':'application/json'},body:JSON.stringify({email,password:pass,email_confirm:true})})).json()).id;
+await fetch(`${URL}/rest/v1/rpc/add_credits`,{method:'POST',headers:{apikey:SR,Authorization:`Bearer ${SR}`,'Content-Type':'application/json'},body:JSON.stringify({p_user_id:uid,p_amount:4000,p_description:'av',p_stripe_payment_id:`AV_${stamp}`})});
+await fetch(`${URL}/rest/v1/profiles?id=eq.${uid}`,{method:'PATCH',headers:{apikey:SR,Authorization:`Bearer ${SR}`,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({onboarding_completed:true})});
+const session=await (await fetch(`${URL}/auth/v1/token?grant_type=password`,{method:'POST',headers:{apikey:ANON,'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})})).json();
+const browser=await chromium.launch({headless:true});
+const ctx=await browser.newContext({viewport:{width:1440,height:900}});
+await ctx.addInitScript(([k,v])=>localStorage.setItem(k,v),[KEY,JSON.stringify(session)]);
+const page=await ctx.newPage();
+await page.goto('http://localhost:7777/studio',{waitUntil:'domcontentloaded',timeout:60000});
+await page.waitForTimeout(3500);
+console.log('--- click Avatar mode ---');
+await page.getByRole('button',{name:'Avatar'}).first().click({timeout:8000}).catch(e=>console.log('avatar-mode',e.message));
+await page.waitForTimeout(2500);
+await page.screenshot({path:'/tmp/ui-avatar-mode.png',fullPage:true});
+const dump=await page.evaluate(()=>{
+  const out={buttons:[],imgs:0,headings:[],cast:[]};
+  document.querySelectorAll('button,[role=button]').forEach(b=>{const t=(b.innerText||b.getAttribute('aria-label')||'').replace(/\s+/g,' ').trim(); if(t)out.buttons.push(t.slice(0,32));});
+  out.imgs=document.querySelectorAll('img').length;
+  document.querySelectorAll('h1,h2,h3,h4,[class*=title]').forEach(h=>{const t=(h.innerText||'').trim();if(t&&t.length<40)out.headings.push(t);});
+  document.querySelectorAll('[class*=avatar],[class*=cast],[class*=character]').forEach(c=>{const t=(c.getAttribute('aria-label')||c.innerText||'').replace(/\s+/g,' ').trim();if(t)out.cast.push(t.slice(0,30));});
+  return out;
+});
+console.log('BUTTONS:',JSON.stringify([...new Set(dump.buttons)]));
+console.log('HEADINGS:',JSON.stringify([...new Set(dump.headings)].slice(0,20)));
+console.log('CAST-ish:',JSON.stringify([...new Set(dump.cast)].slice(0,20)));
+console.log('imgs:',dump.imgs);
+// also try breakout template
+await page.goto('http://localhost:7777/studio?template=post-escape',{waitUntil:'domcontentloaded',timeout:60000});
+await page.waitForTimeout(3500);
+await page.screenshot({path:'/tmp/ui-breakout.png',fullPage:true});
+const bdump=await page.evaluate(()=>{const out=[];document.querySelectorAll('button,[role=button]').forEach(b=>{const t=(b.innerText||'').replace(/\s+/g,' ').trim();if(t)out.push(t.slice(0,32));});return [...new Set(out)];});
+console.log('BREAKOUT BUTTONS:',JSON.stringify(bdump));
+await browser.close();
+console.log('shots: /tmp/ui-avatar-mode.png /tmp/ui-breakout.png');

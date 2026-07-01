@@ -39,6 +39,7 @@ import {
   resolveEffectiveUserId,
   forbiddenResponse,
 } from "../_shared/auth-guard.ts";
+import { runFfmpegCog, watermarkCommand } from "../_shared/run-ffmpeg-cog.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -106,31 +107,25 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // P1-13: prepend the brand intro via the REAL ffmpeg path (seamless-stitcher
-    // clips mode, includeIntro:true — cog-ffmpeg concat). The previous local mux
-    // naively byte-concatenated two complete MP4 containers (duplicate
-    // ftyp/moov) → an unplayable file. The stitcher also handles a missing intro
-    // gracefully (continues without the pre-roll), so no existence check is needed.
-    const { data: stitchResult, error: stitchError } = await supabase.functions.invoke(
-      "seamless-stitcher",
-      {
-        body: {
-          clips: [{ url: videoUrl }],
-          sessionId: `branded-${projectId ?? userId}-${Date.now()}`,
-          includeIntro: true,
-        },
-      },
-    );
-    if (stitchError) {
-      // Fail safe to the un-branded source — a valid video beats a corrupt one.
-      console.warn("[brand-video-download] stitch failed, returning source url:", stitchError.message);
-      return ok({ url: videoUrl, branded: false, reason: "stitch_failed" });
+    // Apply the "Made with Small Bridges" corner watermark via a ONE-OFF ffmpeg
+    // pass on the cog (runFfmpegCog) — deliberately isolated from the
+    // render-critical seamless-stitcher so branding can never regress renders.
+    // Fail safe to the un-branded source: a valid download beats none.
+    let brandedUrl: string | null;
+    try {
+      brandedUrl = await runFfmpegCog({
+        replicateKey: Deno.env.get("REPLICATE_API_KEY")!,
+        command: watermarkCommand(),
+        inputs: { file1: videoUrl },
+        outputName: `branded-${projectId ?? userId}-${Date.now()}.mp4`,
+      });
+    } catch (e) {
+      console.warn(
+        "[brand-video-download] watermark failed, returning source url:",
+        e instanceof Error ? e.message : String(e),
+      );
+      return ok({ url: videoUrl, branded: false, reason: "watermark_failed" });
     }
-
-    let brandedUrl =
-      (stitchResult as { finalVideoUrl?: string; url?: string })?.finalVideoUrl ??
-      (stitchResult as { url?: string })?.url ??
-      null;
     if (!brandedUrl) {
       return ok({ url: videoUrl, branded: false, reason: "no_output" });
     }

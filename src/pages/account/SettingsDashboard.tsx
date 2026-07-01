@@ -397,6 +397,13 @@ export default function SettingsDashboard() {
 
   return (
     <div className="relative">
+      {/* ─── AURORA BACKDROP — the living color the content floats over ── */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <span className="absolute rounded-full" style={{ top: -300, left: -80, width: 720, height: 720, filter: "blur(120px)", background: "radial-gradient(closest-side, hsl(213 100% 56% / 0.20), transparent 70%)" }} />
+        <span className="absolute rounded-full" style={{ top: -160, right: -100, width: 560, height: 560, filter: "blur(120px)", background: "radial-gradient(closest-side, hsl(188 95% 62% / 0.12), transparent 70%)" }} />
+        <span className="absolute rounded-full" style={{ top: 480, left: "42%", width: 780, height: 780, filter: "blur(130px)", background: "radial-gradient(closest-side, hsl(258 90% 74% / 0.11), transparent 70%)" }} />
+        <span className="absolute rounded-full" style={{ bottom: -320, right: "10%", width: 620, height: 620, filter: "blur(130px)", background: "radial-gradient(closest-side, hsl(213 100% 56% / 0.10), transparent 70%)" }} />
+      </div>
       {/* ─── HERO BAND ──────────────────────────────────────────────── */}
       <header className="relative px-4 sm:px-8 lg:px-12 pt-10 pb-8">
         <div className="max-w-6xl mx-auto">
@@ -664,18 +671,10 @@ function SectionHeader({ eyebrow, title, sub }: { eyebrow: string; title: string
 }
 
 function Card({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div
-      className={cn(
-        "relative rounded-2xl p-6 sm:p-7",
-        "shadow-[0_24px_60px_-32px_hsl(0_0%_0%/0.7)]",
-        "backdrop-blur-2xl",
-        className,
-      )}
-    >
-      {children}
-    </div>
-  );
+  // Containerless: no surface, border, blur or shadow — content floats directly
+  // on the Aurora backdrop. Grouping comes from the section header + whitespace
+  // + feathered row dividers, not a box.
+  return <div className={cn("relative", className)}>{children}</div>;
 }
 
 function FieldRow({
@@ -687,7 +686,7 @@ function FieldRow({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-[1fr_minmax(220px,2fr)] gap-3 sm:gap-6 py-4">
+    <div className="feather-row grid grid-cols-1 sm:grid-cols-[1fr_minmax(220px,2fr)] gap-3 sm:gap-6 py-4">
       <div className="pt-1.5">
         <div className="text-[13px] font-medium text-foreground/90">{label}</div>
         {hint && <div className="mt-1 text-[12px] text-muted-foreground/65 leading-snug">{hint}</div>}
@@ -710,7 +709,7 @@ function ToggleRow({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 py-3.5">
+    <div className="feather-row flex items-start justify-between gap-4 py-3.5">
       <div>
         <div className="text-[13px] font-medium text-foreground/90">{label}</div>
         {hint && <div className="mt-0.5 text-[12px] text-muted-foreground/65 leading-snug">{hint}</div>}

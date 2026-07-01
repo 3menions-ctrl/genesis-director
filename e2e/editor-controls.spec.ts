@@ -202,9 +202,14 @@ async function closeOpenDialog(page: Page): Promise<boolean> {
     if (await x.count()) await x.click({ force: true }).catch(() => {}); // blockEscClose panels
     await page.waitForTimeout(200);
   }
-  // Wait out the Surface exit animation (~0.34s) before declaring closed.
+  // Wait out the Surface exit animation before declaring closed — BOTH the
+  // dialog AND its backdrop. The backdrop is a `fixed inset-0 z-40` overlay that
+  // outlives the [role=dialog] node during its fade-out; if it lingers it
+  // intercepts the next TopStatusBar button click, and Playwright's auto-wait
+  // then hangs on actionability for the whole test timeout (the 6-min flake).
   try {
     await expect(dialog(page)).toHaveCount(0, { timeout: 2_500 });
+    await expect(page.getByTestId("surface-backdrop")).toHaveCount(0, { timeout: 2_500 });
     return true;
   } catch {
     return false;
@@ -304,10 +309,16 @@ test.describe("Editor — TopStatusBar buttons open their panels", () => {
 
     for (const label of BUTTONS) {
       await expect(dialog(page)).toHaveCount(0);
+      // Belt-and-suspenders: also ensure no backdrop lingers from the prior
+      // panel before we click, so the click can't be intercepted.
+      await expect(page.getByTestId("surface-backdrop")).toHaveCount(0);
       const btn = page.locator(`[aria-label="${label}"]`).first();
       await expect(btn, `button "${label}" present`).toHaveCount(1);
-      await btn.click();
       try {
+        // Bounded click: if something still intercepts, fail this button fast
+        // (recorded FAIL) instead of hanging on actionability for the whole
+        // test timeout.
+        await btn.click({ timeout: 8_000 });
         await expect(dialog(page)).toHaveCount(1, { timeout: 5_000 });
         results[label] = "PASS";
       } catch {

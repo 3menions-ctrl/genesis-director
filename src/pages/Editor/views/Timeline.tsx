@@ -584,9 +584,22 @@ export function Timeline({
   // Replace music — delete the current A2 clip, then re-open the file
   // picker so the user lands a fresh upload. (Generate-as-replace is a
   // delete + Generate score.)
-  const onReplaceMusic = () => {
+  const onReplaceMusic = async () => {
     if (musicBusy) return;
-    if (currentMusicClipId) deleteClipMut(currentMusicClipId);
+    const oldId = currentMusicClipId;
+    if (oldId) {
+      deleteClipMut(oldId);
+      // P2-23: deleteClipMut is store-only. currentMusicClipId IS the video_clips
+      // row id (ingestMusicUrl returns it), so also delete the DB row — otherwise
+      // the old A2 score lingered and the stitcher muxed BOTH beds (double audio).
+      if (project.id) {
+        try {
+          await supabase.from("video_clips").delete().eq("id", oldId).eq("project_id", project.id);
+        } catch (e) {
+          console.warn("[Timeline] failed to delete replaced A2 row:", e);
+        }
+      }
+    }
     musicFileInputRef.current?.click();
   };
 

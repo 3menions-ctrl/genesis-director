@@ -4,6 +4,10 @@ import { checkMultipleContent } from "../_shared/content-safety.ts";
 import { notifyVideoStarted, notifyVideoComplete, notifyVideoFailed } from "../_shared/pipeline-notifications.ts";
 import { priceClipCredits } from "../_shared/engines.ts";
 import { persistQualityIntent } from "../_shared/quality-post.ts";
+// P0-1: persistVideoToStorage + the expiring-URL guard were USED here (clip +
+// final persistence) but never imported — a latent ReferenceError on the very
+// persistence path that protects finished films from the 24h signed-URL death.
+import { persistVideoToStorage, isTemporaryReplicateUrl } from "../_shared/video-persistence.ts";
 import { inferBoundaryType, auditClip } from "../_shared/continuity-contract.ts";
 import { enforceBreakoutScript } from "../_shared/breakout-guardrails.ts";
 import {
@@ -6805,6 +6809,56 @@ serve(async (req) => {
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         );
       }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // P1-2: REGENERATE SCRIPT. The Production page's "Regenerate" button invokes
+    // this with { projectId, action:'regenerate_script' }. There was no handler,
+    // so the concept-required check below threw "Either 'concept' or
+    // 'manualPrompts' is required" → HTTP 500 every time. Re-hydrate the original
+    // concept + shot budget from the persisted project (mode-router saved the
+    // user's prompt to movie_projects.synopsis) and fall through to the normal
+    // flow, which re-runs preproduction and re-parks at awaiting_approval. The
+    // credit hold is idempotent per project (reused), so this does NOT
+    // double-charge. Ownership was already enforced by the IDOR guard above.
+    // ─────────────────────────────────────────────────────────────────────────
+    if ((request as any).action === 'regenerate_script') {
+      const regenProjectId = (request as any).projectId;
+      if (!regenProjectId) {
+        throw new Error("projectId is required to regenerate the script");
+      }
+      const { data: regenProj } = await supabase
+        .from('movie_projects')
+        .select('synopsis, genre, mood, aspect_ratio, video_engine, pending_video_tasks')
+        .eq('id', regenProjectId)
+        .maybeSingle();
+      if (!regenProj) {
+        throw new Error("Project not found for regenerate_script");
+      }
+      const regenTasks = (regenProj.pending_video_tasks || {}) as Record<string, any>;
+      const originalConcept = (regenProj.synopsis || regenTasks.concept || regenTasks.userPrompt || '')
+        .toString()
+        .trim();
+      if (!originalConcept) {
+        throw new Error("Cannot regenerate: the original prompt for this project was not found");
+      }
+      // Hydrate the request from persisted state so the new script matches the
+      // original brief + shot budget (same clip count keeps the idempotent hold).
+      (request as any).concept = originalConcept;
+      (request as any).requireApproval = true; // re-park (gate keys on autoApprove !== true)
+      if ((request as any).clipCount == null && regenTasks.clipCount != null) {
+        (request as any).clipCount = regenTasks.clipCount;
+      }
+      if ((request as any).clipDuration == null && regenTasks.clipDuration != null) {
+        (request as any).clipDuration = regenTasks.clipDuration;
+      }
+      (request as any).genre = (request as any).genre ?? regenProj.genre ?? undefined;
+      (request as any).mood = (request as any).mood ?? regenProj.mood ?? undefined;
+      (request as any).aspectRatio = (request as any).aspectRatio ?? regenProj.aspect_ratio ?? undefined;
+      // videoEngine is enforced from persisted state by the engine-lock block below.
+      console.log(
+        `[Hollywood] 🔁 regenerate_script for ${regenProjectId}: concept="${originalConcept.substring(0, 60)}...", clips=${(request as any).clipCount ?? 'default'}`,
+      );
     }
 
     // ═══ ENGINE LOCK — BULLETPROOF, DB IS SOURCE OF TRUTH ═══

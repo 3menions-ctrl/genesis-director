@@ -242,7 +242,9 @@ serve(async (req) => {
     console.log("[AutoStitch] Calling seamless-stitcher for manifest creation...");
     
     const { data: stitchResult, error: stitchError } = await supabase.functions.invoke('seamless-stitcher', {
-      body: { projectId, userId },
+      // includeIntro:false mirrors the canonical hollywood-pipeline stitch path
+      // so the stitcher produces the bare film (and writes video_url) consistently.
+      body: { projectId, userId, includeIntro: false },
     });
     
     if (stitchError) {
@@ -280,6 +282,53 @@ serve(async (req) => {
     
     console.log("[AutoStitch] seamless-stitcher result:", JSON.stringify(stitchResult));
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // P1-1: FINALIZE THE PROJECT IN THE DB.
+    // Previously this success path returned WITHOUT writing status='completed'
+    // or video_url, so the project sat at 'stitching' (set above) forever — a
+    // permanent spinner even though the stitch succeeded. Persist a DURABLE URL
+    // (P0-1: the stitcher returns a 24h signed URL) and write the terminal state.
+    // ─────────────────────────────────────────────────────────────────────────
+    const rawFinalUrl: string | null =
+      stitchResult?.finalVideoUrl || stitchResult?.url || null;
+    let durableFinalUrl = rawFinalUrl;
+    try {
+      if (rawFinalUrl) {
+        const { persistVideoToStorage, isTemporaryReplicateUrl } =
+          await import("../_shared/video-persistence.ts");
+        if (isTemporaryReplicateUrl(rawFinalUrl)) {
+          const persisted = await persistVideoToStorage(
+            supabase,
+            rawFinalUrl,
+            projectId,
+            { prefix: "final_video" },
+          );
+          if (persisted) durableFinalUrl = persisted;
+        }
+      }
+    } catch (persistErr) {
+      console.warn("[AutoStitch] durable persist failed, storing returned URL:", persistErr);
+    }
+
+    await supabase
+      .from('movie_projects')
+      .update({
+        status: 'completed',
+        // Manifest-only renders may have no single URL; still mark completed so
+        // the client stops spinning and plays via clips/manifest.
+        ...(durableFinalUrl ? { video_url: durableFinalUrl } : {}),
+        pending_video_tasks: {
+          ...(tasks || {}),
+          stage: 'complete',
+          progress: 100,
+          mode: stitchResult?.mode || 'manifest_playback',
+          finalVideoUrl: durableFinalUrl,
+          completedAt: new Date().toISOString(),
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', projectId);
+
     // Fire the "render complete" email + insert an in-app notification. Both
     // are best-effort — the success response is independent of either.
     void notifyRenderComplete({
@@ -294,7 +343,7 @@ serve(async (req) => {
         success: true,
         readyToStitch: true,
         stitchMode: stitchResult?.mode || 'manifest_playback',
-        finalVideoUrl: stitchResult?.finalVideoUrl,
+        finalVideoUrl: durableFinalUrl,
         completedClips: completedCount,
         processingTimeMs: Date.now() - startTime,
       }),

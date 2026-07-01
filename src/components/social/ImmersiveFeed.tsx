@@ -108,7 +108,11 @@ function FeedItem({ reel, muted, onUnmute }: { reel: FeedReel; muted: boolean; o
   const [likeCount, setLikeCount] = useState(reel.like_count);
   const [inView, setInView] = useState(false);
   const [bursts, setBursts] = useState<Array<{ id: number; emoji: string }>>([]);
-  const [reactCount, setReactCount] = useState(0);
+  // P2-2: track this viewer's reactions so taps TOGGLE (delete-or-insert) rather
+  // than inserting a new reel_reactions row every time. reel_reactions has no
+  // uniqueness, so the old insert-only react() let a user inflate counts by
+  // tapping repeatedly and could never un-react.
+  const [myReactions, setMyReactions] = useState<Set<string>>(new Set());
 
   // Autoplay when ≥60% visible; pause + rewind when it leaves. Bump play count
   // the first time it comes into view.
@@ -157,15 +161,27 @@ function FeedItem({ reel, muted, onUnmute }: { reel: FeedReel; muted: boolean; o
 
   const react = useCallback(async (emoji: string) => {
     if (!user) { toast.error("Sign in to react"); return; }
-    const id = Date.now() + Math.floor(Math.random() * 1000);
-    setBursts((b) => [...b, { id, emoji }]);
-    window.setTimeout(() => setBursts((b) => b.filter((x) => x.id !== id)), 1400);
-    setReactCount((c) => c + 1);
+    const had = myReactions.has(emoji);
+    // Only burst on an ADD (not when removing a reaction).
+    if (!had) {
+      const id = Date.now() + Math.floor(Math.random() * 1000);
+      setBursts((b) => [...b, { id, emoji }]);
+      window.setTimeout(() => setBursts((b) => b.filter((x) => x.id !== id)), 1400);
+    }
+    setMyReactions((s) => { const n = new Set(s); if (had) n.delete(emoji); else n.add(emoji); return n; });
     try {
-      await supabase.from("reel_reactions" as never)
-        .insert({ reel_id: reel.id, reactor_id: user.id, reaction_url: emoji } as never);
-    } catch { /* burst already shown; non-fatal */ }
-  }, [user, reel.id]);
+      if (had) {
+        await supabase.from("reel_reactions" as never).delete()
+          .eq("reel_id", reel.id).eq("reactor_id", user.id).eq("reaction_url", emoji);
+      } else {
+        await supabase.from("reel_reactions" as never)
+          .insert({ reel_id: reel.id, reactor_id: user.id, reaction_url: emoji } as never);
+      }
+    } catch {
+      // rollback membership on failure
+      setMyReactions((s) => { const n = new Set(s); if (had) n.add(emoji); else n.delete(emoji); return n; });
+    }
+  }, [user, reel.id, myReactions]);
 
   const share = useCallback(async () => {
     const url = `${window.location.origin}/r/${reel.id}`;

@@ -776,6 +776,26 @@
       0 0 30px hsl(0 0% 100% / 0.4);
   }
 
+  /* Containerless row divider — a hairline that feathers out at both ends,
+     drawn only BETWEEN consecutive rows (never above the first or below the
+     last). Replaces card borders for the floating / no-container settings. */
+  .feather-row { position: relative; }
+  .feather-row + .feather-row::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(0 0% 100% / 0.07) 14%,
+      hsl(0 0% 100% / 0.07) 86%,
+      transparent
+    );
+  }
+
   /* Legacy support */
   .card-clean { @apply glass-card; }
   .card-dark { @apply glass-card-dark; }

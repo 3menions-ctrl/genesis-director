@@ -354,19 +354,53 @@ serve(async (req) => {
 
     if (activeProjects && activeProjects.length > 0) {
       const existing = activeProjects[0];
-      console.log(`[ModeRouter] BLOCKED: User ${userId} already has active project ${existing.id} (${existing.status})`);
-      
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'active_project_exists',
-          message: `You already have an active project "${existing.title}" in progress. Please wait for it to complete or cancel it before starting a new one.`,
-          existingProjectId: existing.id,
-          existingProjectTitle: existing.title,
-          existingProjectStatus: existing.status,
-        }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+
+      // P1-3: an ABANDONED, unapproved draft must not permanently block new
+      // creations. If the only blocker is an `awaiting_approval` project older
+      // than the stale-draft TTL, auto-expire it (cancel + release its
+      // pre-approval credit hold) and proceed, instead of 409-ing forever.
+      // (cancel-project can't be invoked here — it binds to the JWT user and
+      // rejects service-role calls — so release the hold directly.)
+      const STALE_DRAFT_MS = 30 * 60 * 1000; // 30 minutes
+      const ageMs = Date.now() - new Date(existing.created_at as string).getTime();
+      let autoExpired = false;
+      if (existing.status === 'awaiting_approval' && ageMs > STALE_DRAFT_MS) {
+        console.log(`[ModeRouter] Auto-expiring stale awaiting_approval draft ${existing.id} (age ${Math.round(ageMs / 60000)}m)`);
+        try {
+          const { releasePipelineCredits } = await import('../_shared/pipeline-credits.ts');
+          await releasePipelineCredits({
+            supabase,
+            projectId: existing.id,
+            reason: 'Abandoned unapproved draft auto-expired',
+          });
+          await supabase
+            .from('movie_projects')
+            .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+            .eq('id', existing.id);
+          autoExpired = true;
+          console.log(`[ModeRouter] ✓ Stale draft ${existing.id} expired; proceeding with new creation`);
+        } catch (expireErr) {
+          console.warn('[ModeRouter] Auto-expire failed; will 409:', expireErr);
+        }
+      }
+
+      if (!autoExpired) {
+        console.log(`[ModeRouter] BLOCKED: User ${userId} already has active project ${existing.id} (${existing.status})`);
+
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'active_project_exists',
+            message: `You already have an active project "${existing.title}" in progress. Please wait for it to complete or cancel it before starting a new one.`,
+            existingProjectId: existing.id,
+            existingProjectTitle: existing.title,
+            existingProjectStatus: existing.status,
+            // Signals the client may offer a one-click "cancel & start new".
+            canCancel: true,
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     console.log(`[ModeRouter] ✓ No active projects, proceeding with creation`);

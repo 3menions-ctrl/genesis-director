@@ -1,0 +1,20 @@
+import { chromium, devices } from "playwright";
+import { readFileSync } from "node:fs";
+function env(k){for(const f of [".env",".env.local"]){try{const l=readFileSync(f,"utf8").split("\n").find(x=>x.startsWith(k+"="));if(l)return l.slice(k.length+1).trim().replace(/^["']|["']$/g,"");}catch{}}return"";}
+const URL=env("VITE_SUPABASE_URL"),ANON=env("VITE_SUPABASE_PUBLISHABLE_KEY")||env("VITE_SUPABASE_ANON_KEY"),SR=env("SUPABASE_SERVICE_ROLE_KEY");
+const REF=URL.replace("https://","").split(".")[0],KEY=`sb-${REF}-auth-token`;
+const ID="bb77364d-047b-4abb-a726-eca49d33e40d",EM="demo-mira@smallbridges.test",P=`Dg!${Date.now()}x`;
+await fetch(`${URL}/auth/v1/admin/users/${ID}`,{method:"PUT",headers:{apikey:SR,Authorization:`Bearer ${SR}`,"Content-Type":"application/json"},body:JSON.stringify({password:P})});
+const s=await(await fetch(`${URL}/auth/v1/token?grant_type=password`,{method:"POST",headers:{apikey:ANON,"Content-Type":"application/json"},body:JSON.stringify({email:EM,password:P})})).json();
+const b=await chromium.launch({headless:true});const c=await b.newContext({...devices["iPhone 14 Pro"]});
+await c.addInitScript(([k,v])=>{localStorage.setItem("sb_shell","mobile");localStorage.setItem(k,v);},[KEY,JSON.stringify(s)]);
+const pg=await c.newPage();
+pg.on("console",m=>console.log("CONSOLE:",m.type(),m.text().slice(0,180)));
+pg.on("pageerror",e=>console.log("PAGEERROR:",e.message.slice(0,200)));
+pg.on("requestfailed",r=>console.log("REQFAIL:",r.url().slice(0,120),r.failure()?.errorText));
+pg.on("response",r=>{if(r.status()>=400)console.log("HTTP",r.status(),r.url().slice(0,120));});
+await pg.goto("http://localhost:7799/feed?shell=mobile",{waitUntil:"domcontentloaded",timeout:60000});
+await pg.waitForTimeout(8000);
+const sess=await pg.evaluate(async()=>{try{const m=await import("/src/integrations/supabase/client.ts");const {data}=await m.supabase.auth.getSession();return data?.session?.user?.email||"NO SESSION";}catch(e){return "ERR:"+e.message;}});
+console.log("IN-PAGE SESSION:", sess);
+await b.close();

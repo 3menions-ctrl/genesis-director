@@ -103,18 +103,20 @@ serve(async (req) => {
       );
     }
 
-    // Invoke seamless-stitcher with trailer cut settings.
+    // P1-12: use the stitcher's real CLIPS mode. The old request body used field
+    // names the stitcher never reads, so it fell through to project-mode and
+    // re-rendered the FULL film as the "trailer". Clips mode takes
+    // clips:[{url,duration}] (per-clip clamp) + a sessionId, intro off.
+    const trailerClips = selected.map((c: { video_url: string | null; duration_seconds: number | null }) => ({
+      url: c.video_url as string,
+      duration: Math.min(3, Number(c.duration_seconds) || 3),
+    }));
     const { data: stitchResult, error: stitchError } = await supabase.functions
       .invoke("seamless-stitcher", {
         body: {
-          projectId: body.projectId,
-          userId: auth.userId,
-          mode: "trailer",
-          maxClipSeconds: 3,
-          clipsOverride: selected.map((c: { id: string; video_url: string | null }) => ({
-            id: c.id,
-            video_url: c.video_url,
-          })),
+          clips: trailerClips,
+          sessionId: `trailer-${body.projectId}`,
+          includeIntro: false,
         },
       });
 
@@ -130,8 +132,27 @@ serve(async (req) => {
       );
     }
 
-    const trailerUrl =
-      (stitchResult as { finalVideoUrl?: string })?.finalVideoUrl ?? null;
+    let trailerUrl =
+      (stitchResult as { finalVideoUrl?: string; url?: string })?.finalVideoUrl ??
+      (stitchResult as { url?: string })?.url ??
+      null;
+
+    // P1-12/P0-1: the stitcher returns a 24h signed URL. Persist it durably so the
+    // public share page doesn't 404 a day later.
+    if (trailerUrl) {
+      const { persistVideoToStorage, isTemporaryReplicateUrl } = await import(
+        "../_shared/video-persistence.ts"
+      );
+      if (isTemporaryReplicateUrl(trailerUrl)) {
+        const persisted = await persistVideoToStorage(
+          supabase as unknown as Parameters<typeof persistVideoToStorage>[0],
+          trailerUrl,
+          body.projectId,
+          { prefix: "trailer" },
+        );
+        if (persisted) trailerUrl = persisted;
+      }
+    }
 
     if (trailerUrl) {
       // Upsert into project_shares so the public page can render it.

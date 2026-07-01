@@ -25,6 +25,12 @@ export default defineConfig({
   fullyParallel: false,
   retries: 0,
   reporter: [["list"]],
+  // The editor specs reload the full NLE per assertion and gate on real
+  // hydration; on CI hardware a single test runs 15–35s, and the 16-panel
+  // sweep reloads 16×. The 30s Playwright default is too tight there (passes
+  // locally, times out on CI). 120s global; test.slow() triples it to 360s for
+  // the panel sweep. The e2e job's own 20-minute cap still bounds the suite.
+  timeout: 120_000,
   use: {
     baseURL,
     trace: "retain-on-failure",

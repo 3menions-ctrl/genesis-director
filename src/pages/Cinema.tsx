@@ -11,6 +11,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Volume2, VolumeX } from "lucide-react";
 import Lenis from "lenis";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { beginCrashHeartbeat, endCrashHeartbeat } from "@/lib/crashReporter";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { Cover } from "@/components/cinema/Cover";
 import { Grain } from "@/components/cinema/Grain";
@@ -125,6 +126,19 @@ export default function Cinema() {
   }, [muted, vphase]);
 
   useEffect(() => () => { cancelAnimationFrame(musicFadeRef.current); try { musicRef.current?.pause(); } catch { /* noop */ } }, []);
+
+  // ── Crash heartbeat: mark the immersive session so a renderer/OOM crash on
+  // mobile (which JS error handlers can't catch) is detected + reported on the
+  // next load. Records the phase and whether sound was on, so we learn whether
+  // crashes correlate with the audio path. Cleared on clean phase exit + unmount.
+  useEffect(() => {
+    if (vphase === "playing" || vphase === "climax") {
+      beginCrashHeartbeat("cinema", { phase: vphase, soundOn: !muted });
+    } else if (vphase === "takeover" || vphase === "rest") {
+      endCrashHeartbeat();
+    }
+  }, [vphase, muted]);
+  useEffect(() => () => endCrashHeartbeat(), []);
 
   // Every "start" CTA on the landing leads to the auth page (sign up). Only the
   // content-page links (Tour → /studio-showcase, Blog, Pricing…) stay as-is.

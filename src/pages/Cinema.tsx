@@ -47,6 +47,79 @@ export default function Cinema() {
   const [vphase, setVphase] = useState("cover");
   const [videoFailed, setVideoFailed] = useState(false);
   const showSpeaker = !videoFailed && (vphase === "playing" || vphase === "climax");
+  // ── Faint background score: "In the Hall of the Mountain King" (music box) ──
+  // Rides in with the film's sound, stays whisper-soft, and is time-locked to
+  // the film so it's always in sync with the speech.
+  const musicRef = useRef<HTMLAudioElement>(null);
+  const musicFadeRef = useRef(0);
+
+  // iOS makes HTMLMediaElement.volume READ-ONLY (it always reads 1.0 and writes
+  // are ignored), so lowering the score via `audio.volume` did nothing on
+  // iPhone — the music blasted at full volume while desktop played it at 3%.
+  // Web Audio gain IS honored on iOS, so we route the audio element through
+  // AudioContext → MediaElementSource → GainNode and control level via gain.
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const gainRef = useRef<GainNode | null>(null);
+  const srcNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
+
+  // Lazily build the gain graph. MUST be first called from a user gesture
+  // (the unmute tap) so iOS allows the AudioContext to start. createMediaElement-
+  // Source can only run once per element, so this is idempotent.
+  const ensureAudioGraph = useCallback(() => {
+    const a = musicRef.current;
+    if (!a) return null;
+    if (audioCtxRef.current && gainRef.current) {
+      if (audioCtxRef.current.state === "suspended") audioCtxRef.current.resume().catch(() => {});
+      return gainRef.current;
+    }
+    try {
+      const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!Ctx) return null;
+      const ctx = new Ctx();
+      const src = ctx.createMediaElementSource(a);
+      const gain = ctx.createGain();
+      gain.gain.value = 0; // start silent; the fade brings it up
+      src.connect(gain).connect(ctx.destination);
+      a.volume = 1; // full signal into the graph; gain does the attenuation
+      audioCtxRef.current = ctx;
+      srcNodeRef.current = src;
+      gainRef.current = gain;
+      if (ctx.state === "suspended") ctx.resume().catch(() => {});
+      return gain;
+    } catch {
+      return null; // fall back to the .volume path (desktop still honors it)
+    }
+  }, []);
+
+  const fadeMusic = useCallback((to: number, ms: number, then?: () => void) => {
+    const target = Math.max(0, Math.min(1, to));
+    const gain = gainRef.current;
+    const ctx = audioCtxRef.current;
+    // Web Audio path (works on iOS).
+    if (gain && ctx) {
+      try {
+        const now = ctx.currentTime;
+        gain.gain.cancelScheduledValues(now);
+        gain.gain.setValueAtTime(gain.gain.value, now);
+        gain.gain.linearRampToValueAtTime(target, now + Math.max(0, ms) / 1000);
+        if (then) window.setTimeout(then, Math.max(0, ms));
+        return;
+      } catch { /* fall through to volume */ }
+    }
+    // Fallback: HTMLMediaElement.volume (desktop; ignored on iOS).
+    const a = musicRef.current;
+    if (!a) return;
+    cancelAnimationFrame(musicFadeRef.current);
+    const from = a.volume, t0 = performance.now();
+    const tick = (t: number) => {
+      const k = ms <= 0 ? 1 : Math.min(1, (t - t0) / ms);
+      a.volume = Math.max(0, Math.min(1, from + (target - from) * k));
+      if (k < 1) musicFadeRef.current = requestAnimationFrame(tick);
+      else then?.();
+    };
+    musicFadeRef.current = requestAnimationFrame(tick);
+  }, []);
+
   const toggleMute = useCallback(() => {
     const v = videoRef.current;
     if (!v) return;
@@ -54,30 +127,14 @@ export default function Cinema() {
     v.muted = next;
     setMuted(next);
     if (!next) {
+      // Build/resume the gain graph INSIDE this user gesture so iOS lets the
+      // AudioContext start (required for the score to be both audible AND quiet
+      // — element .volume is a no-op on iOS).
+      ensureAudioGraph();
       if (v.ended) v.currentTime = 0;
       if (v.paused) v.play().catch(() => {});
     }
-  }, []);
-
-  // ── Faint background score: "In the Hall of the Mountain King" (music box) ──
-  // Rides in with the film's sound, stays whisper-soft, and is time-locked to
-  // the film so it's always in sync with the speech.
-  const musicRef = useRef<HTMLAudioElement>(null);
-  const musicFadeRef = useRef(0);
-
-  const fadeMusic = useCallback((to: number, ms: number, then?: () => void) => {
-    const a = musicRef.current;
-    if (!a) return;
-    cancelAnimationFrame(musicFadeRef.current);
-    const from = a.volume, t0 = performance.now();
-    const tick = (t: number) => {
-      const k = ms <= 0 ? 1 : Math.min(1, (t - t0) / ms);
-      a.volume = Math.max(0, Math.min(1, from + (to - from) * k));
-      if (k < 1) musicFadeRef.current = requestAnimationFrame(tick);
-      else then?.();
-    };
-    musicFadeRef.current = requestAnimationFrame(tick);
-  }, []);
+  }, [ensureAudioGraph]);
 
   useEffect(() => {
     const a = musicRef.current;
@@ -92,13 +149,18 @@ export default function Cinema() {
         // the viewer turns sound on.
         const v = videoRef.current;
         if (v && Number.isFinite(v.currentTime)) { try { a.currentTime = v.currentTime; } catch { /* noop */ } }
-        a.volume = 0; a.play().catch(() => {});
+        ensureAudioGraph(); // no-op if already built (built in the unmute gesture)
+        // With the gain graph, level is controlled by gain (starts at 0) and the
+        // element runs at full volume into the graph. Without a graph (older
+        // desktop), fall back to starting the element itself silent.
+        if (!gainRef.current) a.volume = 0;
+        a.play().catch(() => {});
       }
       fadeMusic(vphase === "climax" ? 0.13 : 0.03, vphase === "climax" ? 1800 : 4500);
     } else {
       fadeMusic(0, 600, () => { try { musicRef.current?.pause(); } catch { /* noop */ } });
     }
-  }, [muted, vphase, fadeMusic]);
+  }, [muted, vphase, fadeMusic, ensureAudioGraph]);
 
   // Keep the score in sync with the film WITHOUT seeking (seeking clicks/glitches).
   // We gently nudge playbackRate to converge on the film's clock; only a large
@@ -125,7 +187,11 @@ export default function Cinema() {
     };
   }, [muted, vphase]);
 
-  useEffect(() => () => { cancelAnimationFrame(musicFadeRef.current); try { musicRef.current?.pause(); } catch { /* noop */ } }, []);
+  useEffect(() => () => {
+    cancelAnimationFrame(musicFadeRef.current);
+    try { musicRef.current?.pause(); } catch { /* noop */ }
+    try { audioCtxRef.current?.close(); } catch { /* noop */ }
+  }, []);
 
   // ── Crash heartbeat: mark the immersive session so a renderer/OOM crash on
   // mobile (which JS error handlers can't catch) is detected + reported on the

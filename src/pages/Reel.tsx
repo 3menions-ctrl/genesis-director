@@ -74,6 +74,7 @@ import {
   RADIUS,
 } from "@/lib/design-system";
 import { GlassButton, GlassPanel } from "@/components/foundation/Floating";
+import { PublicReelCTA } from "@/components/reel/PublicReelCTA";
 
 interface ReelData {
   id: string;
@@ -228,7 +229,12 @@ export default function Reel() {
     title: reel?.title
       ? `${reel.title} — Small Bridges`
       : "Reel — Small Bridges",
-    description: "Watch a cinematic Small Bridges production.",
+    description: reel?.creator?.display_name
+      ? `${reel.creator.display_name} made this with a single prompt on Small Bridges. Make your own cinematic AI video — free.`
+      : "Watch a cinematic AI film made on Small Bridges. Make your own from a single prompt — free.",
+    canonicalPath: id ? `/r/${id}` : undefined,
+    ogImage: reel?.thumbnail_url ?? undefined,
+    ogType: "video.other",
   });
 
   // ── Load the reel ─────────────────────────────────────────────────
@@ -365,6 +371,10 @@ export default function Reel() {
   }, [partyId]);
 
   const isOwner = !!user && reel?.user_id === user.id;
+  // Logged-out visitor arriving via a shared link. RLS guarantees `reel` is
+  // only ever a public/published reel here; we show a read-only view (no
+  // reactions/comments, which need auth) capped with a signup CTA.
+  const isAnon = !user;
 
   // ── Download ─────────────────────────────────────────────────────
   // Fetch the video as a blob and save it. A plain <a download> on a
@@ -551,9 +561,13 @@ export default function Reel() {
               ? "Only the director can view it."
               : "It may have been removed or the link is wrong."}
           </p>
-          <GlassButton onClick={() => navigate("/library")} className="mt-8" ariaLabel="Back to Library">
+          <GlassButton
+            onClick={() => navigate(isAnon ? "/" : "/library")}
+            className="mt-8"
+            ariaLabel={isAnon ? "Explore Small Bridges" : "Back to Library"}
+          >
             <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
-            <span>Back to Library</span>
+            <span>{isAnon ? "Explore Small Bridges" : "Back to Library"}</span>
           </GlassButton>
         </div>
       </FoundationShell>
@@ -598,14 +612,16 @@ export default function Reel() {
           transition={{ duration: 0.3, ease: EASE_PREMIUM }}
         >
           <Link
-            to="/library"
+            to={isAnon ? "/" : "/library"}
             className={cn(
               "inline-flex items-center gap-2 text-muted-foreground/65",
               "transition-colors hover:text-foreground",
             )}
           >
             <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.5} />
-            <span className={cn(TYPE_EYEBROW, "text-current")}>Library</span>
+            <span className={cn(TYPE_EYEBROW, "text-current")}>
+              {isAnon ? "Small Bridges" : "Library"}
+            </span>
           </Link>
         </motion.div>
 
@@ -756,24 +772,32 @@ export default function Reel() {
           </motion.div>
         )}
 
-        {/* Reactions + comments */}
-        <motion.div
-          initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: EASE_PREMIUM, delay: 0.15 }}
-          className="mt-10"
-        >
-          <VideoReactionsBar projectId={reel.id} />
-        </motion.div>
+        {/* Reactions + comments (require auth) OR the signup CTA for anon. A
+            logged-out visitor arrived via a shared link — convert them instead
+            of showing interaction surfaces they can't use. */}
+        {isAnon ? (
+          <PublicReelCTA creatorName={reel.creator?.display_name} />
+        ) : (
+          <>
+            <motion.div
+              initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: EASE_PREMIUM, delay: 0.15 }}
+              className="mt-10"
+            >
+              <VideoReactionsBar projectId={reel.id} />
+            </motion.div>
 
-        <motion.div
-          initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: EASE_PREMIUM, delay: 0.2 }}
-          className="mt-8"
-        >
-          <VideoCommentsSection projectId={reel.id} />
-        </motion.div>
+            <motion.div
+              initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: EASE_PREMIUM, delay: 0.2 }}
+              className="mt-8"
+            >
+              <VideoCommentsSection projectId={reel.id} />
+            </motion.div>
+          </>
+        )}
       </div>
 
       {/* ── Watch Party sidebar — mounts whenever ?party=:id is set

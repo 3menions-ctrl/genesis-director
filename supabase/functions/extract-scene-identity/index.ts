@@ -408,6 +408,19 @@ You MUST return valid JSON exactly matching this schema:
 
     if (!characterResponse.ok) {
       const err = await characterResponse.text();
+      // Provider error (rate-limit / 5xx / timeout / policy) is the COMMON
+      // failure — refund the up-front charge so the user isn't billed for a
+      // result they never got. Mirrors the malformed-output refund below;
+      // creditsCharged=0 is the double-refund guard.
+      if (creditsCharged > 0 && userId) {
+        await supabase.rpc("refund_credits", {
+          p_user_id: userId,
+          p_amount: creditsCharged,
+          p_description: "Refund: scene identity extraction provider error (character DNA)",
+          p_project_id: projectId || null,
+        }).catch((e: unknown) => console.error("[extract-scene-identity] refund failed", e));
+        creditsCharged = 0;
+      }
       throw new Error(`Character DNA extraction failed: ${err}`);
     }
 
@@ -559,6 +572,18 @@ Return valid JSON exactly matching this schema:
 
     if (!environmentResponse.ok) {
       const err = await environmentResponse.text();
+      // Same as the character-DNA provider-error path: refund the up-front
+      // charge on a provider failure (the environment step runs after the paid
+      // character step, so creditsCharged may still be > 0 here).
+      if (creditsCharged > 0 && userId) {
+        await supabase.rpc("refund_credits", {
+          p_user_id: userId,
+          p_amount: creditsCharged,
+          p_description: "Refund: scene identity extraction provider error (environment DNA)",
+          p_project_id: projectId || null,
+        }).catch((e: unknown) => console.error("[extract-scene-identity] refund failed", e));
+        creditsCharged = 0;
+      }
       throw new Error(`Environment DNA extraction failed: ${err}`);
     }
 

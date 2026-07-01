@@ -85,11 +85,13 @@ async function seedSandbox(context: BrowserContext): Promise<void> {
     },
     [STORAGE_KEY, session] as const,
   );
-  // Abort the demo's external sample media (videos/posters) so the page
-  // doesn't hang on `load` and the console stays quiet. The controls don't
-  // depend on the media actually decoding.
-  await context.route(/(picsum\.photos|media\.w3\.org|www\.w3schools\.com|test-videos\.co\.uk)/, (route) =>
-    route.abort(),
+  // Abort the demo's sample media (same-origin clips + any external poster) so
+  // the page doesn't hang on `load` or spend CI wall-clock downloading multi-MB
+  // video on every editor mount. The controls don't depend on the media
+  // actually decoding — this keeps each editor load fast and deterministic.
+  await context.route(
+    /\.(mp4|webm)(\?|$)|picsum\.photos|media\.w3\.org|www\.w3schools\.com|test-videos\.co\.uk/i,
+    (route) => route.abort(),
   );
   // Answer every Supabase HTTP call locally — never reaches a real backend.
   await context.route("**/*supabase.co/**", (route) => {
@@ -293,6 +295,9 @@ test.describe("Editor — TopStatusBar buttons open their panels", () => {
   ];
 
   test("each chrome button opens a dialog", async ({ page }) => {
+    // Heavy: opens + closes 7 panels (each with its own exit animation) on top
+    // of CI's slow hydration. Triple the budget like the 16-panel sweep.
+    test.slow();
     const errors = await gotoEditor(page);
     const results: Record<string, "PASS" | "FAIL"> = {};
 

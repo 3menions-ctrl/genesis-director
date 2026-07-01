@@ -326,10 +326,12 @@ export default function SettingsDashboard() {
       } as ProfileRow["notification_settings"];
     }
     try {
-      const { error } = await supabase
-        .from("profiles" as never)
-        .update(effective as never)
-        .eq("id", user.id);
+      // Save via the SECURITY DEFINER RPC, NOT a direct table update: the
+      // `authenticated` role has no SELECT on profiles (revoked to close the
+      // cross-org email leak), so a filtered UPDATE `WHERE id = auth.uid()`
+      // 42501s ("permission denied for table profiles") and nothing persists.
+      // update_my_profile whitelists non-sensitive columns and ignores the rest.
+      const { error } = await supabase.rpc("update_my_profile" as never, { p_patch: effective } as never);
       if (error) throw error;
       // Update the ref synchronously so a concurrent patch sees this change.
       if (profileRef.current) profileRef.current = { ...profileRef.current, ...effective } as ProfileRow;

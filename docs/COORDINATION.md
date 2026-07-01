@@ -1,5 +1,13 @@
 # Creative-Pipeline Coordination Ledger
 
+> 🗄️ **HISTORICAL — no longer in effect.** The project has transitioned to
+> **single-owner** orchestration. The two-lane split and the "never edit the
+> other lane's files" rule below are kept for context only; pipeline work now
+> flows through ONE unified orchestrator (`hollywood-pipeline` + dispatch
+> strategy) and file ownership is no longer bifurcated. The interface contracts
+> (production_bible, video_clips columns) are still useful reference. For the
+> current design see **`docs/PIPELINE.md`** (the authoritative doc).
+
 Two agents are improving the creative output of the app in parallel. This file
 is the shared source of truth: **read it before touching anything; update the
 Status board when you start/finish a lane.** The goal is zero collisions on

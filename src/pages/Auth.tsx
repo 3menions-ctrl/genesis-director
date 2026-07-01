@@ -9,7 +9,7 @@
  * Flows handled:
  *   - Sign in (email + password)
  *   - Create account (email + password + agree-to-terms + strength meter)
- *   - OTP verification after signup (six-cell code, paste-friendly)
+ *   - OTP verification after signup (8-cell code, paste-friendly)
  *   - Resend code + "use a different email" escape hatches
  *
  * Notable upgrades vs. the prior 1,046-line version:
@@ -213,7 +213,7 @@ export default function Auth() {
 
   // ── OTP submit ─────────────────────────────────────────────────────
   const submitOtp = useCallback(async () => {
-    if (!pendingEmail || otp.length < 6) return;
+    if (!pendingEmail || otp.length < 8) return;
     setVerifying(true);
     setBanner(null);
     try {
@@ -322,7 +322,7 @@ export default function Auth() {
                       onChange={setOtp}
                       onComplete={() => { void submitOtp(); }}
                       disabled={verifying}
-                      length={6}
+                      length={8}
                     />
                   </div>
 
@@ -330,7 +330,7 @@ export default function Auth() {
                     <Button
                       type="button"
                       onClick={() => { void submitOtp(); }}
-                      disabled={verifying || otp.length < 6}
+                      disabled={verifying || otp.length < 8}
                       className="w-full h-12 rounded-xl text-[14px] font-medium"
                     >
                       {verifying ? (

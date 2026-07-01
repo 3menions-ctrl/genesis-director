@@ -144,6 +144,7 @@ const Press = lazy(() => import("./pages/Press"));
 // ExtractThumbnails removed — orphan utility with no nav entry
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Avatars = lazy(() => import("./pages/Avatars"));
+const Cast = lazy(() => import("./pages/Cast"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const VideoEditorPage = lazy(() => import("./pages/VideoEditor"));
 
@@ -687,6 +688,14 @@ const App = () => {
                         <Avatars />
                       </ProtectedRoute>
                     </RedirectBusinessToModule>
+                  </RouteContainer>
+                } />
+
+                <Route path="/cast" element={
+                  <RouteContainer fallbackMessage="Opening your cast…">
+                    <ProtectedRoute>
+                      <Cast />
+                    </ProtectedRoute>
                   </RouteContainer>
                 } />
                 

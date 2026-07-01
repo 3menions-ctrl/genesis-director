@@ -18,7 +18,7 @@ const corsHeaders = {
 
 const SEEDANCE_T2V_URL = "https://api.replicate.com/v1/models/bytedance/seedance-1-pro/predictions";
 const SEEDANCE_I2V_URL = "https://api.replicate.com/v1/models/bytedance/seedance-1-pro/predictions";
-const WAN_MODEL_URL = "https://api.replicate.com/v1/models/wan-ai/wan-2.5-t2v/predictions";
+const WAN_MODEL_URL = "https://api.replicate.com/v1/models/wan-video/wan-2.5-t2v/predictions";
 const KLING_MODEL_URL = "https://api.replicate.com/v1/models/kwaivgi/kling-v3-video/predictions";
 const REPLICATE_PREDICTIONS_URL = "https://api.replicate.com/v1/predictions";
 

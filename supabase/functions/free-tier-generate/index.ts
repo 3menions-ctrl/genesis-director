@@ -119,7 +119,7 @@ serve(async (req) => {
       });
     }
 
-    // Free engine = Wan 2.5 (wan-ai/wan-2.5-t2v). Invoked via the Replicate
+    // Free engine = Wan 2.5 (wan-video/wan-2.5-t2v). Invoked via the Replicate
     // model endpoint below (no version pin → always the latest Wan revision).
 
     // ATOMIC RESERVE (M7): the previous code read free_tier_status and THEN
@@ -161,7 +161,7 @@ serve(async (req) => {
     }
 
     // Fire the prediction on Wan 2.5 — the free engine. 5-second preview.
-    const predRes = await fetch("https://api.replicate.com/v1/models/wan-ai/wan-2.5-t2v/predictions", {
+    const predRes = await fetch("https://api.replicate.com/v1/models/wan-video/wan-2.5-t2v/predictions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${REPLICATE_API_KEY}`,

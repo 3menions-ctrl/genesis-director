@@ -5,6 +5,13 @@ import { notifyVideoStarted, notifyVideoComplete, notifyVideoFailed } from "../_
 import { priceClipCredits } from "../_shared/engines.ts";
 import { persistQualityIntent } from "../_shared/quality-post.ts";
 import { inferBoundaryType, auditClip } from "../_shared/continuity-contract.ts";
+import { enforceBreakoutScript } from "../_shared/breakout-guardrails.ts";
+import {
+  selectDispatchStrategy,
+  buildDispatchContext,
+  dispatchParallel,
+  type DispatchContext,
+} from "./dispatch/strategy.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -45,6 +52,13 @@ interface PipelineRequest {
   qualityOptions?: { upscale4k?: boolean; fps60?: boolean };
   /** All modes unified on Kling V3; 'kling' = avatar with native audio */
   videoEngine?: 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
+  /** Seedance native camera lock. Breakouts force true; otherwise user-selected.
+   *  Flows to the parallel dispatch context → generate-single-clip camera_fixed. */
+  cameraFixed?: boolean;
+  /** Explicit auto-approve opt-out of the fail-closed script-approval gate.
+   *  Parallel (seedance/breakout) engines auto-run, matching the legacy
+   *  seedance-pipeline; sequential engines keep the manual-review gate. */
+  autoApprove?: boolean;
   // Resume support
   resumeFrom?: 'qualitygate' | 'assets' | 'production' | 'postproduction';
   approvedScript?: { shots: any[] };
@@ -1129,15 +1143,17 @@ async function runPreProduction(
       {
         id: 'breakout_1',
         title: 'The Trap',
-        description: `${effectConfig.clip1Prompt}
-          
+        // GUARDRAIL (parity w/ legacy seedance-pipeline): strip IP/brand triggers +
+        // hard-clamp before Replicate so Seedance moderation (E005) doesn't reject.
+        description: enforceBreakoutScript(`${effectConfig.clip1Prompt}
+
           CRITICAL VISUAL REQUIREMENTS:
           - Character exists in confined space, trapped behind a barrier
           - Building tension: character looking directly at camera with intensity
           - ${effectConfig.lightingDescription}
           - ${effectConfig.colorDescription}
-          
-          Style: Photorealistic, 8K quality, cinematic depth of field, premium advertising production value.`,
+
+          Style: Photorealistic, 8K quality, cinematic depth of field, premium advertising production value.`),
         durationSeconds: state.clipDuration,
         mood: 'tension',
         dialogue: '', // Silent - visual buildup only
@@ -1154,16 +1170,16 @@ async function runPreProduction(
       {
         id: 'breakout_2',
         title: 'The Break',
-        description: `${effectConfig.clip2Prompt}
-          
+        description: enforceBreakoutScript(`${effectConfig.clip2Prompt}
+
           CRITICAL VISUAL REQUIREMENTS:
           - Barrier PHYSICALLY BREAKING with realistic physics
           - Fragments/shards/pieces flying with dramatic effect
           - ${effectConfig.breakLightingDescription}
           - Character emerging through the broken barrier
           - Volumetric light effects
-          
-          Style: Hollywood action movie quality, slow motion physics, 8K photorealistic, dramatic volumetric lighting.`,
+
+          Style: Hollywood action movie quality, slow motion physics, 8K photorealistic, dramatic volumetric lighting.`),
         durationSeconds: state.clipDuration,
         mood: 'action',
         dialogue: '', // Silent - action sequence
@@ -1180,16 +1196,16 @@ async function runPreProduction(
       {
         id: 'breakout_3',
         title: 'The Emergence',
-        description: `${effectConfig.clip3Prompt}
-          
+        description: enforceBreakoutScript(`${effectConfig.clip3Prompt}
+
           CRITICAL VISUAL REQUIREMENTS:
           - Character FULLY EMERGED, standing confidently
           - ${effectConfig.visualElements} as debris/fragments around them
           - Direct eye contact with viewer, commanding presence
           - ${hasDialogue ? 'Character speaking directly to camera with confidence and authority.' : 'Powerful hero presence.'}
           - ${effectConfig.colorDescription}
-          
-          Style: Premium advertising cinematography, hero lighting, aspirational quality, 8K photorealistic.`,
+
+          Style: Premium advertising cinematography, hero lighting, aspirational quality, 8K photorealistic.`),
         durationSeconds: state.clipDuration,
         mood: 'epic',
         dialogue: userDialogue, // CRITICAL: User's actual dialogue goes here
@@ -2193,6 +2209,51 @@ async function runAssetCreation(
     console.log(`[Hollywood] 🎙️ Voice generation ENABLED - Processing character dialogue...`);
     
     try {
+      // ═══ SEEDANCE COMBINED-VOICE (parity w/ legacy seedance-pipeline:743-801) ═══
+      // Seedance has NO native audio: legacy built ONE combined narration track
+      // (joined dialogue → single generate-voice call) and wrote voice_audio_url,
+      // which the post-stitch mux (fix-manifest-audio reads project.voice_audio_url)
+      // consumes. The unified per-shot path writes per-segment URLs into
+      // characterVoiceSegments but NEVER state.assets.voiceUrl, so the parallel
+      // harvest (seam ~:3375) read null → voice_audio_url null → mux muxed nothing.
+      // Generate the SINGLE combined track here (one charge, matching legacy) and
+      // set state.assets.voiceUrl. Do NOT also run the per-segment loop — that
+      // would double-charge.
+      if (request.videoEngine === 'seedance') {
+        const voiceLines = (state.script?.shots || [])
+          .map((s: any) => s.dialogue ?? s.voiceover ?? s.narration ?? null)
+          .filter((l: any): l is string => !!l && String(l).trim().length > 0);
+        if (voiceLines.length === 0) {
+          console.log(`[Hollywood] 🅿️ Seedance voice: no dialogue lines — skipping voice`);
+        } else {
+          console.log(`[Hollywood] 🅿️ Seedance combined-voice: ${voiceLines.length} lines → single track`);
+          try {
+            const voiceResult = await callEdgeFunction('generate-voice', {
+              text: voiceLines.join('\n\n'),
+              voiceId: request.voiceId,
+              projectId: state.projectId,
+              shotId: request.isBreakout ? 'breakout_voice' : 'seedance_voice',
+              characterName: (request as any).characterLock?.name,
+            });
+            if (voiceResult?.audioUrl) {
+              state.assets.voiceUrl = voiceResult.audioUrl;
+              if (voiceResult.durationMs) state.assets.voiceDuration = voiceResult.durationMs / 1000;
+              // Persist so the post-stitch mux (fix-manifest-audio) picks it up
+              // even if state is lost (resume / watchdog finalization).
+              await supabase
+                .from('movie_projects')
+                .update({ voice_audio_url: voiceResult.audioUrl })
+                .eq('id', state.projectId);
+              console.log(`[Hollywood] ✓ Seedance combined voice track: ${String(voiceResult.audioUrl).substring(0, 60)}...`);
+            } else {
+              console.warn(`[Hollywood] Seedance combined voice returned no audioUrl`);
+            }
+          } catch (vErr) {
+            console.warn(`[Hollywood] Seedance combined voice generation failed:`, vErr);
+            state.degradation.voiceGenerationFailed = true;
+          }
+        }
+      } else {
       // Build voice map for all characters in this project
       // This ensures consistent voice per character across all clips
       const characterVoiceMap: Record<string, { voiceId: string; provider: string }> = {};
@@ -2337,6 +2398,7 @@ async function runAssetCreation(
           console.log(`[Hollywood] ✓ Voice generation complete: ${successfulVoices.length} segments, ${Math.round(totalVoiceDuration/1000)}s total`);
         }
       }
+      } // end non-seedance per-segment voice branch
     } catch (err) {
       console.error(`[Hollywood] Voice generation FAILED:`, err);
       state.degradation.voiceGenerationFailed = true;
@@ -3326,12 +3388,121 @@ async function runProduction(
   }
   
   // =====================================================
-  // CALLBACK-BASED CLIP GENERATION (PREVENTS TIMEOUT)
+  // PHASE A / PHASE B SEAM — pluggable dispatch strategy.
+  // Phase A above (script, identity bible, scene images, continuity anchors,
+  // golden frame) is engine-agnostic. Phase B (how clips reach the spine) is
+  // the ONLY engine fork. Strategy is a PURE function of the resolved engine,
+  // so a resumed project (engine-lock recovered upstream) is deterministic.
+  //   • sequential (kling/veo/wan/runway/sora) → existing callback-chained loop
+  //     below, UNCHANGED.
+  //   • parallel (seedance) → batch dispatch + last_frame_image continuity +
+  //     post-mux audio (ported from the legacy seedance-pipeline onto the same
+  //     spine). Returns early; the outer `_exitClipLoopNow` guard stops this
+  //     invocation and the watchdog finishes (completion, audio mux, stitch).
+  // =====================================================
+  {
+    const _seamEngine = (request.videoEngine || 'kling') as 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
+    const _seamIsAvatar = !!request.isAvatarMode;
+    const _dispatchKind = selectDispatchStrategy(_seamEngine);
+    (state as any)._dispatchKind = _dispatchKind;
+    if (_dispatchKind === 'parallel') {
+      console.log(`[Hollywood] 🅿️ PARALLEL dispatch selected (engine=${_seamEngine})`);
+
+      // ═══ SCENE IMAGES for TEXT-TO-VIDEO seedance (parity w/ legacy) ═══
+      // hollywood's runAssetCreation only generates voice/music — it NEVER calls
+      // generate-scene-images. For a fresh NO-REFERENCE seedance project the
+      // sceneImageLookup is empty, so dispatchParallel would give every clip a
+      // null start AND null end-frame → the per-shot keyframes + last_frame_image
+      // chaining the legacy seedance-pipeline produced (seedance-pipeline:710-731,
+      // 828-871) vanish. Generate distinct per-shot keyframes here and populate
+      // the lookup BEFORE dispatch. Reference-locked (i2v/avatar) and breakout
+      // cases intentionally SHARE one image (universal fallback already filled
+      // the lookup; strategy.ts:165 nextImg!==imageUrl suppresses endImageUrl) —
+      // so skip them.
+      if (
+        !request.isBreakout &&
+        !_seamIsAvatar &&
+        !referenceImageUrl &&
+        Object.keys(sceneImageLookup).length < clips.length
+      ) {
+        try {
+          console.log(`[Hollywood][Parallel] No reference/scene images → generating ${clips.length} per-shot keyframes for last_frame chaining`);
+          // generate-scene-images destructures `scenes` (NOT `shots`) and each
+          // scene needs { sceneNumber, visualDescription, mood?, characters? }
+          // (it throws "Scenes array is required" otherwise). It returns
+          // { images: [{ sceneNumber, imageUrl, prompt }] }.
+          const scenesForImages = clips.map((c, i) => {
+            const s: any = state.script?.shots?.[i] ?? {};
+            return {
+              sceneNumber: i + 1,
+              title: s.title ?? `Scene ${i + 1}`,
+              visualDescription: s.description ?? s.visualDescription ?? c.prompt ?? `Scene ${i + 1}`,
+              mood: s.mood ?? request.mood,
+              characters: Array.isArray(s.characters) ? s.characters : undefined,
+            };
+          });
+          const imgRes = await callEdgeFunction('generate-scene-images', {
+            projectId: state.projectId,
+            userId: request.userId,
+            scenes: scenesForImages,
+            globalStyle: request.templateStyleAnchor,
+            globalEnvironment: request.templateEnvironmentLock,
+          });
+          const imgs: Array<{ sceneNumber?: number; imageUrl?: string }> = imgRes?.images ?? [];
+          let populated = 0;
+          imgs.forEach((g) => {
+            if (g?.imageUrl && typeof g.sceneNumber === 'number') {
+              sceneImageLookup[g.sceneNumber - 1] = g.imageUrl;
+              populated++;
+            }
+          });
+          console.log(`[Hollywood][Parallel] ✓ Generated ${populated} scene images for chaining`);
+        } catch (e: any) {
+          console.warn(`[Hollywood][Parallel] Scene-image generation failed (continuing T2V):`, e?.message);
+        }
+      }
+
+      const dispatchCtx: DispatchContext = buildDispatchContext({
+        clips,
+        sceneImageLookup,
+        startIndex,
+        previousLastFrameUrl,
+        accumulatedAnchors,
+        masterSceneAnchor,
+        styleAnchor,
+        goldenFrameData,
+        referenceImageUrl,
+        tierLimits,
+        videoEngine: _seamEngine,
+        isAvatarMode: _seamIsAvatar,
+        aspectRatio: (request.aspectRatio || '16:9') as '16:9' | '9:16' | '1:1',
+        clipDuration: state.clipDuration || request.clipDuration || 5,
+        clipCount: clips.length,
+        // Breakout 4th-wall shots REQUIRE a locked camera (no drift); otherwise
+        // honor the explicit user-selected cameraFixed flag (parity w/ legacy
+        // seedance-pipeline:429). Dropping request.cameraFixed silently forced
+        // every non-breakout seedance clip to camera_fixed=false.
+        cameraFixed: request.isBreakout ? true : (request.cameraFixed ?? false),
+        includeVoice: !!request.includeVoice,
+        includeMusic: !!request.includeMusic,
+        // Harvest audio that the (engine-agnostic) assets stage already generated.
+        voiceAudioUrl: (state.assets as any)?.voiceUrl || null,
+        musicAudioUrl: (state.assets as any)?.musicUrl || null,
+        scriptShots: (state.script?.shots || []) as any[],
+        projectId: state.projectId,
+        userId: request.userId,
+      });
+      return await dispatchParallel(dispatchCtx, state, request, { supabase, callEdgeFunction });
+    }
+  }
+
+  // =====================================================
+  // CALLBACK-BASED CLIP GENERATION (PREVENTS TIMEOUT) — SEQUENTIAL strategy
   // Instead of looping through all clips in one function call,
   // we generate only the first pending clip and let callback chaining handle the rest.
   // This prevents edge function timeout by limiting each invocation to ~90s max.
   // =====================================================
-  
+
   // Generate clips with callback chaining - each clip triggers the next via continue-production
   for (let i = startIndex; i < clips.length; i++) {
     const clip = clips[i];
@@ -6134,10 +6305,14 @@ async function executePipelineInBackground(
     if (stages.includes('preproduction') && resumeStageIndex < 0) {
       state = await runPreProduction(request, state, supabase);
       
-      // AUTO-APPROVE: Scripts are automatically approved and pipeline continues
-      // NOTE: Set requireApproval=true in request to pause for manual approval
-      const requireManualApproval = (request as any).requireApproval === true;
-      
+      // FAIL-CLOSED APPROVAL GATE: every cinematic run pauses for review before
+      // spending render credits UNLESS an explicit, trusted autoApprove===true is
+      // passed. This closes the Crossover/Template/Studio spend-leak where a
+      // forgotten requireApproval flag let renders proceed silently. The opt-out
+      // is deliberate and server-checked; the legacy requireApproval flag no
+      // longer gates anything (pausing is now the default).
+      const requireManualApproval = (request as any).autoApprove !== true;
+
       if (requireManualApproval && !resumeFrom) {
         console.log(`[Hollywood] Manual approval requested - pausing for script approval...`);
         
@@ -6666,30 +6841,27 @@ serve(async (req) => {
       }
     }
 
-    // ═══ ENGINE GUARD (Seedance excluded — it has its own orchestrator) ═══
+    // ═══ ENGINE GUARD (now UNIVERSAL — Seedance admitted) ═══
     // hollywood-pipeline is the full-movie orchestrator: script → scene-image →
-    // per-clip dispatch (via generate-single-clip) → sequential frame-chained
-    // continuation (via continue-production) → stitch. The per-clip dispatcher
-    // (generate-single-clip) and the continuation chain are ENGINE-AGNOSTIC —
-    // they natively support Kling, Wan, Veo, Runway and Sora (each with its own
-    // tuned optimizer, start/end-frame threading and audio handling). This
-    // pipeline's credit table (getCreditsForClip) already prices all of them.
-    // The ONLY engine that must NOT enter here is Seedance, which dispatches all
-    // clips in parallel from its own dedicated `seedance-pipeline`. Accepting
-    // the cinema engines here is required so the studio's engine picker
-    // (Veo/Runway/Sora) actually renders the SELECTED engine instead of 400ing.
+    // per-clip dispatch (via generate-single-clip) → frame-chained continuation
+    // → stitch. The per-clip dispatcher (generate-single-clip) and the
+    // continuation chain are ENGINE-AGNOSTIC — they natively support Kling, Wan,
+    // Veo, Runway, Sora AND Seedance. Seedance no longer has a separate pipeline:
+    // it runs here via the PARALLEL dispatch strategy (Promise.allSettled batch +
+    // last_frame_image continuity + post-mux audio) selected at the Phase A/B
+    // seam. The allow-list now exists ONLY to reject genuinely-unknown engine
+    // slugs (a 7th engine is data, not a new pipeline).
     const incomingEngine = ((request as any).videoEngine ?? 'kling') as string;
-    const ALLOWED_HOLLYWOOD_ENGINES = ['kling', 'wan', 'veo', 'runway', 'sora'];
+    const ALLOWED_HOLLYWOOD_ENGINES = ['kling', 'wan', 'veo', 'runway', 'sora', 'seedance'];
     if (!ALLOWED_HOLLYWOOD_ENGINES.includes(incomingEngine)) {
       console.error(
-        `[Hollywood] ❌ ENGINE REJECTED: hollywood-pipeline supports ${ALLOWED_HOLLYWOOD_ENGINES.join('/')}, got "${incomingEngine}". ` +
-        `Seedance must route through seedance-pipeline.`
+        `[Hollywood] ❌ ENGINE REJECTED: hollywood-pipeline supports ${ALLOWED_HOLLYWOOD_ENGINES.join('/')}, got "${incomingEngine}".`
       );
       return new Response(
         JSON.stringify({
           success: false,
           error: 'ENGINE_NOT_SUPPORTED',
-          message: `hollywood-pipeline supports ${ALLOWED_HOLLYWOOD_ENGINES.join('/')}. Received engine "${incomingEngine}". Use seedance-pipeline for Seedance.`,
+          message: `hollywood-pipeline supports ${ALLOWED_HOLLYWOOD_ENGINES.join('/')}. Received unknown engine "${incomingEngine}".`,
           engine: incomingEngine,
           supportedEngines: ALLOWED_HOLLYWOOD_ENGINES,
         }),

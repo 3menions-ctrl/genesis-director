@@ -1,0 +1,25 @@
+# Cog manifest — Breakout VFX (CPU compositor stage).
+#
+# Deliberately CPU-only: this model applies UI-chrome + glass-shatter VFX to an
+# already-generated clip. It does NOT run the diffusion generator, so it needs
+# no GPU and no torch/diffusers — keeping cold-start and per-run cost low.
+#
+# Build + push:
+#   cd python/breakout_pipeline
+#   cog push r8.im/<your-account>/breakout-vfx
+build:
+  gpu: false
+  python_version: "3.11"
+  system_packages:
+    - "ffmpeg"
+  python_packages:
+    - "numpy>=1.26.0"
+    - "opencv-python-headless>=4.10.0.84"
+    - "scipy>=1.13.0"
+    - "Pillow>=10.3.0"
+    - "imageio>=2.34.0"
+    - "imageio-ffmpeg>=0.4.9"
+    - "av>=12.0.0"
+    - "ffmpeg-python>=0.2.0"
+    - "einops>=0.7.0"
+predict: "predict.py:Predictor"

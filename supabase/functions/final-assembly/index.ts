@@ -121,7 +121,7 @@ serve(async (req) => {
     // Step 1: Validate all clips are complete
     const { data: project, error: projectError } = await supabase
       .from('movie_projects')
-      .select('id, title, status, pending_video_tasks, mode')
+      .select('id, title, status, pending_video_tasks, mode, pipeline_state')
       .eq('id', projectId)
       .maybeSingle();
 
@@ -160,6 +160,50 @@ serve(async (req) => {
     clips?.forEach((clip, i) => {
       console.log(`[FinalAssembly] Clip ${i + 1}: ${clip.video_url?.substring(0, 60)}... (${clip.duration_seconds}s)`);
     });
+
+    // ── EFFECTS PHASE: Breakout VFX (post-generation, pre-stitch) ──────────────
+    // For breakout / Crossover projects, run each generated clip through the CPU
+    // compositor (apply-breakout-vfx → Breakout VFX Cog) to paint the digital-UI
+    // chrome + glass-shatter before stitching. TRIPLE-SAFE so this can never break
+    // a render: (1) inert unless BREAKOUT_VFX_ENABLED='true', (2) only for projects
+    // whose pipeline_state carries breakout params, (3) the stage itself fail-opens
+    // to the original clip, and this whole block is wrapped to never block stitch.
+    try {
+      const bx = (project.pipeline_state as Record<string, unknown> | null)?.breakout as
+        | { isBreakout?: boolean; platform?: string | null; templateSlug?: string | null; chromeKind?: string | null; recipeSlug?: string | null }
+        | undefined;
+      if (Deno.env.get('BREAKOUT_VFX_ENABLED') === 'true' && bx?.isBreakout && clips?.length) {
+        console.log(`[FinalAssembly] Breakout VFX enabled — compositing ${clips.length} clip(s)`);
+        for (const clip of clips) {
+          if (!clip.video_url) continue;
+          try {
+            const r = await fetch(`${supabaseUrl}/functions/v1/apply-breakout-vfx`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
+              body: JSON.stringify({
+                clipUrl: clip.video_url,
+                chromeKind: bx.chromeKind ?? bx.platform ?? 'tiktok',
+                recipeSlug: bx.recipeSlug ?? bx.templateSlug ?? '',
+                templateSlug: bx.templateSlug ?? '',
+                aspect: aspectRatio ?? '9:16',
+                projectId,
+                shotId: String(clip.shot_index ?? clip.id),
+              }),
+            });
+            const out = r.ok ? await r.json().catch(() => null) : null;
+            if (out?.applied && out.url && out.url !== clip.video_url) {
+              await supabase.from('video_clips').update({ video_url: out.url }).eq('id', clip.id);
+              clip.video_url = out.url; // keep the in-memory list (used downstream) in sync
+              console.log(`[FinalAssembly] Breakout VFX applied to clip ${clip.shot_index ?? clip.id}`);
+            }
+          } catch (e) {
+            console.warn(`[FinalAssembly] Breakout VFX clip ${clip.id} failed (passthrough):`, e instanceof Error ? e.message : String(e));
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[FinalAssembly] Breakout VFX stage skipped (non-fatal):', e instanceof Error ? e.message : String(e));
+    }
 
     // Step 1.5 + 2 (MERGED): ATOMIC stitch claim. A single conditional UPDATE
     // is the race guard — only ONE concurrent invocation can flip a

@@ -85,6 +85,17 @@ export function useWorldChat() {
           setMessages((prev) => [...prev, m].slice(-MAX_KEPT));
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "world_chat" },
+        (payload) => {
+          // REPLICA IDENTITY FULL → payload.old carries the deleted row's id.
+          const old = payload.old as Partial<WorldChatMessage>;
+          if (old?.id == null) return;
+          seen.current.delete(old.id);
+          setMessages((prev) => prev.filter((m) => m.id !== old.id));
+        }
+      )
       .on("presence", { event: "sync" }, () => {
         const state = ch.presenceState() as Record<string, unknown[]>;
         setOnlineCount(Object.keys(state).length);
@@ -136,5 +147,30 @@ export function useWorldChat() {
     [user]
   );
 
-  return { messages, loading, sending, send, uploadImage, canSend: !!user, onlineCount };
+  /** Delete one of the caller's own messages (RLS enforces ownership). */
+  const deleteMessage = useCallback(
+    async (id: number): Promise<SendResult> => {
+      if (!user) return { ok: false, error: "auth_required" };
+      const removed = messages.find((m) => m.id === id);
+      // Optimistic remove — realtime DELETE will reconcile for everyone else.
+      setMessages((prev) => prev.filter((m) => m.id !== id));
+      seen.current.delete(id);
+      const { error } = await supabase.from("world_chat" as never).delete().eq("id", id);
+      if (error) {
+        if (removed) setMessages((prev) => [...prev, removed].sort((a, b) => a.id - b.id));
+        return { ok: false, error: error.message };
+      }
+      // Best-effort: drop the attached image from storage too.
+      const marker = "/storage/v1/object/public/world-chat/";
+      const at = removed?.image_url?.indexOf(marker) ?? -1;
+      if (removed?.image_url && at >= 0) {
+        const path = decodeURIComponent(removed.image_url.slice(at + marker.length));
+        void supabase.storage.from(CHAT_BUCKET).remove([path]);
+      }
+      return { ok: true };
+    },
+    [user, messages]
+  );
+
+  return { messages, loading, sending, send, uploadImage, deleteMessage, canSend: !!user, onlineCount };
 }

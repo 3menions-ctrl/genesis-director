@@ -7,6 +7,7 @@ import {
 } from "../_shared/network-resilience.ts";
 import { checkMultipleContent } from "../_shared/content-safety.ts";
 import { forceBreakoutEngine } from "../_shared/breakout-guardrails.ts";
+import { buildProductionRequest, resolveHandlerKey, type HandlerKey } from "../_shared/production-request.ts";
 import { priceClipCredits } from "../_shared/engines.ts";
 
 const corsHeaders = {
@@ -568,16 +569,35 @@ serve(async (req) => {
       await supabase.from('movie_projects').update({ status: 'generating' }).eq('id', projectId);
     }
 
-    // Route based on mode
-    switch (mode) {
-      case 'avatar':
-        // SEEDANCE AVATARS: route via the cinematic avatar path, which now
-        // dispatches to the UNIFIED hollywood-pipeline (parallel dispatch
-        // strategy) — NOT the legacy seedance-pipeline. generate-avatar-direct
-        // is Kling-only and would silently fall back, so we avoid it.
-        if (videoEngine === 'seedance') {
-          console.log('[ModeRouter] Avatar + Seedance → hollywood-pipeline (parallel strategy) via cinematic avatar path');
-          return await handleAvatarCinematicMode({
+    // Route based on the canonical production_request (normalizer-driven).
+    // buildProductionRequest + resolveHandlerKey are the single source of truth
+    // for which handler runs — this ACTIVATES _shared/production-request.ts and
+    // replaces the raw `switch (mode)` selection (docs/PIPELINE.md keystone).
+    // The legacy per-mode selection is kept ONLY as a safety fallback and is
+    // removed once prod logs confirm zero mismatches.
+    const _pr = buildProductionRequest({ mode, videoEngine, isBreakout, isAvatarMode: mode === 'avatar' });
+    let handlerKey = resolveHandlerKey(_pr);
+    const legacyKey: HandlerKey =
+      mode === 'avatar'
+        ? (videoEngine === 'seedance' ? 'handleAvatarCinematicMode' : 'handleAvatarDirectMode')
+        : mode === 'video-to-video'
+          ? 'handleStyleTransferMode'
+          : mode === 'motion-transfer'
+            ? 'handleMotionTransferMode'
+            : 'handleCinematicMode';
+    if (handlerKey !== legacyKey) {
+      console.error(`[ModeRouter] normalizer/legacy dispatch MISMATCH — normalizer=${handlerKey} legacy=${legacyKey} (mode=${mode}, engine=${videoEngine}); using legacy`);
+      handlerKey = legacyKey;
+    } else {
+      console.log(`[ModeRouter] ✓ dispatch resolved via normalizer: ${handlerKey} (mode=${mode}, engine=${videoEngine})`);
+    }
+
+    switch (handlerKey) {
+      case 'handleAvatarCinematicMode':
+        // SEEDANCE AVATARS: cinematic avatar path → UNIFIED hollywood-pipeline
+        // (parallel dispatch strategy), NOT the legacy seedance-pipeline.
+        console.log('[ModeRouter] Avatar + Seedance → hollywood-pipeline (parallel strategy) via cinematic avatar path');
+        return await handleAvatarCinematicMode({
             projectId: projectId!,
             userId,
             concept: prompt,
@@ -595,11 +615,10 @@ serve(async (req) => {
             videoEngine,
             supabase,
           });
-        }
-        // AVATAR DIRECT PATH - Bypasses Hollywood complexity for avatar videos
-        // User's exact script → Kling V3 with native audio
-        // Scene description → Background generation (if provided)
-        // Now supports multi-clip generation via clipCount parameter
+
+      case 'handleAvatarDirectMode':
+        // AVATAR DIRECT PATH — verbatim script → Kling V3 native audio.
+        // Bypasses Hollywood complexity; supports multi-clip via clipCount.
         return await handleAvatarDirectMode({
           projectId: projectId!,
           userId,
@@ -617,9 +636,8 @@ serve(async (req) => {
           supabase,
         });
 
-      case 'video-to-video':
-        // STYLE TRANSFER: Direct path - no script needed
-        // Apply style to source video in single pass
+      case 'handleStyleTransferMode':
+        // STYLE TRANSFER: single-pass effect, no script.
         return await handleStyleTransferMode({
           projectId: projectId!,
           userId,
@@ -629,9 +647,8 @@ serve(async (req) => {
           supabase,
         });
 
-      case 'motion-transfer':
-        // MOTION TRANSFER: Direct path - no script needed
-        // Extract pose from source, apply to target
+      case 'handleMotionTransferMode':
+        // MOTION TRANSFER: single-pass effect, no script.
         return await handleMotionTransferMode({
           projectId: projectId!,
           userId,
@@ -641,9 +658,7 @@ serve(async (req) => {
           supabase,
         });
 
-      case 'text-to-video':
-      case 'image-to-video':
-      case 'b-roll':
+      case 'handleCinematicMode':
       default: {
         // VALIDATION: image-to-video requires an image
         if (mode === 'image-to-video' && !imageUrl) {

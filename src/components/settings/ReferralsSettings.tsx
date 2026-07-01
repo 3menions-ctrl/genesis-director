@@ -58,7 +58,7 @@ export const ReferralsSettings = memo(forwardRef<HTMLDivElement, Record<string, 
       return () => { cancelled = true; };
     }, [user]);
 
-    const link = code ? `${window.location.origin}/auth?ref=${code}` : '';
+    const link = code ? `${window.location.origin}/auth?mode=signup&ref=${code}` : '';
 
     const copy = async (text: string, label: string) => {
       try {

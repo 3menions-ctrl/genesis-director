@@ -8,6 +8,13 @@ import {
 import { checkMultipleContent } from "../_shared/content-safety.ts";
 import { forceBreakoutEngine } from "../_shared/breakout-guardrails.ts";
 import { priceClipCredits } from "../_shared/engines.ts";
+import {
+  buildProductionRequest,
+  resolveEngine,
+  resolveOperation,
+  resolveAudioStrategy,
+  resolveDispatchStrategy,
+} from "../_shared/production-request.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -535,6 +542,40 @@ serve(async (req) => {
     }
 
     // Route based on mode
+    // ── STAGE 1: canonical normalization (additive · docs/PIPELINE.md §5/§6) ──
+    // Every surface's raw payload is normalized into ONE production_request here,
+    // in ONE place, instead of mode/engine/operation being re-derived per
+    // handler. v1 is OBSERVE-ONLY: the switch below still dispatches unchanged;
+    // this runs the normalizer at runtime and logs the resolved request so we can
+    // confirm parity in prod before Stage 2 routes the handlers through it.
+    // Wrapped so a normalizer bug can NEVER affect dispatch.
+    try {
+      const pr = buildProductionRequest(request, { userId, projectId });
+      const eng = resolveEngine(pr);
+      const op = resolveOperation(pr);
+      console.log('[ModeRouter] 📐 production_request', JSON.stringify({
+        mode: pr.mode,
+        engine: eng,
+        scriptGenerate: pr.script.generate,
+        operation: op.operation,
+        executionLane: op.executionLane,
+        audio: resolveAudioStrategy(pr),
+        dispatch: resolveDispatchStrategy(eng),
+        breakout: pr.breakout.isBreakout,
+        gate: pr.gate,
+      }));
+      // PARITY CANARY (Stage 2 validation, observe-only): the normalizer's engine
+      // MUST equal the engine the live code actually persists/dispatches. A
+      // mismatch is the signal that it is NOT yet safe to make the normalizer
+      // load-bearing on the dispatch/spend path. Log only — never alter behavior.
+      // (docs/PIPELINE.md §6 "each stage ships behind validation".)
+      if (eng !== persistedEngine) {
+        console.warn(`[ModeRouter] ⚠️ engine-parity MISMATCH: normalizer=${eng} vs persisted=${persistedEngine} (mode=${pr.mode}, breakout=${pr.breakout.isBreakout}) — do NOT cut over until this is 0`);
+      }
+    } catch (e) {
+      console.error('[ModeRouter] production_request normalization failed (non-fatal):', e instanceof Error ? e.message : String(e));
+    }
+
     switch (mode) {
       case 'avatar':
         // SEEDANCE AVATARS: route via the cinematic avatar path, which now

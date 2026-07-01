@@ -92,6 +92,23 @@ needs before it can be safely done.
   consume it in mode-router. Alternatively drop the client param if crossover
   analytics is shelved.
 
+## Batch 5 — avatar webhook race (P1-5) — DEFERRED (concurrency, needs live validation)
+
+### 10. `replicate-webhook` avatar-async stale-snapshot race + 50-project cap
+- **What's wrong:** `handleAvatarAsyncPrediction` mutates and writes back a stale
+  in-memory `pending_video_tasks` snapshot and computes `allDone` from it, so
+  concurrent webhooks are last-writer-wins (a sibling's completed clip can be
+  clobbered, or `allDone` never flips → stitch never triggers). The lookup also
+  scans only 50 projects with pending tasks.
+- **Why deferred:** the fix is an atomic re-read / `upsert_video_clip`-style
+  transaction inside the hottest webhook path that EVERY render depends on.
+  Getting concurrency right is unverifiable without a live multi-prediction avatar
+  job firing overlapping webhooks — shipping it blind risks destabilizing all
+  renders. (Same class as resume-avatar #7 / P1-8.)
+- **Needs:** a dev/staging multi-clip avatar render with overlapping webhook
+  delivery to validate the atomic re-read end-to-end; key the lookup by
+  prediction id rather than a capped scan.
+
 ### 7. `resume-avatar-pipeline` async-model rewrite
 - **What's wrong (repo):** only understands the legacy single
   `pipeline_state.predictionId`; throws for the modern

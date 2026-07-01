@@ -35,6 +35,10 @@ const PUBLIC_EXACT: ReadonlySet<string> = new Set<string>([
   "/breakthrough-lab",
   "/films",
   "/pipeline-preview",
+  // Public community showcase — read-only grid of published reels (anon RLS:
+  // is_taken_down=false only). Indexable discovery surface; every card links to
+  // a public /r/:id. No private data, no writes.
+  "/discover",
   "/editor/demo", // synthetic buildDemoProject() sandbox — no Supabase/auth/user data; CI + E2E editor entrypoint. Exact match keeps real /editor/:id gated.
 
   // ── Content marketing / support ────────────────────────────

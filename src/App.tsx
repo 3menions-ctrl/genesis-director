@@ -170,6 +170,7 @@ const VideoEditorPage = lazy(() => import("./pages/VideoEditor"));
 // Canonical surfaces on Foundation design. Other routes redirect into these.
 const Library = lazy(() => import("./pages/Library"));
 const Reel = lazy(() => import("./pages/Reel"));
+const Discover = lazy(() => import("./pages/Discover"));
 const Account = lazy(() => import("./pages/Account"));
 
 // Standalone creation-adjacent surfaces — restored after the earlier merge
@@ -389,7 +390,11 @@ const App = () => {
                   </RouteContainer>
                 } />
                 {/* /discover → /search is the natural hub-discovery path now */}
-                <Route path="/discover" element={<Navigate to="/search" replace />} />
+                <Route path="/discover" element={
+                  <RouteContainer fallbackMessage="Loading Discover…">
+                    <Discover />
+                  </RouteContainer>
+                } />
                 <Route path="/search" element={
                   <RouteContainer fallbackMessage="Loading search…">
                     <AppShell><SearchHub /></AppShell>

@@ -35,6 +35,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { EditorProject } from "@/lib/editor/types";
 import { flushNow } from "@/lib/editor/document-store";
+import { isDemoId } from "@/lib/editor/demoProject";
 
 interface Props {
   open: boolean;
@@ -133,6 +134,16 @@ export function SaveDialog({ open, onClose, project, onOpenExport }: Props) {
   //             drives so users don't have to traverse a second screen.
   const handleSave = async (publishAfter = false) => {
     if (!project) return;
+    // The /editor/demo project is synthetic and intentionally NOT
+    // persistable (usePersistence early-returns on it). Short-circuit
+    // before any DB write so Save surfaces a friendly read-only notice
+    // instead of the generic "Couldn't save" error from the blocked
+    // movie_projects update.
+    if (isDemoId(project.id)) {
+      onClose();
+      toast.message("This is a read-only demo — start your own project to save your edits.");
+      return;
+    }
     if (!title.trim()) { toast.error("Give your video a title"); return; }
     setPhase("saving");
     try {

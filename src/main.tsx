@@ -33,6 +33,11 @@ import {
 // / JWTs before events leave the browser.
 import { bootObservability } from "./lib/observability";
 bootObservability();
+// Prod-safe crash/error telemetry → error_reports. Runs in prod (unlike the
+// dev-only DiagnosticsLogger). Includes an OOM heartbeat that captures iOS
+// Safari renderer crashes (which window.onerror can't see).
+import { initCrashReporter } from "./lib/crashReporter";
+initCrashReporter();
 // PostHog product analytics backbone (no-op until VITE_POSTHOG_KEY is set).
 import { initPostHog } from "./admin/analytics/posthog";
 initPostHog();

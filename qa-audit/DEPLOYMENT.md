@@ -45,5 +45,23 @@ already deployed above.
 - P1-5 avatar webhook race, resume-avatar rewrite, crossover slug, timeline-render scenes[].
 
 ## Operational
-- P0-1 backfill (`scripts/backfill-durable-video-urls.mjs`) still not run — repairs films whose
-  URLs were stored before the forward fix. Run against prod after the merge (creds available).
+- **P0-1 backfill — DONE (2026-07-01).** Ran against prod: 4 films had expiring URLs;
+  **3 repaired** to durable public URLs (verified `object/public`), **1** (`aab5ab89…`) has no
+  stored master → flagged `needs_restitch` in `pending_video_tasks` (re-render to recover).
+
+## Autonomous session close (2026-07-01) — final status
+- ✅ **DB P1-20** applied + verified in prod.
+- ✅ **12 edge functions** deployed to prod (boot-verified).
+- ✅ **Durable-URL backfill** applied (3/4 repaired; 1 flagged for re-stitch).
+- ✅ **Client fixes → PR [#191]** opened (`qa-remediation-batch` → `main`).
+  **CONFLICTS** with parallel remediation on `main` (e.g. another branch also fixed the 24h URL) —
+  merge needs **human conflict resolution**; auto-merging would risk reverting parallel work.
+- ⚠️ **Discovered a shared/active worktree**: branch had switched to `feat/public-reel-shares`
+  with external uncommitted WIP (a "public `/r/` shares" feature, ~P2-17). Left untouched +
+  restored; a backup is in `git stash`.
+- ❌ **`zombie-cleanup` cron — BLOCKED**: the function requires `CRON_SECRET` (x-cron-secret);
+  that secret's value isn't retrievable, so I can't invoke/schedule it. The watchdog/zombie CODE
+  fix is deployed; scheduling is a ~2-min dashboard task (add a pg_cron job with the cron secret).
+- ⏭️ **Still deferred** (need product decisions / core-RPC changes / live validation — NOT safe
+  to do blind): photo idempotency (`deduct_credits`), free-tier delivery, P1-5 webhook race,
+  resume-avatar rewrite, crossover slug, timeline-render `scenes[]`.

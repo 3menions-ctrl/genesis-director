@@ -82,15 +82,9 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
           .eq('id', user.id)
           .maybeSingle();
         if (prof) setTrackingOptedOut(prof.tracking_opted_out ?? false);
-        // Leaderboards are removed product-wide; force-hide regardless of stored pref.
-        const { data: gam } = await supabase
-          .from('user_gamification')
-          .select('hide_from_leaderboard')
-          .eq('user_id', user.id)
-          .maybeSingle();
-        if (gam?.hide_from_leaderboard === false) {
-          await supabase.from('user_gamification').update({ hide_from_leaderboard: true }).eq('user_id', user.id);
-        }
+        // (Removed a dead force-hide write to user_gamification — leaderboards
+        // are gone product-wide, and `authenticated` has no UPDATE grant on that
+        // table, so the write always 42501'd and was swallowed. No-op removed.)
       } catch (e) {
         console.error('Failed to load privacy prefs:', e);
       } finally {

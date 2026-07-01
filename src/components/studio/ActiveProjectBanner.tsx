@@ -1,12 +1,14 @@
 import { useState, useEffect, memo, forwardRef, useRef, useCallback } from 'react';
 import { useNavigationWithLoading } from '@/components/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Loader2, Clock, Film, ArrowRight, X } from 'lucide-react';
+import { Play, Loader2, Clock, Film, ArrowRight, X, Ban } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { SafeComponent } from '@/components/ui/error-boundary';
+import { confirmAsync } from '@/components/ui/global-confirm';
+import { toast } from 'sonner';
 
 interface ActiveProject {
   id: string;
@@ -30,7 +32,8 @@ const ActiveProjectBannerInner = memo(forwardRef<HTMLDivElement, ActiveProjectBa
   const [activeProject, setActiveProject] = useState<ActiveProject | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDismissed, setIsDismissed] = useState(false);
-  
+  const [cancelling, setCancelling] = useState(false);
+
   // Navigation guard for safe async operations
   const isMountedRef = useRef(true);
   
@@ -42,6 +45,36 @@ const ActiveProjectBannerInner = memo(forwardRef<HTMLDivElement, ActiveProjectBa
   const safeSetIsLoading = useCallback((value: boolean) => {
     if (isMountedRef.current) setIsLoading(value);
   }, []);
+
+  // Cancel the in-progress render. Delegates to the proven cancel-project edge
+  // function, which cancels the Replicate predictions, stops all background
+  // processing, and refunds any unused credits. Owner-scoped server-side.
+  const handleCancel = useCallback(async () => {
+    if (!activeProject || cancelling) return;
+    const ok = await confirmAsync({
+      title: 'Cancel this render?',
+      description: 'This stops the video generation and refunds any unused credits. It cannot be undone.',
+      confirmLabel: 'Cancel render',
+      cancelLabel: 'Keep rendering',
+      destructive: true,
+    });
+    if (!ok) return;
+    setCancelling(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('cancel-project', {
+        body: { projectId: activeProject.id },
+      });
+      if (error) throw new Error(error.message || 'Failed to cancel');
+      if (!data?.success) throw new Error(data?.error || 'Cancellation failed');
+      toast.success('Render cancelled — unused credits were refunded.');
+      safeSetActiveProject(null);
+      setIsDismissed(true);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to cancel the render.');
+    } finally {
+      if (isMountedRef.current) setCancelling(false);
+    }
+  }, [activeProject, cancelling, safeSetActiveProject]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -255,6 +288,19 @@ const ActiveProjectBannerInner = memo(forwardRef<HTMLDivElement, ActiveProjectBa
               <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
             </Button>
             
+            <Button
+              onClick={handleCancel}
+              disabled={cancelling}
+              variant="ghost"
+              className="font-light tracking-wide px-4 py-2.5 rounded-full gap-2 text-white/50 hover:text-white/90 hover:bg-white/[0.06]"
+              title="Cancel this render and refund unused credits"
+            >
+              {cancelling
+                ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
+                : <Ban className="w-4 h-4" strokeWidth={1.5} />}
+              Cancel
+            </Button>
+
             <button
               onClick={() => setIsDismissed(true)}
               className="p-2 rounded-full hover:bg-glass-active transition-all duration-300 text-white/40 hover:text-white/70"

@@ -75,6 +75,7 @@ import {
 } from "@/lib/design-system";
 import { GlassButton, GlassPanel } from "@/components/foundation/Floating";
 import { PublicReelCTA } from "@/components/reel/PublicReelCTA";
+import { confirmAsync } from "@/components/ui/global-confirm";
 
 interface ReelData {
   id: string;
@@ -199,6 +200,7 @@ export default function Reel() {
   // sequence with their effects applied live. Empty → single-file path.
   const [timelineClips, setTimelineClips] = useState<PlayerClip[]>([]);
   const [downloading, setDownloading] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -409,6 +411,37 @@ export default function Reel() {
   // only ever a public/published reel here; we show a read-only view (no
   // reactions/comments, which need auth) capped with a signup CTA.
   const isAnon = !user;
+
+  // ── Cancel an in-progress render ──────────────────────────────────
+  // Owner-only. Delegates to the proven cancel-project edge function, which
+  // cancels the Replicate predictions, stops background processing, and refunds
+  // any unused credits. Ownership is also enforced server-side.
+  const handleCancelRender = async () => {
+    if (!reel || cancelling) return;
+    const ok = await confirmAsync({
+      title: "Cancel this render?",
+      description:
+        "This stops the video generation and refunds any unused credits. It cannot be undone.",
+      confirmLabel: "Cancel render",
+      cancelLabel: "Keep rendering",
+      destructive: true,
+    });
+    if (!ok) return;
+    setCancelling(true);
+    try {
+      const { data, error: cancelErr } = await supabase.functions.invoke("cancel-project", {
+        body: { projectId: reel.id },
+      });
+      if (cancelErr) throw new Error(cancelErr.message || "Failed to cancel");
+      if (!data?.success) throw new Error(data?.error || "Cancellation failed");
+      toast.success("Render cancelled — unused credits were refunded.");
+      navigate("/library");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to cancel the render.");
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   // ── Download ─────────────────────────────────────────────────────
   // Fetch the video as a blob and save it. A plain <a download> on a
@@ -700,6 +733,25 @@ export default function Reel() {
                   <p className={cn(TYPE_EYEBROW, "text-current")}>
                     Still rendering…
                   </p>
+                  {isOwner && (
+                    <button
+                      onClick={() => void handleCancelRender()}
+                      disabled={cancelling}
+                      className={cn(
+                        TYPE_META,
+                        "mt-4 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5",
+                        "text-muted-foreground/60 transition-colors hover:text-foreground",
+                        "hover:bg-[hsl(var(--foreground)/0.06)] disabled:opacity-50",
+                      )}
+                    >
+                      {cancelling ? (
+                        <Loader2 className="h-3 w-3 animate-spin" strokeWidth={1.5} />
+                      ) : (
+                        <AlertCircle className="h-3 w-3" strokeWidth={1.5} />
+                      )}
+                      Cancel render
+                    </button>
+                  )}
                 </div>
               </div>
             )}

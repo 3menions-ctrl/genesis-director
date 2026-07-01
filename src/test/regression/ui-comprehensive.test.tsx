@@ -710,8 +710,11 @@ describe('Component Contracts', () => {
   it('AccountSettings has email change and deactivation', () => {
     const content = readFile('src/components/settings/AccountSettings.tsx');
     expect(content).toContain('handleEmailChange');
-    // Deactivation flow now lives at /settings/deactivate (see project memory).
-    expect(content).toContain('/settings/deactivate');
+    // P2-5: deactivation is now performed INLINE (writes profiles.deactivated_at
+    // + signs out). It previously navigated to a redirect-only sub-page that
+    // App.tsx sends straight back — a dead end where nothing happened.
+    expect(content).toContain('handleDeactivate');
+    expect(content).toContain('deactivated_at');
   });
 
   it('SignOutDialog uses controlled state pattern', () => {

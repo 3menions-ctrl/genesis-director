@@ -19,21 +19,18 @@ import type {
   EditorTake,
 } from "./types";
 
-// Public sample MP4s that actually return 200 (the previous Google
-// commondatastorage bucket started 403-ing — confirmed via curl in
-// June 2026). Each clip in the demo cycles through these so the
-// player has a real video to play. media.w3.org URLs are stable and
-// support range requests for scrub.
+// Same-origin sample clips bundled in /public, so the demo plays without
+// reaching any external host. The previous media.w3.org / w3schools /
+// test-videos.co.uk URLs are blocked by our connect-src CSP (vercel.json) —
+// they produced a wall of CSP console errors that broke the editor-demo E2E
+// (which asserts a zero console-error budget). Served from the app origin,
+// these are covered by CSP `'self'` for both connect-src and media-src, so no
+// CSP rule change is needed. Each clip cycles through the list.
 const PUBLIC_SAMPLES = [
-  "https://media.w3.org/2010/05/bunny/trailer.mp4",
-  "https://media.w3.org/2010/05/sintel/trailer.mp4",
-  "https://media.w3.org/2010/05/video/movie_300.mp4",
-  "https://www.w3schools.com/html/mov_bbb.mp4",
-  "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4",
-  "https://media.w3.org/2010/05/bunny/trailer.mp4",
-  "https://media.w3.org/2010/05/sintel/trailer.mp4",
-  "https://media.w3.org/2010/05/video/movie_300.mp4",
-  "https://www.w3schools.com/html/mov_bbb.mp4",
+  "/hoppy-blink.mp4",
+  "/mascots-anim/indie-fox-rogue.webm",
+  "/mascots-anim/indie-robot.webm",
+  "/mascots-anim/cereal-tiger.webm",
 ];
 
 interface ClipSeed {

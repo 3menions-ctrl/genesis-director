@@ -318,7 +318,7 @@ export default function Profile() {
       if (upErr) throw upErr;
       const { data: pub } = supabase.storage.from(bucket).getPublicUrl(path);
       const col = kind === "cover" ? "cover_url" : "avatar_url";
-      const { error: setErr } = await supabase.from("profiles").update({ [col]: pub.publicUrl }).eq("id", user.id);
+      const { error: setErr } = await supabase.rpc("update_my_profile" as never, { p_patch: { [col]: pub.publicUrl } } as never);
       if (setErr) throw setErr;
       setPayload((prev) => prev ? { ...prev, profile: { ...prev.profile, [col]: pub.publicUrl } } : prev);
       await refreshProfile();

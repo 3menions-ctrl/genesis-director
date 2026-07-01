@@ -156,7 +156,7 @@ export default function Cinema() {
         if (!gainRef.current) a.volume = 0;
         a.play().catch(() => {});
       }
-      fadeMusic(vphase === "climax" ? 0.13 : 0.03, vphase === "climax" ? 1800 : 4500);
+      fadeMusic(vphase === "climax" ? 0.08 : 0.015, vphase === "climax" ? 1800 : 4500);
     } else {
       fadeMusic(0, 600, () => { try { musicRef.current?.pause(); } catch { /* noop */ } });
     }
@@ -274,15 +274,19 @@ export default function Cinema() {
       <MarketingHeader showProgress />
 
       <main className="relative z-[3]">
+        {/* Cover is above the fold — always rendered. The rest are wrapped in
+            `cv-section` so iOS only renders/decodes them near the viewport and
+            reclaims their memory when scrolled away (the missing mobile loading
+            structure that let the tab OOM mid-scroll). */}
         <Cover onEnter={handleEnter} />
-        <Engines />
-        <Showcase onStart={handleStart} />
-        <BeforeAfter />
-        <HowItWorks />
-        <Studio onStart={handleStart} />
-        <Portal onEnter={handleEnter} onStart={handleStart} />
-        <FinalCTA />
-        <Footer />
+        <div className="cv-section"><Engines /></div>
+        <div className="cv-section"><Showcase onStart={handleStart} /></div>
+        <div className="cv-section"><BeforeAfter /></div>
+        <div className="cv-section"><HowItWorks /></div>
+        <div className="cv-section"><Studio onStart={handleStart} /></div>
+        <div className="cv-section"><Portal onEnter={handleEnter} onStart={handleStart} /></div>
+        <div className="cv-section"><FinalCTA /></div>
+        <div className="cv-section"><Footer /></div>
       </main>
 
     </div>

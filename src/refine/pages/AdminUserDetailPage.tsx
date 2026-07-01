@@ -320,19 +320,18 @@ export default function AdminUserDetailPage() {
     if (!(await confirmAsync({ title: "Revoke all sessions", description: "Force sign-out of every active session for this user? This invalidates their refresh tokens immediately.", confirmLabel: "Revoke", destructive: true }))) return;
     setActing(true);
     try {
-      // admin-force-logout does a real GoTrue `auth.admin.signOut(id, 'global')`
-      // (invalidates refresh tokens) AND bumps security_version — a hard revoke,
-      // unlike the old soft `admin_revoke_user_sessions` RPC which only bumped
-      // security_version and left live sessions valid until their next request.
-      const { data, error } = await supabase.functions.invoke("admin-force-logout", {
-        body: { target_user_id: userId, scope: "user" },
-      });
+      // admin_revoke_user_sessions now does a REAL hard revoke: deletes the
+      // user's auth.sessions (cascades refresh_tokens) AND bumps
+      // security_version. (The admin-force-logout edge fn's
+      // auth.admin.signOut(userId) call is a no-op — the SDK treats that arg as
+      // a JWT — so we go through the is_admin-gated RPC instead.)
+      const { data, error } = await supabase.rpc("admin_revoke_user_sessions" as never, {
+        p_target_user: userId,
+        p_reason: "manual_admin_action",
+      } as never);
       if (error) throw error;
-      const payload = data as { success?: boolean; error?: string; failed?: number };
-      if (!payload?.success || (payload.failed ?? 0) > 0) {
-        throw new Error(payload?.error ?? "Revoke failed");
-      }
-      toast.success("Sessions revoked");
+      const revoked = (data as { sessions_revoked?: number } | null)?.sessions_revoked ?? 0;
+      toast.success(revoked > 0 ? `Revoked ${revoked} active session(s)` : "Sessions revoked");
       void load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Revoke failed");

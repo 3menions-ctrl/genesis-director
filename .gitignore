@@ -55,3 +55,6 @@ qa/.testuser.json
 qa/.auth.json
 qa/.bizuser.json
 qa/.bizauth.json
+
+# Local Claude Code agent state (worktrees, locks) — never commit
+.claude/

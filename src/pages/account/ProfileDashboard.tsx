@@ -1139,16 +1139,14 @@ export default function ProfileDashboard() {
         onSaveDisplayName={async (next) => {
           if (!viewedUserId) return;
           const trimmed = next.trim().slice(0, 60);
-          const { error } = await supabase
-            .from("profiles").update({ display_name: trimmed || null }).eq("id", viewedUserId);
+          const { error } = await supabase.rpc("update_my_profile" as never, { p_patch: { display_name: trimmed || null } } as never);
           if (error) throw error;
           await refreshProfile();
         }}
         onSaveTagline={async (next) => {
           if (!viewedUserId) return;
           const trimmed = next.trim().slice(0, 160);
-          const { error } = await supabase
-            .from("profiles").update({ tagline: trimmed || null }).eq("id", viewedUserId);
+          const { error } = await supabase.rpc("update_my_profile" as never, { p_patch: { tagline: trimmed || null } } as never);
           if (error) throw error;
           setViewed((prev) => prev ? { ...prev, tagline: trimmed || null } : prev);
           await refreshProfile();
@@ -1156,8 +1154,7 @@ export default function ProfileDashboard() {
         onSaveLocation={async (next) => {
           if (!viewedUserId) return;
           const trimmed = next.trim().slice(0, 80);
-          const { error } = await supabase
-            .from("profiles").update({ location: trimmed || null }).eq("id", viewedUserId);
+          const { error } = await supabase.rpc("update_my_profile" as never, { p_patch: { location: trimmed || null } } as never);
           if (error) throw error;
           setViewed((prev) => prev ? { ...prev, location: trimmed || null } : prev);
           await refreshProfile();
@@ -3712,7 +3709,7 @@ function DirectorReelMaker({
   const setFeatured = async (reelId: string | null) => {
     setBusy(true);
     try {
-      const { error } = await supabase.from("profiles").update({ featured_reel_id: reelId }).eq("id", userId);
+      const { error } = await supabase.rpc("update_my_profile" as never, { p_patch: { featured_reel_id: reelId } } as never);
       if (error) throw error;
       toast.success(reelId ? "Channel trailer set." : "Channel trailer cleared.");
       window.dispatchEvent(new CustomEvent("profile:assets-changed"));
@@ -5243,7 +5240,7 @@ function InlineUploadOverlay({
     if (!result?.url) return;
     try {
       const column = isAvatar ? "avatar_url" : "cover_url";
-      const { error } = await supabase.from("profiles").update({ [column]: result.url }).eq("id", userId);
+      const { error } = await supabase.rpc("update_my_profile" as never, { p_patch: { [column]: result.url } } as never);
       if (error) throw error;
       toast.success(isAvatar ? "Avatar updated" : "Cover updated");
       // Cheapest "refresh viewed" trigger: bounce a custom event the page listens for.
@@ -6495,7 +6492,7 @@ function AssetUploadRow({
     if (!result?.url) return;
     try {
       const column = kind === "avatar" ? "avatar_url" : "cover_url";
-      const { error } = await supabase.from("profiles").update({ [column]: result.url }).eq("id", userId);
+      const { error } = await supabase.rpc("update_my_profile" as never, { p_patch: { [column]: result.url } } as never);
       if (error) throw error;
       toast.success(kind === "avatar" ? "Avatar updated" : "Header updated");
       window.dispatchEvent(new CustomEvent("profile:assets-changed"));

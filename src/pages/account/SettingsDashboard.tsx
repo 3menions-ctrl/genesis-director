@@ -1211,8 +1211,17 @@ function NotificationsModule({
   }, [profile.id]);
 
   const setPushPref = async (key: string, value: boolean) => {
+    // P3: optimistic, but surface + roll back on failure. Previously the error
+    // was swallowed, so a failed save looked successful then silently reverted
+    // on reload.
     setPushPrefs((p) => ({ ...p, [key]: value }));
-    await supabase.from("push_preferences" as never).upsert({ user_id: profile.id, [key]: value } as never);
+    const { error } = await supabase
+      .from("push_preferences" as never)
+      .upsert({ user_id: profile.id, [key]: value } as never);
+    if (error) {
+      setPushPrefs((p) => ({ ...p, [key]: !value }));
+      toast.error(safeErrorMessage(error, "Couldn't save that preference."));
+    }
   };
 
   return (
@@ -1519,9 +1528,17 @@ function CreatorModule({ profile, onSaved }: { profile: ProfileRow; onSaved?: ()
     return false;
   };
   const updateTier = async (id: string, patch: Partial<{ name: string; monthly_credits: number; perks: string; accent_hsl: string }>) => {
+    // P3: optimistic with rollback + toast. Previously a failed update silently
+    // persisted in the UI and reverted on reload.
+    const prev = tiers.find((t) => t.id === id);
     setTiers((p) => p.map((t) => t.id === id ? { ...t, ...patch } : t));
     const { error } = await supabase.from("patron_tiers" as never).update(patch as never).eq("id", id);
-    if (!error) onSaved?.();
+    if (error) {
+      if (prev) setTiers((p) => p.map((t) => t.id === id ? prev : t));
+      toast.error(safeErrorMessage(error, "Couldn't save the tier."));
+      return;
+    }
+    onSaved?.();
   };
   const removeTier = async (id: string) => {
     if (!(await confirmAsync({

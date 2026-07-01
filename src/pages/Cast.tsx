@@ -16,6 +16,7 @@ import { Users, Plus, Sparkles, Trash2, Loader2, Upload, Globe2, UserRound, X, P
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { confirmAsync } from '@/components/ui/global-confirm';
 import { cn } from '@/lib/utils';
 
 interface CastMember {
@@ -121,6 +122,15 @@ export default function Cast() {
   };
 
   const remove = async (id: string, n: string) => {
+    // P3: destructive delete must confirm (standard: confirmAsync, never a bare
+    // hard-delete). Previously a single click permanently removed a cast member.
+    const ok = await confirmAsync({
+      title: `Remove ${n}?`,
+      description: 'This permanently removes this cast member.',
+      confirmLabel: 'Remove',
+      cancelLabel: 'Keep',
+    });
+    if (!ok) return;
     setMembers((m) => m.filter((x) => x.id !== id));
     const { error } = await supabase.from('director_cast').delete().eq('id', id);
     if (error) { toast.error('Delete failed'); load(); } else toast.success(`Removed ${n}.`);

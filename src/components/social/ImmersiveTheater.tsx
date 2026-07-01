@@ -290,13 +290,30 @@ export function ImmersiveTheater({ reel, onClose, queue, onSwitch }: Props) {
         { event: "INSERT", schema: "public", table: "reel_comments", filter: `reel_id=eq.${reel.id}` },
         (payload) => {
           const row = payload.new as Comment;
-          // Skip our own optimistic inserts (they're already in the list)
-          setComments((prev) => prev.some((c) => c.id === row.id) ? prev : [...prev, row]);
+          // Our own optimistic inserts are already in the list (and enriched).
+          if (user && row.author_id === user.id) {
+            setComments((prev) => prev.some((c) => c.id === row.id) ? prev : [...prev, row]);
+            return;
+          }
+          // P3: the realtime payload carries no joined author, so another user's
+          // live comment rendered as "Anonymous" until reload. Enrich from
+          // profiles_public before appending.
+          void (async () => {
+            const { data: prof } = await supabase
+              .from("profiles_public")
+              .select("id, display_name, avatar_url")
+              .eq("id", row.author_id)
+              .maybeSingle();
+            const enriched: Comment = prof
+              ? { ...row, author: { id: prof.id, display_name: prof.display_name, avatar_url: prof.avatar_url } }
+              : row;
+            setComments((prev) => prev.some((c) => c.id === enriched.id) ? prev : [...prev, enriched]);
+          })();
         },
       )
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
-  }, [reel]);
+  }, [reel, user]);
 
   // Bump play_count once per reel-mount via track_reel_play. Best effort.
   useEffect(() => {

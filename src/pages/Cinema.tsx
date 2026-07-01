@@ -162,29 +162,24 @@ export default function Cinema() {
     }
   }, [muted, vphase, fadeMusic, ensureAudioGraph]);
 
-  // Keep the score in sync with the film WITHOUT seeking (seeking clicks/glitches).
-  // We gently nudge playbackRate to converge on the film's clock; only a large
-  // desync from a real stall triggers a single hard resync.
+  // Keep the score loosely aligned to the film. We deliberately DO NOT nudge
+  // playbackRate: oscillating it (±3%) makes the browser time-stretch the audio
+  // to preserve pitch, which on a melodic music-box score sounds watery/warbly
+  // ("distorted"). The score plays at rate 1.0 from an aligned start, so natural
+  // drift over the ~64s film is negligible; we only hard-resync on a LARGE
+  // desync from a real stall (rare — a brief reseek is better than continuous
+  // artifacts).
   useEffect(() => {
     if (muted || (vphase !== "playing" && vphase !== "climax")) return;
     const id = window.setInterval(() => {
       const m = musicRef.current, v = videoRef.current;
       if (!m || !v || v.paused || m.paused) return;
-      const drift = m.currentTime - v.currentTime;
-      if (Math.abs(drift) > 1.5) {
+      if (!Number.isFinite(m.currentTime) || !Number.isFinite(v.currentTime)) return;
+      if (Math.abs(m.currentTime - v.currentTime) > 2) {
         try { m.currentTime = v.currentTime; } catch { /* noop */ }
-        m.playbackRate = 1;
-      } else if (Math.abs(drift) > 0.2) {
-        m.playbackRate = drift > 0 ? 0.97 : 1.03; // ease toward the film, no seek
-      } else if (m.playbackRate !== 1) {
-        m.playbackRate = 1;
       }
-    }, 500);
-    return () => {
-      window.clearInterval(id);
-      const m = musicRef.current;
-      if (m) m.playbackRate = 1;
-    };
+    }, 1000);
+    return () => window.clearInterval(id);
   }, [muted, vphase]);
 
   useEffect(() => () => {

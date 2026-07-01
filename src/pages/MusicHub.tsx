@@ -668,9 +668,9 @@ function ScoreStudioDialog({ open, preset, onClose }: { open: boolean; preset: M
     { id: "alexandre-desplat", label: "Alexandre Desplat" },
   ];
   const INTENSITIES: Array<"subtle" | "moderate" | "intense" | "explosive"> = ["subtle", "moderate", "intense", "explosive"];
-  const DURATIONS = [15, 30, 60, 90];
-
-  const composerLabel = COMPOSERS.find((c) => c.id === composer)?.label ?? "Score";
+  // P2-22: generate-music hard-clamps to 30s, so 60/90 silently produced a ~30s
+  // track stored as 60/90. Only offer durations the engine actually delivers.
+  const DURATIONS = [15, 30];
 
   const generate = async () => {
     if (!prompt.trim()) { toast.error("Describe the soundtrack you want."); return; }
@@ -693,20 +693,10 @@ function ScoreStudioDialog({ open, preset, onClose }: { open: boolean; preset: M
       }
       setMusicUrl(payload.musicUrl);
 
-      // Save to the user's library so it lands in "My Tracks".
-      if (user) {
-        const { error: recErr } = await supabase.rpc("record_user_media", {
-          p_user_id: user.id,
-          p_media_type: "audio",
-          p_asset_url: payload.musicUrl,
-          p_title: `${composerLabel} — ${prompt.trim().slice(0, 60)}`,
-          p_source: "generated",
-          p_duration_seconds: duration,
-          p_mime_type: "audio/mpeg",
-          p_file_size_bytes: 0,
-        });
-        if (recErr) console.warn("[Music] failed to record generated track", recErr);
-      }
+      // P2-21: generate-music already records the track to the user's library
+      // (recordUserMedia) with the ACTUAL duration. The previous client-side
+      // record_user_media call here created a DUPLICATE "My Tracks" row (and
+      // recorded the requested, not actual, duration). Rely on the edge fn.
 
       toast.success("Score ready — saved to My Tracks.");
     } catch (e) {

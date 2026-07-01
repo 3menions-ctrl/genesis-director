@@ -77,6 +77,21 @@ needs before it can be safely done.
   free-tier render to validate end-to-end. Do NOT half-fix (delivering a status
   without the video URL still leaves the user's render orphaned).
 
+## Batch 4 — crossover template slug (P2-24) — DEFERRED (no persistence target)
+
+### 9. `mode-router` drops `crossoverTemplateSlug`
+- **What's wrong:** Crossover renders send `crossoverTemplateSlug`, but
+  `mode-router` never destructures it, so the crossover template isn't linked
+  (no use-count bump, no crossover routing/analytics). Video still generates (the
+  recipe is in the prompt) — a tracking gap, not a no-op.
+- **Why deferred:** "consume + bump useCount" has no schema-safe target — there
+  is no `crossover_*` use-count RPC and no column on `movie_projects` to store the
+  slug. Adding either is a schema change.
+- **Needs:** a `crossover_templates` use-count RPC (mirroring
+  `increment_template_use_count`) and/or a column to persist the slug, then
+  consume it in mode-router. Alternatively drop the client param if crossover
+  analytics is shelved.
+
 ### 7. `resume-avatar-pipeline` async-model rewrite
 - **What's wrong (repo):** only understands the legacy single
   `pipeline_state.predictionId`; throws for the modern

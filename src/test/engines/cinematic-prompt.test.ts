@@ -50,4 +50,39 @@ describe("cinematic-prompt module — structure", () => {
     expect(SRC).toMatch(/const ordered = \[action, /);
     expect(SRC).toMatch(/never the action or the engine tail/);
   });
+
+  it("bridges the script's authored camera fields into a ShotSpec", () => {
+    // The whole point of the plumbing fix: script cameraScale/angle/move/motion
+    // map onto the compiler's ShotSpec instead of being dropped.
+    expect(SRC).toMatch(/export function shotSpecFromScript/);
+    expect(SRC).toMatch(/SCRIPT_SCALE/);
+    expect(SRC).toMatch(/SCRIPT_ANGLE/);
+    expect(SRC).toMatch(/SCRIPT_MOVE/);
+    // must fall back to sentence inference for blank fields
+    expect(SRC).toMatch(/return inferShotSpec\(action, partial\)/);
+  });
+});
+
+// Verify the pipeline actually FORWARDS the authored fields (they were dropped
+// at the hollywood hop before 2026-07-02 — that was the core scripting bug).
+describe("pipeline forwards authored cinematography", () => {
+  const hollywood = readFileSync(
+    resolve(__dirname, "../../../supabase/functions/hollywood-pipeline/index.ts"),
+    "utf8",
+  );
+  const gsc = readFileSync(
+    resolve(__dirname, "../../../supabase/functions/generate-single-clip/index.ts"),
+    "utf8",
+  );
+  it("hollywood preserves camera fields on the shot mapping", () => {
+    expect(hollywood).toMatch(/cameraScale: shot\.cameraScale/);
+    expect(hollywood).toMatch(/movementType: shot\.movementType/);
+  });
+  it("hollywood forwards shotSpec in the dispatch pipelineContext", () => {
+    expect(hollywood).toMatch(/shotSpec:\s*\{[\s\S]{0,200}cameraScale: clip\.cameraScale/);
+  });
+  it("generate-single-clip consumes the authored shotSpec via shotSpecFromScript", () => {
+    expect(gsc).toMatch(/pipelineContext as \{ shotSpec\?/);
+    expect(gsc).toMatch(/shotSpecFromScript\(/);
+  });
 });

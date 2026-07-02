@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { publicErrorMessage } from "../_shared/safe-error.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { checkContentSafety } from "../_shared/content-safety.ts";
-import { compileCinematicPrompt, inferShotSpec, type Engine as CineEngine, type ShotSpec } from "../_shared/cinematic-prompt.ts";
+import { compileCinematicPrompt, inferShotSpec, shotSpecFromScript, type Engine as CineEngine, type ShotSpec } from "../_shared/cinematic-prompt.ts";
 import {
   acquireGenerationLock,
   releaseGenerationLock,
@@ -1671,13 +1671,24 @@ serve(async (req) => {
     const isCharacterClip = !!(
       resolvedFaceLock || resolvedIdentityBible || resolvedMultiViewIdentity || isAvatarMode
     );
-    const cineSpec: ShotSpec = inferShotSpec(prompt, {
-      lighting: sceneContext?.lighting ?? undefined,
-      palette: sceneContext?.colorPalette ?? undefined,
-      atmosphere: sceneContext?.environment ?? undefined,
-      timeOfDay: sceneContext?.timeOfDay ?? undefined,
-      styleAnchor: (resolvedMasterSceneAnchor as { styleAnchor?: string } | undefined)?.styleAnchor ?? undefined,
-    });
+    // Prefer the script's AUTHORED per-shot cinematography (forwarded via
+    // pipelineContext.shotSpec by hollywood-pipeline); fall back to inferring
+    // from the sentence + scene context when the script didn't author it.
+    const authoredShot = (pipelineContext as { shotSpec?: Record<string, string | undefined> } | undefined)?.shotSpec;
+    const styleAnchor = (resolvedMasterSceneAnchor as { styleAnchor?: string } | undefined)?.styleAnchor ?? undefined;
+    const cineSpec: ShotSpec = authoredShot && (authoredShot.cameraScale || authoredShot.movementType)
+      ? shotSpecFromScript(
+          { ...authoredShot, description: prompt, lightingDescription: authoredShot.lightingDescription ?? sceneContext?.lighting ?? undefined },
+          prompt,
+          styleAnchor,
+        )
+      : inferShotSpec(prompt, {
+          lighting: sceneContext?.lighting ?? undefined,
+          palette: sceneContext?.colorPalette ?? undefined,
+          atmosphere: sceneContext?.environment ?? undefined,
+          timeOfDay: sceneContext?.timeOfDay ?? undefined,
+          styleAnchor,
+        });
     /** Final per-engine prompt: compiler for object/scene, legacy tuner for
      *  character clips. */
     const finalPromptFor = (engine: CineEngine): string =>

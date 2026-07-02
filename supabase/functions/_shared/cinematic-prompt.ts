@@ -323,6 +323,68 @@ function endSentence(s: string): string {
   return /[.!?]$/.test(t) ? t : `${t}.`;
 }
 
+// ---------------------------------------------------------------------------
+// Script bridge — map smart-script-generator's per-shot vocabulary onto a
+// ShotSpec. The script (GPT-4o cinematographer) ALREADY authors cameraScale/
+// cameraAngle/movementType/motionDirection/lighting per shot; hollywood-
+// pipeline historically DROPPED them at the first hop, so this is the missing
+// connective tissue between the script's direction and the compiler.
+// ---------------------------------------------------------------------------
+
+const SCRIPT_SCALE: Record<string, ShotSize> = {
+  "extreme-wide": "extreme-wide", "wide": "wide", "medium-wide": "medium-wide",
+  "medium": "medium", "medium-close": "medium-close",
+  "close-up": "close", "close": "close", "extreme-close-up": "extreme-close",
+  "extreme-close": "extreme-close", "macro": "macro",
+};
+const SCRIPT_ANGLE: Record<string, CameraAngle> = {
+  "eye-level": "eye-level", "low-angle": "low-angle", "high-angle": "high-angle",
+  "dutch-angle": "dutch", "dutch": "dutch", "birds-eye": "birds-eye",
+  "worms-eye": "worms-eye", "overhead": "overhead", "over-the-shoulder": "over-the-shoulder",
+};
+const SCRIPT_MOVE: Record<string, CameraMove> = {
+  "static": "static", "tracking": "tracking", "dolly-in": "dolly-in",
+  "dolly-out": "dolly-out", "orbit": "orbit", "crane": "crane-up",
+  "crane-up": "crane-up", "crane-down": "crane-down", "handheld": "handheld",
+  "pan-left": "pan-left", "pan-right": "pan-right", "tilt-up": "tilt-up",
+  "tilt-down": "tilt-down", "aerial": "aerial", "push-in": "push-in", "pull-out": "pull-out",
+};
+
+/** A shot as authored by smart-script-generator (loose — every field optional). */
+export interface ScriptShotLike {
+  description?: string;
+  currentAction?: string;
+  cameraScale?: string;
+  cameraAngle?: string;
+  movementType?: string;
+  motionDirection?: string;
+  lightingDescription?: string;
+  locationDescription?: string;
+  mood?: string;
+}
+
+/**
+ * Build a ShotSpec from an authored script shot. Falls back to sentence
+ * inference for any field the script left blank, so a partially-filled shot
+ * still yields full direction. `action` prefers the explicit shot text.
+ */
+export function shotSpecFromScript(
+  shot: ScriptShotLike,
+  fallbackAction: string,
+  styleAnchor?: string,
+): ShotSpec {
+  const action = (shot.description || shot.currentAction || fallbackAction || "").trim();
+  const partial: Partial<ShotSpec> = { styleAnchor };
+  if (shot.cameraScale && SCRIPT_SCALE[shot.cameraScale.toLowerCase()]) partial.shotSize = SCRIPT_SCALE[shot.cameraScale.toLowerCase()];
+  if (shot.cameraAngle && SCRIPT_ANGLE[shot.cameraAngle.toLowerCase()]) partial.angle = SCRIPT_ANGLE[shot.cameraAngle.toLowerCase()];
+  if (shot.movementType && SCRIPT_MOVE[shot.movementType.toLowerCase()]) partial.move = SCRIPT_MOVE[shot.movementType.toLowerCase()];
+  if (shot.lightingDescription) partial.lighting = shot.lightingDescription;
+  if (shot.motionDirection) partial.pacing = /fast|rapid|quick|frantic|whip/i.test(shot.motionDirection) ? "brisk"
+    : /slow|gentle|gradual|creep/i.test(shot.motionDirection) ? "slow" : undefined;
+  // inferShotSpec fills every remaining gap (atmosphere from the action, etc.)
+  return inferShotSpec(action, partial);
+}
+
 /**
  * Convenience for the current stub-script reality: take a bare user sentence
  * + engine, infer cinematography, compile. This is the drop-in that replaces

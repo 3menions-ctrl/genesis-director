@@ -62,7 +62,13 @@ export function ExportPanel({ project, open, onClose }: Props) {
         setBusy(false);
         return;
       }
-      await supabase.from("movie_projects").update({ is_public: true }).eq("id", project.id);
+      // Check the write — the old code fired-and-forgot, so a failed
+      // is_public update still reported "published" while staying private.
+      const { error: pubErr } = await supabase
+        .from("movie_projects")
+        .update({ is_public: true })
+        .eq("id", project.id);
+      if (pubErr) throw pubErr;
       setDone(true);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't export", {

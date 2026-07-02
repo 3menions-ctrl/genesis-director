@@ -13,7 +13,8 @@ import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
 import { Surface, SurfaceHeader, SurfaceBody, SurfaceFooter, SurfaceKbdHint } from "./Surface";
 import type { EditorProject } from "@/lib/editor/types";
-import { setClipProperty } from "@/lib/editor/store";
+import { setClipProperty, setClipColorGrade } from "@/lib/editor/store";
+import { IDENTITY_GRADE } from "@/lib/editor/color-grade";
 import { toast } from "sonner";
 
 interface Props {
@@ -28,6 +29,10 @@ interface Preset {
   name: string;
   hint: string;
   patch: Parameters<typeof setClipProperty>[1];
+  /** Bakeable grade for "look" presets — the CSS `filter` in `patch` is
+   *  preview-only (the stitcher bakes colorGrade, not CSS), so without this
+   *  the look never reached the export. `null` = reset the grade. */
+  lutId?: string | null;
   /** CSS preview chip — visualises the effect on a swatch */
   preview?: React.CSSProperties;
 }
@@ -38,6 +43,7 @@ const LOOKS: Preset[] = [
     name: "Reset look",
     hint: "Clear all colour grading",
     patch: { filter: "" },
+    lutId: null,
     preview: { background: "linear-gradient(135deg, hsl(200 60% 50%), hsl(280 60% 50%))" },
   },
   {
@@ -45,6 +51,7 @@ const LOOKS: Preset[] = [
     name: "B&W",
     hint: "Full desaturate",
     patch: { filter: "grayscale(1)" },
+    lutId: "ilford-hp5",
     preview: { background: "linear-gradient(135deg, hsl(0 0% 75%), hsl(0 0% 25%))" },
   },
   {
@@ -52,6 +59,7 @@ const LOOKS: Preset[] = [
     name: "Sepia",
     hint: "Warm vintage",
     patch: { filter: "sepia(0.85) saturate(1.1)" },
+    lutId: "70s-warm",
     preview: { background: "linear-gradient(135deg, hsl(30 60% 65%), hsl(20 50% 35%))" },
   },
   {
@@ -59,6 +67,7 @@ const LOOKS: Preset[] = [
     name: "Faded",
     hint: "Lifted blacks, low sat",
     patch: { filter: "saturate(0.55) brightness(1.08) contrast(0.85)" },
+    lutId: "2010s-instagram",
     preview: { background: "linear-gradient(135deg, hsl(200 30% 60%), hsl(280 25% 50%))" },
   },
   {
@@ -68,6 +77,7 @@ const LOOKS: Preset[] = [
     patch: {
       filter: "saturate(1.15) contrast(1.12) hue-rotate(-8deg) brightness(0.96)",
     },
+    lutId: "teal-orange",
     preview: { background: "linear-gradient(135deg, hsl(195 70% 45%), hsl(25 80% 50%))" },
   },
   {
@@ -75,6 +85,7 @@ const LOOKS: Preset[] = [
     name: "Noir",
     hint: "High contrast B&W",
     patch: { filter: "grayscale(1) contrast(1.25) brightness(0.92)" },
+    lutId: "noir",
     preview: { background: "linear-gradient(135deg, hsl(0 0% 95%), hsl(0 0% 10%))" },
   },
   {
@@ -82,6 +93,7 @@ const LOOKS: Preset[] = [
     name: "Warm",
     hint: "Push to amber",
     patch: { filter: "saturate(1.2) hue-rotate(-15deg) brightness(1.04)" },
+    lutId: "skin-warm",
     preview: { background: "linear-gradient(135deg, hsl(40 80% 60%), hsl(15 70% 45%))" },
   },
   {
@@ -89,6 +101,7 @@ const LOOKS: Preset[] = [
     name: "Cool",
     hint: "Push to cyan",
     patch: { filter: "saturate(1.1) hue-rotate(18deg) brightness(0.98)" },
+    lutId: "fincher-cold",
     preview: { background: "linear-gradient(135deg, hsl(195 70% 60%), hsl(220 60% 40%))" },
   },
 ];
@@ -148,6 +161,17 @@ export function EffectsPalette({ project, selectedClipIds, open, onClose }: Prop
     }
     for (const id of selectedClipIds) {
       setClipProperty(id, preset.patch);
+      // "look" presets also write a BAKEABLE grade — the CSS filter above is
+      // preview-only (the stitcher bakes colorGrade). Without this the look
+      // vanished on export. `lutId: null` = reset to the neutral grade.
+      if (preset.lutId !== undefined) {
+        setClipColorGrade(
+          id,
+          preset.lutId
+            ? { ...IDENTITY_GRADE, lutId: preset.lutId, lutMix: 1 }
+            : { ...IDENTITY_GRADE },
+        );
+      }
     }
     toast.message(`Applied ${preset.name}`, {
       description:

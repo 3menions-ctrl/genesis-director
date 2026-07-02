@@ -76,7 +76,6 @@ import {
   extendClipSelection,
   toggleClipSelection,
   setTool,
-  toggleSnap as toggleSnapMut,
   addMarkerAtPlayhead,
   setInPoint,
   setOutPoint,
@@ -372,9 +371,9 @@ export function Timeline({
       } else if (!hasMod && (e.key === "h" || e.key === "H")) {
         e.preventDefault();
         setTool("hand");
-      } else if (!hasMod && (e.key === "n" || e.key === "N")) {
-        e.preventDefault();
-        toggleSnapMut();
+      // NOTE: plain-N is owned by the shell (open Create panel). Snap is
+      // toggled via the Toolbar button — binding N here too made one press
+      // both open Create AND flip snap. Removed to keep one key = one action.
       } else if (!hasMod && (e.key === "m" || e.key === "M")) {
         e.preventDefault();
         const id = addMarkerAtPlayhead();

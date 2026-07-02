@@ -37,6 +37,7 @@ import {
   flushNow,
 } from "@/lib/editor/document-store";
 import type { Character } from "@/lib/editor/script-document";
+import { confirmAsync } from "@/components/ui/global-confirm";
 import { toast } from "sonner";
 
 interface Props {
@@ -371,8 +372,14 @@ function CharacterRow({ character }: { character: Character }) {
       </div>
       <button
         type="button"
-        onClick={(e) => {
+        onClick={async (e) => {
           e.stopPropagation();
+          if (!(await confirmAsync({
+            title: "Remove character?",
+            description: "This deletes the character from the cast.",
+            confirmLabel: "Remove",
+            destructive: true,
+          }))) return;
           remove();
         }}
         className="opacity-0 group-hover/char:opacity-100 transition-opacity text-muted-foreground/45 hover:text-rose-300"

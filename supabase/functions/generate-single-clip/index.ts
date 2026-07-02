@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { publicErrorMessage } from "../_shared/safe-error.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { checkContentSafety } from "../_shared/content-safety.ts";
+import { compileCinematicPrompt, inferShotSpec, type Engine as CineEngine, type ShotSpec } from "../_shared/cinematic-prompt.ts";
 import {
   acquireGenerationLock,
   releaseGenerationLock,
@@ -1621,7 +1622,7 @@ serve(async (req) => {
     
     const enhancedPrompt = builtPrompt.enhancedPrompt;
     const fullNegativePrompt = builtPrompt.negativePrompt;
-    
+
     // =========================================================
     // VALIDATE AND USE START IMAGE (use resolved image from guard rails)
     // =========================================================
@@ -1656,6 +1657,40 @@ serve(async (req) => {
     // ═══════════════════════════════════════════════════════════════════════════
     const isAvatarMode = !!isAvatarModeFlag; // Explicit flag from pipeline, NOT from videoEngine
     const hasStartImage = !!validatedStartImage;
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CINEMATIC COMPILER (2026-07-02) — object/scene/vehicle clips only.
+    // The legacy path appended a static SD-soup suffix ("8K … award-winning
+    // cinematographer … anamorphic lens flares") to a bare sentence. A seed-
+    // matched A/B on kling v3 showed the compiler (derives shot size / camera
+    // move / lighting / atmosphere from the sentence + a per-engine quality
+    // tail) is materially better — and dropping the forced "anamorphic lens
+    // flares" removed a horizontal-banding artifact the soup was injecting.
+    // Character/avatar clips keep the identity machinery untouched.
+    // ═══════════════════════════════════════════════════════════════════════
+    const isCharacterClip = !!(
+      resolvedFaceLock || resolvedIdentityBible || resolvedMultiViewIdentity || isAvatarMode
+    );
+    const cineSpec: ShotSpec = inferShotSpec(prompt, {
+      lighting: sceneContext?.lighting ?? undefined,
+      palette: sceneContext?.colorPalette ?? undefined,
+      atmosphere: sceneContext?.environment ?? undefined,
+      timeOfDay: sceneContext?.timeOfDay ?? undefined,
+      styleAnchor: (resolvedMasterSceneAnchor as { styleAnchor?: string } | undefined)?.styleAnchor ?? undefined,
+    });
+    /** Final per-engine prompt: compiler for object/scene, legacy tuner for
+     *  character clips. */
+    const finalPromptFor = (engine: CineEngine): string =>
+      isCharacterClip
+        ? tuneForEngine(engine as Parameters<typeof tuneForEngine>[0], enhancedPrompt, { isAvatarMode, hasStartImage })
+        : compileCinematicPrompt(cineSpec, engine).prompt;
+    /** Final negatives: compiler's engine-appropriate set for object/scene. */
+    const finalNegativeFor = (engine: CineEngine): string =>
+      isCharacterClip ? fullNegativePrompt : (compileCinematicPrompt(cineSpec, engine).negativePrompt || fullNegativePrompt);
+    if (!isCharacterClip) {
+      console.log(`[SingleClip] 🎬 Cinematic compiler ACTIVE (object/scene) — shot="${cineSpec.shotSize}" move="${cineSpec.move}"`);
+    }
+
     const engineLabel = videoEngine === 'wan'
       ? (hasStartImage
           ? `Wan 2.5 I2V (free tier, image-to-video)`
@@ -1740,7 +1775,7 @@ serve(async (req) => {
     if (videoEngine === 'wan') {
       console.log(`[SingleClip] ══ ROUTING TO WAN 2.5 (wan-video/wan-2.5-t2v) — FREE TIER ══`);
       const wanResult = await createWan25Prediction(
-        tuneForEngine('wan', enhancedPrompt, { isAvatarMode, hasStartImage }),
+        finalPromptFor('wan'),
         validatedStartImage,
         aspectRatio as '16:9' | '9:16' | '1:1',
         durationSeconds,
@@ -1749,7 +1784,7 @@ serve(async (req) => {
     } else if (videoEngine === 'seedance') {
       console.log(`[SingleClip] ══ ROUTING TO SEEDANCE 2.0 (bytedance/seedance-2.0) ══`);
       const seedanceResult = await createSeedancePrediction(
-        tuneForEngine('seedance', enhancedPrompt, { isAvatarMode, hasStartImage }),
+        finalPromptFor('seedance'),
         validatedStartImage,
         aspectRatio as '16:9' | '9:16' | '1:1',
         durationSeconds,
@@ -1760,7 +1795,7 @@ serve(async (req) => {
     } else if (videoEngine === 'runway') {
       console.log(`[SingleClip] ══ ROUTING TO RUNWAY GEN-4 TURBO (runwayml/gen4-turbo) ══`);
       const runwayResult = await createRunwayGen4Prediction(
-        tuneForEngine('runway', enhancedPrompt, { isAvatarMode, hasStartImage }),
+        finalPromptFor('runway'),
         validatedStartImage,
         aspectRatio as '16:9' | '9:16' | '1:1',
         durationSeconds,
@@ -1769,7 +1804,7 @@ serve(async (req) => {
     } else if (videoEngine === 'sora') {
       console.log(`[SingleClip] ══ ROUTING TO SORA 2 (openai/sora-2) ══`);
       const soraResult = await createSora2Prediction(
-        tuneForEngine('sora', enhancedPrompt, { isAvatarMode, hasStartImage }),
+        finalPromptFor('sora'),
         validatedStartImage,
         aspectRatio as '16:9' | '9:16' | '1:1',
         durationSeconds,
@@ -1778,8 +1813,8 @@ serve(async (req) => {
     } else if (videoEngine === 'veo') {
       console.log(`[SingleClip] ══ ROUTING TO VEO 3 FAST (google/veo-3-fast) ══`);
       const veoResult = await createVeo3FastPrediction(
-        tuneForEngine('veo', enhancedPrompt, { isAvatarMode, hasStartImage }),
-        fullNegativePrompt,
+        finalPromptFor('veo'),
+        finalNegativeFor('veo'),
         validatedStartImage,
         aspectRatio as '16:9' | '9:16' | '1:1',
         durationSeconds,
@@ -1789,8 +1824,8 @@ serve(async (req) => {
     } else {
       // 'kling' renders via Kling V3 (default + avatar lip-sync).
       const klingResult = await createKlingV3Prediction(
-        tuneForEngine('kling', enhancedPrompt, { isAvatarMode, hasStartImage }),
-        fullNegativePrompt,
+        finalPromptFor('kling'),
+        finalNegativeFor('kling'),
         validatedStartImage,
         aspectRatio as '16:9' | '9:16' | '1:1',
         durationSeconds,

@@ -265,7 +265,7 @@ serve(async (req) => {
         idempotencyKey,
         projectId,
         // Engine selection — defaults to seedance for back-compat with the
-        // existing editor flow. 'wan' = free tier, 'kling' = standard, etc.
+        // existing editor flow. 'wan' = budget, 'kling' = standard, etc.
         videoEngine = "seedance",
         // Quality surcharges — fps60 (RIFE 60fps interpolation) and
         // upscale4k. Bills an extra 5 credits each when set. UI sends
@@ -345,7 +345,7 @@ serve(async (req) => {
       }
 
       // Engine-aware pricing.
-      //   wan      → 0 credits (free tier)
+      //   wan      → registry-priced like every engine (no free tier)
       //   kling    → 50/75 (Kling V3 standard)
       //   seedance → 65/95 (default, Seedance 1 Pro real cost ~$0.45/sec)
       const creditsRequired = creditsForEditorClip(engine, duration, qOpts);
@@ -364,7 +364,7 @@ serve(async (req) => {
       // (re-submit on transient network error) does NOT double-charge.
       // The RPC short-circuits when an identical (project_id, idempotency_key)
       // row exists and returns TRUE without inserting a second ledger row.
-      // Wan (free tier) skips deduction entirely.
+      // Zero-credit results (none today) would skip deduction.
       const idemKey = idempotencyKey
         ? `editor-clip:${String(idempotencyKey)}`
         : `editor-clip:auto:${auth.userId}:${duration}:${Date.now() >> 16}`;

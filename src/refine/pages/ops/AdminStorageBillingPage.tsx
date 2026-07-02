@@ -1,6 +1,6 @@
 /**
  * AdminStorageBillingPage — storage metering + storage→credits billing.
- * Per-user GB usage, free-tier, projected storage revenue & margin, and manual
+ * Per-user GB usage, included allowance, projected storage revenue & margin, and manual
  * recompute / run-billing actions. Backed by storage_overview / compute_storage_usage
  * / bill_storage RPCs (the monthly run is also wired to cron in production).
  */
@@ -61,7 +61,7 @@ export default function AdminStorageBillingPage() {
       code="STO"
       title="Storage"
       italic="billing."
-      description="Per-user storage metered and billed in credits above the free tier — priced for margin, posted to the ledger."
+      description="Per-user storage metered and billed in credits above the included allowance — priced for margin, posted to the ledger."
       actions={
         <>
           <DeckButton onClick={recompute} disabled={!!busy}><RefreshCw className={busy === "compute" ? "h-3 w-3 animate-spin" : "h-3 w-3"} /> Recompute</DeckButton>
@@ -83,14 +83,14 @@ export default function AdminStorageBillingPage() {
           <StatOrb index={2} aura={ORB_AURAS[2]} label="Monthly COGS" value={usd(d?.monthly_cogs_usd ?? 0)} icon={Cpu} />
           <StatOrb index={3} aura={ORB_AURAS[3]} label="Proj. revenue" value={usd(projRevenue)} icon={DollarSign} />
           <StatOrb index={4} aura={ORB_AURAS[4]} label="Margin" value={`${margin}%`} icon={Percent} />
-          <StatOrb index={5} aura={ORB_AURAS[5]} label="Free tier" value={`${d?.free_gb ?? 0} GB`} icon={HardDrive} />
+          <StatOrb index={5} aura={ORB_AURAS[5]} label="Included" value={`${d?.free_gb ?? 0} GB`} icon={HardDrive} />
         </div>
 
         <FloatSection title="Pricing" meta={`snapshot · ${d?.snapshot_day ?? "—"}`}>
           <div className="flex flex-wrap items-center gap-x-8 gap-y-2 font-mono text-[11px] text-white/55">
             <span>Price: <span style={{ color: ACCENT_HSL }}>{d?.price_credits_per_gb ?? 0} credits / GB / mo</span> (= {usd((d?.price_credits_per_gb ?? 0) * 0.10)}/GB)</span>
             <span>Cost: {usd(d?.cost_per_gb_usd ?? 0)}/GB</span>
-            <span>Free tier: {d?.free_gb ?? 0} GB</span>
+            <span>Included: {d?.free_gb ?? 0} GB</span>
           </div>
         </FloatSection>
 

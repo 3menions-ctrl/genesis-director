@@ -78,11 +78,11 @@ export const BUNDLED_ADDON_COST_USD = 0.205;   // per-clip share of image + LLM 
 
 // Provider compute $ per clip (our COGS). EDIT HERE to reprice — credits derive.
 export const CLIP_COST_USD: Record<string, Record<number, number>> = {
-  'wan-25':      { 5: 0.15,  10: 0.30 },
+  'wan-25':      { 5: 0.50,  10: 1.00, 15: 1.50 },   // Wan 2.7 ~$0.10/s (VERIFY vs Replicate billing)
   'kling-v3':    { 5: 1.385, 10: 2.692, 15: 4.077 },
   'seedance-2':  { 5: 2.692, 10: 5.385, 12: 6.538 },
   'veo-3':       { 4: 1.923, 6: 2.923,  8: 3.846 },
-  'runway-gen4': { 5: 1.538, 10: 3.0 },
+  'runway-gen4': { 5: 2.0,   10: 4.0 },              // Gen-4.5 (VERIFY vs Replicate billing)
   'sora-2':      { 4: 2.385, 8: 4.846,  12: 7.231 },
 };
 
@@ -103,24 +103,23 @@ function clipCredits(engineId: string, duration: number): number {
 }
 
 export const ENGINES: Record<EngineId, EngineSpec> = {
-  // -------- FREE --------
   'wan-25': {
     id: 'wan-25',
     provider: 'wan',
     tier: 'standard',
-    label: 'Wan 2.5 — Free',
-    shortLabel: 'Wan 2.5',
-    description: "Alibaba's Wan 2.5 — the free engine. Your first 5-second video is free; strong baseline quality.",
-    durations: [5, 10],
-    maxDuration: 10,
+    label: 'Wan 2.7',
+    shortLabel: 'Wan 2.7',
+    description: "Alibaba's Wan 2.7 — fast, sharp and budget-friendly with native audio. Your first 5-second video is on us.",
+    durations: [5, 10, 15],
+    maxDuration: 15,
     supportsImageInput: true,
-    supportsAudio: false,
+    supportsAudio: true,
     supportsAvatar: false,
     etaSeconds: 110,
     healthy: true,
     upscale4kCredits: 10,
     fps60Credits: 5,
-    // Priced at Replicate compute (~$0.03/s) + storage + ops, marked up 30%.
+    // Priced at Wan 2.7 Replicate compute (~$0.10/s) + ops, marked up 30%.
     // FE/BE parity test in src/test/engines/fe-be-parity.test.ts pins this.
     baseCreditsFor: (d) => clipCredits('wan-25', d),
   },
@@ -171,10 +170,10 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     id: 'veo-3',
     provider: 'veo3',
     tier: 'cinema',
-    label: 'Veo 3 Fast — Cinema',
-    shortLabel: 'Veo 3',
+    label: 'Veo 3.1 Fast — Cinema',
+    shortLabel: 'Veo 3.1',
     description:
-      'Google Veo 3 Fast. Excellent physics and natural motion with native audio.',
+      'Google Veo 3.1 Fast. Higher-fidelity video, context-aware audio, and end-frame control.',
     durations: [4, 6, 8],
     maxDuration: 8,
     supportsImageInput: true,
@@ -192,10 +191,10 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     id: 'runway-gen4',
     provider: 'runway',
     tier: 'cinema',
-    label: 'Runway Gen-4 Turbo — Cinema',
-    shortLabel: 'Runway Gen-4',
+    label: 'Runway Gen-4.5 — Cinema',
+    shortLabel: 'Runway 4.5',
     description:
-      'Best-in-class character consistency and stylized control. Max 10s per clip.',
+      'State-of-the-art motion quality and prompt adherence. Max 10s per clip.',
     durations: [5, 10],
     maxDuration: 10,
     supportsImageInput: true,
@@ -281,7 +280,7 @@ export function engineToBackend(id: EngineId): BackendEngine {
   }
 }
 
-/** Reverse of engineToBackend, plus the free-tier 'wan' token. Backend
+/** Reverse of engineToBackend, plus the 'wan' token. Backend
  *  deduction paths speak the short token; map it back to a registry spec.
  *  Unknown tokens THROW — silently pricing an unknown engine as Kling was
  *  a hidden default-model path. */

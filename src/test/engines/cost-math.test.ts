@@ -3,7 +3,7 @@
  *
  * For every engine in the registry, asserts:
  *   • Every documented duration returns a positive base cost (or the
- *     intentional 0 for the free tier).
+ *     intentional zero rows).
  *   • Each Quality surcharge add-on (upscale4k, fps60) increments the
  *     total by exactly the spec's declared surcharge.
  *   • Both surcharges stack to the sum.

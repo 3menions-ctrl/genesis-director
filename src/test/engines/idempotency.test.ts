@@ -55,8 +55,8 @@ describe("editor-generate-clip — idempotency key contract", () => {
     expect(src).toMatch(/p_idempotency_key:\s*idemKey/);
   });
 
-  it("only deducts when creditsRequired > 0 — free-tier engines skip deduction", () => {
-    // The Wan free-tier path must NOT call deduct_credits, otherwise
+  it("only deducts when creditsRequired > 0 — zero-credit renders skip deduction", () => {
+    // A zero-credit render (the one-time first-video freebie) must NOT call deduct_credits, otherwise
     // it'd leave dummy ledger rows and pollute audit trails.
     expect(src).toMatch(/if\s*\(creditsRequired\s*>\s*0\)/);
   });

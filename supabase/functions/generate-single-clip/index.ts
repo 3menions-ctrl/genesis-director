@@ -31,7 +31,7 @@ import {
   checkAndRecoverStaleMutex,
   runPreGenerationChecks,
 } from "../_shared/pipeline-guard-rails.ts";
-import { SEEDANCE_REFERENCE_CONDITIONING } from "../_shared/engine-profiles.ts";
+import { SEEDANCE_REFERENCE_CONDITIONING, SEEDANCE_NATIVE_AUDIO } from "../_shared/engine-profiles.ts";
 
 // ─────────────────────────────────────────────────────────────────────
 // Per-engine prompt optimizers — each model rewards a different prompt
@@ -49,7 +49,7 @@ function tuneForEngine(
   let p = prompt;
 
   if (engine === 'wan') {
-    // Wan 2.5 is the FREE tier — it performs best with short, action-forward
+    // Wan is the budget engine — it performs best with short, action-forward
     // subject/verb/setting grammar, NOT the dense cinematographic stack the
     // cinema engines reward. Strip lens/dolly jargon (mirrors
     // _shared/video-engines.ts:optimizeForWan) and keep the prompt compact.
@@ -65,16 +65,11 @@ function tuneForEngine(
       p += `\n\n[CAMERA] Cinematic anamorphic lens, deliberate movement, natural parallax. [LIGHT] Motivated practicals, soft key, controlled contrast.`;
     }
   } else if (engine === 'seedance') {
-    // Seedance 2.0 has NO native audio and auto-frames; explicit lens/dolly
-    // jargon hurts it, and dialogue/lip-sync/audio cues are dead weight (voice
-    // is muxed post-render by the stitcher). Strip both so the same prompt that
-    // drives the native-audio engines becomes Seedance-shaped here — making the
-    // shaping orchestrator-independent (the legacy seedance-pipeline used to do
-    // this externally).
+    // Seedance 2.0 auto-frames; explicit lens/dolly jargon hurts it. With
+    // native audio ON, dialogue in double quotes drives generated speech
+    // (vendor grammar) — keep it. Lip-sync blocks are Kling-only either way.
     p = p.replace(/\b(85mm|24mm|35mm|50mm|anamorphic lens|dolly in|dolly out|pan left|pan right|zoom in|zoom out|crane shot|tracking shot)\b/gi, '')
-         // Strip dialogue/lip-sync/audio directives — Seedance can't voice them.
-         .replace(/\[(LIP-SYNC|AUDIO|DIALOGUE|VOICE|SOUND)\][^\n]*/gi, '')
-         .replace(/\b(lip[- ]sync|mouth shapes precisely match[^.]*\.|spoken dialogue|natural diegetic sound|ambient room tone)\b/gi, '')
+         .replace(/\[(LIP-SYNC)\][^\n]*/gi, '')
          // Vendor guidance (BytePlus ModelArk Seedance guide, 2026-06): the
          // model's support for explicit per-segment second-marks ("0-3
          // seconds", "at 5s") is UNSTABLE and causes abnormal outputs — strip
@@ -130,19 +125,18 @@ const SEEDANCE_MODEL_OWNER = "bytedance";
 const SEEDANCE_MODEL_NAME = "seedance-2.0";
 const SEEDANCE_MODEL_URL = `https://api.replicate.com/v1/models/${SEEDANCE_MODEL_OWNER}/${SEEDANCE_MODEL_NAME}/predictions`;
 
-// ─── Wan 2.5 (Alibaba) — FREE TIER engine ──────────────────────────────────
-// Model: wan-video/wan-2.5-t2v — text-to-video (5/10s clips).
-// Chosen as the free-tier engine because it's cheap to run, the quality is
-// strong enough to demo the product, and Alibaba's pricing on Replicate
-// keeps the platform burn-rate sustainable on signup-grant credits.
+// ─── Wan 2.7 (Alibaba) — budget engine ─────────────────────────────────────
+// Model: wan-video/wan-2.7-t2v — text-to-video, 1080p, 2-15s, native audio sync.
+// The budget engine: cheap to run with quality strong enough to demo the
+// product. A user's FIRST 5-second render is free (server-enforced, one-time).
 const WAN_MODEL_OWNER = "wan-video";
-const WAN_MODEL_NAME = "wan-2.5-t2v";
+const WAN_MODEL_NAME = "wan-2.7-t2v";
 const WAN_MODEL_URL = `https://api.replicate.com/v1/models/${WAN_MODEL_OWNER}/${WAN_MODEL_NAME}/predictions`;
 
 // ─── Runway Gen-4 Turbo (Replicate-hosted) ─────────────────────────────────
-// Model: runwayml/gen4-turbo — best-in-class character consistency, 5s/10s clips
+// Model: runwayml/gen-4.5 — state-of-the-art motion quality + prompt adherence, 5s/10s
 const RUNWAY_MODEL_OWNER = "runwayml";
-const RUNWAY_MODEL_NAME = "gen4-turbo";
+const RUNWAY_MODEL_NAME = "gen-4.5";
 const RUNWAY_MODEL_URL = `https://api.replicate.com/v1/models/${RUNWAY_MODEL_OWNER}/${RUNWAY_MODEL_NAME}/predictions`;
 
 // ─── OpenAI Sora 2 (Replicate-hosted) ──────────────────────────────────────
@@ -152,7 +146,7 @@ const SORA_MODEL_NAME = "sora-2";
 const SORA_MODEL_URL = `https://api.replicate.com/v1/models/${SORA_MODEL_OWNER}/${SORA_MODEL_NAME}/predictions`;
 
 const VEO_MODEL_OWNER = "google";
-const VEO_MODEL_NAME = "veo-3-fast";
+const VEO_MODEL_NAME = "veo-3.1-fast";
 const VEO_MODEL_URL = `https://api.replicate.com/v1/models/${VEO_MODEL_OWNER}/${VEO_MODEL_NAME}/predictions`;
 
 // Kling V3: native audio with dialogue lip-sync — enable for avatar mode
@@ -314,12 +308,12 @@ const createReplicatePrediction = createKlingV3Prediction;
 /**
  * Create an Alibaba Wan 2.5 prediction via Replicate.
  *
- * Model: wan-video/wan-2.5-t2v
+ * Model: wan-video/wan-2.7-t2v (+ wan-2.7-i2v for chained clips)
  *   - Text-to-Video and Image-to-Video (start frame)
  *   - Duration: 5s or 10s
  *   - 1080p output, 24fps
  *
- * Wan is the FREE TIER engine — users on signup-grant credits route here.
+ * Wan is the budget engine.
  * The model accepts a `prompt` + optional `image` for I2V; an end-frame is
  * not supported (unlike Seedance).
  */
@@ -334,40 +328,38 @@ async function createWan25Prediction(
     throw new Error("REPLICATE_API_KEY is not configured");
   }
 
-  // Wan 2.5: durations 5s or 10s — snap to nearest.
-  const duration = durationSeconds <= 7 ? 5 : 10;
+  // Wan 2.7: integer duration 2-15s.
+  const duration = Math.max(2, Math.min(15, Math.round(durationSeconds)));
 
-  // FRAME CHAINING FIX: wan-2.5-t2v is TEXT-ONLY — its schema has no `image`
+  // FRAME CHAINING: wan t2v is TEXT-ONLY — its schema has no `image`
   // field at all, so the previous code's `input.image` never reached the
   // model and every chained Wan clip re-rolled the subject from scratch
   // ("two different kites"). Chained clips must route to the separate
-  // wan-video/wan-2.5-i2v model, which takes `image` + `resolution`.
+  // wan-2.7-i2v model, which takes `image` + `resolution`.
   const isI2V = !!(startImageUrl && startImageUrl.startsWith("http"));
 
-  // t2v takes `size` (WIDTH*HEIGHT); i2v takes `resolution` and derives
-  // aspect from the input image (the chained frame already has the right AR).
-  const wanSize = aspectRatio === '9:16' ? '720*1280'
-    : aspectRatio === '1:1' ? '960*960'
-    : '1280*720';
-
+  // Wan 2.7: both variants take `resolution`; t2v also takes `aspect_ratio`
+  // (i2v derives aspect from the input image — the chained frame already has
+  // the right AR). Both accept negative_prompt.
   const input: Record<string, any> = isI2V
     ? {
         prompt: prompt.slice(0, 2500),
         image: startImageUrl,
         duration,
-        resolution: "720p",
+        resolution: "1080p",
         seed: Math.floor(Math.random() * 2147483647),
       }
     : {
         prompt: prompt.slice(0, 2500),
         duration,
-        size: wanSize,
+        resolution: "1080p",
+        aspect_ratio: aspectRatio,
         seed: Math.floor(Math.random() * 2147483647),
       };
 
   const mode = isI2V ? "I2V" : "T2V";
   const wanModelUrl = isI2V
-    ? `https://api.replicate.com/v1/models/${WAN_MODEL_OWNER}/wan-2.5-i2v/predictions`
+    ? `https://api.replicate.com/v1/models/${WAN_MODEL_OWNER}/wan-2.7-i2v/predictions`
     : WAN_MODEL_URL;
   console.log(`[SingleClip][Wan25] Creating ${mode} prediction:`, {
     model: isI2V ? `${WAN_MODEL_OWNER}/wan-2.5-i2v` : `${WAN_MODEL_OWNER}/${WAN_MODEL_NAME}`,
@@ -432,6 +424,9 @@ async function createSeedancePrediction(
     // production_request so the orchestrator (not just the legacy seedance
     // pipeline) can request a locked frame.
     camera_fixed: cameraFixed,
+    // Joint audio+video generation (BGM/SFX + dialogue in double quotes).
+    // When ON, the TTS combined-voice step is skipped upstream.
+    generate_audio: SEEDANCE_NATIVE_AUDIO,
     seed: Math.floor(Math.random() * 2147483647),
   };
 
@@ -504,12 +499,13 @@ async function createSeedancePrediction(
 
 
 /**
- * Create a Runway Gen-4 Turbo prediction via Replicate.
+ * Create a Runway Gen-4.5 prediction via Replicate.
  *
- * Model: runwayml/gen4-turbo
+ * Model: runwayml/gen-4.5
  *   - Text-to-Video and Image-to-Video (start frame)
  *   - Duration: 5s or 10s
- *   - Aspect ratios mapped to Runway's pixel ratios
+ *   - aspect_ratio strings (16:9/9:16/4:3/3:4/1:1/21:9) — NOT the old
+ *     gen4-turbo pixel-ratio format
  */
 async function createRunwayGen4Prediction(
   prompt: string,
@@ -522,20 +518,13 @@ async function createRunwayGen4Prediction(
     throw new Error("REPLICATE_API_KEY is not configured");
   }
 
-  // Runway Gen-4 Turbo: only 5s or 10s. Snap to nearest.
+  // Runway Gen-4.5: only 5s or 10s. Snap to nearest.
   const duration = durationSeconds <= 7 ? 5 : 10;
-
-  // Map our aspect ratios to Runway's pixel ratios (gen4-turbo schema).
-  const ratioMap: Record<'16:9' | '9:16' | '1:1', string> = {
-    '16:9': '1280:720',
-    '9:16': '720:1280',
-    '1:1':  '960:960',
-  };
 
   const input: Record<string, any> = {
     prompt: prompt.slice(0, 2500),
     duration,
-    ratio: ratioMap[aspectRatio] || '1280:720',
+    aspect_ratio: aspectRatio,
     seed: Math.floor(Math.random() * 2147483647),
   };
 
@@ -547,7 +536,7 @@ async function createRunwayGen4Prediction(
   console.log(`[SingleClip][RunwayGen4] Creating ${mode} prediction:`, {
     model: `${RUNWAY_MODEL_OWNER}/${RUNWAY_MODEL_NAME}`,
     duration,
-    ratio: input.ratio,
+    aspectRatio: input.aspect_ratio,
     hasStartImage: !!input.image,
     promptLength: prompt.length,
   });
@@ -665,11 +654,12 @@ async function createSora2Prediction(
 }
 
 /**
- * Create a Google Veo 3 Fast prediction via Replicate.
+ * Create a Google Veo 3.1 Fast prediction via Replicate.
  *
- * Model: google/veo-3-fast
+ * Model: google/veo-3.1-fast
  *   - Text-to-Video and Image-to-Video
- *   - Native audio generation (ambient + diegetic)
+ *   - Native audio generation (context-aware, ambient + diegetic)
+ *   - last_frame: end-frame interpolation (keyframe-pair, like Seedance)
  *   - Allowed durations: 4, 6, 8 seconds (snap to nearest)
  *   - Aspect ratios: 16:9 or 9:16 only
  */
@@ -680,6 +670,7 @@ async function createVeo3FastPrediction(
   aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
   durationSeconds: number = 8,
   enableAudio: boolean = true,
+  endImageUrl?: string | null,
 ): Promise<{ predictionId: string }> {
   const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
   if (!REPLICATE_API_KEY) {
@@ -704,9 +695,14 @@ async function createVeo3FastPrediction(
 
   if (startImageUrl && startImageUrl.startsWith("http")) {
     input.image = startImageUrl;
+    // Veo 3.1 keyframe-pair: interpolate toward the next shot's keyframe.
+    // Only valid alongside a start image (mirrors Seedance last_frame_image).
+    if (endImageUrl && endImageUrl.startsWith("http") && endImageUrl !== startImageUrl) {
+      input.last_frame = endImageUrl;
+    }
   }
 
-  const mode = startImageUrl ? "I2V" : "T2V";
+  const mode = startImageUrl ? (input.last_frame ? "I2V+EndFrame" : "I2V") : "T2V";
   console.log(`[SingleClip][Veo3Fast] Creating ${mode} prediction:`, {
     model: `${VEO_MODEL_OWNER}/${VEO_MODEL_NAME}`,
     duration,
@@ -1720,8 +1716,8 @@ serve(async (req) => {
     const hasStartImage = !!validatedStartImage;
     const engineLabel = videoEngine === 'wan'
       ? (hasStartImage
-          ? `Wan 2.5 I2V (free tier, image-to-video)`
-          : `Wan 2.5 T2V (free tier, text-to-video)`)
+          ? `Wan 2.7 I2V (image-to-video)`
+          : `Wan 2.7 T2V (text-to-video)`)
       : videoEngine === 'seedance'
         ? (isAvatarMode
             ? `Seedance 2.0 Avatar (I2V from start image, TTS audio overlaid post-stitch)`
@@ -1800,7 +1796,7 @@ serve(async (req) => {
 
     let predictionId: string;
     if (videoEngine === 'wan') {
-      console.log(`[SingleClip] ══ ROUTING TO WAN 2.5 (wan-video/wan-2.5-t2v) — FREE TIER ══`);
+      console.log(`[SingleClip] ══ ROUTING TO WAN 2.7 (wan-video/wan-2.7-t2v) ══`);
       const wanResult = await createWan25Prediction(
         tuneForEngine('wan', enhancedPrompt, { isAvatarMode, hasStartImage }),
         validatedStartImage,
@@ -1848,6 +1844,7 @@ serve(async (req) => {
         aspectRatio as '16:9' | '9:16' | '1:1',
         durationSeconds,
         enableNativeAudio !== false,
+        endImageUrl, // Veo 3.1 keyframe-pair (last_frame) — parity with Seedance
       );
       predictionId = veoResult.predictionId;
     } else {

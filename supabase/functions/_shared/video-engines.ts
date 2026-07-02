@@ -151,31 +151,33 @@ function optimizeForRunway(req: CanonicalVideoRequest): string {
 export const ENGINES: Record<VideoEngineKey, EngineDefinition> = {
   wan: {
     key: "wan",
-    label: "Wan 2.5 — Free",
+    label: "Wan 2.7",
     modelOwner: "wan-video",
-    modelName: "wan-2.5-t2v",
-    modelId: "wan-video/wan-2.5-t2v",
-    endpoint: "https://api.replicate.com/v1/models/wan-video/wan-2.5-t2v/predictions",
-    durations: [5, 10],
+    modelName: "wan-2.7-t2v",
+    modelId: "wan-video/wan-2.7-t2v",
+    endpoint: "https://api.replicate.com/v1/models/wan-video/wan-2.7-t2v/predictions",
+    durations: [5, 10, 15],
     defaultDuration: 5,
-    minDuration: 5,
-    maxDuration: 10,
+    minDuration: 2,
+    maxDuration: 15,
     supportsImageToVideo: true,
-    supportsNativeAudio: false,
+    supportsNativeAudio: true,
     supportsLipSync: false,
-    tagline: "Free tier · 1080p · 5-10s",
+    tagline: "1080p · 2-15s · native audio",
     optimizer: optimizeForWan,
     buildInput: (req) => {
-      const duration = nearestDuration([5, 10], req.duration, 5);
-      const ar = clampAspect(req.aspectRatio, ["16:9", "9:16", "1:1"], "16:9");
+      const duration = nearestDuration([5, 10, 15], req.duration, 5);
+      const ar = clampAspect(req.aspectRatio, ["16:9", "9:16", "1:1", "4:3", "3:4"], "16:9");
       const enhanced = optimizeForWan(req);
       const input: Record<string, unknown> = {
         prompt: enhanced,
+        negative_prompt: req.negativePrompt.slice(0, 1500),
         duration,
         aspect_ratio: ar,
         resolution: "1080p",
       };
-      if (req.startImageUrl) input.image = req.startImageUrl;
+      // NOTE: wan-2.7-t2v has no image input — i2v routes are handled by the
+      // spine (generate-single-clip) via wan-video/wan-2.7-i2v.
       return input;
     },
   },
@@ -248,11 +250,11 @@ export const ENGINES: Record<VideoEngineKey, EngineDefinition> = {
   },
   veo: {
     key: "veo",
-    label: "Veo 3 Fast",
+    label: "Veo 3.1 Fast",
     modelOwner: "google",
-    modelName: "veo-3-fast",
-    modelId: "google/veo-3-fast",
-    endpoint: "https://api.replicate.com/v1/models/google/veo-3-fast/predictions",
+    modelName: "veo-3.1-fast",
+    modelId: "google/veo-3.1-fast",
+    endpoint: "https://api.replicate.com/v1/models/google/veo-3.1-fast/predictions",
     durations: [4, 6, 8],
     defaultDuration: 8,
     minDuration: 4,
@@ -274,7 +276,13 @@ export const ENGINES: Record<VideoEngineKey, EngineDefinition> = {
         resolution: "1080p",
         generate_audio: req.enableAudio !== false,
       };
-      if (req.startImageUrl) input.image = req.startImageUrl;
+      if (req.startImageUrl) {
+        input.image = req.startImageUrl;
+        // Veo 3.1 keyframe-pair interpolation (parity with Seedance).
+        if (req.endImageUrl && req.endImageUrl !== req.startImageUrl) {
+          input.last_frame = req.endImageUrl;
+        }
+      }
       return input;
     },
   },
@@ -310,11 +318,11 @@ export const ENGINES: Record<VideoEngineKey, EngineDefinition> = {
   },
   runway: {
     key: "runway",
-    label: "Runway Gen-4 Turbo",
+    label: "Runway Gen-4.5",
     modelOwner: "runwayml",
-    modelName: "gen4-turbo",
-    modelId: "runwayml/gen4-turbo",
-    endpoint: "https://api.replicate.com/v1/models/runwayml/gen4-turbo/predictions",
+    modelName: "gen-4.5",
+    modelId: "runwayml/gen-4.5",
+    endpoint: "https://api.replicate.com/v1/models/runwayml/gen-4.5/predictions",
     durations: [5, 10],
     defaultDuration: 5,
     minDuration: 5,
@@ -322,7 +330,7 @@ export const ENGINES: Record<VideoEngineKey, EngineDefinition> = {
     supportsImageToVideo: true,
     supportsNativeAudio: false,
     supportsLipSync: false,
-    tagline: "Best-in-class character continuity",
+    tagline: "State-of-the-art motion + prompt adherence",
     optimizer: optimizeForRunway,
     buildInput: (req) => {
       const duration = nearestDuration([5, 10], req.duration, 5);

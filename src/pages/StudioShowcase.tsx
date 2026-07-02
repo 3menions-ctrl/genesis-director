@@ -51,7 +51,7 @@ function shuffle<T>(arr: T[]): T[] {
 
 type Engine = { label: string; provider: string; tagline: string; badge?: string; caps: string[]; dur: string };
 const ENGINES: Engine[] = [
-  { label: "Wan 2.5", provider: "Alibaba", tagline: "The free-tier workhorse — smooth motion on every starter grant.", badge: "FREE", caps: ["Text → Video", "Image → Video"], dur: "5–10s" },
+  { label: "Wan 2.7", provider: "Alibaba", tagline: "The budget workhorse — fast, sharp, native audio. First 5-second video on us.", badge: "1st FREE", caps: ["Text → Video", "Image → Video"], dur: "5–15s" },
   { label: "Kling V3", provider: "Kuaishou", tagline: "Cinematic and dependable, with native audio and lip-sync.", caps: ["Lip-sync", "Native audio", "T→V · I→V"], dur: "5–15s" },
   { label: "Seedance 2.0", provider: "ByteDance", tagline: "Razor-sharp, hyperreal motion with the tightest prompt adherence.", badge: "NEW", caps: ["Hyperreal", "Native audio", "T→V · I→V"], dur: "5–12s" },
   { label: "Veo 3 Fast", provider: "Google DeepMind", tagline: "Real-world physics and natural motion with sound born in-shot.", badge: "CINEMA", caps: ["Native audio", "4K", "Physics"], dur: "5–15s" },

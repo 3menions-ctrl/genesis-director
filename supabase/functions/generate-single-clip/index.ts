@@ -336,24 +336,40 @@ async function createWan25Prediction(
   // Wan 2.5: durations 5s or 10s — snap to nearest.
   const duration = durationSeconds <= 7 ? 5 : 10;
 
-  // wan-video/wan-2.5-t2v takes `size` (WIDTH*HEIGHT), NOT `aspect_ratio`.
+  // FRAME CHAINING FIX: wan-2.5-t2v is TEXT-ONLY — its schema has no `image`
+  // field at all, so the previous code's `input.image` never reached the
+  // model and every chained Wan clip re-rolled the subject from scratch
+  // ("two different kites"). Chained clips must route to the separate
+  // wan-video/wan-2.5-i2v model, which takes `image` + `resolution`.
+  const isI2V = !!(startImageUrl && startImageUrl.startsWith("http"));
+
+  // t2v takes `size` (WIDTH*HEIGHT); i2v takes `resolution` and derives
+  // aspect from the input image (the chained frame already has the right AR).
   const wanSize = aspectRatio === '9:16' ? '720*1280'
     : aspectRatio === '1:1' ? '960*960'
     : '1280*720';
 
-  const input: Record<string, any> = {
-    prompt: prompt.slice(0, 2500),
-    duration,
-    size: wanSize,
-    seed: Math.floor(Math.random() * 2147483647),
-  };
-  if (startImageUrl && startImageUrl.startsWith("http")) {
-    input.image = startImageUrl;
-  }
+  const input: Record<string, any> = isI2V
+    ? {
+        prompt: prompt.slice(0, 2500),
+        image: startImageUrl,
+        duration,
+        resolution: "720p",
+        seed: Math.floor(Math.random() * 2147483647),
+      }
+    : {
+        prompt: prompt.slice(0, 2500),
+        duration,
+        size: wanSize,
+        seed: Math.floor(Math.random() * 2147483647),
+      };
 
-  const mode = startImageUrl ? "I2V" : "T2V";
+  const mode = isI2V ? "I2V" : "T2V";
+  const wanModelUrl = isI2V
+    ? `https://api.replicate.com/v1/models/${WAN_MODEL_OWNER}/wan-2.5-i2v/predictions`
+    : WAN_MODEL_URL;
   console.log(`[SingleClip][Wan25] Creating ${mode} prediction:`, {
-    model: `${WAN_MODEL_OWNER}/${WAN_MODEL_NAME}`,
+    model: isI2V ? `${WAN_MODEL_OWNER}/wan-2.5-i2v` : `${WAN_MODEL_OWNER}/${WAN_MODEL_NAME}`,
     duration, aspectRatio, hasStartImage: !!input.image, promptLength: prompt.length,
   });
 
@@ -365,7 +381,7 @@ async function createWan25Prediction(
     requestBody.webhook_events_filter = ["completed"];
   }
 
-  const response = await fetch(WAN_MODEL_URL, {
+  const response = await fetch(wanModelUrl, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${REPLICATE_API_KEY}`,
@@ -1651,6 +1667,14 @@ serve(async (req) => {
           if (imageCheckResponse.ok) {
             validatedStartImage = imageToValidate;
             console.log(`[SingleClip] ✓ Start image validated: ${imageToValidate.substring(0, 60)}...`);
+          } else {
+            // CHAIN-BREAK FIX: a non-OK HEAD (some CDNs 400/405 on HEAD) used
+            // to SILENTLY drop the frame — the clip rendered as pure T2V and
+            // the subject re-rolled ("two different kites"), with nothing in
+            // the output to say why. Use the frame anyway: if it's truly dead
+            // the provider fails loudly and the retry machinery engages.
+            console.warn(`[SingleClip] ⚠️ Start image HEAD returned ${imageCheckResponse.status} — using anyway (loud beats a silently broken chain)`);
+            validatedStartImage = imageToValidate;
           }
         } catch (urlError) {
           console.warn(`[SingleClip] ⚠️ Failed to HEAD check start image, using anyway`);

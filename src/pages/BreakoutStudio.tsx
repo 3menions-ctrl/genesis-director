@@ -26,6 +26,8 @@ import { FoundationShell } from "@/components/foundation/FoundationShell";
 import { PageShell } from "@/components/shell";
 import { GlassPanel, GlassButton, SectionLabel } from "@/components/foundation/Floating";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { usePageTone, TONE_PRESETS } from "@/lib/page-tone";
+import { SpineBackdrop } from "@/components/foundation/SpineBackdrop";
 
 const STORAGE = "https://ywcwaumozoejierlfkgj.supabase.co/storage/v1";
 const thumb = (t: string, w = 360) =>
@@ -78,12 +80,14 @@ interface RunRow {
   status: string;
   final_url: string | null;
   error: string | null;
+  updated_at: string;
   plan: { stages: Array<{ id: string }>; name?: string };
   state: { stageIdx: number; critic?: Record<string, { pass?: boolean }> };
 }
 
 function RunView({ runId }: { runId: string }) {
   const [run, setRun] = useState<RunRow | null>(null);
+  const lastNudge = useRef(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -95,10 +99,23 @@ function RunView({ runId }: { runId: string }) {
         };
       })
         .from("effect_runs")
-        .select("id,status,final_url,error,plan,state")
+        .select("id,status,final_url,error,updated_at,plan,state")
         .eq("id", runId)
         .maybeSingle();
-      if (alive && data) setRun(data);
+      if (alive && data) {
+        setRun(data);
+        // SELF-HEAL: a continuation can die between slices (deploys, isolate
+        // recycling). If the run claims "running" but hasn't advanced in 3+
+        // minutes, nudge the executor — it resumes from persisted state.
+        if (
+          data.status === "running" &&
+          Date.now() - new Date(data.updated_at).getTime() > 180_000 &&
+          Date.now() - lastNudge.current > 120_000
+        ) {
+          lastNudge.current = Date.now();
+          supabase.functions.invoke("effect-executor", { body: { runId } }).catch(() => {});
+        }
+      }
     };
     load();
     const iv = window.setInterval(load, 5000);
@@ -261,6 +278,7 @@ function Wizard() {
               onClick={() => setTemplate(c.template)}
               className={cn(
                 "group relative overflow-hidden rounded-2xl text-left transition-all",
+                !c.tall && "col-span-2 self-start",
                 template === c.template
                   ? "ring-2 ring-accent shadow-[0_18px_44px_-18px_hsl(var(--accent)/0.55)] scale-[1.02]"
                   : "opacity-75 hover:opacity-100",
@@ -270,7 +288,7 @@ function Wizard() {
                 src={thumb(c.template)}
                 alt={c.name}
                 loading="lazy"
-                className={cn("w-full object-cover object-top bg-[#0a0a0c]", c.tall ? "aspect-[9/13]" : "aspect-[9/13]")}
+                className={cn("w-full object-cover object-top bg-[#0a0a0c]", c.tall ? "aspect-[9/13]" : "aspect-video")}
               />
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-2.5 pb-2 pt-8">
                 <div className="flex items-center gap-1.5">
@@ -384,10 +402,12 @@ export default function BreakoutStudio() {
     title: "Breakout Studio — Small Bridges",
     description: "Break out of any feed. Pick a platform, tell the story, star in it yourself.",
   });
+  usePageTone(TONE_PRESETS.studio);
   const { runId } = useParams<{ runId?: string }>();
 
   return (
     <FoundationShell bare>
+      <SpineBackdrop />
       <PageShell>
         <div className="mx-auto w-full max-w-6xl px-4 pb-24 pt-10 sm:pt-14">
           <div className="mb-10 space-y-3">

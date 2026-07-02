@@ -125,13 +125,19 @@ serve(async (req) => {
       runId = String(body.runId);
       const { data: run } = await supabase.from('effect_runs').select('*').eq('id', runId).maybeSingle();
       if (!run) return json(404, { error: 'run not found' });
+      // Ownership: users may only touch their own runs (service = continuations).
+      if (!auth.isServiceRole && run.user_id !== auth.userId) return json(403, { error: 'not your run' });
       if (run.status !== 'running') return json(200, { runId, status: run.status, finalUrl: run.final_url });
       plan = run.plan as EffectPlan;
       state = run.state as RunState;
       runUserId = (run.user_id as string) ?? null;
       runProjectId = (run.project_id as string) ?? null;
     } else {
-      let rawPlan = body.plan;
+      // Raw plans are INTERNAL ONLY: an arbitrary plan could chain unlimited
+      // paid generations for a flat charge. Users go through breakout params
+      // or a seeded recipe, both of which price deterministically.
+      let rawPlan = auth.isServiceRole ? body.plan : undefined;
+      if (body.plan && !auth.isServiceRole) return json(403, { error: 'custom plans are internal — use breakout params or a recipeSlug' });
       let dynamicCost: number | null = null;
       // Studio path: user story params → compiled plan + scaled price.
       if (!rawPlan && body.breakout) {

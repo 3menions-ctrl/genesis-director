@@ -334,8 +334,13 @@ export const ENGINES: Record<VideoEngineKey, EngineDefinition> = {
 };
 
 export function getEngine(key: string | undefined | null): EngineDefinition {
-  const k = (key as VideoEngineKey) || "kling";
-  return ENGINES[k] ?? ENGINES.kling;
+  // NO DEFAULT MODEL: this function builds the actual Replicate input — a
+  // silent kling fallback here IS a wrong-model render. Refuse instead.
+  const def = key ? ENGINES[key as VideoEngineKey] : undefined;
+  if (!def) {
+    throw new Error(`Unknown or missing video engine "${key}" — engine must be explicit (no default model).`);
+  }
+  return def;
 }
 
 /**

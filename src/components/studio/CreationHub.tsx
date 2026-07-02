@@ -211,16 +211,17 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
     && (profile.total_credits_purchased ?? 0) === 0;
 
   const [selectedMode, setSelectedMode] = useState<VideoGenerationMode>('text-to-video');
-  // Engine is now an INDEPENDENT axis from mode. The capability matrix
+  // Engine is an INDEPENDENT axis from mode. The capability matrix
   // (ENGINE_CAPS) decides which engines are valid for the chosen mode.
-  // Default engine: 'wan' for everyone — purchased users will see Wan as the
-  // free option but can flip to Kling for richer features. New free-tier
-  // users land directly on the engine that won't blow through their grant.
-  // Defaults seed from the user's persisted preferences (Settings →
-  // Playback → Generation). Falls back to 'wan' for first-run users.
+  // NO DEFAULT MODEL: the engine starts UNSELECTED and the Generate CTA is
+  // gated until the user picks. The only prefill allowed is the user's OWN
+  // persisted preference (Settings → Playback → Generation) — that is an
+  // explicit choice they made, not a system default.
   const userPrefs = useUserPrefs();
-  const [videoEngine, setVideoEngine] = useState<EngineKey>(
-    (userPrefs.defaultEngine === 'kling' ? 'kling' : 'wan') as EngineKey,
+  const [videoEngine, setVideoEngine] = useState<EngineKey | null>(
+    userPrefs.defaultEngine === 'kling' || userPrefs.defaultEngine === 'wan'
+      ? (userPrefs.defaultEngine as EngineKey)
+      : null,
   );
   const [prompt, setPrompt] = useState('');
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
@@ -374,34 +375,25 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
 
   const modeConfig = VIDEO_MODES.find((m) => m.id === selectedMode);
   const supportsAdvancedOptions = selectedMode === 'text-to-video' || selectedMode === 'b-roll';
-  const engineCaps = ENGINE_CAPS[videoEngine];
+  // UI SCAFFOLDING ONLY: before an engine is picked, the duration/aspect pills
+  // still need a legal option set to render, so we borrow wan's caps. This
+  // value is NEVER sent anywhere — launch is hard-gated on videoEngine !== null,
+  // and the snap effects re-clamp the moment a real engine is picked.
+  const engineCaps = ENGINE_CAPS[videoEngine ?? 'wan'];
   const engineInfo = engineCaps;
   const clipDurationOptions = engineCaps.durations;
   const aspectOptions = ASPECT_RATIOS.filter(a => engineCaps.aspectRatios.includes(a.id));
 
-  // ── GUARDRAIL: if the chosen engine doesn't support the chosen mode, snap
-  //               the engine back to the canonical engine for that mode.
-  //               (Avatar = Kling lip-sync only; everything else falls back to Kling.)
+  // ── GUARDRAIL: if the chosen engine doesn't support the chosen mode,
+  //               DESELECT it — the user re-picks. Auto-switching to another
+  //               engine would be a hidden default model. (Free-tier users who
+  //               keep a locked engine selected hit the existing "purchase to
+  //               unlock" toast at Generate — never a silent downgrade.)
   useEffect(() => {
-    if (!engineSupportsMode(videoEngine, selectedMode as CreationModeId)) {
-      // Prefer wan as the fallback so free-tier users don't get bumped to
-      // a locked engine just because they touched a mode the wan engine
-      // also supports. Only fall through to kling for modes wan can't
-      // serve (avatar / lip-sync).
-      const fallback: EngineKey = engineSupportsMode('wan', selectedMode as CreationModeId) ? 'wan' : 'kling';
-      setVideoEngine(fallback);
+    if (videoEngine && !engineSupportsMode(videoEngine, selectedMode as CreationModeId)) {
+      setVideoEngine(null);
     }
-    // Free-tier guardrail: if a free user somehow ends up on a paid engine
-    // (e.g. via a template that auto-picks seedance) AND wan supports the
-    // selected mode, snap them back to wan instead of failing at
-    // generation time. If wan can't do the mode (avatar), let them stay on
-    // the locked engine so the existing "purchase to unlock" toast fires
-    // when they hit Generate.
-    if (isFreeTier && videoEngine !== FREE_TIER_ENGINE
-        && engineSupportsMode(FREE_TIER_ENGINE, selectedMode as CreationModeId)) {
-      setVideoEngine(FREE_TIER_ENGINE);
-    }
-  }, [selectedMode, videoEngine, isFreeTier]);
+  }, [selectedMode, videoEngine]);
 
   // ── GUARDRAIL: snap default duration AND every per-scene duration into
   //               the new engine's legal range.
@@ -484,8 +476,9 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
     // EngineKey and VideoEngine are the same union — no cast needed.
     // Keeping it typed means a future engine added to one but not the
     // other fails the build instead of silently defaulting the cost
-    // (which would under-charge the user).
-    () => calculateCreditsForDurations(alignedDurations, videoEngine),
+    // (which would under-charge the user). No engine picked → no quote
+    // (never price a default model).
+    () => (videoEngine ? calculateCreditsForDurations(alignedDurations, videoEngine) : 0),
     [alignedDurations, videoEngine]
   );
 
@@ -535,6 +528,12 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   }, []);
 
   const handleCreate = async () => {
+    // NO DEFAULT MODEL: an explicit engine pick is required. Breakout
+    // templates are the exception — the server forces seedance for those.
+    if (!videoEngine && !isBreakoutTemplate) {
+      toast.error('Pick an engine first — there is no default model.');
+      return;
+    }
     if (!prompt.trim() && modeConfig?.requiresText) return;
     const safetyResult = checkMultipleContent(prompt);
     if (!safetyResult.isSafe) {
@@ -612,7 +611,9 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
       enableMusic,
       genre: supportsAdvancedOptions || isBreakoutTemplate ? genre : undefined,
       mood: supportsAdvancedOptions || isBreakoutTemplate ? mood : undefined,
-      videoEngine: videoEngine as any,
+      // Breakouts run without a user pick (server forces seedance); send it
+      // explicitly so the request is honest about the engine that will run.
+      videoEngine: (isBreakoutTemplate ? 'seedance' : videoEngine) as any,
       useTemplateShots: !!appliedSettings?.shotSequence?.length,
       templateShotSequence: appliedSettings?.shotSequence,
       templateName: appliedSettings?.templateName,
@@ -662,6 +663,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   };
 
   const isReadyToCreate = () => {
+    if (!videoEngine && !isBreakoutTemplate) return false; // no default model
     if (modeConfig?.requiresText && !prompt.trim()) return false;
     if (modeConfig?.requiresImage && !uploadedImage) return false;
     if (modeConfig?.requiresVideo && !uploadedVideo) return false;

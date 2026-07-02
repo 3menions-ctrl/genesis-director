@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import {
   ENGINES, listEngines, renderSurchargeCredits, engineToBackend, clampDurationForEngine,
-  TIER_LABEL, DEFAULT_ENGINE_ID, type EngineId, type EngineSpec,
+  TIER_LABEL, type EngineId, type EngineSpec,
 } from "@/lib/video/engines";
 import { useAvatarTemplatesQuery } from "@/hooks/useAvatarTemplatesQuery";
 import { useAllCrossoverBlueprints } from "@/lib/crossovers/registry";
@@ -191,7 +191,9 @@ function buildPrompt(sel: Selections, prompt: string): string {
 function GenerateModule({ sel, setSel, onStartCreation, initialPrompt }: { sel: Selections; setSel: (s: Selections) => void; onStartCreation: (c: Record<string, unknown>) => void; initialPrompt?: string }) {
   const engines = useMemo(() => listEngines({ healthyOnly: true }), []);
   const [mode, setMode] = useState<Mode>("text-to-video");
-  const [engineId, setEngineId] = useState<EngineId>(DEFAULT_ENGINE_ID);
+  // NO DEFAULT MODEL — the user must explicitly pick an engine every time.
+  // The Generate CTA stays disabled until they do.
+  const [engineId, setEngineId] = useState<EngineId | null>(null);
   const [prompt, setPrompt] = useState(initialPrompt ?? "");
   // initialPrompt can arrive async (e.g. a ?template= concept resolved after
   // mount). Sync it in until the user has typed their own prompt.
@@ -204,7 +206,7 @@ function GenerateModule({ sel, setSel, onStartCreation, initialPrompt }: { sel: 
   }, [initialPrompt]);
   const [aspect, setAspect] = useState<"16:9" | "9:16" | "1:1">("16:9");
   const [profileId, setProfileId] = useState<string>("");
-  const [duration, setDuration] = useState<number>(ENGINES[DEFAULT_ENGINE_ID].defaultDuration);
+  const [duration, setDuration] = useState<number>(10);
   const [scenes, setScenes] = useState(4);
   const [narration, setNarration] = useState(true);
   const [narrationText, setNarrationText] = useState("");
@@ -212,20 +214,24 @@ function GenerateModule({ sel, setSel, onStartCreation, initialPrompt }: { sel: 
   const [genre, setGenre] = useState("cinematic");
   const [mood, setMood] = useState("epic");
 
-  const spec = ENGINES[engineId];
-  const profile = spec.qualityProfiles.find((q) => q.id === profileId) ?? spec.qualityProfiles.find((q) => q.recommended) ?? spec.qualityProfiles[0];
+  const spec = engineId ? ENGINES[engineId] : null;
+  const profile = spec
+    ? (spec.qualityProfiles.find((q) => q.id === profileId) ?? spec.qualityProfiles.find((q) => q.recommended) ?? spec.qualityProfiles[0])
+    : null;
   // `duration` can lag a frame behind an engine switch: the clamp lives in a
   // useEffect (runs post-render), but cost/runtime are computed during render.
   // Switching from a 10s-capable engine to e.g. Veo (4/6/8s) would otherwise
   // call baseCreditsFor(10) on the new spec and throw "Unsupported duration"
   // mid-render → error boundary. Clamp in render so the spec and duration are
   // always consistent on the very render the engine changes.
-  const safeDuration = clampDurationForEngine(engineId, duration);
+  const safeDuration = engineId ? clampDurationForEngine(engineId, duration) : duration;
 
   useEffect(() => {
+    if (!engineId || !spec) return;
+    // Mode changed under the picked engine? Deselect — the user re-picks.
+    // (Auto-switching to a compatible engine would be a hidden default.)
     if (!modeAllowed(spec, mode)) {
-      const next = engines.find((e) => modeAllowed(e, mode));
-      if (next) setEngineId(next.id);
+      setEngineId(null);
       return;
     }
     setDuration((d) => clampDurationForEngine(engineId, d));
@@ -240,16 +246,17 @@ function GenerateModule({ sel, setSel, onStartCreation, initialPrompt }: { sel: 
   };
   // Quality cores (4K upscale / 60fps) are post-processing on the FINAL film,
   // billed once per render — not per clip. So: base × scenes + surcharge once.
-  const totalCost = spec.baseCreditsFor(safeDuration) * scenes + renderSurchargeCredits(spec, profile.options);
+  const totalCost = spec && profile ? spec.baseCreditsFor(safeDuration) * scenes + renderSurchargeCredits(spec, profile.options) : 0;
   const runtime = safeDuration * scenes;
 
   const canCreate =
-    mode === "text-to-video" ? prompt.trim().length > 4
+    !!engineId &&
+    (mode === "text-to-video" ? prompt.trim().length > 4
     : mode === "image-to-video" ? !!sel.referenceImage && prompt.trim().length > 0
-    : /* avatar */ !!sel.avatar && prompt.trim().length > 0;
+    : /* avatar */ !!sel.avatar && prompt.trim().length > 0);
 
   const create = () => {
-    if (!canCreate) return;
+    if (!canCreate || !engineId || !profile) return;
     const useNarrationText = narration && narrationText.trim().length > 0;
     const cfg: Record<string, unknown> = {
       mode,
@@ -357,12 +364,18 @@ function GenerateModule({ sel, setSel, onStartCreation, initialPrompt }: { sel: 
           <SectionLabel icon={Film}>Format</SectionLabel>
           <div className="space-y-4">
             <Row label="Aspect">{ASPECTS.map((a) => <Pill key={a.id} active={aspect === a.id} onClick={() => setAspect(a.id)}>{a.id} · {a.label}</Pill>)}</Row>
-            <Row label="Quality">{spec.qualityProfiles.map((q) => <Pill key={q.id} active={profile.id === q.id} onClick={() => setProfileId(q.id)}>{q.label}</Pill>)}</Row>
-            <Row label="Duration">{spec.durations.map((d) => <Pill key={d} active={safeDuration === d} onClick={() => setDuration(d)}>{d}s</Pill>)}</Row>
-            <Row label="Scenes">
-              <Stepper value={scenes} min={1} max={spec.maxScenesPerProject} onChange={setScenes} />
-              <span className="font-mono text-[11px] text-muted-foreground">≈ {runtime}s total</span>
-            </Row>
+            {spec && profile ? (
+              <>
+                <Row label="Quality">{spec.qualityProfiles.map((q) => <Pill key={q.id} active={profile.id === q.id} onClick={() => setProfileId(q.id)}>{q.label}</Pill>)}</Row>
+                <Row label="Duration">{spec.durations.map((d) => <Pill key={d} active={safeDuration === d} onClick={() => setDuration(d)}>{d}s</Pill>)}</Row>
+                <Row label="Scenes">
+                  <Stepper value={scenes} min={1} max={spec.maxScenesPerProject} onChange={setScenes} />
+                  <span className="font-mono text-[11px] text-muted-foreground">≈ {runtime}s total</span>
+                </Row>
+              </>
+            ) : (
+              <div className="text-[12.5px] text-muted-foreground/80">Pick an engine above to set quality, duration and scenes.</div>
+            )}
           </div>
 
           {/* advanced */}
@@ -404,12 +417,12 @@ function GenerateModule({ sel, setSel, onStartCreation, initialPrompt }: { sel: 
       <div className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-t from-[hsl(var(--background)/0.78)] to-[hsl(var(--background)/0.42)] shadow-[0_-24px_48px_-28px_rgba(0,0,0,0.9)] px-6 py-4 backdrop-blur-xl sm:px-9">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-muted-foreground">
           <span className="text-foreground">{MODES.find((m) => m.id === mode)!.label}</span>
-          <Dot /><span>{spec.shortLabel}</span>
+          <Dot /><span className={spec ? undefined : "text-[hsl(var(--accent))]"}>{spec ? spec.shortLabel : "pick an engine"}</span>
           <Dot /><span>{aspect}</span>
           <Dot /><span>{scenes} {scenes === 1 ? "scene" : "scenes"} · {runtime}s</span>
         </div>
         <div className="flex items-center gap-4">
-          <span className="font-mono text-[12px]" style={{ color: ACCENT }}>{totalCost === 0 ? "Free" : `${totalCost} credits`}</span>
+          <span className="font-mono text-[12px]" style={{ color: ACCENT }}>{!spec ? "—" : totalCost === 0 ? "Free" : `${totalCost} credits`}</span>
           <button type="button" onClick={create} disabled={!canCreate}
             className="group inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-[14.5px] font-semibold text-accent-foreground transition-all disabled:cursor-not-allowed disabled:opacity-75"
             style={{ background: ACCENT, boxShadow: canCreate ? `0 16px 44px -10px ${ACCENT}` : `0 8px 26px -12px ${ACCENT}` }}>

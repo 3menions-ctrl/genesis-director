@@ -9,6 +9,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   resolveEngine,
+  EngineRequiredError,
   resolveDispatchStrategy,
   resolveAudioStrategy,
   resolveOperation,
@@ -40,8 +41,11 @@ describe('resolveEngine', () => {
   it('explicit engine wins', () => {
     expect(resolveEngine(base({ engine: 'veo' }))).toBe('veo');
   });
-  it('auto falls back to kling', () => {
-    expect(resolveEngine(base({ engine: 'auto' }))).toBe('kling');
+  it('auto throws ENGINE_REQUIRED — there is no default model', () => {
+    expect(() => resolveEngine(base({ engine: 'auto' }))).toThrowError(EngineRequiredError);
+  });
+  it('missing engine throws ENGINE_REQUIRED — there is no default model', () => {
+    expect(() => resolveEngine(base({ engine: undefined as never }))).toThrowError(EngineRequiredError);
   });
 });
 

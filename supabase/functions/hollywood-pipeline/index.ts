@@ -6851,7 +6851,22 @@ serve(async (req) => {
     // last_frame_image continuity + post-mux audio) selected at the Phase A/B
     // seam. The allow-list now exists ONLY to reject genuinely-unknown engine
     // slugs (a 7th engine is data, not a new pipeline).
-    const incomingEngine = ((request as any).videoEngine ?? 'kling') as string;
+    // NO DEFAULT MODEL: an explicit engine is required. For existing projects
+    // the DB engine-lock above already injected the persisted engine; a first
+    // run with no engine in the body is a caller bug (the client must send the
+    // user's explicit pick, or a template force must have set it upstream).
+    const incomingEngine = (request as any).videoEngine as string | undefined;
+    if (!incomingEngine) {
+      console.error('[Hollywood] ❌ ENGINE_REQUIRED: request carried no videoEngine and no persisted engine lock exists.');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'ENGINE_REQUIRED',
+          message: 'Engine selection is required — there is no default model. Send videoEngine (user-selected), or use a template that forces one.',
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     const ALLOWED_HOLLYWOOD_ENGINES = ['kling', 'wan', 'veo', 'runway', 'sora', 'seedance'];
     if (!ALLOWED_HOLLYWOOD_ENGINES.includes(incomingEngine)) {
       console.error(

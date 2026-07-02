@@ -312,7 +312,9 @@ serve(async (req) => {
     
     // 🎬 ENGINE PRESERVATION: load persisted engine so retries don't downgrade
     // Seedance → Kling. project.video_engine was set by mode-router at creation.
-    const persistedEngine = (project as any).video_engine || 'kling';
+    // NO DEFAULT MODEL: legacy rows without one forward undefined —
+    // generate-single-clip rejects with ENGINE_REQUIRED rather than decaying.
+    const persistedEngine = (project as any).video_engine ?? undefined;
     const isAvatarMode = project.mode === 'avatar';
     console.log(`[RetryClip] 🎬 Engine for retry: ${persistedEngine} (mode=${project.mode}, avatarMode=${isAvatarMode})`);
     

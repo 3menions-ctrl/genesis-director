@@ -931,12 +931,22 @@ serve(async (req) => {
       aspectRatio = "16:9",
       identityBibleUrls,
       enableAudio = KLING_ENABLE_AUDIO,
-      // Both 'veo' and 'kling' now route to Kling V3; 'kling' enables native audio
-      videoEngine = "kling",
+      // NO DEFAULT MODEL — every caller must name the engine explicitly.
+      videoEngine,
     } = await req.json();
 
     if (!prompt) {
       throw new Error("Prompt is required");
+    }
+    if (!videoEngine) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "ENGINE_REQUIRED",
+          message: "Engine selection is required — there is no default model. Send videoEngine explicitly.",
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     // ═══════════════════════════════════════════════════════════════════

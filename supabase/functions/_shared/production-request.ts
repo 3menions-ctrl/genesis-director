@@ -18,7 +18,9 @@
 // routes on. Mirror of generate-single-clip:1229.
 export type BackendEngine = 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
 
-// Request-level engine — UI may also send `auto` (→ per-shot router → kling base).
+// Request-level engine. `auto` is a legacy token still accepted at the parse
+// layer for old clients, but it no longer resolves to anything — resolveEngine
+// rejects it (NO DEFAULT MODEL policy).
 export type RequestEngine = BackendEngine | 'auto';
 
 // Live Replicate route labels. Mirror of generate-single-clip:1275 — DO NOT
@@ -168,15 +170,26 @@ export interface ProductionRequest {
 
 // ─── Resolvers (pure) ───────────────────────────────────────────────────────
 
+/** Thrown when a request reaches the pipeline without an explicit engine.
+ *  NO DEFAULT MODEL policy: users always pick their engine; the only
+ *  server-side engine assignment is a template force (breakout → seedance). */
+export class EngineRequiredError extends Error {
+  readonly code = 'ENGINE_REQUIRED';
+  constructor() {
+    super('Engine selection is required. Pick an engine — there is no default model. (Special templates force their own engine server-side.)');
+    this.name = 'EngineRequiredError';
+  }
+}
+
 // Resolve the backend engine actually used.
 //  - Breakout forces seedance (4th-wall lock; legacy mode-router:385 force).
 //  - An explicit engine wins.
-//  - `auto` falls back to kling (the per-shot router refines per shot inside
-//    the spine; kling is the safe base for the request-level lock).
+//  - `auto` / missing → EngineRequiredError. There is no default model; the
+//    entry gates (mode-router / hollywood-pipeline) turn this into a 400.
 export function resolveEngine(pr: ProductionRequest): BackendEngine {
   if (pr.breakout?.isBreakout) return 'seedance';
   if (pr.engine && pr.engine !== 'auto') return pr.engine;
-  return 'kling';
+  throw new EngineRequiredError();
 }
 
 // Seedance dispatches its clips as a PARALLEL batch (Promise.allSettled +

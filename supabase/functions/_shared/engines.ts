@@ -231,7 +231,8 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
   },
 };
 
-export const DEFAULT_ENGINE_ID: EngineId = 'kling-v3';
+// NO DEFAULT MODEL: engine selection is always explicit (user-picked or
+// template-forced). There is intentionally no DEFAULT_ENGINE_ID export.
 
 export function getEngine(id: EngineId): EngineSpec {
   const spec = ENGINES[id];
@@ -274,13 +275,16 @@ export function engineToBackend(id: EngineId): BackendEngine {
     case 'veo-3':       return 'veo';
     case 'runway-gen4': return 'runway';
     case 'sora-2':      return 'sora';
-    case 'kling-v3':
-    default:            return 'kling';
+    case 'kling-v3':    return 'kling';
+    default:
+      throw new Error(`Unknown engine id: ${id} (no default model — engine must be explicit)`);
   }
 }
 
 /** Reverse of engineToBackend, plus the free-tier 'wan' token. Backend
- *  deduction paths speak the short token; map it back to a registry spec. */
+ *  deduction paths speak the short token; map it back to a registry spec.
+ *  Unknown tokens THROW — silently pricing an unknown engine as Kling was
+ *  a hidden default-model path. */
 export function backendToEngineId(token: string): EngineId {
   switch (token) {
     case 'wan':      return 'wan-25';
@@ -288,8 +292,9 @@ export function backendToEngineId(token: string): EngineId {
     case 'veo':      return 'veo-3';
     case 'runway':   return 'runway-gen4';
     case 'sora':     return 'sora-2';
-    case 'kling':
-    default:         return 'kling-v3';
+    case 'kling':    return 'kling-v3';
+    default:
+      throw new Error(`Unknown backend engine token: "${token}" (no default model)`);
   }
 }
 

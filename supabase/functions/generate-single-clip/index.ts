@@ -1137,7 +1137,7 @@ serve(async (req) => {
       sceneImageUrl,
       endImageUrl, // Optional target end-frame (Seedance 2.0 only)
       cameraFixed = false, // Lock the virtual camera (Seedance) — breakout/identity-lock
-      videoEngine: rawVideoEngine = "kling",
+      videoEngine: rawVideoEngine, // NO DEFAULT MODEL — body engine or DB lock required (checked below)
       isAvatarMode: isAvatarModeFlag = false, // Explicit flag — do NOT derive from videoEngine
       // Optional credit reservation handle. When present, we'll consume it on
       // successful prediction creation and release it on any failure path so
@@ -1227,7 +1227,7 @@ serve(async (req) => {
     // Rule: the project's persisted `movie_projects.video_engine` ALWAYS wins.
     // The body param is only a hint and can never override the DB lock.
     type BackendEngine = 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
-    let videoEngine: BackendEngine = rawVideoEngine as BackendEngine;
+    let videoEngine: BackendEngine | undefined = rawVideoEngine as BackendEngine | undefined;
     try {
       const { data: projRow } = await supabase
         .from('movie_projects')
@@ -1269,6 +1269,22 @@ serve(async (req) => {
       console.warn(`[SingleClip] ⚠️ Engine lookup failed (using body value "${rawVideoEngine}"):`, engineLookupErr);
     }
     console.log(`[SingleClip] 🎬 ENGINE RECEIVED: rawVideoEngine=${rawVideoEngine}, isAvatarMode=${isAvatarModeFlag}, projectId=${projectId}`);
+
+    // ═══ NO DEFAULT MODEL ═══ Neither the body nor the DB lock produced an
+    // engine — refuse rather than silently decaying to Kling. Every project
+    // created via mode-router persists video_engine, so this only fires on a
+    // genuinely malformed invocation.
+    if (!videoEngine) {
+      await releaseHold('ENGINE_REQUIRED');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'ENGINE_REQUIRED',
+          message: 'No videoEngine in request body and no persisted video_engine on the project — there is no default model.',
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
     if (videoEngine === 'seedance' && isAvatarModeFlag) {
       console.log(`[SingleClip] 🎭 Avatar mode + Seedance: visuals via Seedance, TTS audio overlaid in post-stitch`);
     }
@@ -1853,7 +1869,7 @@ serve(async (req) => {
             // extractedCharacters, masterSceneAnchor, goldenFrameData, accumulatedAnchors,
             // and sceneImageLookup — forcing continue-production into fragile DB fallbacks.
             pipelineContext: pipelineContext || {
-              videoEngine: videoEngine || 'kling',
+              videoEngine,
               isAvatarMode,
               identityBible,
               faceLock,
@@ -2144,7 +2160,8 @@ serve(async (req) => {
       ...pipelineContext,
       // CRITICAL: Always explicitly carry videoEngine so it survives all callback hops.
       // Do NOT rely solely on spread — the interface may strip unknown keys during parsing.
-      videoEngine: videoEngine || pipelineContext?.videoEngine || 'kling',
+      // (videoEngine is guaranteed by the ENGINE_REQUIRED gate — no kling fallback.)
+      videoEngine,
       accumulatedAnchors: [
         ...(pipelineContext?.accumulatedAnchors || []),
         {

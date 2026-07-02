@@ -333,7 +333,9 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
   },
 };
 
-export const DEFAULT_ENGINE_ID: EngineId = 'kling-v3';
+// NO DEFAULT MODEL: engine selection is always an explicit user pick (or a
+// template force, applied server-side). There is intentionally no
+// DEFAULT_ENGINE_ID export — pickers start unselected and gate their CTA.
 
 export function getEngine(id: EngineId): EngineSpec {
   const spec = ENGINES[id];
@@ -396,8 +398,9 @@ export function engineToBackend(id: EngineId): BackendEngine {
     case 'veo-3':       return 'veo';
     case 'runway-gen4': return 'runway';
     case 'sora-2':      return 'sora';
-    case 'kling-v3':
-    default:            return 'kling';
+    case 'kling-v3':    return 'kling';
+    default:
+      throw new Error(`Unknown engine id: ${id} (no default model — engine must be explicit)`);
   }
 }
 

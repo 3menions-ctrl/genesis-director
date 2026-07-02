@@ -50,9 +50,27 @@ serve(async (req) => {
     const auth = await validateAuth(req);
     if (!auth.authenticated) return unauthorizedResponse(corsHeaders, auth.error);
 
+    // S3 fix: render is free but CPU-heavy (wasm+satori+resvg). Rate-limit
+    // non-service callers so it can't be spun as a compute/egress DoS.
+    if (!auth.isServiceRole && auth.userId) {
+      const { aiRateLimit } = await import('../_shared/ai-credit-gate.ts');
+      const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+      const limited = await aiRateLimit({ supabase: admin, fnName: 'render-ui', userId: auth.userId, cost: 0, dailyCap: 120, corsHeaders });
+      if (limited) return limited;
+    }
+
     const { template, props = {}, persistKey } = await req.json();
     const tpl = TEMPLATES[String(template)];
     if (!tpl) return json(400, { error: `unknown template — have: ${Object.keys(TEMPLATES).join(', ')}` });
+
+    // S1 fix: persistKey writes to a PUBLIC bucket with upsert — a client-
+    // controlled key means arbitrary overwrite. Only the internal service
+    // caller may pin a key, sanitized under the effects/ tree.
+    let safeKey: string | null = null;
+    if (persistKey && auth.isServiceRole) {
+      const norm = String(persistKey).replace(/\.\./g, '').replace(/^\/+/, '');
+      safeKey = norm.startsWith('effects/') ? norm : `effects/${norm}`;
+    }
 
     const fonts = await init();
     const svg = await satori(tpl.tree(props) as never, {
@@ -66,7 +84,7 @@ serve(async (req) => {
     const png = new Resvg(svg, { fitTo: { mode: 'width', value: tpl.width } }).render().asPng();
 
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-    const path = persistKey || `effects/ui/${template}-${Date.now()}.png`;
+    const path = safeKey || `effects/ui/${Date.now()}-${Math.round(Math.random() * 1e9)}.png`;
     const { error } = await supabase.storage.from('video-clips').upload(path, png, { contentType: 'image/png', upsert: true });
     if (error) throw new Error(`persist failed: ${error.message}`);
     const url = supabase.storage.from('video-clips').getPublicUrl(path).data.publicUrl;

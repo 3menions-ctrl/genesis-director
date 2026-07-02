@@ -254,6 +254,17 @@ serve(async (req) => {
           continue; // retry same stage
         }
         await save({ status: 'failed', error: `${stage.id}: ${e instanceof Error ? e.message : String(e)}`, state });
+        // C1 fix: a run that dies after paid video stages already ran isn't
+        // free — charge for the expensive work consumed (idempotent, ≤ full
+        // price) so deliberately-failing runs can't drain company COGS.
+        const paidVideoDone = Object.keys(state.outputs).filter((k) => k === 'breakout' || /^after_\d+$/.test(k)).length;
+        if (paidVideoDone > 0 && runUserId) {
+          const partial = Math.min(
+            (state as { costCredits?: number }).costCredits ?? EFFECT_RUN_COST_CREDITS,
+            60 + paidVideoDone * 60,
+          );
+          await chargeAiGate({ supabase, fnName: 'effect-executor', userId: runUserId, projectId: runProjectId, cost: partial, dailyCap: 20, idempotencyKey: `effect-run-${runId}`, corsHeaders });
+        }
         console.error(`[effect-executor] run=${runId} FAILED at ${stage.id}`);
         return;
       }

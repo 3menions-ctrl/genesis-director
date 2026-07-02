@@ -27,7 +27,6 @@ import { PageShell } from "@/components/shell";
 import { GlassPanel, GlassButton, SectionLabel } from "@/components/foundation/Floating";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { usePageTone, TONE_PRESETS } from "@/lib/page-tone";
-import { SpineBackdrop } from "@/components/foundation/SpineBackdrop";
 
 const STORAGE = "https://ywcwaumozoejierlfkgj.supabase.co/storage/v1";
 const thumb = (t: string, w = 360) =>
@@ -85,13 +84,19 @@ interface RunRow {
   state: { stageIdx: number; critic?: Record<string, { pass?: boolean }> };
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function RunView({ runId }: { runId: string }) {
   const [run, setRun] = useState<RunRow | null>(null);
+  const [notFound, setNotFound] = useState(!UUID_RE.test(runId));
+  const polls = useRef(0);
   const lastNudge = useRef(0);
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (!UUID_RE.test(runId)) return;
     let alive = true;
+    let iv = 0;
     const load = async () => {
       const { data } = await (supabase as never as {
         from: (t: string) => {
@@ -102,8 +107,17 @@ function RunView({ runId }: { runId: string }) {
         .select("id,status,final_url,error,updated_at,plan,state")
         .eq("id", runId)
         .maybeSingle();
-      if (alive && data) {
+      if (!alive) return;
+      polls.current += 1;
+      if (!data) {
+        // RLS returns zero rows for foreign/nonexistent runs — after a couple
+        // of tries, stop pretending it's rendering.
+        if (polls.current >= 3) { setNotFound(true); window.clearInterval(iv); }
+        return;
+      }
+      {
         setRun(data);
+        if (data.status === "completed" || data.status === "failed") window.clearInterval(iv);
         // SELF-HEAL: a continuation can die between slices (deploys, isolate
         // recycling). If the run claims "running" but hasn't advanced in 3+
         // minutes (above the slice budget + heartbeats), nudge the executor.
@@ -118,9 +132,21 @@ function RunView({ runId }: { runId: string }) {
       }
     };
     load();
-    const iv = window.setInterval(load, 5000);
+    iv = window.setInterval(load, 5000);
     return () => { alive = false; window.clearInterval(iv); };
   }, [runId]);
+
+  if (notFound) {
+    return (
+      <div className="mx-auto max-w-xl text-center space-y-5 py-16">
+        <h2 className="font-serif text-3xl text-white">That run isn't here</h2>
+        <p className="text-white/55 text-sm">It may belong to another account, or the link is off.</p>
+        <GlassButton onClick={() => navigate("/studio/breakout")}>
+          <Sparkles className="h-4 w-4" /> Start a new breakout
+        </GlassButton>
+      </div>
+    );
+  }
 
   const stages = run?.plan?.stages ?? [];
   const idx = run?.state?.stageIdx ?? 0;
@@ -144,7 +170,7 @@ function RunView({ runId }: { runId: string }) {
 
       {done && run?.final_url ? (
         <GlassPanel className="overflow-hidden p-2">
-          <video src={run.final_url} controls autoPlay playsInline className="w-full rounded-xl max-h-[70vh] mx-auto bg-black" />
+          <video src={run.final_url} controls autoPlay muted playsInline className="w-full rounded-xl max-h-[70vh] mx-auto bg-black" />
         </GlassPanel>
       ) : (
         <GlassPanel className="p-6">
@@ -220,7 +246,13 @@ function Wizard() {
       const key = `${user.id}/breakout-avatar-${Date.now()}.${(file.name.split(".").pop() || "jpg").toLowerCase()}`;
       const { error } = await supabase.storage.from("character-references").upload(key, file, { upsert: true });
       if (error) throw error;
-      setAvatarUrl(supabase.storage.from("character-references").getPublicUrl(key).data.publicUrl);
+      // The bucket is PRIVATE — a signed URL (7 days) works for both the
+      // preview <img> and Seedance's server-side fetch of the reference.
+      const { data: signed, error: signErr } = await supabase.storage
+        .from("character-references")
+        .createSignedUrl(key, 60 * 60 * 24 * 7);
+      if (signErr || !signed?.signedUrl) throw signErr ?? new Error("could not sign the photo URL");
+      setAvatarUrl(signed.signedUrl);
       toast.success("You're the star — photo attached.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed");
@@ -270,7 +302,7 @@ function Wizard() {
       {/* ── 1 · Catalogue ─────────────────────────────────────────────── */}
       <section className="space-y-4">
         <SectionLabel>1 · Pick the world they break out of</SectionLabel>
-        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3 [grid-auto-flow:dense]">
           {CATALOGUE.map((c) => (
             <button
               key={c.template}
@@ -357,16 +389,16 @@ function Wizard() {
       <section className="space-y-5 max-w-3xl">
         <SectionLabel>3 · The star</SectionLabel>
         <div className="flex flex-wrap items-center gap-4">
-          <input ref={fileRef} type="file" accept="image/*" className="hidden"
+          <input ref={fileRef} type="file" accept="image/*" capture="user" className="hidden"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) onUpload(f); }} />
-          <button type="button" onClick={() => fileRef.current?.click()}
+          <button type="button" disabled={uploading} aria-busy={uploading} onClick={() => fileRef.current?.click()}
             className={cn(
               "flex items-center gap-3 rounded-2xl px-5 py-3.5 transition-colors",
               avatarUrl ? "bg-emerald-500/15 text-emerald-200" : "bg-white/[0.05] text-white/75 hover:bg-white/[0.09]",
             )}>
             {avatarUrl
               ? <img src={avatarUrl} alt="you" className="h-9 w-9 rounded-full object-cover" />
-              : <Upload className={cn("h-4.5 w-4.5", uploading && "animate-pulse")} />}
+              : <Upload className={cn("h-[18px] w-[18px]", uploading && "animate-pulse")} />}
             <span className="text-[14.5px]">
               {uploading ? "Uploading…" : avatarUrl ? "You're the star — tap to change" : "Upload a photo — be the star"}
             </span>
@@ -407,7 +439,6 @@ export default function BreakoutStudio() {
 
   return (
     <FoundationShell bare>
-      <SpineBackdrop />
       <PageShell>
         <div className="mx-auto w-full max-w-6xl px-4 pb-24 pt-10 sm:pt-14">
           <div className="mb-10 space-y-3">

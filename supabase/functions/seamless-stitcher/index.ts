@@ -412,7 +412,9 @@ serve(async (req) => {
          *  so every read below must accept BOTH (scenes[] kept for
          *  back-compat with any legacy rows). */
         clips?: Array<{
+          id?: string;
           kind?: string;
+          trackId?: string;
           titleText?: string;
           titleColor?: string;
           timelineStartSec?: number;
@@ -596,7 +598,41 @@ serve(async (req) => {
         const t = c.properties?.trackId ?? null;
         return t === null || t === "sys:V1";
       };
-      const v1Clips = visibleRows.filter(isV1);
+      const dbV1Clips = visibleRows.filter(isV1);
+      // ── STRUCTURAL EDITS → RENDER (2026-07-02, P2-20 remaining half) ──
+      // The DB rows are in created_at (upload) order and include every clip
+      // ever generated. The user's TRIM / REORDER / DELETE lives only in
+      // editor_state.clips (the authored flat timeline). Reconstruct the V1
+      // list from that authored order so the export matches the editor:
+      //   • REORDER — emit in editor_state.clips order, not created_at.
+      //   • DELETE  — a clip removed from the timeline isn't in editor_state,
+      //               so it's excluded (previously it reappeared in the render).
+      //   • TRIM    — override duration_seconds with the authored durationSec.
+      // Membership stays DB-authoritative (match against dbV1Clips by id/url);
+      // fall back to DB order when the project never persisted editor clips.
+      let v1Clips = dbV1Clips;
+      const authoredClips = editorState.clips ?? [];
+      if (authoredClips.length > 0) {
+        const byId = new Map(dbV1Clips.map((r) => [String((r as { id?: string }).id ?? ""), r]));
+        const byUrl = new Map(dbV1Clips.map((r) => [r.video_url ?? "", r]));
+        const seen = new Set<ClipRow>();
+        const reconstructed: ClipRow[] = [];
+        for (const ec of authoredClips) {
+          if (ec.kind === "title") continue; // titles bake via the title path
+          const row = (ec.id && byId.get(String(ec.id))) || (ec.videoUrl ? byUrl.get(ec.videoUrl) : undefined);
+          if (!row || seen.has(row)) continue;
+          seen.add(row);
+          // Trim: honor the authored duration when it's a positive override.
+          const trimmed = typeof ec.durationSec === "number" && ec.durationSec > 0
+            ? { ...row, duration_seconds: ec.durationSec }
+            : row;
+          reconstructed.push(trimmed as ClipRow);
+        }
+        if (reconstructed.length > 0) {
+          v1Clips = reconstructed;
+          console.log(`[seamless-stitcher] V1 reconstructed from editor_state: ${reconstructed.length}/${dbV1Clips.length} clips (reorder/trim/delete honored)`);
+        }
+      }
       const overlayClips = visibleRows.filter((c) => {
         const t = c.properties?.trackId;
         return typeof t === "string" && t.startsWith("sys:V") && t !== "sys:V1";
@@ -891,7 +927,9 @@ serve(async (req) => {
         // produces. Without them in the hash, a render that adds (or
         // removes) a keyframe would return the previous cache entry
         // unchanged. Same for fade-in/out and per-clip speed changes.
-        `${i.url}|${i.colorFilter ?? ""}|${i.effectChain ?? ""}|${(i.extraInputs ?? []).join(";")}|${i.audioFilter ?? ""}|kv:${i.videoKfChain ?? ""}|ka:${i.audioKfChain ?? ""}|fin:${i.fadeInSec ?? 0}|fout:${i.fadeOutSec ?? 0}|sp:${i.speed ?? 1}`
+        // `dur` MUST be in the hash: a TRIM changes duration only (same url,
+        // same order), and without it a re-render returns the un-trimmed cache.
+        `${i.url}|dur:${i.duration ?? ""}|${i.colorFilter ?? ""}|${i.effectChain ?? ""}|${(i.extraInputs ?? []).join(";")}|${i.audioFilter ?? ""}|kv:${i.videoKfChain ?? ""}|ka:${i.audioKfChain ?? ""}|fin:${i.fadeInSec ?? 0}|fout:${i.fadeOutSec ?? 0}|sp:${i.speed ?? 1}`
       ),
     ].join("|"));
     const outputKey = `${namespaceId}/${contentHash}.mp4`;

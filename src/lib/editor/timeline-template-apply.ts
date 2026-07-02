@@ -21,6 +21,7 @@
  */
 import * as store from "./store";
 import { getEditorState } from "./store";
+import { IDENTITY_GRADE } from "./color-grade";
 import type { AspectRatio, EditorClip, TransitionKind } from "./types";
 
 // ── Royalty-free music beds ─────────────────────────────────────────────────
@@ -80,8 +81,14 @@ export interface TimelineTemplate {
   aspectRatio: AspectRatio;
   /** One-word vibe shown on the card chip. */
   vibe: string;
-  /** Cohesive look applied to every video clip as a CSS filter string. */
+  /** Cohesive look applied to every video clip as a CSS filter string
+   *  (the editor's lightweight PREVIEW grade). */
   filter: string;
+  /** Bakeable grade — a LUT id from the color-grade LUT library. The CSS
+   *  `filter` above is preview-only (the stitcher bakes `properties.colorGrade`,
+   *  not CSS), so WITHOUT this a template's look never reached the exported
+   *  video. When set, applyLook writes a real colorGrade so preview == export. */
+  lutId?: string;
   /** Signature transition stitched between consecutive clips. */
   transition: TransitionKind;
   transitionDurationSec: number;
@@ -242,11 +249,17 @@ export function applyTimelineTemplate(
 /** Apply the template's per-clip look (filter grade, fades, speed). */
 function applyLook(clipId: string, t: TimelineTemplate): void {
   store.setClipProperty(clipId, {
-    filter: t.filter,
+    filter: t.filter, // preview grade
     fadeInSec: t.fadeInSec,
     fadeOutSec: t.fadeOutSec,
     ...(t.speed ? { speed: t.speed } : {}),
   });
+  // BAKEABLE grade (2026-07-02): the CSS `filter` is preview-only — the
+  // stitcher bakes properties.colorGrade. Set a real LUT-backed grade so the
+  // template's look actually reaches the exported video (preview == export).
+  if (t.lutId) {
+    store.setClipColorGrade(clipId, { ...IDENTITY_GRADE, lutId: t.lutId, lutMix: 1 });
+  }
 }
 
 /** Land the royalty-free bed on A2 via the same primitives ingestMusicUrl uses. */

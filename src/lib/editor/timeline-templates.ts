@@ -27,6 +27,25 @@ const LOOK = {
   neon: "saturate(1.5) contrast(1.18) brightness(1.04) hue-rotate(4deg)",
 } as const;
 
+// Each CSS look → the closest BAKEABLE LUT (from lut-library.ts). The CSS
+// filter is preview-only; this LUT is what the stitcher actually bakes, so the
+// exported video matches the previewed look. Keyed by the LOOK value so every
+// template that uses LOOK.x automatically gets a graded export (see mk()).
+const LOOK_LUT: Record<string, string> = {
+  [LOOK.tealOrange]: "teal-orange",
+  [LOOK.noir]: "noir",
+  [LOOK.warmVintage]: "portra-400",
+  [LOOK.coldThriller]: "fincher-cold",
+  [LOOK.vibrant]: "punch-up",
+  [LOOK.dreamy]: "dreampunk",
+  [LOOK.punchy]: "punch-up",
+  [LOOK.pastel]: "anderson-budapest",
+  [LOOK.moody]: "moonlight",
+  [LOOK.clean]: "rec709-show",
+  [LOOK.goldenHour]: "kodak-2383",
+  [LOOK.neon]: "80s-neon",
+};
+
 const G = {
   ember: ["#f59e0b", "#7c2d12"] as [string, string],
   ocean: ["#22d3ee", "#0c4a6e"] as [string, string],
@@ -40,9 +59,11 @@ const G = {
   sky: ["#7dd3fc", "#1e3a8a"] as [string, string],
 };
 
-/** Tiny builder to keep 50 entries readable without losing type-safety. */
+/** Tiny builder to keep 50 entries readable without losing type-safety.
+ *  Auto-derives the bakeable `lutId` from the template's CSS look (unless one
+ *  was set explicitly) so EVERY template's grade actually reaches the export. */
 function mk(t: TimelineTemplate): TimelineTemplate {
-  return t;
+  return { ...t, lutId: t.lutId ?? LOOK_LUT[t.filter] };
 }
 
 export const TIMELINE_TEMPLATES: TimelineTemplate[] = [

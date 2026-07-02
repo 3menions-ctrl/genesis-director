@@ -152,10 +152,11 @@ export function UserPreferencesProvider({ children }: { children: React.ReactNod
     setPrefsState(merged);
     if (!user?.id) return;
     writeCache(user.id, merged);
-    await supabase
-      .from("profiles" as never)
-      .update({ preferences: merged } as never)
-      .eq("id", user.id);
+    const { error } = await supabase.rpc("update_my_profile" as never, {
+      p_patch: { preferences: merged },
+    } as never);
+    // eslint-disable-next-line no-console
+    if (error) console.warn("[UserPreferences] persist failed", error);
   }, [user?.id]);
 
   const value = useMemo<UserPreferencesContextValue>(() => ({

@@ -51,10 +51,9 @@ function WelcomeOfferModalInner() {
     setHasMarkedSeen(true);
 
     try {
-      await supabase
-        .from('profiles')
-        .update({ has_seen_welcome_offer: true })
-        .eq('id', user.id);
+      await supabase.rpc('update_my_profile' as never, {
+        p_patch: { has_seen_welcome_offer: true },
+      } as never);
       await refreshProfile();
     } catch (err) {
       console.error('[WelcomeOfferModal] Failed to mark offer seen:', err);

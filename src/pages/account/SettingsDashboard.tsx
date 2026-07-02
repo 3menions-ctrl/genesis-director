@@ -140,6 +140,7 @@ interface ProfileRow {
   full_name: string | null;
   username: string | null;
   role: string | null;
+  job_title: string | null;
   company: string | null;
   use_case: string | null;
   avatar_url: string | null;
@@ -740,7 +741,9 @@ function IdentityModule({
   const [tagline, setTagline] = useState(profile.tagline ?? "");
   const [location, setLocation] = useState(profile.location ?? "");
   const [country, setCountry] = useState(profile.country ?? "");
-  const [role, setRole] = useState(profile.role ?? "");
+  // The "Role" field edits job_title. profiles.role is the AUTHZ column —
+  // update_my_profile rightly refuses it, so writes to it silently dropped.
+  const [role, setRole] = useState(profile.job_title ?? "");
   const [company, setCompany] = useState(profile.company ?? "");
   const [interestsInput, setInterestsInput] = useState((profile.interests ?? []).join(", "));
   const [links, setLinks] = useState<Record<string, string>>(profile.external_links ?? {});
@@ -763,7 +766,7 @@ function IdentityModule({
     setTagline(profile.tagline ?? "");
     setLocation(profile.location ?? "");
     setCountry(profile.country ?? "");
-    setRole(profile.role ?? "");
+    setRole(profile.job_title ?? "");
     setCompany(profile.company ?? "");
     setInterestsInput((profile.interests ?? []).join(", "));
     setLinks(profile.external_links ?? {});
@@ -965,7 +968,7 @@ function IdentityModule({
           <Input
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            onBlur={() => role !== (profile.role ?? "") && void patch({ role: role.trim() || null }, "role")}
+            onBlur={() => role !== (profile.job_title ?? "") && void patch({ job_title: role.trim() || null }, "job_title")}
             placeholder="Director · Editor · Producer"
           />
         </FieldRow>
@@ -1293,6 +1296,25 @@ function PrivacyModule({
   const merged = { ...DEFAULT_PREFS, ...prefs };
   const set = (next: Partial<PrefsState>) => void patch({ preferences: next as never });
 
+  // Tracking opt-out lives on user_gamification, NOT profiles — patching it
+  // through update_my_profile silently dropped it and the profile row never
+  // carries it, so the toggle read as always-off. Own read/write RPCs.
+  const [trackingOptedOut, setTrackingOptedOut] = useState(false);
+  useEffect(() => {
+    void (async () => {
+      const { data } = await supabase.rpc("get_tracking_opt_out" as never);
+      setTrackingOptedOut(Boolean(data));
+    })();
+  }, []);
+  const setTrackingOptOut = async (v: boolean) => {
+    setTrackingOptedOut(v);
+    const { error } = await supabase.rpc("set_tracking_opt_out" as never, { p_opted_out: v } as never);
+    if (error) {
+      setTrackingOptedOut(!v);
+      toast.error(safeErrorMessage(error, "Could not update tracking preference."));
+    }
+  };
+
   const [blocked, setBlocked] = useState<Array<{ id: string; display_name: string | null; username: string | null; avatar_url: string | null; created_at: string }>>([]);
   const [loadingBlocked, setLoadingBlocked] = useState(true);
 
@@ -1368,8 +1390,8 @@ function PrivacyModule({
         <ToggleRow
           label="Opt out of activity tracking"
           hint="We won't use your activity for personalised recommendations or analytics."
-          checked={!!profile.tracking_opted_out}
-          onChange={(v) => void patch({ tracking_opted_out: v }, "tracking_opted_out")}
+          checked={trackingOptedOut}
+          onChange={(v) => void setTrackingOptOut(v)}
         />
       </Card>
 
@@ -2443,7 +2465,11 @@ function DataModule({ profile }: { profile: ProfileRow }) {
       destructive: true,
     }))) return;
     setDeactivating(true);
-    const { error } = await supabase.from("profiles" as never).update({ deactivated_at: new Date().toISOString() } as never).eq("id", profile.id);
+    // Route through the RPC — authenticated has no direct UPDATE on profiles
+    // (the old .from('profiles').update() was always permission-denied).
+    const { error } = await supabase.rpc("update_my_profile" as never, {
+      p_patch: { deactivate: true },
+    } as never);
     setDeactivating(false);
     if (error) { toast.error(safeErrorMessage(error, "Could not deactivate your account.")); return; }
     await supabase.auth.signOut();

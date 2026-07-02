@@ -257,6 +257,18 @@ export async function invokeTool(tool: ToolId, inputs: Record<string, unknown>, 
       return { url: String(res.frameUrl) };
     }
 
+    case 'ui.render': {
+      // Deterministic platform UI — authored layout code, not generation.
+      // Realism + exact aspect ratio + slot rect exact BY CONSTRUCTION. Free.
+      const res = await callEdgeFn('render-ui', {
+        template: inputs.template,
+        props: inputs.props ?? {},
+        persistKey: `effects/${stamp}.png`,
+      });
+      if (!res.url) throw new Error('ui render failed');
+      return { url: String(res.url), slotRect: res.slotRect, width: res.width, height: res.height };
+    }
+
     // ── Rigid compositing ────────────────────────────────────────────────
     case 'composite.overlay': {
       // Pixel-locked overlay/corner-pin. inputs: base (video|image), overlay

@@ -9,7 +9,7 @@
 // All layouts are logo-free recreations. Icons = vector SVG (ui-kit).
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { h, row, col, txt, img, box, icon, statusBar, ringAvatar, AV, TH, ST, type El } from './ui-kit.ts';
+import { h, row, col, txt, img, box, icon, statusBar, ringAvatar, AV, TH, ST, FUN, type El } from './ui-kit.ts';
 
 const SLOT = '#0a0a0c';
 
@@ -46,18 +46,18 @@ function facebookMobile(p: Record<string, string>): El {
     box(64, 64, BLUE, { borderRadius: 32, marginTop: -32, border: '6px solid #fff', alignItems: 'center', justifyContent: 'center' }, icon('plus', 34, '#fff')),
     txt('Create story', { fontSize: 24, fontWeight: 700, color: TXTC, marginTop: 8 }));
   const stories = row({ gap: 14, padding: 18, backgroundColor: '#fff' },
-    createCard, storyCard(ST[0], AV[2], 'mia.torres'), storyCard(TH[2], AV[4], 'leila.k'), storyCard(ST[1], AV[3], 'noah'), storyCard(TH[4], AV[6], 'pink.pixel'));
+    createCard, storyCard(FUN[3], AV[2], 'mia.torres'), storyCard(FUN[5], AV[4], 'leila.k'), storyCard(FUN[6], AV[3], 'noah'), storyCard(FUN[7], AV[6], 'pink.pixel'));
 
   const postHeader = row({ alignItems: 'center', gap: 16, padding: 20 },
-    img(AV[0], 78, 78, { borderRadius: 39 }),
+    img(AV[1], 78, 78, { borderRadius: 39 }),
     col({ gap: 4 },
       row({ gap: 8, alignItems: 'center' },
-        txt(p.username ?? 'daily.wander', { fontSize: 30, fontWeight: 700, color: TXTC }),
+        txt(p.username ?? 'jay.makes', { fontSize: 30, fontWeight: 700, color: TXTC }),
         box(26, 26, BLUE, { borderRadius: 13, alignItems: 'center', justifyContent: 'center' }, icon('play', 12, '#fff', { fill: true }))),
       row({ gap: 8, alignItems: 'center' }, txt('3h ·', { fontSize: 24, color: SEC }), icon('globe', 22, SEC))),
     row({ gap: 20, marginLeft: 'auto', alignItems: 'center' }, icon('more', 40, SEC), icon('x', 34, SEC)));
 
-  const caption = txt(p.caption ?? "you ever feel like she's looking AT you… wait for the end", { fontSize: 29, color: TXTC, paddingLeft: 24, paddingRight: 24, paddingBottom: 16 });
+  const caption = txt(p.caption ?? "tried the invisible box challenge and the box said NO", { fontSize: 29, color: TXTC, paddingLeft: 24, paddingRight: 24, paddingBottom: 16 });
 
   const social = row({ height: 60, alignItems: 'center', justifyContent: 'space-between', paddingLeft: 24, paddingRight: 24 },
     row({ alignItems: 'center' },
@@ -76,7 +76,7 @@ function facebookMobile(p: Record<string, string>): El {
       txt(name, { fontSize: 24, fontWeight: 700, color: TXTC }),
       txt(text, { fontSize: 25, color: TXTC })));
   const comments = col({ gap: 12, paddingTop: 8, paddingBottom: 12 },
-    commentBubble(AV[3], 'noahwrites', 'nah this is wild, the way she LOOKS at 0:04'),
+    commentBubble(AV[3], 'noahwrites', 'I have watched this 12 times and it gets funnier'),
     txt('View 841 more comments', { fontSize: 24, fontWeight: 600, color: SEC, paddingLeft: 94 }));
   const tabBar = row({ height: 128, backgroundColor: '#fff', borderTop: '1px solid #CED0D4', alignItems: 'center', justifyContent: 'space-around', paddingLeft: 10, paddingRight: 10 },
     icon('home', 46, BLUE, { fill: true }),
@@ -203,10 +203,10 @@ function instagramMobile(p: Record<string, string>): El {
     yourStory, storyItem(AV[0], 'daily.wander', false), storyItem(AV[2], 'mia.torres', false), storyItem(AV[4], 'leila.k', false), storyItem(AV[6], 'pink.pixel', false), storyItem(AV[5], 'greg', true), storyItem(AV[7], 'marcusfit', false));
 
   const postHeader = row({ alignItems: 'center', gap: 14, paddingLeft: 24, paddingRight: 24, height: 96, backgroundColor: '#fff' },
-    ringAvatar(AV[0], 60, 4, 3),
+    ringAvatar(AV[1], 60, 4, 3),
     col({ gap: 2 },
       row({ gap: 8, alignItems: 'center' },
-        txt(p.username ?? 'daily.wander', { fontSize: 28, fontWeight: 700, color: TXTC }),
+        txt(p.username ?? 'jay.makes', { fontSize: 28, fontWeight: 700, color: TXTC }),
         box(24, 24, '#0095F6', { borderRadius: 12, alignItems: 'center', justifyContent: 'center' }, icon('play', 11, '#fff', { fill: true }))),
       row({ gap: 6, alignItems: 'center' }, icon('music', 18, TXTC), txt('Original audio', { fontSize: 20, color: TXTC }))),
     h('div', { display: 'flex', marginLeft: 'auto' }, icon('more', 40, TXTC)));
@@ -222,9 +222,9 @@ function instagramMobile(p: Record<string, string>): El {
     row({ gap: 8, alignItems: 'center' },
       img(AV[2], 28, 28, { borderRadius: 14 }), img(AV[3], 28, 28, { borderRadius: 14, marginLeft: -14 }),
       txt('Liked by mia.torres and 842,117 others', { fontSize: 24, color: TXTC })),
-    row({ gap: 6 }, txt(p.username ?? 'daily.wander', { fontSize: 24, fontWeight: 700, color: TXTC }), txt(p.caption ?? 'she saw the camera… more', { fontSize: 24, color: TXTC })),
-    row({ gap: 6 }, txt('noahwrites', { fontSize: 23, fontWeight: 700, color: TXTC }), txt('the ending is NOT what I expected', { fontSize: 23, color: TXTC }), h('div', { display: 'flex', marginLeft: 'auto' }, icon('heart', 22, SEC))),
-    row({ gap: 6 }, txt('pink.pixel', { fontSize: 23, fontWeight: 700, color: TXTC }), txt('watched this 6 times already', { fontSize: 23, color: TXTC }), h('div', { display: 'flex', marginLeft: 'auto' }, icon('heart', 22, SEC))),
+    row({ gap: 6 }, txt(p.username ?? 'jay.makes', { fontSize: 24, fontWeight: 700, color: TXTC }), txt(p.caption ?? 'day 3 of learning magic. it is going GREAT… more', { fontSize: 24, color: TXTC })),
+    row({ gap: 6 }, txt('noahwrites', { fontSize: 23, fontWeight: 700, color: TXTC }), txt('the confidence before it went wrong LOL', { fontSize: 23, color: TXTC }), h('div', { display: 'flex', marginLeft: 'auto' }, icon('heart', 22, SEC))),
+    row({ gap: 6 }, txt('pink.pixel', { fontSize: 23, fontWeight: 700, color: TXTC }), txt('this is the best thing on the internet today', { fontSize: 23, color: TXTC }), h('div', { display: 'flex', marginLeft: 'auto' }, icon('heart', 22, SEC))),
     txt('View all 2,391 comments', { fontSize: 23, color: SEC }),
     row({ gap: 10, alignItems: 'center' },
       img(AV[1], 40, 40, { borderRadius: 20 }),
@@ -265,13 +265,13 @@ function instagramReels(p: Record<string, string>): El {
       img(ST[1], 58, 58, { borderRadius: 12, border: '3px solid rgba(255,255,255,0.85)' })),
     col({ position: 'absolute', left: 28, bottom: 44, gap: 18, width: 820 },
       row({ alignItems: 'center', gap: 16 },
-        img(AV[6], 62, 62, { borderRadius: 31, border: '2px solid #fff' }),
-        txt(p.username ?? 'city.frames', { fontSize: 27, fontWeight: 700, color: '#fff' }),
+        img(AV[1], 62, 62, { borderRadius: 31, border: '2px solid #fff' }),
+        txt(p.username ?? 'jay.makes', { fontSize: 27, fontWeight: 700, color: '#fff' }),
         h('div', { display: 'flex', paddingLeft: 20, paddingRight: 20, height: 52, borderRadius: 14, border: '2px solid rgba(255,255,255,0.9)', alignItems: 'center' }, txt('Follow', { fontSize: 24, fontWeight: 700, color: '#fff' }))),
-      txt(p.caption ?? 'this felt too real… more', { fontSize: 25, color: '#f2f2f2' }),
+      txt(p.caption ?? 'POV: you finally nail the trick on camera… more', { fontSize: 25, color: '#f2f2f2' }),
       row({ gap: 12, alignItems: 'center' },
         icon('music', 24, '#fff'),
-        h('div', { display: 'flex', paddingLeft: 14, paddingRight: 14, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center' }, txt('city.frames · Original audio', { fontSize: 22, color: '#fff' })))));
+        h('div', { display: 'flex', paddingLeft: 14, paddingRight: 14, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center' }, txt('jay.makes · Original audio', { fontSize: 22, color: '#fff' })))));
   return col({ width: 1080, height: 1920, fontFamily: 'Inter' },
     topScrim,
     h('div', { display: 'flex', flexGrow: 1 }),
@@ -301,9 +301,9 @@ function tiktokMobile(p: Record<string, string>): El {
     col({ alignItems: 'center', gap: 6 }, icon('shareArrow', 54, '#fff', { fill: true }), count('12.1K')),
     h('div', { display: 'flex', padding: 14, borderRadius: 50, backgroundColor: '#161616', border: '12px solid #0a0a0a' }, img(ST[1], 52, 52, { borderRadius: 26 })));
   const meta = col({ position: 'absolute', left: 26, bottom: 50, gap: 16, width: 760 },
-    txt('@' + (p.username ?? 'wanderdaily'), { fontSize: 30, fontWeight: 700, color: '#fff' }),
-    txt(p.caption ?? 'she wasn’t supposed to see the camera… #real #fyp', { fontSize: 26, color: '#f2f2f2' }),
-    row({ gap: 12, alignItems: 'center' }, icon('music', 24, '#fff'), txt('original sound - wanderdaily', { fontSize: 24, color: '#eee' })));
+    txt('@' + (p.username ?? 'jay.makes'), { fontSize: 30, fontWeight: 700, color: '#fff' }),
+    txt(p.caption ?? 'told him the camera adds confidence. he believed me #funny #fyp', { fontSize: 26, color: '#f2f2f2' }),
+    row({ gap: 12, alignItems: 'center' }, icon('music', 24, '#fff'), txt('original sound - jay.makes', { fontSize: 24, color: '#eee' })));
   const tabItem = (ic: string, label: string, active: boolean) => col({ alignItems: 'center', gap: 6 },
     icon(ic, 40, active ? '#fff' : 'rgba(255,255,255,0.6)', { fill: active }),
     txt(label, { fontSize: 20, color: active ? '#fff' : 'rgba(255,255,255,0.6)' }));
@@ -343,14 +343,122 @@ function tiktokDesktop(p: Record<string, string>): El {
     box(52, 52, 'rgba(255,255,255,0.09)', { borderRadius: 26, alignItems: 'center', justifyContent: 'center' }, icon('chevronUp', 26, '#fff')),
     box(52, 52, 'rgba(255,255,255,0.09)', { borderRadius: 26, alignItems: 'center', justifyContent: 'center' }, icon('chevronDown', 26, '#fff')));
   const metaOverlay = col({ position: 'absolute', left: 776, bottom: 56, gap: 12, width: 500 },
-    txt('@' + (p.username ?? 'wanderdaily'), { fontSize: 20, fontWeight: 700, color: '#fff' }),
-    txt(p.caption ?? 'she wasn’t supposed to see the camera… #real #fyp', { fontSize: 17, color: '#eee' }),
-    row({ gap: 8, alignItems: 'center' }, icon('music', 16, '#fff'), txt('original sound - wanderdaily', { fontSize: 16, color: '#ddd' })));
+    txt('@' + (p.username ?? 'jay.makes'), { fontSize: 20, fontWeight: 700, color: '#fff' }),
+    txt(p.caption ?? 'told him the camera adds confidence #funny #fyp', { fontSize: 17, color: '#eee' }),
+    row({ gap: 8, alignItems: 'center' }, icon('music', 16, '#fff'), txt('original sound - jay.makes', { fontSize: 16, color: '#ddd' })));
   return h('div', { display: 'flex', flexDirection: 'row', width: 1920, height: 1080, backgroundColor: '#000', fontFamily: 'Inter', position: 'relative' },
     sidebar,
     box(580, 1032, SLOT, { position: 'absolute', left: 750, top: 24, borderRadius: 14 }), // ← slot
     metaOverlay, rail, pager);
 }
 
-export { facebookMobile, facebookDesktop, instagramMobile, instagramReels, tiktokMobile, tiktokDesktop };
+// ═══════════ MID-SCROLL VARIANTS (caught scrolling — for ads) ═══════════════
+
+function facebookMobileScroll(p: Record<string, string>): El {
+  const BLUE = '#0866FF', SEC = '#65676B', TXTC = '#050505';
+  const prevPost = col({ backgroundColor: '#fff' },
+    img(FUN[0], 1080, 300),
+    row({ height: 60, alignItems: 'center', justifyContent: 'space-between', paddingLeft: 24, paddingRight: 24 },
+      row({ alignItems: 'center' },
+        box(38, 38, BLUE, { borderRadius: 19, alignItems: 'center', justifyContent: 'center', border: '3px solid #fff' }, icon('thumbUp', 20, '#fff', { fill: true })),
+        box(38, 38, '#F7B928', { borderRadius: 19, marginLeft: -10, alignItems: 'center', justifyContent: 'center', border: '3px solid #fff' }, icon('heart', 20, '#fff', { fill: true })),
+        txt('48K', { fontSize: 25, color: SEC, marginLeft: 10 })),
+      txt('2.1K comments', { fontSize: 25, color: SEC })),
+    row({ borderTop: '1px solid #CED0D4', marginLeft: 24, marginRight: 24, height: 70, alignItems: 'center' },
+      row({ gap: 10, alignItems: 'center', justifyContent: 'center', flexGrow: 1 }, icon('thumbUp', 32, SEC), txt('Like', { fontSize: 24, fontWeight: 700, color: SEC })),
+      row({ gap: 10, alignItems: 'center', justifyContent: 'center', flexGrow: 1 }, icon('comment', 32, SEC), txt('Comment', { fontSize: 24, fontWeight: 700, color: SEC })),
+      row({ gap: 10, alignItems: 'center', justifyContent: 'center', flexGrow: 1 }, icon('shareArrow', 32, SEC), txt('Share', { fontSize: 24, fontWeight: 700, color: SEC }))));
+  const videoHeader = row({ alignItems: 'center', gap: 16, padding: 20, backgroundColor: '#fff' },
+    img(AV[1], 78, 78, { borderRadius: 39 }),
+    col({ gap: 4 },
+      row({ gap: 8, alignItems: 'center' },
+        txt(p.username ?? 'jay.makes', { fontSize: 30, fontWeight: 700, color: TXTC }),
+        box(26, 26, BLUE, { borderRadius: 13, alignItems: 'center', justifyContent: 'center' }, icon('play', 12, '#fff', { fill: true }))),
+      row({ gap: 8, alignItems: 'center' }, txt('1h ·', { fontSize: 24, color: SEC }), icon('globe', 22, SEC))),
+    row({ gap: 20, marginLeft: 'auto', alignItems: 'center' }, icon('more', 40, SEC), icon('x', 34, SEC)));
+  const caption = txt(p.caption ?? 'tried the invisible box challenge and the box said NO', { fontSize: 28, color: TXTC, paddingLeft: 24, paddingRight: 24, paddingBottom: 14, backgroundColor: '#fff' });
+  const social = row({ height: 58, alignItems: 'center', justifyContent: 'space-between', paddingLeft: 24, paddingRight: 24, backgroundColor: '#fff' },
+    row({ alignItems: 'center' },
+      box(38, 38, BLUE, { borderRadius: 19, alignItems: 'center', justifyContent: 'center', border: '3px solid #fff' }, icon('thumbUp', 20, '#fff', { fill: true })),
+      box(38, 38, '#F3425F', { borderRadius: 19, marginLeft: -10, alignItems: 'center', justifyContent: 'center', border: '3px solid #fff' }, icon('heart', 20, '#fff', { fill: true })),
+      txt('26K', { fontSize: 25, color: SEC, marginLeft: 10 })),
+    txt('1.4K comments · 8.8K shares', { fontSize: 25, color: SEC }));
+  const actions = row({ borderTop: '1px solid #CED0D4', marginLeft: 24, marginRight: 24, height: 80, backgroundColor: '#fff', alignItems: 'center' },
+    row({ gap: 10, alignItems: 'center', justifyContent: 'center', flexGrow: 1 }, icon('thumbUp', 34, SEC), txt('Like', { fontSize: 25, fontWeight: 700, color: SEC })),
+    row({ gap: 10, alignItems: 'center', justifyContent: 'center', flexGrow: 1 }, icon('comment', 34, SEC), txt('Comment', { fontSize: 25, fontWeight: 700, color: SEC })),
+    row({ gap: 10, alignItems: 'center', justifyContent: 'center', flexGrow: 1 }, icon('send', 34, SEC), txt('Send', { fontSize: 25, fontWeight: 700, color: SEC })),
+    row({ gap: 10, alignItems: 'center', justifyContent: 'center', flexGrow: 1 }, icon('shareArrow', 34, SEC), txt('Share', { fontSize: 25, fontWeight: 700, color: SEC })));
+  const comment = row({ gap: 14, paddingLeft: 24, paddingRight: 24, paddingTop: 10, paddingBottom: 14, backgroundColor: '#fff' },
+    img(AV[4], 56, 56, { borderRadius: 28 }),
+    col({ backgroundColor: '#F0F2F5', borderRadius: 28, paddingLeft: 22, paddingRight: 22, paddingTop: 12, paddingBottom: 12, gap: 4 },
+      txt('leila.k', { fontSize: 24, fontWeight: 700, color: TXTC }),
+      txt('the commitment to the bit is incredible', { fontSize: 25, color: TXTC })));
+  const nextPost = col({ backgroundColor: '#fff', flexGrow: 1 },
+    row({ alignItems: 'center', gap: 16, padding: 18 },
+      img(AV[6], 70, 70, { borderRadius: 35 }),
+      col({ gap: 4 },
+        txt('pink.pixel', { fontSize: 28, fontWeight: 700, color: TXTC }),
+        row({ gap: 8, alignItems: 'center' }, txt('4h ·', { fontSize: 22, color: SEC }), icon('globe', 20, SEC))),
+      h('div', { display: 'flex', marginLeft: 'auto' }, icon('more', 38, SEC))),
+    img(FUN[9], 1080, 140));
+  return col({ width: 1080, height: 1920, backgroundColor: '#F0F2F5', fontFamily: 'Inter' },
+    box(1080, 66, '#fff', {}, statusBar(false)),
+    prevPost,
+    box(1080, 14, '#F0F2F5', {}),
+    videoHeader, caption,
+    box(1080, 560, SLOT), // ← slot y = 66+430+14+118+82 = 710
+    social, actions, comment,
+    box(1080, 14, '#F0F2F5', {}),
+    nextPost,
+    row({ height: 128, backgroundColor: '#fff', borderTop: '1px solid #CED0D4', alignItems: 'center', justifyContent: 'space-around', paddingLeft: 10, paddingRight: 10 },
+      icon('home', 46, BLUE, { fill: true }), icon('film', 46, SEC), icon('users', 46, SEC), icon('shop', 46, SEC), icon('bell', 46, SEC), img(AV[1], 52, 52, { borderRadius: 26 })));
+}
+
+function instagramMobileScroll(p: Record<string, string>): El {
+  const SEC = '#737373', TXTC = '#000';
+  const prevTail = col({ backgroundColor: '#fff' },
+    img(FUN[1], 1080, 300),
+    row({ height: 76, alignItems: 'center', paddingLeft: 24, paddingRight: 24, gap: 24 },
+      row({ gap: 10, alignItems: 'center' }, icon('heart', 44, '#FF3040', { fill: true }), txt('231K', { fontSize: 25, fontWeight: 700, color: TXTC })),
+      row({ gap: 10, alignItems: 'center' }, icon('comment', 42, TXTC), txt('4,102', { fontSize: 25, fontWeight: 700, color: TXTC })),
+      icon('send', 42, TXTC),
+      h('div', { display: 'flex', marginLeft: 'auto' }, icon('bookmark', 42, TXTC))));
+  const videoHeader = row({ alignItems: 'center', gap: 14, paddingLeft: 24, paddingRight: 24, height: 96, backgroundColor: '#fff' },
+    ringAvatar(AV[1], 60, 4, 3),
+    col({ gap: 2 },
+      row({ gap: 8, alignItems: 'center' },
+        txt(p.username ?? 'jay.makes', { fontSize: 28, fontWeight: 700, color: TXTC }),
+        box(24, 24, '#0095F6', { borderRadius: 12, alignItems: 'center', justifyContent: 'center' }, icon('play', 11, '#fff', { fill: true }))),
+      row({ gap: 6, alignItems: 'center' }, icon('music', 18, TXTC), txt('Original audio', { fontSize: 20, color: TXTC }))),
+    h('div', { display: 'flex', marginLeft: 'auto' }, icon('more', 40, TXTC)));
+  const actions = row({ height: 90, alignItems: 'center', paddingLeft: 24, paddingRight: 24, gap: 24, backgroundColor: '#fff' },
+    row({ gap: 10, alignItems: 'center' }, icon('heart', 48, TXTC), txt('98K', { fontSize: 26, fontWeight: 700, color: TXTC })),
+    row({ gap: 10, alignItems: 'center' }, icon('comment', 46, TXTC), txt('3,209', { fontSize: 26, fontWeight: 700, color: TXTC })),
+    row({ gap: 10, alignItems: 'center' }, icon('repost', 44, TXTC), txt('12K', { fontSize: 26, fontWeight: 700, color: TXTC })),
+    icon('send', 46, TXTC),
+    h('div', { display: 'flex', marginLeft: 'auto' }, icon('bookmark', 46, TXTC)));
+  const below = col({ paddingLeft: 24, paddingRight: 24, gap: 10, backgroundColor: '#fff', paddingBottom: 10 },
+    row({ gap: 6 }, txt(p.username ?? 'jay.makes', { fontSize: 24, fontWeight: 700, color: TXTC }), txt(p.caption ?? 'day 3 of learning magic. it is going GREAT', { fontSize: 24, color: TXTC })),
+    txt('View all 1,024 comments', { fontSize: 23, color: SEC }));
+  const nextHead = row({ alignItems: 'center', gap: 14, paddingLeft: 24, paddingRight: 24, height: 90, backgroundColor: '#fff' },
+    ringAvatar(AV[7], 56, 4, 3),
+    txt('marcusfit', { fontSize: 27, fontWeight: 700, color: TXTC }),
+    h('div', { display: 'flex', marginLeft: 'auto' }, icon('more', 38, TXTC)));
+  return col({ width: 1080, height: 1920, backgroundColor: '#fff', fontFamily: 'Inter' },
+    box(1080, 66, '#fff', {}, statusBar(false)),
+    prevTail,
+    box(1080, 1, '#DBDBDB', {}),
+    videoHeader,
+    box(1080, 1080, SLOT), // ← slot y = 66+376+1+96 = 539
+    actions, below,
+    box(1080, 1, '#DBDBDB', {}),
+    nextHead,
+    h('div', { display: 'flex', flexGrow: 1, backgroundColor: '#fff' }),
+    row({ height: 118, backgroundColor: '#fff', borderTop: '1px solid #DBDBDB', alignItems: 'center', justifyContent: 'space-around' },
+      icon('home', 46, TXTC, { fill: true }), icon('search', 46, TXTC),
+      box(52, 52, 'transparent', { borderRadius: 14, border: '3px solid #000', alignItems: 'center', justifyContent: 'center' }, icon('plus', 28, TXTC)),
+      icon('film', 46, TXTC), img(AV[1], 48, 48, { borderRadius: 24 })));
+}
+
+export { facebookMobile, facebookDesktop, instagramMobile, instagramReels, tiktokMobile, tiktokDesktop, facebookMobileScroll, instagramMobileScroll };
 export const SLOT_BG = SLOT;

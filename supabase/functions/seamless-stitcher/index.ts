@@ -192,6 +192,16 @@ interface StitchRequest {
     kind: string;
     durationSec: number;
   }>;
+  /** CONTINUITY V2 — frame-chained pipeline renders. When true, every
+   *  clip↔clip boundary defaults to a matched-frame HARD CUT with the vendor
+   *  join-trim recipe (trim 6 frames off the outgoing tail + 1 frame off the
+   *  incoming head) instead of a 0.4s crossfade. Rationale: chained clips
+   *  share a handoff frame — a crossfade BLENDS the residual mismatch into
+   *  visible ghosting, while generation quality decays into the last frames
+   *  of each segment. Authored per-boundary transitions still override.
+   *  Set by auto-stitch-trigger for pipeline renders; editor re-exports
+   *  leave it unset. */
+  joinTrim?: boolean;
 }
 
 interface ClipRow {
@@ -749,6 +759,27 @@ serve(async (req) => {
       throw new Error("no_stitchable_inputs");
     }
 
+    // ── 3a-bis. JOIN TRIM (continuity v2) ────────────────────────────
+    // Vendor recipe for frame-chained segments: trim 6 frames (0.2s @30fps)
+    // from every outgoing tail and 1 frame (1/30s) from every incoming head,
+    // then hard-cut on the matched frame. Only applied to clip↔clip
+    // boundaries (never the intro), and only at speed=1 (trim seconds are
+    // source-time; pipeline renders never re-speed clips).
+    const JOIN_TRIM_TAIL = 0.2;      // 6 frames @ TARGET_FPS 30
+    const JOIN_TRIM_HEAD = 1 / 30;   // 1 frame
+    if (body.joinTrim) {
+      const clipInputs = inputs.filter((i) => !i.isIntro);
+      for (let k = 0; k < clipInputs.length; k++) {
+        if ((clipInputs[k].speed ?? 1) !== 1) continue;
+        if (k < clipInputs.length - 1 && clipInputs[k].duration > JOIN_TRIM_TAIL + 0.5) {
+          clipInputs[k].trimEndSec = JOIN_TRIM_TAIL;
+        }
+        if (k > 0 && clipInputs[k].duration > JOIN_TRIM_HEAD + 0.5) {
+          clipInputs[k].trimStartSec = JOIN_TRIM_HEAD;
+        }
+      }
+    }
+
     // ── 3b. Bake effects for each clip ───────────────────────────────
     // Running tally: input indices start at 0 for the first `-i`. The
     // intro (when present) is index 0; clip inputs follow. After all
@@ -835,6 +866,7 @@ serve(async (req) => {
       `format:${body.format ?? "mp4"}`,
       `crf:${body.crf ?? ""}`,
       `reframe:${body.reframe ? 1 : 0}`,
+      `jointrim:${body.joinTrim ? 1 : 0}`,
       `pb:${perBoundaryHashStr}`,
       `titles:${titleHashStr}`,
       `tracks:${trackHashStr}`,
@@ -845,7 +877,7 @@ serve(async (req) => {
         // produces. Without them in the hash, a render that adds (or
         // removes) a keyframe would return the previous cache entry
         // unchanged. Same for fade-in/out and per-clip speed changes.
-        `${i.url}|${i.colorFilter ?? ""}|${i.effectChain ?? ""}|${(i.extraInputs ?? []).join(";")}|${i.audioFilter ?? ""}|kv:${i.videoKfChain ?? ""}|ka:${i.audioKfChain ?? ""}|fin:${i.fadeInSec ?? 0}|fout:${i.fadeOutSec ?? 0}|sp:${i.speed ?? 1}`
+        `${i.url}|${i.colorFilter ?? ""}|${i.effectChain ?? ""}|${(i.extraInputs ?? []).join(";")}|${i.audioFilter ?? ""}|kv:${i.videoKfChain ?? ""}|ka:${i.audioKfChain ?? ""}|fin:${i.fadeInSec ?? 0}|fout:${i.fadeOutSec ?? 0}|sp:${i.speed ?? 1}|ts:${i.trimStartSec ?? 0}|te:${i.trimEndSec ?? 0}`
       ),
     ].join("|"));
     const outputKey = `${namespaceId}/${contentHash}.mp4`;
@@ -948,6 +980,15 @@ serve(async (req) => {
     const bodyTransitions = body.transitions ?? [];
     const allTransitions = bodyTransitions.length > 0 ? bodyTransitions : projectEditorTransitions;
     const perBoundary: Array<{ kind: string; durationSec: number }> = [];
+    // ALIGNMENT: buildSeamlessCommand indexes boundaries over the FULL input
+    // list. With a branded intro, boundary 0 is intro→clip0 — give it the
+    // global default so authored clip transitions don't shift by one.
+    if (introUrl) {
+      perBoundary.push({
+        kind: transitionType,
+        durationSec: Math.max(0.05, Math.min(2, transitionDuration)),
+      });
+    }
     for (let i = 0; i < Math.max(0, v1ClipIds.length - 1); i++) {
       const fromId = v1ClipIds[i].id;
       const match = fromId ? allTransitions.find((t) => t.fromClipId === fromId) : undefined;
@@ -956,6 +997,11 @@ serve(async (req) => {
           kind: xfadeKindFor(match.kind, transitionType),
           durationSec: Math.max(0.05, Math.min(2, match.durationSec)),
         });
+      } else if (body.joinTrim) {
+        // CONTINUITY V2: frame-chained boundary with no authored transition →
+        // matched-frame hard cut (the join-trim above already dropped the
+        // decayed tail + duplicated head frames).
+        perBoundary.push({ kind: "cut", durationSec: 0 });
       } else {
         perBoundary.push({
           kind: transitionType,

@@ -30,6 +30,7 @@ import {
   checkAndRecoverStaleMutex,
   runPreGenerationChecks,
 } from "../_shared/pipeline-guard-rails.ts";
+import { SEEDANCE_REFERENCE_CONDITIONING } from "../_shared/engine-profiles.ts";
 
 // ─────────────────────────────────────────────────────────────────────
 // Per-engine prompt optimizers — each model rewards a different prompt
@@ -393,6 +394,7 @@ async function createSeedancePrediction(
   durationSeconds: number = DEFAULT_CLIP_DURATION,
   endImageUrl?: string | null,
   cameraFixed: boolean = false,
+  identityReferenceImages?: string[] | null,
 ): Promise<{ predictionId: string }> {
   const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
   if (!REPLICATE_API_KEY) {
@@ -423,6 +425,20 @@ async function createSeedancePrediction(
     if (endImageUrl && endImageUrl.startsWith("http") && endImageUrl !== startImageUrl) {
       input.last_frame_image = endImageUrl;
     }
+  }
+
+  // CONTINUITY V2 — persistent global identity anchor (attention-sink
+  // principle, Rolling Forcing/StreamingT2V): condition EVERY clip on the
+  // SAME character references instead of relying only on frame-to-frame
+  // handoff, which structurally accumulates drift. Seedance 2.0 documents up
+  // to 9 reference images (headshot + full-body preferred; multi-view sheets
+  // explicitly discouraged — the model reads angles as different people).
+  // GATED until the Replicate packaging is verified live (needs credits).
+  if (SEEDANCE_REFERENCE_CONDITIONING && identityReferenceImages?.length) {
+    const refs = identityReferenceImages
+      .filter((u) => typeof u === "string" && u.startsWith("http"))
+      .slice(0, 9);
+    if (refs.length) input.reference_images = refs;
   }
 
   const mode = startImageUrl
@@ -1752,6 +1768,8 @@ serve(async (req) => {
         durationSeconds,
         endImageUrl, // Optional Seedance-only end-frame target
         cameraFixed, // Locked camera for breakout / identity-lock shots
+        // Global identity anchor: the SAME reference on every clip (flag-gated).
+        referenceImageUrl ? [referenceImageUrl] : null,
       );
       predictionId = seedanceResult.predictionId;
     } else if (videoEngine === 'runway') {

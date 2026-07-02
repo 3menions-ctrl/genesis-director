@@ -242,7 +242,11 @@ serve(async (req) => {
     console.log("[AutoStitch] Calling seamless-stitcher for manifest creation...");
     
     const { data: stitchResult, error: stitchError } = await supabase.functions.invoke('seamless-stitcher', {
-      body: { projectId, userId },
+      // joinTrim: pipeline renders are frame-chained — clip boundaries hard-cut
+      // on the matched handoff frame with the vendor 6-frame/1-frame join trim
+      // (continuity v2) instead of blurring the seam with a 0.4s crossfade.
+      // Editor re-exports call seamless-stitcher directly without this flag.
+      body: { projectId, userId, joinTrim: true },
     });
     
     if (stitchError) {

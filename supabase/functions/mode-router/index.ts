@@ -446,6 +446,18 @@ serve(async (req) => {
             progress: 0,
             startedAt: new Date().toISOString(),
             message: 'Initializing pipeline...',
+            // EFFECTS PHASE params — final-assembly's breakout-VFX stage reads
+            // pipeline_state.breakout to composite UI chrome + shatter on each
+            // clip pre-stitch (inert unless BREAKOUT_VFX_ENABLED='true').
+            // Downstream stages spread-merge pipeline_state, so this survives.
+            ...(isBreakout ? {
+              breakout: {
+                isBreakout: true,
+                platform: breakoutPlatform ?? null,
+                templateSlug: request.templateName ?? null,
+                chromeKind: breakoutPlatform ?? null,
+              },
+            } : {}),
           },
         })
         .select('id')
@@ -484,6 +496,15 @@ serve(async (req) => {
             progress: 0,
             startedAt: new Date().toISOString(),
             message: 'Initializing pipeline...',
+            // EFFECTS PHASE params — see create branch above.
+            ...(isBreakout ? {
+              breakout: {
+                isBreakout: true,
+                platform: breakoutPlatform ?? null,
+                templateSlug: request.templateName ?? null,
+                chromeKind: breakoutPlatform ?? null,
+              },
+            } : {}),
           },
         })
         .eq('id', projectId);

@@ -396,6 +396,25 @@ serve(async (req) => {
           timelineStartSec?: number;
           durationSec?: number;
         }> }>;
+        /** Flat shapes actually persisted by useEditorStateSync.collect().
+         *  The client has never written scenes[] — only these flat arrays —
+         *  so every read below must accept BOTH (scenes[] kept for
+         *  back-compat with any legacy rows). */
+        clips?: Array<{
+          kind?: string;
+          titleText?: string;
+          titleColor?: string;
+          timelineStartSec?: number;
+          durationSec?: number;
+          videoUrl?: string | null;
+        }>;
+        titles?: Array<{
+          kind?: string;
+          titleText?: string;
+          titleColor?: string;
+          timelineStartSec?: number;
+          durationSec?: number;
+        }>;
         textOverlays?: unknown[];
         /** Per-boundary transitions authored on the timeline. Previously
          *  not extracted — every project-mode render used the global
@@ -438,9 +457,17 @@ serve(async (req) => {
       // editor_state, NOT video_clips (no video_url). Collect them
       // with their absolute time windows so we can emit drawtext
       // overlays in the final video chain.
+      // Title sources, most-specific first: the flat titles[]/clips[] the
+      // client persists, then the legacy scenes[] shape (old rows only).
+      // A title lives in BOTH titles[] and clips[] (collect() writes it to
+      // each), so take the first non-empty source rather than concatenating —
+      // concatenation would bake every title twice.
+      const titleSource =
+        (editorState.titles?.length ? editorState.titles : undefined) ??
+        (editorState.clips?.length ? editorState.clips : undefined) ??
+        (editorState.scenes ?? []).flatMap((s) => s.clips ?? []);
       titleClips =
-        (editorState.scenes ?? [])
-          .flatMap((s) => s.clips ?? [])
+        titleSource
           .filter((c) => c.kind === "title" && typeof c.titleText === "string" && c.titleText.trim() !== "")
           .map((c) => ({
             text: (c.titleText as string).trim(),
@@ -586,17 +613,20 @@ serve(async (req) => {
       // backward compat, falls back to created_at order's natural
       // position (which is just clip's index in the loaded list).
       const editorClipByVideoUrl = new Map<string, { timelineStartSec?: number; durationSec?: number }>();
-      for (const s of editorState.scenes ?? []) {
-        for (const c of s.clips ?? []) {
-          if ((c as unknown as { videoUrl?: string }).videoUrl) {
-            editorClipByVideoUrl.set(
-              (c as unknown as { videoUrl: string }).videoUrl,
-              {
-                timelineStartSec: (c as { timelineStartSec?: number }).timelineStartSec,
-                durationSec: (c as { durationSec?: number }).durationSec,
-              },
-            );
-          }
+      // The client persists the timeline as a FLAT editor_state.clips[] —
+      // it has never written scenes[].clips[] (that shape is legacy rows
+      // only). Read both, flat last so it wins on any URL collision.
+      const positionSource = [
+        ...(editorState.scenes ?? []).flatMap((s) => s.clips ?? []),
+        ...(editorState.clips ?? []),
+      ];
+      for (const c of positionSource) {
+        const url = (c as { videoUrl?: string | null }).videoUrl;
+        if (url) {
+          editorClipByVideoUrl.set(url, {
+            timelineStartSec: (c as { timelineStartSec?: number }).timelineStartSec,
+            durationSec: (c as { durationSec?: number }).durationSec,
+          });
         }
       }
       overlayDescs = overlayClips.map((c, i) => {

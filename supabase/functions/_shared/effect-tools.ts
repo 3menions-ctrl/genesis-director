@@ -52,14 +52,23 @@ async function replicateRun(
   body: Record<string, unknown>,
   _timeoutMs = 480_000,
 ): Promise<Record<string, unknown>> {
-  const create = await fetch(`${REPLICATE}${path}`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${key()}`, 'Content-Type': 'application/json', Prefer: 'wait' },
-    body: JSON.stringify(body),
-  });
-  if (!create.ok) throw new Error(`replicate ${path}: ${create.status} ${(await create.text()).slice(0, 300)}`);
-  const pred = await create.json();
-  return await awaitPrediction(pred, path);
+  // Transient-throttle resilience: 429 (rate limit) and 5xx are infra hiccups,
+  // not our error — back off and retry a few times before failing the stage.
+  // Prevents a customer's whole run dying on a momentary Replicate throttle.
+  let lastStatus = 0, lastBody = '';
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const create = await fetch(`${REPLICATE}${path}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key()}`, 'Content-Type': 'application/json', Prefer: 'wait' },
+      body: JSON.stringify(body),
+    });
+    if (create.ok) return await awaitPrediction(await create.json(), path);
+    lastStatus = create.status;
+    lastBody = (await create.text()).slice(0, 300);
+    if (create.status !== 429 && create.status < 500) break; // hard error — don't retry
+    await new Promise((r) => setTimeout(r, Math.min(30_000, 2000 * 2 ** attempt))); // 2,4,8,16,30s
+  }
+  throw new Error(`replicate ${path}: ${lastStatus} ${lastBody}`);
 }
 
 /** Resume a stage whose prediction outlived the previous invocation. */

@@ -797,7 +797,8 @@ serve(async (req) => {
       // opacity bake into the video chain via per-frame expressions
       // and volume bakes into the audio chain.
       const kfs: BakeKeyframe[] = Array.isArray(props.keyframes) ? props.keyframes : [];
-      const videoKfChain = compileVideoKeyframeChain(kfs);
+      const { w: kfOutW, h: kfOutH } = dimensionsForAspect(body.aspectRatio, body.resolution);
+      const videoKfChain = compileVideoKeyframeChain(kfs, kfOutW, kfOutH);
       const audioKfChain = compileAudioKeyframeChain(kfs);
       const fadeInSec = Math.max(0, Math.min(dur, props.fadeInSec ?? 0));
       const fadeOutSec = Math.max(0, Math.min(dur, props.fadeOutSec ?? 0));

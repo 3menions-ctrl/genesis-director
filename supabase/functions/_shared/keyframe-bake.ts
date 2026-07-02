@@ -89,9 +89,16 @@ export function buildKeyframeExpression(
   return expr;
 }
 
-/** Build the video-side keyframe filter chain. Returns "" when none. */
+/** Build the video-side keyframe filter chain. Returns "" when none.
+ *  `outW`/`outH` are the fixed canvas dimensions (the keyframe chain runs
+ *  after the frame is already scaled+padded to canvas), used to crop/pad
+ *  back to a stable size — REQUIRED because ffmpeg's crop filter has no
+ *  symbol for "pre-scale dimensions" (the old code used the invalid
+ *  constant `iw0`, which crashed every render that had a scale keyframe). */
 export function compileVideoKeyframeChain(
   allKfs: BakeKeyframe[],
+  outW = 1920,
+  outH = 1080,
 ): string {
   const opacityKfs   = allKfs.filter((k) => k.property === "opacity");
   const scaleKfs     = allKfs.filter((k) => k.property === "scale");
@@ -117,10 +124,13 @@ export function compileVideoKeyframeChain(
     parts.push(
       `scale=w='iw*(${scaleExpr})':h='ih*(${scaleExpr})':eval=frame`,
     );
-    // Re-center via crop or pad — scale changes dimensions, which
-    // breaks the xfade chain's assumption of fixed canvas size. We
-    // crop back to a centered region of the original (iw0, ih0).
-    parts.push(`crop=iw0:ih0:(iw-iw0)/2:(ih-ih0)/2`);
+    // Force back to the FIXED canvas so the xfade chain keeps a stable size.
+    // pad first (handles scale-DOWN: frame smaller than canvas → centered on
+    // black), then crop to exactly WxH centered (handles scale-UP: crop the
+    // overflow). Both W/H are numeric constants — valid ffmpeg, unlike the
+    // old `iw0`/`ih0` which crashed the render.
+    parts.push(`pad='max(iw,${outW})':'max(ih,${outH})':(ow-iw)/2:(oh-ih)/2:color=black@0`);
+    parts.push(`crop=${outW}:${outH}:(iw-${outW})/2:(ih-${outH})/2`);
   }
 
   if (rotationExpr) {
@@ -145,7 +155,8 @@ export function compileVideoKeyframeChain(
       `pad=iw+abs(2*(${dx})):ih+abs(2*(${dy})):` +
         `(ow-iw)/2-(${dx}):(oh-ih)/2-(${dy}):color=black@0`,
     );
-    parts.push(`crop=iw0:ih0:(iw-iw0)/2:(ih-ih0)/2`);
+    // Crop back to the fixed canvas (numeric — the old `iw0`/`ih0` was invalid).
+    parts.push(`crop=${outW}:${outH}:(iw-${outW})/2:(ih-${outH})/2`);
   }
 
   if (opacityExpr) {

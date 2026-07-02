@@ -69,6 +69,40 @@ export function round(n: number): number {
   return Math.round(n * 1000) / 1000;
 }
 
+/** ffmpeg-safe color. drawtext accepts `0xRRGGBB` and named colors, but the
+ *  editor emits `#RRGGBB`, `#RGB`, `hsl(h s% l%)`, and `rgb(r,g,b)` — and the
+ *  DEFAULT title color is `hsl(220 30% 4%)`. The old parser accepted only
+ *  `#RRGGBB` and fell back to WHITE for everything else, so most titles baked
+ *  white. Convert the common forms to `0xRRGGBB`; fall back to white only for
+ *  the truly unparseable. */
+export function toFfmpegColor(input: string | undefined | null): string {
+  const c = (input ?? "").trim();
+  if (!c) return "white";
+  // #RRGGBB / RRGGBB
+  let m = /^#?([0-9a-fA-F]{6})$/.exec(c);
+  if (m) return `0x${m[1]}`;
+  // #RGB → #RRGGBB
+  m = /^#?([0-9a-fA-F]{3})$/.exec(c);
+  if (m) return `0x${m[1].split("").map((h) => h + h).join("")}`;
+  const hex = (r: number, g: number, b: number) =>
+    `0x${[r, g, b].map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0")).join("")}`;
+  // rgb(r,g,b)
+  m = /^rgba?\(\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)/.exec(c);
+  if (m) return hex(+m[1], +m[2], +m[3]);
+  // hsl(h s% l%) or hsl(h, s%, l%)
+  m = /^hsla?\(\s*([\d.]+)[ ,]+([\d.]+)%?[ ,]+([\d.]+)%/.exec(c);
+  if (m) {
+    const h = ((+m[1] % 360) + 360) % 360, s = +m[2] / 100, l = +m[3] / 100;
+    const k = (n: number) => (n + h / 30) % 12;
+    const a = s * Math.min(l, 1 - l);
+    const f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    return hex(f(0) * 255, f(8) * 255, f(4) * 255);
+  }
+  // Named colors ffmpeg knows — pass through lowercased single word.
+  if (/^[a-z]+$/i.test(c)) return c.toLowerCase();
+  return "white";
+}
+
 /** Map a UI aspect-ratio string to encoded dimensions, scaled by a
  *  resolution preset. Returns the 16:9/1080p default if either input
  *  is unrecognized. */
@@ -378,7 +412,7 @@ export function buildSeamlessCommand({
         .replace(/'/g, "\\'")
         .replace(/%/g, "\\%")
         .replace(/\n/g, "\\n");
-      const safeColor = /^#?[0-9a-fA-F]{6}$/.test(tc.color) ? tc.color.replace(/^#?/, "0x") : "white";
+      const safeColor = toFfmpegColor(tc.color);
       const sizePctClamped = Math.max(1, Math.min(40, tc.sizePct ?? 6));
       const fontSize = Math.round(outH * (sizePctClamped / 100));
       const hasPos = typeof tc.x === "number" && typeof tc.y === "number";

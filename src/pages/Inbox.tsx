@@ -801,7 +801,8 @@ function DmThread({ userId, partnerId, onClose, reducedMotion }: { userId: strin
   };
 
   const react = async (messageId: string, emoji: string) => {
-    await supabase.rpc("react_to_message" as never, { p_message_id: messageId, p_emoji: emoji } as never);
+    const { error } = await supabase.rpc("react_to_message" as never, { p_message_id: messageId, p_emoji: emoji } as never);
+    if (error) toast.error(safeErrorMessage(error, "Couldn't react to this message."));
   };
 
   const sendTip = async (amount: number, message: string) => {

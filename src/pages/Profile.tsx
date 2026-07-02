@@ -1242,10 +1242,9 @@ function DiscoverabilityCard({
     setBusy(true);
     setOn(next); // optimistic
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ is_discoverable: next })
-        .eq("id", userId);
+      const { error } = await supabase.rpc("update_my_profile" as never, {
+        p_patch: { is_discoverable: next },
+      } as never);
       if (error) throw error;
       onChanged(next);
       toast.success(next ? "You're now listed in Find Friends." : "You're hidden from Find Friends.");

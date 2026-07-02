@@ -81,7 +81,9 @@ export function report(kind: string, code: string, message: string, opts?: Repor
         technical_message: message?.slice(0, 2000) ?? null,
         stack: opts?.stack?.slice(0, 4000) ?? null,
         context: { ...deviceContext(), ...(opts?.context ?? {}) },
-        page_url: location.href,
+        // Path only — query strings carry project ids / tokens / share
+        // params that don't belong in a telemetry table.
+        page_url: location.origin + location.pathname,
         user_agent: navigator.userAgent,
         session_id: sessionId,
         app_version: APP_VERSION,

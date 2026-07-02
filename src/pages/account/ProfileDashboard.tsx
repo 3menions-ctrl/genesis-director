@@ -3022,10 +3022,9 @@ function BioSection({
     }
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ bio: next })
-        .eq("id", userId);
+      const { error } = await supabase.rpc("update_my_profile" as never, {
+        p_patch: { bio: next },
+      } as never);
       if (error) throw error;
       setSavedAt(Date.now());
       await onSaved();
@@ -6074,10 +6073,9 @@ function ProfileSettingsPanel({
     }
     const prev = initialProfile.external_links;
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ external_links: cleaned as never })
-        .eq("id", userId);
+      const { error } = await supabase.rpc("update_my_profile" as never, {
+        p_patch: { external_links: cleaned },
+      } as never);
       if (error) throw error;
       toast.success("Links saved");
       await onSaved();

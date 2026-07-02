@@ -448,13 +448,15 @@ async function createSeedancePrediction(
   }
 
   // CONTINUITY V2 — persistent global identity anchor (attention-sink
-  // principle, Rolling Forcing/StreamingT2V): condition EVERY clip on the
-  // SAME character references instead of relying only on frame-to-frame
-  // handoff, which structurally accumulates drift. Seedance 2.0 documents up
-  // to 9 reference images (headshot + full-body preferred; multi-view sheets
-  // explicitly discouraged — the model reads angles as different people).
-  // GATED until the Replicate packaging is verified live (needs credits).
-  if (SEEDANCE_REFERENCE_CONDITIONING && identityReferenceImages?.length) {
+  // principle): condition clips on the SAME character references instead of
+  // relying only on frame-to-frame handoff. SCHEMA CONSTRAINT (verified on
+  // the live endpoint): reference_images "cannot be used together with
+  // first/last frame images" — so identity refs apply ONLY when this clip has
+  // no frame conditioning (pure T2V shots); keyframe-pair chained clips get
+  // identity from the keyframes themselves (which are already identity-locked
+  // via Flux Kontext).
+  const hasFrameConditioning = !!input.image || !!input.last_frame_image;
+  if (SEEDANCE_REFERENCE_CONDITIONING && !hasFrameConditioning && identityReferenceImages?.length) {
     const refs = identityReferenceImages
       .filter((u) => typeof u === "string" && u.startsWith("http"))
       .slice(0, 9);

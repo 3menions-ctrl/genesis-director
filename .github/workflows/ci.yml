@@ -48,6 +48,18 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
+      # Edge functions are Deno, NOT covered by the frontend `tsc` typecheck
+      # above. On 2026-07-02 a duplicate import made mode-router 503 on boot in
+      # prod (every create request failed) with zero CI coverage. This gate
+      # runs `deno check` on every function and fails on boot-fatal errors
+      # (duplicate/redeclared identifiers, syntax, bad imports).
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Edge-function boot check
+        run: node scripts/check-edge-boot.mjs
+
       - name: Edge-function auth audit
         run: bun run audit:edge-auth
 

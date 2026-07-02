@@ -11,7 +11,6 @@ import { forceBreakoutEngine } from "../_shared/breakout-guardrails.ts";
 import { buildProductionRequest, resolveHandlerKey, type HandlerKey } from "../_shared/production-request.ts";
 import { priceClipCredits } from "../_shared/engines.ts";
 import {
-  buildProductionRequest,
   resolveEngine,
   resolveOperation,
   resolveAudioStrategy,

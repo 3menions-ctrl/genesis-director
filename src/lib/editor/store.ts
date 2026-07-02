@@ -485,6 +485,16 @@ export function updateMarker(id: string, patch: Partial<EditorMarker>): void {
   });
 }
 
+/** Restore markers loaded from movie_projects.editor_state (they used to be
+ *  store-only and vanished on reload). Not historized — this is hydration. */
+export function hydrateMarkers(markers: EditorMarker[]): void {
+  set({
+    markers: (Array.isArray(markers) ? markers : [])
+      .filter((m): m is EditorMarker => !!m && typeof m.timelineSec === "number" && typeof m.id === "string")
+      .sort((a, b) => a.timelineSec - b.timelineSec),
+  });
+}
+
 export function setInPoint(sec: number | null): void {
   if (sec === null) {
     set({ inSec: null });

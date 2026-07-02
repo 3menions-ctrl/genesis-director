@@ -41,6 +41,9 @@ interface EditorStateSnap {
   titles: EditorClip[];
   textOverlays: unknown[];
   tracks: unknown[];
+  /** Timeline markers — previously store-only, so they vanished on reload.
+   *  Now persisted with the rest of the editor state. */
+  markers: unknown[];
   /** The FULL timeline clip list (every scene, every kind). This is
    *  the durable record of the user's edit — splits, trims, reorders,
    *  and per-clip effects/keyframes that don't map 1:1 to a
@@ -54,7 +57,7 @@ function collect(project: {
   transitions: unknown[];
   textOverlays?: EditorProject["textOverlays"];
   tracks?: EditorProject["tracks"];
-}): EditorStateSnap {
+}, markers: unknown[]): EditorStateSnap {
   const allClips: EditorClip[] = [];
   const titles: EditorClip[] = [];
   for (const s of project.scenes) {
@@ -68,6 +71,7 @@ function collect(project: {
     titles,
     textOverlays: project.textOverlays ?? [],
     tracks: project.tracks ?? [],
+    markers: markers ?? [],
     clips: allClips,
   };
 }
@@ -103,7 +107,7 @@ export async function flushEditorState(): Promise<void> {
 }
 
 export function useEditorStateSync(projectId: string | undefined) {
-  const { project } = useEditor();
+  const { project, markers } = useEditor();
   /** Last hash successfully written to the DB. After hydrate, seeded
    *  with the loaded shape so the first observed hash is baseline,
    *  not a spurious change. */
@@ -125,7 +129,7 @@ export function useEditorStateSync(projectId: string | undefined) {
     if (isDemoId(projectId)) return;
     if (project.id !== projectId) return;
 
-    const snap = collect(project);
+    const snap = collect(project, markers);
     const h = hashSnap(snap);
 
     // First pass — accept whatever loaded as the baseline.
@@ -151,7 +155,7 @@ export function useEditorStateSync(projectId: string | undefined) {
         console.warn("[editor-state] save failed", e instanceof Error ? e.message : e);
       }
     }, DEBOUNCE_MS);
-  }, [projectId, project]);
+  }, [projectId, project, markers]);
 
   useEffect(() => {
     return () => {

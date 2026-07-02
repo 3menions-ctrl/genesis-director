@@ -20,7 +20,7 @@
  */
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { setLoading, setProject, setError } from "@/lib/editor/store";
+import { setLoading, setProject, setError, hydrateMarkers } from "@/lib/editor/store";
 import { safeErrorMessage } from "@/lib/safeErrorMessage";
 import {
   parseAspectRatio,
@@ -316,8 +316,10 @@ export function useProject(projectId: string | undefined) {
         // unknown fields are ignored so old/new client revisions stay
         // forwards-compatible.
         const es = (pr.editor_state && typeof pr.editor_state === "object")
-          ? pr.editor_state as { transitions?: unknown; titles?: unknown; textOverlays?: unknown; tracks?: unknown; clips?: unknown }
+          ? pr.editor_state as { transitions?: unknown; titles?: unknown; textOverlays?: unknown; tracks?: unknown; clips?: unknown; markers?: unknown }
           : null;
+        // Restore timeline markers (were store-only → lost on reload).
+        hydrateMarkers(Array.isArray(es?.markers) ? (es!.markers as never[]) : []);
         const restoredTransitions = Array.isArray(es?.transitions)
           ? (es!.transitions as EditorProject["transitions"])
           : [];

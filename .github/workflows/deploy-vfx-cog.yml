@@ -15,16 +15,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install cog
-        run: |
-          sudo curl -o /usr/local/bin/cog -L "https://github.com/replicate/cog/releases/latest/download/cog_$(uname -s)_$(uname -m)"
-          sudo chmod +x /usr/local/bin/cog
-          cog --version
+      # Official action — handles r8.im registry auth with the API token
+      # (plain `cog login` demands the browser-only CLI token instead).
+      - uses: replicate/setup-cog@v2
+        with:
+          token: ${{ secrets.REPLICATE_API_TOKEN }}
 
       - name: Build and push
         working-directory: python/breakout_pipeline
-        env:
-          REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
-        run: |
-          echo "$REPLICATE_API_TOKEN" | cog login --token-stdin
-          cog push r8.im/3menions-ctrl/breakout-vfx
+        run: cog push r8.im/3menions-ctrl/breakout-vfx

@@ -226,25 +226,35 @@ serve(async (req) => {
     console.log("[SmartScript] Request validated, topic:", request.topic.substring(0, 100));
 
     // PROVIDER RESOLUTION (2026-07-02): the script stage is the #1 quality
-    // lever, and it was hard-pinned to OpenAI. In prod NEITHER OpenAI nor the
-    // Lovable gateway key was set, so EVERY script silently fell back to a
-    // dumb "concept. Clip N of M" stub. Support both OpenAI-compatible
-    // endpoints and use whichever key is present — so configuring ONE key
-    // fixes scripting. OpenAI (gpt-4o) preferred; Lovable gateway otherwise.
+    // lever, and it was hard-pinned to a direct OpenAI key. In prod NO LLM key
+    // (OpenAI or Lovable) was set → EVERY script silently fell back to a dumb
+    // "concept. Clip N of M" stub.
+    //
+    // KEY INSIGHT: Replicate hosts openai/gpt-4o directly, and the Replicate
+    // key is ALREADY funded for video. So the script generator can run the
+    // SAME GPT-4o with ZERO new secrets. Preference order:
+    //   1. Direct OpenAI key  — cheapest/fastest for text, if the user set it.
+    //   2. Lovable gateway    — if that key is set.
+    //   3. Replicate gpt-4o   — the funded fallback that ALWAYS works.
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const llm = OPENAI_API_KEY
-      ? { url: "https://api.openai.com/v1/chat/completions", key: OPENAI_API_KEY, model: "gpt-4o" }
-      : LOVABLE_API_KEY
-      ? { url: "https://ai.gateway.lovable.dev/v1/chat/completions", key: LOVABLE_API_KEY, model: "openai/gpt-4o" }
-      : null;
+    const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY") || Deno.env.get("REPLICATE_API_TOKEN");
+    const llm: { kind: "openai-compat"; url: string; key: string; model: string }
+             | { kind: "replicate"; key: string; model: string }
+             | null =
+      OPENAI_API_KEY
+        ? { kind: "openai-compat", url: "https://api.openai.com/v1/chat/completions", key: OPENAI_API_KEY, model: "gpt-4o" }
+        : LOVABLE_API_KEY
+        ? { kind: "openai-compat", url: "https://ai.gateway.lovable.dev/v1/chat/completions", key: LOVABLE_API_KEY, model: "openai/gpt-4o" }
+        : REPLICATE_API_KEY
+        ? { kind: "replicate", key: REPLICATE_API_KEY, model: "openai/gpt-4o" }
+        : null;
     if (!llm) {
-      // Actionable, non-generic: this is the exact ops gap behind lackluster
-      // scripts. hollywood-pipeline catches this and uses its fallback shots.
       throw new Error(
-        "no_llm_provider: set OPENAI_API_KEY or LOVABLE_API_KEY in Supabase Edge Function secrets — the script generator cannot author shots without one",
+        "no_llm_provider: set OPENAI_API_KEY, LOVABLE_API_KEY, or REPLICATE_API_KEY in Supabase Edge Function secrets — the script generator cannot author shots without one",
       );
     }
+    console.log(`[SmartScript] LLM provider: ${llm.kind}${llm.kind === "replicate" ? " (openai/gpt-4o via Replicate — no extra key needed)" : ""}`);
 
     // AUTO-DETECT dialogue and narration from user's input
     const inputText = [
@@ -980,48 +990,80 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
     const gateBlocked = await preflightAiGate(gateCtx);
     if (gateBlocked) return gateBlocked;
 
-    // gpt-4o (direct or via Lovable gateway) for cinematographic richness.
-    const response = await fetchWithRetry(
-      llm.url,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${llm.key}`,
-          "Content-Type": "application/json",
+    const maxTokens = isSeedance
+      ? calculateMaxTokens(clipCount, 800, 4500, 9000)
+      : calculateMaxTokens(clipCount, 500, 3000, 6000);
+    const temperature = isSeedance ? 0.75 : 0.8; // tighter for technical precision
+
+    let rawContent = '';
+    let llmUsage: unknown = undefined;
+    if (llm.kind === "replicate") {
+      // Run openai/gpt-4o THROUGH Replicate on the already-funded key — no
+      // separate OpenAI/Lovable secret required. `Prefer: wait` returns
+      // synchronously (GPT-4o is fast). Replicate has no response_format param,
+      // so JSON is enforced via the system prompt (GPT-4o obeys it reliably).
+      const response = await fetchWithRetry(
+        "https://api.replicate.com/v1/models/openai/gpt-4o/predictions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${llm.key}`,
+            "Content-Type": "application/json",
+            Prefer: "wait",
+          },
+          body: JSON.stringify({
+            input: {
+              prompt: userPrompt,
+              system_prompt: `${systemPrompt}\n\nCRITICAL: respond with ONLY a single valid JSON object. No markdown, no code fences, no prose before or after.`,
+              temperature,
+              max_completion_tokens: maxTokens,
+            },
+          }),
         },
-        body: JSON.stringify({
-          model: llm.model,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-          // Seedance scripts are denser (150-220w/clip with structured sections) — give more headroom.
-          max_tokens: isSeedance
-            ? calculateMaxTokens(clipCount, 800, 4500, 9000)
-            : calculateMaxTokens(clipCount, 500, 3000, 6000),
-          temperature: isSeedance ? 0.75 : 0.8, // Slightly tighter for technical precision
-          response_format: { type: "json_object" }, // Enforce JSON for reliability
-        }),
-      },
-      { maxRetries: 2, baseDelayMs: 1500 }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("[SmartScript] OpenAI API error after retries:", response.status, errorText);
-      
-      if (response.status === 429) {
-        return errorResponse("Rate limit exceeded after retries. Please try again later.", 429);
+        { maxRetries: 2, baseDelayMs: 1500 }
+      );
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("[SmartScript] Replicate LLM error after retries:", response.status, errorText);
+        if (response.status === 429) return errorResponse("Rate limit exceeded after retries. Please try again later.", 429);
+        throw new Error(`llm_provider_error: ${response.status}`);
       }
-      if (response.status === 401) {
-        return errorResponse("Invalid LLM provider API key (OPENAI_API_KEY / LOVABLE_API_KEY).", 401);
+      const pred = await response.json();
+      // openai/gpt-4o output is an array of token strings (or a single string).
+      const out = pred.output;
+      rawContent = Array.isArray(out) ? out.join('') : (typeof out === 'string' ? out : '');
+      llmUsage = pred.metrics ?? undefined;
+    } else {
+      // Direct OpenAI or the OpenAI-compatible Lovable gateway.
+      const response = await fetchWithRetry(
+        llm.url,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${llm.key}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: llm.model,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt },
+            ],
+            max_tokens: maxTokens,
+            temperature,
+            response_format: { type: "json_object" }, // Enforce JSON for reliability
+          }),
+        },
+        { maxRetries: 2, baseDelayMs: 1500 }
+      );
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("[SmartScript] LLM provider error after retries:", response.status, errorText);
+        if (response.status === 429) return errorResponse("Rate limit exceeded after retries. Please try again later.", 429);
+        if (response.status === 401) return errorResponse("Invalid LLM provider API key (OPENAI_API_KEY / LOVABLE_API_KEY).", 401);
+        throw new Error(`llm_provider_error: ${response.status}`);
       }
-      
-      throw new Error(`llm_provider_error: ${response.status}`);
+      const data = await response.json();
+      rawContent = data.choices?.[0]?.message?.content || '';
+      llmUsage = data.usage;
     }
-
-    const data = await response.json();
-    const rawContent = data.choices?.[0]?.message?.content || '';
     
     console.log("[SmartScript] Raw AI response length:", rawContent.length);
 
@@ -1292,9 +1334,9 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
         location: lockFields.locationDescription,
         lighting: lockFields.lightingDescription,
       },
-      model: "gpt-4o",
+      model: llm.kind === "replicate" ? "openai/gpt-4o (replicate)" : llm.model,
       generationTimeMs,
-      usage: data.usage,
+      usage: llmUsage,
       targetEngine,
     });
 

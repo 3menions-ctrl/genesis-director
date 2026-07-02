@@ -871,6 +871,72 @@ function ProductionContentInner() {
     };
   }, [projectId, user?.id]); // STABILITY FIX: Only projectId and user.id - callbacks via refs
 
+  // ── SELF-HEALING POLL: realtime is the fast path, NOT the only path ──────
+  // The approval gate flips the row to awaiting_approval ~30-60s after the
+  // user lands here. If the websocket wasn't joined yet, dropped, or the tab
+  // was backgrounded (mobile Safari kills sockets), that single UPDATE is
+  // missed and the page showed "writing script…" forever — the user never
+  // saw the script-approval screen. Poll the row while the project is in a
+  // non-terminal state and re-apply the same transitions the realtime
+  // handler would have; also refresh immediately when the tab regains focus.
+  useEffect(() => {
+    if (!projectId || !user) return;
+    const TERMINAL = ['completed', 'failed', 'payment_failed', 'cancelled'];
+    if (TERMINAL.includes(projectStatus)) return;
+
+    let cancelled = false;
+    const refresh = async () => {
+      const { data: p } = await supabase
+        .from('movie_projects')
+        .select('status, video_url, last_error, pending_video_tasks')
+        .eq('id', projectId)
+        .maybeSingle();
+      if (cancelled || !p) return;
+
+      setProjectStatus(p.status as string);
+      if (p.last_error) setLastError(p.last_error as string);
+
+      const tasks = parsePendingVideoTasks(p.pending_video_tasks);
+      if (tasks?.progress) setProgress(tasks.progress);
+      if (tasks?.stage) setPipelineStage(tasks.stage);
+      if (tasks?.stage === 'awaiting_approval' && tasks.script?.shots) {
+        setScriptShots((prev) => {
+          if (prev && prev.length > 0) return prev; // realtime already delivered
+          addLogRef.current('Script ready for approval', 'info');
+          return tasks.script!.shots!.map((shot, idx) => ({
+            id: shot.id || `shot-${idx}`,
+            index: idx,
+            title: shot.title,
+            description: shot.description,
+            durationSeconds: shot.durationSeconds,
+            sceneType: shot.sceneType,
+            cameraScale: shot.cameraScale,
+            cameraAngle: shot.cameraAngle,
+            movementType: shot.movementType,
+            transitionOut: shot.transitionOut,
+            visualAnchors: shot.visualAnchors,
+            motionDirection: shot.motionDirection,
+            lightingHint: shot.lightingHint,
+            dialogue: shot.dialogue,
+            mood: shot.mood,
+          }));
+        });
+      }
+      const manifestUrl = tasks?.manifestUrl;
+      if (manifestUrl) setFinalVideoUrl(manifestUrl);
+      else if (p.video_url && p.status === 'completed') setFinalVideoUrl(p.video_url as string);
+    };
+
+    const interval = setInterval(refresh, 12000);
+    const onVisible = () => { if (document.visibilityState === 'visible') void refresh(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [projectId, user?.id, projectStatus]);
+
   // CRITICAL FIX: Sync DB video_clips into avatarClips for avatar projects
   // The predictions array can be incomplete (watchdog recovery removes entries),
   // but video_clips table is always the source of truth for completed clips

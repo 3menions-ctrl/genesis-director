@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
 
@@ -327,7 +328,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("[Avatar Gen] Error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Generation failed" }),
+      JSON.stringify({ error: publicErrorMessage(error, "Generation failed") }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

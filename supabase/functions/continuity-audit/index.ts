@@ -9,6 +9,7 @@ import {
   type BoundaryType,
   type DimensionScores,
 } from "../_shared/continuity-contract.ts";
+import { logAndSanitize } from "../_shared/safe-error.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -109,7 +110,7 @@ serve(async (req) => {
       correction: result.correction, // null when admitted
     });
   } catch (err) {
-    return json({ error: err instanceof Error ? err.message : "audit failed" }, 500);
+    return json({ error: logAndSanitize("continuity-audit", err, "audit failed") }, 500);
   }
 });
 

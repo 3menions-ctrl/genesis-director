@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { checkContentSafety } from "../_shared/content-safety.ts";
 import {
@@ -2351,7 +2352,7 @@ serve(async (req) => {
     const result: SingleClipResult = {
       success: false,
       clipId,
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: publicErrorMessage(error),
     };
     return new Response(
       JSON.stringify(result),

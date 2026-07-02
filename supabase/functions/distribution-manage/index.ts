@@ -222,19 +222,21 @@ serve(async (req) => {
         // dropping the channel.
         if (isFutureSchedule) {
           const { data, error } = await sb.from("distribution_jobs").insert({ ...baseRow, status: "scheduled" }).select().single();
-          createdJobs.push(data ?? { provider, status: "failed", error: error?.message ?? "Failed to record job" });
+          if (error) console.error("[distribution-manage] job insert error:", error);
+          createdJobs.push(data ?? { provider, status: "failed", error: "Failed to record job" });
           continue;
         }
         if (!conn || conn.status !== "connected") {
           const { data, error } = await sb.from("distribution_jobs").insert({ ...baseRow, status: "pending_credentials", error: `${adapter.label} isn't connected.` }).select().single();
-          createdJobs.push(data ?? { provider, status: "failed", error: error?.message ?? "Failed to record job" });
+          if (error) console.error("[distribution-manage] job insert error:", error);
+          createdJobs.push(data ?? { provider, status: "failed", error: "Failed to record job" });
           continue;
         }
 
         // Connected → record a 'publishing' row FIRST, then post, then update it,
         // so a successful external post can never be orphaned by an insert failure.
         const { data: jobRow, error: insErr } = await sb.from("distribution_jobs").insert({ ...baseRow, status: "publishing" }).select().single();
-        if (!jobRow) { createdJobs.push({ provider, status: "failed", error: insErr?.message ?? "Failed to record job" }); continue; }
+        if (!jobRow) { console.error("[distribution-manage] job insert error:", insErr); createdJobs.push({ provider, status: "failed", error: "Failed to record job" }); continue; }
 
         const { data: secret } = await sb.from("channel_connection_secrets").select("access_token").eq("connection_id", conn.id).maybeSingle();
         const result = await adapter.publish(secret?.access_token ?? null, payload);

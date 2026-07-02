@@ -6,6 +6,7 @@
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireCronSecret } from "../_shared/auth-guard.ts";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 
 Deno.serve(async (req) => {
   if (!requireCronSecret(req)) {
@@ -24,7 +25,7 @@ Deno.serve(async (req) => {
     const { data, error } = await sb.rpc("detect_stuck_pipeline_jobs");
     if (error) {
       console.error("[stuck-jobs] rpc error", error);
-      return new Response(JSON.stringify({ ok: false, error: error.message }), { status: 500 });
+      return new Response(JSON.stringify({ ok: false, error: publicErrorMessage(error) }), { status: 500 });
     }
     console.log("[stuck-jobs] flagged", data);
     const recoveryResponse = await fetch(`${supabaseUrl}/functions/v1/pipeline-watchdog`, {
@@ -46,6 +47,6 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("[stuck-jobs] exception", e);
-    return new Response(JSON.stringify({ ok: false, error: String(e) }), { status: 500 });
+    return new Response(JSON.stringify({ ok: false, error: publicErrorMessage(e) }), { status: 500 });
   }
 });

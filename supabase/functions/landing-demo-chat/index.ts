@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { checkRateLimitDb, extractClientIp } from "../_shared/rate-limiter.ts";
 
@@ -230,7 +231,7 @@ serve(async (req) => {
   } catch (e) {
     console.error("landing-demo-chat error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      JSON.stringify({ error: publicErrorMessage(e) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

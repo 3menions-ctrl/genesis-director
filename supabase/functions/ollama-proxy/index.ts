@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { validateAuth, unauthorizedResponse } from "../_shared/auth-guard.ts";
+import { logAndSanitize } from "../_shared/safe-error.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -65,8 +66,9 @@ serve(async (req) => {
 
     if (!resp.ok) {
       const detail = await resp.text().catch(() => "");
+      console.error(`[ollama-proxy] Ollama ${resp.status}: ${detail.slice(0, 500)}`);
       return new Response(
-        JSON.stringify({ error: `Ollama error ${resp.status}`, detail: detail.slice(0, 500) }),
+        JSON.stringify({ error: `Ollama error ${resp.status}` }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -85,7 +87,7 @@ serve(async (req) => {
     });
   } catch (err) {
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }),
+      JSON.stringify({ error: logAndSanitize("ollama-proxy", err) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }

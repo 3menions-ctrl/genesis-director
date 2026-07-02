@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { assertSafeFetchUrl, SSRFError } from "../_shared/ssrf-guard.ts";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -537,7 +538,7 @@ Return ONLY valid JSON in this exact format:
   } catch (error) {
     console.error('[analyze-reference-image] Error:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: publicErrorMessage(error) }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

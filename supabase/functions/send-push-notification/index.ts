@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import webpush from "https://esm.sh/web-push@3.6.7";
 import { requireServiceRole } from "../_shared/auth-guard.ts";
+import { logAndSanitize } from "../_shared/safe-error.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -98,7 +99,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         ok: false,
-        error: error instanceof Error ? error.message : "Unknown",
+        error: logAndSanitize("send-push-notification", error),
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );

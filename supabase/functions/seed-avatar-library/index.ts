@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logAndSanitize, publicErrorMessage } from "../_shared/safe-error.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -464,7 +465,8 @@ serve(async (req) => {
             }),
           });
           if (!genResponse.ok) {
-            tickResults.push({ name: preset.name, success: false, error: await genResponse.text() });
+            console.error(`[Seed] cron-tick generate failed for ${preset.name}: ${(await genResponse.text()).slice(0, 300)}`);
+            tickResults.push({ name: preset.name, success: false, error: `generate_failed_${genResponse.status}` });
             continue;
           }
           const generated = await genResponse.json();
@@ -485,7 +487,7 @@ serve(async (req) => {
           }, { onConflict: "name" });
           tickResults.push({ name: preset.name, success: true, index: i });
         } catch (err: any) {
-          tickResults.push({ name: preset.name, success: false, error: String(err?.message ?? err) });
+          tickResults.push({ name: preset.name, success: false, error: logAndSanitize("seed-avatar-library", err) });
         }
       }
       const remaining = AVATAR_PRESETS.length - seededNames.size - tickResults.filter(r => r.success).length;
@@ -532,7 +534,8 @@ serve(async (req) => {
             }),
           });
           if (!aiResp.ok) {
-            tickResults.push({ name: row.name, success: false, error: `ai ${aiResp.status}: ${(await aiResp.text()).slice(0, 200)}` });
+            console.error(`[Seed] cron-tick-db AI error for ${row.name}: ${aiResp.status}: ${(await aiResp.text()).slice(0, 200)}`);
+            tickResults.push({ name: row.name, success: false, error: `ai_error_${aiResp.status}` });
             continue;
           }
           const aiData = await aiResp.json();
@@ -548,7 +551,8 @@ serve(async (req) => {
           const fileName = `${safeName}-front-${Date.now()}.png`;
           const { data: upData, error: upErr } = await supabase.storage.from("avatars").upload(fileName, bytes, { contentType: "image/png", upsert: true });
           if (upErr) {
-            tickResults.push({ name: row.name, success: false, error: `upload: ${upErr.message}` });
+            console.error(`[Seed] cron-tick-db upload failed for ${row.name}:`, upErr);
+            tickResults.push({ name: row.name, success: false, error: "upload_failed" });
             continue;
           }
           const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(upData.path);
@@ -565,7 +569,7 @@ serve(async (req) => {
 
           tickResults.push({ name: row.name, success: true });
         } catch (err: any) {
-          tickResults.push({ name: row.name, success: false, error: String(err?.message ?? err) });
+          tickResults.push({ name: row.name, success: false, error: logAndSanitize("seed-avatar-library", err) });
         }
       }
 
@@ -726,7 +730,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("[Seed Avatars] Error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Seeding failed" }),
+      JSON.stringify({ error: publicErrorMessage(error, "Seeding failed") }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Image } from "https://deno.land/x/imagescript@1.2.15/mod.ts";
 import { seamScore, rgbaToGray } from "../_shared/seam-ssim.ts";
 import { safeFetch } from "../_shared/ssrf-guard.ts";
+import { logAndSanitize } from "../_shared/safe-error.ts";
 
 // @public-endpoint
 // Stateless pipeline helper: takes two app-generated frame URLs and returns a
@@ -77,7 +78,7 @@ serve(async (req) => {
     const score = seamScore(a, b);
     return json({ success: true, score, projectId: body.projectId, clipIndex: body.clipIndex });
   } catch (err) {
-    return json({ success: false, error: err instanceof Error ? err.message : "seam validation failed" }, 500);
+    return json({ success: false, error: logAndSanitize("validate-seam-continuity", err, "seam validation failed") }, 500);
   }
 });
 

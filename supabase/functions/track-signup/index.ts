@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -102,7 +103,7 @@ serve(async (req) => {
 
     if (error) {
       console.error("Insert error:", error);
-      return new Response(JSON.stringify({ error: error.message }), {
+      return new Response(JSON.stringify({ error: publicErrorMessage(error) }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

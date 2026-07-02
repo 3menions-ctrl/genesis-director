@@ -15,6 +15,7 @@
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import { validateAuth, unauthorizedResponse } from '../_shared/auth-guard.ts';
+import { publicErrorMessage } from '../_shared/safe-error.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -517,7 +518,7 @@ Deno.serve(async (req) => {
     }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (err) {
     console.error('[admin-analytics] error:', err);
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
+    return new Response(JSON.stringify({ error: publicErrorMessage(err) }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

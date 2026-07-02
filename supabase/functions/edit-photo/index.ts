@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import { validateAuth, unauthorizedResponse, resolveEffectiveUserId, forbiddenResponse } from '../_shared/auth-guard.ts';
 import { checkContentSafety } from '../_shared/content-safety.ts';
 import { assertSafeFetchUrl, safeFetch, SSRFError } from '../_shared/ssrf-guard.ts';
+import { publicErrorMessage } from '../_shared/safe-error.ts';
 
 // Image-host allowlist for user-provided imageUrl. Covers Supabase Storage,
 // the generative-AI vendor CDNs we actually use, and well-known public
@@ -400,7 +401,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('[edit-photo] Error:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
+      JSON.stringify({ error: publicErrorMessage(error, 'Internal server error') }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import {
   validateAuth,
@@ -707,7 +708,7 @@ Return valid JSON exactly matching this schema:
     return new Response(
       JSON.stringify({
         success: false,
-        error: err instanceof Error ? err.message : "Identity extraction failed",
+        error: publicErrorMessage(err, "Identity extraction failed"),
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

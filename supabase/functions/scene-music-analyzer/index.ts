@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -158,7 +159,7 @@ Respond with a JSON object:
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : "Analysis failed",
+        error: publicErrorMessage(error, "Analysis failed"),
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

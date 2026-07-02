@@ -2,6 +2,7 @@
 // Public function — no auth required (translations are not sensitive).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { checkRateLimitDb, extractClientIp } from "../_shared/rate-limiter.ts";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 
 // Abuse caps (DB-backed, cross-isolate). This endpoint is public and spends
 // money on the shared LOVABLE_API_KEY, so cap both total daily volume and
@@ -230,7 +231,7 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error("translate-text error", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      JSON.stringify({ error: publicErrorMessage(e) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }

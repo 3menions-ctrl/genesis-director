@@ -25,6 +25,7 @@
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireCronSecret } from "../_shared/auth-guard.ts";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -243,7 +244,7 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("[ai-reply] fatal", e);
-    return new Response(JSON.stringify({ ok: false, error: String(e) }), {
+    return new Response(JSON.stringify({ ok: false, error: publicErrorMessage(e) }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

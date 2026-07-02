@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -81,13 +82,13 @@ async function callEdgeFunction(
     if (!response.ok) {
       const errorText = await response.text();
       console.warn(`[ValidationOrchestrator] ${functionName} failed: ${errorText.substring(0, 100)}`);
-      return { success: false, error: errorText };
+      return { success: false, error: `${functionName} failed` };
     }
 
     return response.json();
   } catch (error) {
     console.error(`[ValidationOrchestrator] Error calling ${functionName}:`, error);
-    return { success: false, error: String(error) };
+    return { success: false, error: `${functionName} failed` };
   }
 }
 
@@ -414,7 +415,7 @@ serve(async (req) => {
     console.error('[ValidationOrchestrator] Error:', error);
     return new Response(JSON.stringify({
       success: false,
-      error: error instanceof Error ? error.message : 'Validation orchestration failed',
+      error: publicErrorMessage(error, 'Validation orchestration failed'),
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

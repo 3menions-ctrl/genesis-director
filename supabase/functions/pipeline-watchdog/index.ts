@@ -44,6 +44,7 @@ import {
 } from "../_shared/network-resilience.ts";
 import { persistVideoToStorage, isTemporaryReplicateUrl } from "../_shared/video-persistence.ts";
 import { requireCronSecret } from "../_shared/auth-guard.ts";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -3281,7 +3282,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : "Watchdog failed",
+        error: publicErrorMessage(error, "Watchdog failed"),
         processingTimeMs: Date.now() - startTime,
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

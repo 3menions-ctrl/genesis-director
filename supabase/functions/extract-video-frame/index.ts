@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { assertSafeFetchUrl, safeFetch, SSRFError } from "../_shared/ssrf-guard.ts";
 
@@ -218,7 +219,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("[ExtractFrame] Fatal:", error);
     return new Response(
-      JSON.stringify({ success: false, method: 'failed', error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ success: false, method: 'failed', error: publicErrorMessage(error) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

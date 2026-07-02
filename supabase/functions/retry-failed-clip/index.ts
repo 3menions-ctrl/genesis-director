@@ -12,6 +12,7 @@ import {
   resolveEffectiveUserId,
   forbiddenResponse,
 } from "../_shared/auth-guard.ts";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -130,6 +131,18 @@ serve(async (req) => {
         .from("movie_projects").select("user_id").eq("id", request.projectId).maybeSingle();
       if (!ownerRow || ownerRow.user_id !== auth.userId) {
         return forbiddenResponse(corsHeaders, "Forbidden: you do not own this project");
+      }
+      // COST GUARD: each retry re-runs a Replicate prediction the platform
+      // pays for; nothing else caps frequency here (retries don't re-deduct
+      // credits). 10 retries / 10 min per user is generous for real use and
+      // shuts down hammering.
+      const { checkRateLimitDb } = await import("../_shared/rate-limiter.ts");
+      const allowed = await checkRateLimitDb(supabase, `retry-clip:${request.userId}`, 10, 600);
+      if (!allowed) {
+        return new Response(
+          JSON.stringify({ success: false, error: "rate_limited", message: "Too many retries — wait a few minutes and try again." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
       }
     }
 
@@ -463,7 +476,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: publicErrorMessage(error),
       }),
       {
         status: 500,

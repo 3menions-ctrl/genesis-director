@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { validateAuth } from "../_shared/auth-guard.ts";
 import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -160,7 +161,7 @@ ${clipContext ? `Current clip context: ${JSON.stringify(clipContext)}` : ""}`,
   } catch (e) {
     console.error("editor-ai-scene error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      JSON.stringify({ error: publicErrorMessage(e) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

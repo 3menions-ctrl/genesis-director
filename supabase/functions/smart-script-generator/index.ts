@@ -225,9 +225,25 @@ serve(async (req) => {
     
     console.log("[SmartScript] Request validated, topic:", request.topic.substring(0, 100));
 
+    // PROVIDER RESOLUTION (2026-07-02): the script stage is the #1 quality
+    // lever, and it was hard-pinned to OpenAI. In prod NEITHER OpenAI nor the
+    // Lovable gateway key was set, so EVERY script silently fell back to a
+    // dumb "concept. Clip N of M" stub. Support both OpenAI-compatible
+    // endpoints and use whichever key is present — so configuring ONE key
+    // fixes scripting. OpenAI (gpt-4o) preferred; Lovable gateway otherwise.
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-    if (!OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY is not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const llm = OPENAI_API_KEY
+      ? { url: "https://api.openai.com/v1/chat/completions", key: OPENAI_API_KEY, model: "gpt-4o" }
+      : LOVABLE_API_KEY
+      ? { url: "https://ai.gateway.lovable.dev/v1/chat/completions", key: LOVABLE_API_KEY, model: "openai/gpt-4o" }
+      : null;
+    if (!llm) {
+      // Actionable, non-generic: this is the exact ops gap behind lackluster
+      // scripts. hollywood-pipeline catches this and uses its fallback shots.
+      throw new Error(
+        "no_llm_provider: set OPENAI_API_KEY or LOVABLE_API_KEY in Supabase Edge Function secrets — the script generator cannot author shots without one",
+      );
     }
 
     // AUTO-DETECT dialogue and narration from user's input
@@ -964,17 +980,17 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
     const gateBlocked = await preflightAiGate(gateCtx);
     if (gateBlocked) return gateBlocked;
 
-    // GPT-4o for maximum cinematographic intelligence and creative richness
+    // gpt-4o (direct or via Lovable gateway) for cinematographic richness.
     const response = await fetchWithRetry(
-      "https://api.openai.com/v1/chat/completions",
+      llm.url,
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          Authorization: `Bearer ${llm.key}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-4o", // Upgraded: Full GPT-4o for Hollywood-grade script quality
+          model: llm.model,
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
@@ -998,10 +1014,10 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
         return errorResponse("Rate limit exceeded after retries. Please try again later.", 429);
       }
       if (response.status === 401) {
-        return errorResponse("Invalid OpenAI API key.", 401);
+        return errorResponse("Invalid LLM provider API key (OPENAI_API_KEY / LOVABLE_API_KEY).", 401);
       }
       
-      throw new Error(`OpenAI API error: ${response.status}`);
+      throw new Error(`llm_provider_error: ${response.status}`);
     }
 
     const data = await response.json();

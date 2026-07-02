@@ -1516,24 +1516,46 @@ async function runPreProduction(
       }
     } catch (err) {
       console.warn(`[Hollywood] Script generation failed, using fallback:`, err);
+      if (String((err as Error)?.message || '').includes('no_llm_provider')) {
+        console.error('[Hollywood] ⚠️ NO LLM PROVIDER KEY — every script is a dumb fallback. Set OPENAI_API_KEY or LOVABLE_API_KEY in Edge Function secrets.');
+      }
       const actionPhases = ['establish', 'initiate', 'develop', 'escalate', 'peak', 'settle'] as const;
+      // GRACEFUL DEGRADATION: with no LLM, we can't author distinct shots, but
+      // we can at least give each shot a DISTINCT beat + camera coverage so a
+      // multi-clip render isn't the same frame N times. The cinematic compiler
+      // downstream turns these varied beats + coverage into varied direction.
+      const beat: Record<typeof actionPhases[number], { verb: string; scale: string; move: string }> = {
+        establish: { verb: 'wide establishing view of', scale: 'wide', move: 'static' },
+        initiate:  { verb: 'the scene begins —', scale: 'medium-wide', move: 'dolly-in' },
+        develop:   { verb: 'closer on the action:', scale: 'medium', move: 'tracking' },
+        escalate:  { verb: 'tension rises,', scale: 'medium-close', move: 'handheld' },
+        peak:      { verb: 'the decisive moment of', scale: 'close-up', move: 'push-in' },
+        settle:    { verb: 'the aftermath settles:', scale: 'medium', move: 'pull-out' },
+      };
       state.script = {
-        shots: Array.from({ length: state.clipCount }, (_, i) => ({
-          id: `shot_${i + 1}`,
-          title: `Clip ${i + 1}`,
-          description: `${request.concept}. Clip ${i + 1} of ${state.clipCount}.`,
-          durationSeconds: state.clipDuration,
-          mood: request.mood || 'cinematic',
-          sceneContext: {
-            actionPhase: actionPhases[i % actionPhases.length],
-            previousAction: '',
-            currentAction: `${request.concept} - moment ${i + 1}`,
-            nextAction: '',
-            characterDescription: '',
-            locationDescription: '',
-            lightingDescription: '',
-          },
-        })),
+        shots: Array.from({ length: state.clipCount }, (_, i) => {
+          const phase = actionPhases[i % actionPhases.length];
+          const b = beat[phase];
+          return {
+            id: `shot_${i + 1}`,
+            title: `Clip ${i + 1}`,
+            description: `${b.verb} ${request.concept}`,
+            durationSeconds: state.clipDuration,
+            mood: request.mood || 'cinematic',
+            // Distinct coverage per beat so the compiler varies the shots.
+            cameraScale: b.scale,
+            movementType: b.move,
+            sceneContext: {
+              actionPhase: phase,
+              previousAction: '',
+              currentAction: `${request.concept} - moment ${i + 1}`,
+              nextAction: '',
+              characterDescription: '',
+              locationDescription: '',
+              lightingDescription: '',
+            },
+          };
+        }),
       };
     }
   } else if (request.manualPrompts) {

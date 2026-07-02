@@ -228,6 +228,35 @@ export function clearSelection(): void {
   set({ selectedClipId: null, selectedClipIds: [] });
 }
 
+/** Which track a clip lives on (defaults to V1 for video, A1 for audio-only). */
+function clipTrackId(c: EditorClip): string {
+  const t = c.properties?.trackId ?? null;
+  if (t) return t;
+  return c.kind === "title" ? "sys:V3" : "sys:V1";
+}
+
+/** Select EVERY clip on a track (row select). Enables "select the whole video
+ *  row" and batch operations (move/delete/grade a whole lane at once). */
+export function selectTrack(trackId: string): void {
+  if (!state.project) return;
+  const ids = state.project.scenes
+    .flatMap((s) => s.clips)
+    .filter((c) => clipTrackId(c) === trackId)
+    .map((c) => c.id);
+  set({ selectedClipIds: ids, selectedClipId: ids[ids.length - 1] ?? null });
+}
+
+/** Move every currently-selected clip to a track (row). This is how you stack
+ *  a second video on the V2 overlay row to composite it over V1, or move a
+ *  clip down to another lane. Persists via clip properties → the bake routes
+ *  V2 clips into the overlay compositor and A-tracks into the audio mix. */
+export function moveSelectedToTrack(trackId: string): void {
+  if (!state.project || state.selectedClipIds.length === 0) return;
+  for (const id of state.selectedClipIds) {
+    setClipProperty(id, { trackId });
+  }
+}
+
 export function resetEditor(): void {
   state = { ...INITIAL_EDITOR_STATE };
   for (const l of listeners) l();

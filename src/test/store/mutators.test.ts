@@ -19,6 +19,9 @@ import {
   splitAtPlayhead,
   moveClip,
   setClipOrder,
+  selectTrack,
+  moveSelectedToTrack,
+  setClipProperty,
   deleteClip,
   rollEdit,
   slipClip,
@@ -191,6 +194,33 @@ describe("setClipOrder (drag reorder)", () => {
     expect(flatClips(getEditorState().project).map((c) => c.id)).toEqual([
       "c1", "c2", "c3",
     ]);
+  });
+});
+
+describe("selectTrack / moveSelectedToTrack (multi-track)", () => {
+  it("selects every clip on a row", () => {
+    setProject(makeProject(specs3())); // all V1
+    selectTrack("sys:V1");
+    expect(getEditorState().selectedClipIds.sort()).toEqual(["c1", "c2", "c3"]);
+  });
+
+  it("row select is exact — only clips on that track", () => {
+    setProject(makeProject(specs3()));
+    setClipProperty("c2", { trackId: "sys:V2" }); // move c2 to the overlay row
+    selectTrack("sys:V1");
+    expect(getEditorState().selectedClipIds.sort()).toEqual(["c1", "c3"]);
+    selectTrack("sys:V2");
+    expect(getEditorState().selectedClipIds).toEqual(["c2"]);
+  });
+
+  it("moves the selection to another row (stack video on the overlay track)", () => {
+    setProject(makeProject(specs3()));
+    selectTrack("sys:V1");
+    moveSelectedToTrack("sys:V2");
+    const onV2 = flatClips(getEditorState().project).filter(
+      (c) => c.properties?.trackId === "sys:V2",
+    );
+    expect(onV2.map((c) => c.id).sort()).toEqual(["c1", "c2", "c3"]);
   });
 });
 

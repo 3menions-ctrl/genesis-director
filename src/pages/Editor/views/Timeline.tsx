@@ -66,6 +66,7 @@ import type {
 import { TRANSITION_KINDS, TRANSITION_LABELS } from "@/lib/editor/types";
 import {
   setClipOrder as setClipOrderMut,
+  selectTrack as selectTrackMut,
   trimClip as trimClipMut,
   deleteClip as deleteClipMut,
   splitAtPlayhead as splitAtPlayheadMut,
@@ -681,6 +682,7 @@ export function Timeline({
                         key={t.id}
                         track={t}
                         addGap={i < tracks.length - 1}
+                        onSelectRow={() => selectTrackMut(t.id)}
                         onRename={(label) => renameTrack(t.id, label)}
                         onRemove={async () => {
                           if (t.id.startsWith("sys:")) {
@@ -1663,12 +1665,15 @@ function TrackHeader({
   addGap,
   onRename,
   onRemove,
+  onSelectRow,
   music,
 }: {
   track: TrackDef;
   addGap: boolean;
   onRename?: (label: string) => void;
   onRemove?: () => void;
+  /** Select every clip on this track (row select). */
+  onSelectRow?: () => void;
   /** A2-only music actions. Present only for the sys:A2 header. */
   music?: {
     busy: boolean;
@@ -1727,9 +1732,10 @@ function TrackHeader({
         ) : (
           <button
             type="button"
+            onClick={() => onSelectRow?.()}
             onDoubleClick={() => setEditing(true)}
-            className={cn(TYPE_META, "text-foreground/85 tracking-[0.22em] truncate text-left")}
-            title="Double-click to rename"
+            className={cn(TYPE_META, "text-foreground/85 tracking-[0.22em] truncate text-left hover:text-foreground transition-colors")}
+            title="Click to select the whole row · double-click to rename"
           >
             {track.label}
           </button>

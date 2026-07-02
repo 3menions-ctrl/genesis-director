@@ -8,7 +8,7 @@
  * to every clip in selectedClipIds, so multi-selected clips all
  * grade together — useful for shot-matching across a scene.
  */
-import { Sparkles, Gauge, Layers, FlipHorizontal2 } from "lucide-react";
+import { Sparkles, Gauge, Layers, FlipHorizontal2, Rows3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TYPE_META } from "@/lib/design-system";
 import { Surface, SurfaceHeader, SurfaceBody, SurfaceFooter, SurfaceKbdHint } from "./Surface";
@@ -116,6 +116,17 @@ const MOTION: Preset[] = [
   { id: "mirror-off", name: "Unmirror", hint: "Reset flip", patch: { mirror: false } },
 ];
 
+// Track placement — move the selected clip(s) to another ROW. This is how you
+// stack a second video on the Overlay row (V2) so it composites OVER V1, or
+// drop a clip onto the Music row. The bake routes V2 clips into the overlay
+// compositor and A-tracks into the audio mix, so it reaches the export.
+const PLACEMENT: Preset[] = [
+  { id: "track-v1", name: "Main video (V1)", hint: "Base video row", patch: { trackId: "sys:V1" } },
+  { id: "track-v2", name: "Overlay (V2)", hint: "Composite OVER the main video (picture-in-picture / stacked)", patch: { trackId: "sys:V2" } },
+  { id: "track-a1", name: "Voice (A1)", hint: "Audio row — voiceover / narration", patch: { trackId: "sys:A1" } },
+  { id: "track-a2", name: "Music (A2)", hint: "Audio row — layer music under everything", patch: { trackId: "sys:A2" } },
+];
+
 const TRANSITIONS: Preset[] = [
   {
     id: "trans-soft",
@@ -191,6 +202,7 @@ export function EffectsPalette({ project, selectedClipIds, open, onClose }: Prop
       />
       <SurfaceBody>
         <div className="space-y-5">
+          <PresetGroup title="Placement (rows)" Icon={Rows3} presets={PLACEMENT} apply={apply} kind="transition" />
           <PresetGroup title="Looks" Icon={Sparkles} presets={LOOKS} apply={apply} kind="look" />
           <PresetGroup title="Motion" Icon={Gauge} presets={MOTION} apply={apply} kind="motion" />
           <PresetGroup title="Transitions" Icon={Layers} presets={TRANSITIONS} apply={apply} kind="transition" />

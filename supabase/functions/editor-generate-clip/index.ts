@@ -43,7 +43,7 @@ function creditsForEditorClip(
   return priceClipCredits(engine, duration, opts);
 }
 
-const QUALITY_SUFFIX = ", shot on ARRI Alexa 65, anamorphic lens, shallow depth of field, cinematic color grading, volumetric lighting, ultra-detailed textures, 8K master, photorealistic, film grain, HDR, masterful composition, razor-sharp focus, professional cinematography, award-winning";
+const QUALITY_SUFFIX = ", cinematic film look, natural physically-based lighting, crisp detail, stable coherent motion";
 
 const EDITOR_LIBRARY_TITLE = "Editor Library";
 

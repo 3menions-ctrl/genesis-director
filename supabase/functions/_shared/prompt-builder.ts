@@ -677,7 +677,15 @@ const DEFAULT_OCCLUSION_NEGATIVES = [
 // APEX QUALITY SUFFIX
 // =============================================================================
 
-const APEX_QUALITY_SUFFIX = ", cinematic lighting, 8K resolution, ultra high definition, highly detailed, professional cinematography, masterful composition, award-winning cinematographer, ARRI Alexa camera quality, anamorphic lens flares, perfect exposure, theatrical color grading, clean sharp image";
+// QUALITY TAIL (2026-07-02): the old value was a 15-word 2022-era Stable-
+// Diffusion incantation ("8K … award-winning cinematographer … anamorphic lens
+// flares …"). Modern video models don't reward adjective stacking, and a
+// seed-matched A/B on kling v3 proved the forced "anamorphic lens flares" was
+// literally injecting horizontal-banding ARTIFACTS into every render. Now that
+// scripts are richly authored (GPT-4o), a compact, targeted tail is strictly
+// better. (Object/scene clips bypass this entirely via the cinematic compiler
+// at dispatch; this improves the character/identity path.)
+const APEX_QUALITY_SUFFIX = ", cinematic film look, natural physically-based lighting, crisp detail, stable coherent motion";
 
 // =============================================================================
 // PROMPT DEDUPLICATION - Strip existing blocks to prevent redundancy

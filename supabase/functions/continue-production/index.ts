@@ -4,6 +4,7 @@ import {
   checkContinuityReady,
   loadPipelineContext,
 } from "../_shared/generation-mutex.ts";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1243,7 +1244,7 @@ serve(async (req: Request) => {
     }
     
     return new Response(
-      JSON.stringify({ success: false, error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ success: false, error: publicErrorMessage(error) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

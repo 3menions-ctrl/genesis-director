@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -491,7 +492,7 @@ serve(async (req) => {
       success: false,
       passed: true,
       overallScore: 70,
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: publicErrorMessage(error),
       processingTimeMs: Date.now() - startTime,
     }), {
       status: 200,

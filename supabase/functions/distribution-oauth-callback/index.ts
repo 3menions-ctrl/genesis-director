@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getProvider } from "../_shared/distribution-providers.ts";
+import { logAndSanitize } from "../_shared/safe-error.ts";
 
 // @public-endpoint
 // Distribution-provider OAuth redirect target. Called by the provider
@@ -98,7 +99,7 @@ serve(async (req) => {
     return redirect(`/business/distribution?dist_connected=${encodeURIComponent(adapter.id)}`);
   } catch (e) {
     await sb.from("channel_connections")
-      .update({ status: "error", last_error: e instanceof Error ? e.message : "Token exchange failed", oauth_state: null })
+      .update({ status: "error", last_error: logAndSanitize("distribution-oauth-callback", e, "Token exchange failed"), oauth_state: null })
       .eq("id", conn.id);
     return redirect(`/business/distribution?dist_error=${encodeURIComponent(adapter.id)}`);
   }

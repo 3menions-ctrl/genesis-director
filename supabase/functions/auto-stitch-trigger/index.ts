@@ -150,6 +150,17 @@ serve(async (req) => {
       if (!ownerRow || ownerRow.user_id !== auth.userId) {
         return forbiddenResponse(corsHeaders, 'Forbidden: you do not own this project');
       }
+      // COST GUARD: every (re)stitch runs a paid ffmpeg cog on Replicate and
+      // isn't credit-gated. 6 stitch triggers / 10 min per user covers real
+      // recovery flows; anything hotter is abuse.
+      const { checkRateLimitDb } = await import("../_shared/rate-limiter.ts");
+      const allowed = await checkRateLimitDb(supabase, `auto-stitch:${auth.userId}`, 6, 600);
+      if (!allowed) {
+        return new Response(
+          JSON.stringify({ success: false, error: "rate_limited", message: "Too many stitch requests — wait a few minutes and try again." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
     }
 
     // Step 1: Get project details (include pipeline_state for avatar totalClips)

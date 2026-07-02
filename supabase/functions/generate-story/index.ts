@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { checkMultipleContent } from "../_shared/content-safety.ts";
 import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
@@ -619,7 +620,7 @@ Write the scene now with [CLIP 1] through [CLIP ${clipCount}] labels:`;
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: publicErrorMessage(error),
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

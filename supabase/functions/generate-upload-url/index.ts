@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { publicErrorMessage } from '../_shared/safe-error.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -96,7 +97,7 @@ Deno.serve(async (req) => {
     if (error) {
       console.error('[GenerateUploadUrl] Error creating signed URL:', error);
       return new Response(
-        JSON.stringify({ error: `Failed to create upload URL: ${error.message}` }),
+        JSON.stringify({ error: publicErrorMessage(error, 'Failed to create upload URL') }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -125,7 +126,7 @@ Deno.serve(async (req) => {
     const error = err as Error;
     console.error('[GenerateUploadUrl] Unexpected error:', error);
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
+      JSON.stringify({ error: publicErrorMessage(error, 'Internal server error') }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

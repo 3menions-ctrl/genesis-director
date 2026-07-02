@@ -5,6 +5,7 @@ import {
   isValidImageUrl,
 } from "../_shared/pipeline-guard-rails.ts";
 import { requireServiceRole } from "../_shared/auth-guard.ts";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -366,7 +367,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         success: false,
         status: 'failed',
-        error: errorMsg,
+        error: publicErrorMessage(errorMsg, `Prediction ${finalStatus}`),
         shotIndex,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -421,7 +422,7 @@ serve(async (req) => {
     console.error("[PollReplicate] Error:", error);
     return new Response(JSON.stringify({
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: publicErrorMessage(error),
     }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -8,6 +8,7 @@ import { MagicLinkEmail } from '../_shared/email-templates/magic-link.tsx'
 import { RecoveryEmail } from '../_shared/email-templates/recovery.tsx'
 import { EmailChangeEmail } from '../_shared/email-templates/email-change.tsx'
 import { ReauthenticationEmail } from '../_shared/email-templates/reauthentication.tsx'
+import { publicErrorMessage } from '../_shared/safe-error.ts'
 
 // @public-endpoint
 // Supabase Auth "Send Email Hook" target. Supabase Auth (not an end user)
@@ -283,7 +284,7 @@ Deno.serve(async (req) => {
     return await handleWebhook(req)
   } catch (error) {
     console.error('Webhook handler error:', error)
-    const message = error instanceof Error ? error.message : 'Unknown error'
+    const message = publicErrorMessage(error)
     return new Response(
       JSON.stringify({ error: { http_code: 500, message } }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },

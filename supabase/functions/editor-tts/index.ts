@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -125,7 +126,7 @@ serve(async (req) => {
       } catch (e) {
         console.error("editor-tts persist failed", e);
         return new Response(
-          JSON.stringify({ error: e instanceof Error ? e.message : "persist_failed" }),
+          JSON.stringify({ error: publicErrorMessage(e, "persist_failed") }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
@@ -139,7 +140,7 @@ serve(async (req) => {
     });
   } catch (err) {
     console.error("TTS error:", err);
-    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: publicErrorMessage(err) }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

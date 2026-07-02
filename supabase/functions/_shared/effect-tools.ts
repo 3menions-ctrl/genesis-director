@@ -73,9 +73,14 @@ export async function resumeToolPrediction(tool: ToolId, predictionId: string, r
 }
 
 function firstUrl(pred: Record<string, unknown>): string {
-  const out = pred.output;
-  const url = Array.isArray(out) ? out[0] : out;
-  if (typeof url !== 'string') throw new Error('no output url');
+  const out = pred.output as unknown;
+  // Shapes seen in the wild: "url" | ["url"] | {files:["url"]} (magpai ffmpeg cog)
+  const url = Array.isArray(out)
+    ? out[0]
+    : out && typeof out === 'object' && Array.isArray((out as { files?: unknown[] }).files)
+      ? (out as { files: unknown[] }).files[0]
+      : out;
+  if (typeof url !== 'string') throw new Error(`no output url (shape: ${JSON.stringify(out).slice(0, 120)})`);
   return url;
 }
 
@@ -103,11 +108,18 @@ async function callEdgeFn(name: string, body: Record<string, unknown>): Promise<
 }
 
 // ── ffmpeg (rigid compositing) — same cog + convention as seamless-stitcher ──
+// magpai cog contract: inputs land at /tmp/fileN; the command must write to a
+// file literally named by the output1 param; Python .format() runs over the
+// command so braces must be doubled.
 const FFMPEG_COG_VERSION = 'efd0b79b577bcd58ae7d035bce9de5c4659a59e09faafac4d426d61c04249251';
 async function runFfmpeg(command: string, inputs: Record<string, string>, outputName: string): Promise<string> {
+  let cogCommand = command
+    .replace(/\bfile([1-9])\b/g, '/tmp/file$1')
+    .replace(/\boutput\.mp4\b/g, outputName);
+  cogCommand = cogCommand.replace(/\{/g, '{{').replace(/\}/g, '}}');
   const pred = await replicateRun('/predictions', {
     version: FFMPEG_COG_VERSION,
-    input: { command, ...inputs, output_name: outputName },
+    input: { command: cogCommand, output1: outputName, ...inputs },
   });
   return firstUrl(pred);
 }
@@ -256,7 +268,7 @@ export async function invokeTool(tool: ToolId, inputs: Record<string, unknown>, 
       const baseIn = baseIsImage ? `-loop 1 -t ${dur} -i file1` : `-i file1`;
       // Base normalized to W×H; overlay scaled into rect, pixel-locked.
       const command =
-        `${baseIn} -i file2 -filter_complex "` +
+        `ffmpeg -y ${baseIn} -i file2 -filter_complex "` +
         `[0:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1,fps=24[base];` +
         `[1:v]scale=${w}:${h},setsar=1[ovl];` +
         `[base][ovl]overlay=${x}:${y}:shortest=0[v]" ` +

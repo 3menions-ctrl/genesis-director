@@ -128,7 +128,20 @@ export function DirectorChat({ project, open, onClose }: Props) {
         const kind: TransitionKind = (TRANSITION_KINDS as string[]).includes(normalized)
           ? (normalized as TransitionKind)
           : "fade";
+        // Scope to a SPECIFIC boundary when the user names clips
+        // ("fade between clip 2 and 3") — previously any such request
+        // applied the transition to EVERY cut. 1-based clip numbers.
+        const pair = p.match(/(?:clip\s*)?(\d+)\s*(?:and|&|,|-|to)\s*(?:clip\s*)?(\d+)/);
         let count = 0;
+        if (pair) {
+          const a = Math.min(+pair[1], +pair[2]) - 1;
+          const b = a + 1;
+          if (a >= 0 && b < clips.length) {
+            addTransition(clips[a].id, clips[b].id, kind, dur);
+            return `Applied ${kindRaw} (${dur.toFixed(2)}s) between clip ${a + 1} and ${b + 1}.`;
+          }
+          return `Couldn't find clips ${pair[1]} and ${pair[2]} to transition between.`;
+        }
         for (let i = 0; i < clips.length - 1; i++) {
           addTransition(clips[i].id, clips[i + 1].id, kind, dur);
           count += 1;
@@ -339,8 +352,8 @@ export function DirectorChat({ project, open, onClose }: Props) {
       return;
     }
 
-    // Fall through to the backend (stubbed for v1 — when the
-    // edge function ships, this same call works untouched).
+    // Fall through to the live director-chat edge function for anything the
+    // local NLE rules didn't handle.
     try {
       const { data, error } = await supabase.functions.invoke<{
         reply: string;
@@ -367,14 +380,14 @@ export function DirectorChat({ project, open, onClose }: Props) {
         },
       ]);
     } catch {
-      // Backend not wired yet — graceful fallback.
+      // Network/provider hiccup — graceful fallback to the local toolkit.
       setTurns((prev) => [
         ...prev,
         {
           id: `d-${Date.now()}`,
           role: "director",
           text:
-            "I heard you. The backend brain isn't connected yet — but I can already do transitions, playback speed, loop, theater, in/out marks, and view switching. Try “add a 0.5s fade between every clip.”",
+            "I couldn't reach the director service just now — but I can already do transitions, playback speed, loop, theater, in/out marks, and view switching right here. Try “add a 0.5s fade between clip 2 and 3.”",
         },
       ]);
     } finally {

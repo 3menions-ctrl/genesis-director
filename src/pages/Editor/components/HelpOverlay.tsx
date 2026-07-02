@@ -64,8 +64,9 @@ const SHORTCUTS: Group[] = [
       { keys: ["V"], label: "Selection tool" },
       { keys: ["B"], label: "Blade — split clip at playhead" },
       { keys: ["H"], label: "Hand / pan tool" },
-      { keys: ["N"], label: "Toggle snap" },
-      { keys: ["F"], label: "Effects palette (looks · motion · transitions)" },
+      { keys: ["N"], label: "New clip — open Create" },
+      { keys: ["M"], label: "Drop a marker (timeline view)" },
+      { keys: ["F"], label: "Effects palette (looks · motion · placement · transitions)" },
     ],
   },
   {
@@ -105,10 +106,11 @@ const SHORTCUTS: Group[] = [
     ],
   },
   {
-    title: "AI · Versions",
+    title: "AI · Panels",
     items: [
-      { keys: ["R"], label: "Regenerate selected clip" },
-      { keys: ["⌘", "↵"], label: "Submit regenerate prompt" },
+      { keys: ["⌘", "/"], label: "Director chat" },
+      { keys: ["⇧", "H"], label: "Versions" },
+      { keys: ["⇧", "L"], label: "Studio library" },
       { keys: ["Esc"], label: "Cancel composer / close panel" },
     ],
   },

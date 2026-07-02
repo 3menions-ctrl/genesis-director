@@ -186,11 +186,17 @@ export class EngineRequiredError extends Error {
 // Resolve the backend engine actually used.
 //  - Breakout forces seedance (4th-wall lock; legacy mode-router:385 force).
 //  - An explicit engine wins.
-//  - `auto` / missing → EngineRequiredError. There is no default model; the
-//    entry gates (mode-router / hollywood-pipeline) turn this into a 400.
+//  - Single-pass EFFECT modes (stylize / motion-transfer) never dispatch a
+//    video engine — they run dedicated effect functions. Their plan carries a
+//    nominal 'kling' placeholder (informational: legacy pricing table + logs),
+//    mirroring mode-router's isEffectMode exemption.
+//  - Otherwise `auto` / missing → EngineRequiredError. There is no default
+//    model; the entry gates (mode-router / hollywood-pipeline) turn this
+//    into a 400.
 export function resolveEngine(pr: ProductionRequest): BackendEngine {
   if (pr.breakout?.isBreakout) return 'seedance';
   if (pr.engine && pr.engine !== 'auto') return pr.engine;
+  if (pr.mode === 'video2video' || pr.mode === 'motion-transfer') return 'kling';
   throw new EngineRequiredError();
 }
 

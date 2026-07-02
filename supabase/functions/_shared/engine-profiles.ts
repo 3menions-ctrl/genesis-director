@@ -187,8 +187,11 @@ export function getEngineProfile(key: string | undefined | null): EngineProfile 
   return p;
 }
 
-// ── Feature flags for research-verified but not-yet-live-validated features ─
-// Flip these after the Replicate endpoint is validated with real credits
-// (see video-quality-research.md open questions).
-export const SEEDANCE_NATIVE_AUDIO = false;          // joint A/V generation
-export const SEEDANCE_REFERENCE_CONDITIONING = false; // 9-image identity refs
+// ── Feature flags for research-verified capabilities ────────────────────────
+// VALIDATED 2026-07-02 against the live Replicate bytedance/seedance-2.0
+// schema (version a6dcbae88b15): the endpoint exposes `reference_images`
+// (up to 9, character consistency), `generate_audio` (joint A/V incl.
+// dialogue), `reference_audios`, `reference_videos`, `last_frame_image`.
+export const SEEDANCE_NATIVE_AUDIO = false;          // exists live — OFF until the
+// post-mux voice path learns to skip TTS when native audio is on (else double audio).
+export const SEEDANCE_REFERENCE_CONDITIONING = true; // 9-image identity refs — LIVE

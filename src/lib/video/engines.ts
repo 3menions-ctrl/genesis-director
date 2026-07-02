@@ -118,8 +118,8 @@ export const TARGET_GROSS_MARGIN = 0.30;
 export const BUNDLED_ADDON_COST_USD = 0.205;
 
 export const CLIP_COST_USD: Record<string, Record<number, number>> = {
-  'wan-25':      { 5: 0.50,  10: 1.00, 15: 1.50 },   // Wan 2.7 ~$0.10/s (VERIFY vs Replicate billing)
-  'kling-v3':    { 5: 1.385, 10: 2.692, 15: 4.077 },
+  'wan-25':      { 5: 0.60,  10: 1.20, 15: 1.80 },   // Wan 2.7: fal $0.10/s + 20% safety buffer
+  'kling-v3':    { 5: 1.68,  10: 3.36,  15: 5.04 },  // Kling 3.0 Pro 1080p $20.16/min (vendor-verified) — was underpriced at $0.269/s
   'seedance-2':  { 5: 2.692, 10: 5.385, 12: 6.538 },
   'veo-3':       { 4: 1.923, 6: 2.923,  8: 3.846 },
   'runway-gen4': { 5: 2.0,   10: 4.0 },              // Gen-4.5 (VERIFY vs Replicate billing)

@@ -74,6 +74,15 @@ serve(async (req) => {
     const { intent, family, slug, save } = await req.json();
     if (!intent || String(intent).trim().length < 10) return json(400, { error: 'intent required (plain-language description of the effect)' });
 
+    // S2 fix: GPT-5 planning is real spend. Rate-limit it (authoring tool, low
+    // volume; internal service-role callers exempt).
+    if (!auth.isServiceRole && auth.userId) {
+      const { aiRateLimit } = await import('../_shared/ai-credit-gate.ts');
+      const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+      const limited = await aiRateLimit({ supabase: admin, fnName: 'effect-compiler', userId: auth.userId, cost: 0, dailyCap: 30, corsHeaders });
+      if (limited) return limited;
+    }
+
     // GPT-5 for planning depth; one self-repair pass on validation failure.
     let plan: unknown = null;
     let errors: string[] = [];

@@ -76,7 +76,11 @@ export function buildBreakoutPlan(params: BreakoutParams): { plan: EffectPlan; c
   const afterStory = clean(params.afterStory);
   const afterBackground = clean(params.afterBackground, 200);
   const breakoutStory = clean(params.breakoutStory, 400);
-  const hasAvatar = typeof params.avatarUrl === 'string' && params.avatarUrl.startsWith('http');
+  // S4: only accept avatar URLs from OUR storage domain — an arbitrary URL
+  // would be fetched server-side by Replicate (SSRF / exfil surface).
+  const avatarOk = typeof params.avatarUrl === 'string' &&
+    /^https:\/\/ywcwaumozoejierlfkgj\.supabase\.co\/storage\/v1\//.test(params.avatarUrl);
+  const hasAvatar = avatarOk;
 
   const SUBJECT = hasAvatar
     ? 'the person from reference image [Image1] (match their face, hair, and build exactly)'

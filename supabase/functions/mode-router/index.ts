@@ -1351,6 +1351,17 @@ async function handleCinematicMode(params: {
 
   if (!pipelineResponse.ok) {
     const error = await pipelineResponse.text();
+    // Mark the just-created project failed BEFORE throwing. Without this a
+    // hard pipeline-start failure (e.g. insufficient credits) left the row
+    // stuck 'generating' — an active-project zombie that blocked every new
+    // create until the reaper (or the user, via cancel) cleared it.
+    try {
+      await supabase.from('movie_projects').update({
+        status: 'failed',
+        last_error: `Pipeline failed to start: ${error.slice(0, 300)}`,
+        updated_at: new Date().toISOString(),
+      }).eq('id', projectId);
+    } catch (_) { /* best-effort — the throw below is the real signal */ }
     throw new Error(`Pipeline failed: ${error}`);
   }
 

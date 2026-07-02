@@ -71,14 +71,16 @@ export function useVideoReactions(projectId?: string) {
           .eq('id', existing.id);
         if (error) throw error;
       } else {
-        // Add reaction
+        // Add reaction. P3: upsert + ignoreDuplicates so a rapid double-tap
+        // (both clicks decide "add" from the same stale cache) is a no-op on the
+        // second insert instead of throwing a UNIQUE violation → spurious
+        // "Failed to react" toast even though the reaction was applied.
         const { error } = await supabase
           .from('video_reactions')
-          .insert({
-            user_id: user.id,
-            project_id: projectId,
-            emoji,
-          });
+          .upsert(
+            { user_id: user.id, project_id: projectId, emoji },
+            { onConflict: 'user_id,project_id,emoji', ignoreDuplicates: true },
+          );
         if (error) throw error;
       }
     },
@@ -142,13 +144,14 @@ export function useCommentReactions(commentId?: string) {
           .eq('id', existing.id);
         if (error) throw error;
       } else {
+        // P3: upsert + ignoreDuplicates — see the video-reactions note above.
+        // A rapid double-tap no longer throws a UNIQUE violation.
         const { error } = await supabase
           .from('comment_reactions')
-          .insert({
-            user_id: user.id,
-            comment_id: commentId,
-            emoji,
-          });
+          .upsert(
+            { user_id: user.id, comment_id: commentId, emoji },
+            { onConflict: 'user_id,comment_id,emoji', ignoreDuplicates: true },
+          );
         if (error) throw error;
       }
     },

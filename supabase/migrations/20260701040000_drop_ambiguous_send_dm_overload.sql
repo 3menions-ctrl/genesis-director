@@ -1,0 +1,16 @@
+-- Drop the redundant 2-arg send_direct_message overload.
+--
+-- BUG: two overloads existed —
+--   send_direct_message(p_recipient uuid, p_content text)
+--   send_direct_message(p_recipient uuid, p_content text, p_reply_to_id uuid,
+--                       p_reel_id uuid, p_attachments jsonb)  -- extras defaulted
+-- A client call with only {p_recipient, p_content} matches BOTH, so PostgREST
+-- returns PGRST203 ("could not choose the best candidate function") and the send
+-- fails. useSocial/DirectMessagePanel call the 2-arg shape → their DM send was
+-- broken; Inbox passes the extra args so it disambiguated and worked.
+--
+-- The two bodies have identical validation; the 5-arg is a strict superset (its
+-- extra params default to NULL/[]). Dropping the 2-arg makes {p_recipient,
+-- p_content} calls resolve unambiguously to the 5-arg overload, fixing every
+-- 2-arg caller (present and future) with no behavior change.
+DROP FUNCTION IF EXISTS public.send_direct_message(uuid, text);

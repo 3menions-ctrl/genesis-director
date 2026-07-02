@@ -140,6 +140,7 @@ interface ProfileRow {
   full_name: string | null;
   username: string | null;
   role: string | null;
+  job_title: string | null;
   company: string | null;
   use_case: string | null;
   avatar_url: string | null;
@@ -326,10 +327,12 @@ export default function SettingsDashboard() {
       } as ProfileRow["notification_settings"];
     }
     try {
-      const { error } = await supabase
-        .from("profiles" as never)
-        .update(effective as never)
-        .eq("id", user.id);
+      // Save via the SECURITY DEFINER RPC, NOT a direct table update: the
+      // `authenticated` role has no SELECT on profiles (revoked to close the
+      // cross-org email leak), so a filtered UPDATE `WHERE id = auth.uid()`
+      // 42501s ("permission denied for table profiles") and nothing persists.
+      // update_my_profile whitelists non-sensitive columns and ignores the rest.
+      const { error } = await supabase.rpc("update_my_profile" as never, { p_patch: effective } as never);
       if (error) throw error;
       // Update the ref synchronously so a concurrent patch sees this change.
       if (profileRef.current) profileRef.current = { ...profileRef.current, ...effective } as ProfileRow;
@@ -397,6 +400,13 @@ export default function SettingsDashboard() {
 
   return (
     <div className="relative">
+      {/* ─── AURORA BACKDROP — the living color the content floats over ── */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <span className="absolute rounded-full" style={{ top: -300, left: -80, width: 720, height: 720, filter: "blur(120px)", background: "radial-gradient(closest-side, hsl(213 100% 56% / 0.20), transparent 70%)" }} />
+        <span className="absolute rounded-full" style={{ top: -160, right: -100, width: 560, height: 560, filter: "blur(120px)", background: "radial-gradient(closest-side, hsl(188 95% 62% / 0.12), transparent 70%)" }} />
+        <span className="absolute rounded-full" style={{ top: 480, left: "42%", width: 780, height: 780, filter: "blur(130px)", background: "radial-gradient(closest-side, hsl(258 90% 74% / 0.11), transparent 70%)" }} />
+        <span className="absolute rounded-full" style={{ bottom: -320, right: "10%", width: 620, height: 620, filter: "blur(130px)", background: "radial-gradient(closest-side, hsl(213 100% 56% / 0.10), transparent 70%)" }} />
+      </div>
       {/* ─── HERO BAND ──────────────────────────────────────────────── */}
       <header className="relative px-4 sm:px-8 lg:px-12 pt-10 pb-8">
         <div className="max-w-6xl mx-auto">
@@ -664,18 +674,10 @@ function SectionHeader({ eyebrow, title, sub }: { eyebrow: string; title: string
 }
 
 function Card({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div
-      className={cn(
-        "relative rounded-2xl p-6 sm:p-7",
-        "shadow-[0_24px_60px_-32px_hsl(0_0%_0%/0.7)]",
-        "backdrop-blur-2xl",
-        className,
-      )}
-    >
-      {children}
-    </div>
-  );
+  // Containerless: no surface, border, blur or shadow — content floats directly
+  // on the Aurora backdrop. Grouping comes from the section header + whitespace
+  // + feathered row dividers, not a box.
+  return <div className={cn("relative", className)}>{children}</div>;
 }
 
 function FieldRow({
@@ -687,7 +689,7 @@ function FieldRow({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-[1fr_minmax(220px,2fr)] gap-3 sm:gap-6 py-4">
+    <div className="feather-row grid grid-cols-1 sm:grid-cols-[1fr_minmax(220px,2fr)] gap-3 sm:gap-6 py-4">
       <div className="pt-1.5">
         <div className="text-[13px] font-medium text-foreground/90">{label}</div>
         {hint && <div className="mt-1 text-[12px] text-muted-foreground/65 leading-snug">{hint}</div>}
@@ -710,7 +712,7 @@ function ToggleRow({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 py-3.5">
+    <div className="feather-row flex items-start justify-between gap-4 py-3.5">
       <div>
         <div className="text-[13px] font-medium text-foreground/90">{label}</div>
         {hint && <div className="mt-0.5 text-[12px] text-muted-foreground/65 leading-snug">{hint}</div>}
@@ -739,7 +741,9 @@ function IdentityModule({
   const [tagline, setTagline] = useState(profile.tagline ?? "");
   const [location, setLocation] = useState(profile.location ?? "");
   const [country, setCountry] = useState(profile.country ?? "");
-  const [role, setRole] = useState(profile.role ?? "");
+  // The "Role" field edits job_title. profiles.role is the AUTHZ column —
+  // update_my_profile rightly refuses it, so writes to it silently dropped.
+  const [role, setRole] = useState(profile.job_title ?? "");
   const [company, setCompany] = useState(profile.company ?? "");
   const [interestsInput, setInterestsInput] = useState((profile.interests ?? []).join(", "));
   const [links, setLinks] = useState<Record<string, string>>(profile.external_links ?? {});
@@ -762,7 +766,7 @@ function IdentityModule({
     setTagline(profile.tagline ?? "");
     setLocation(profile.location ?? "");
     setCountry(profile.country ?? "");
-    setRole(profile.role ?? "");
+    setRole(profile.job_title ?? "");
     setCompany(profile.company ?? "");
     setInterestsInput((profile.interests ?? []).join(", "));
     setLinks(profile.external_links ?? {});
@@ -964,7 +968,7 @@ function IdentityModule({
           <Input
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            onBlur={() => role !== (profile.role ?? "") && void patch({ role: role.trim() || null }, "role")}
+            onBlur={() => role !== (profile.job_title ?? "") && void patch({ job_title: role.trim() || null }, "job_title")}
             placeholder="Director · Editor · Producer"
           />
         </FieldRow>
@@ -1211,8 +1215,17 @@ function NotificationsModule({
   }, [profile.id]);
 
   const setPushPref = async (key: string, value: boolean) => {
+    // P3: optimistic, but surface + roll back on failure. Previously the error
+    // was swallowed, so a failed save looked successful then silently reverted
+    // on reload.
     setPushPrefs((p) => ({ ...p, [key]: value }));
-    await supabase.from("push_preferences" as never).upsert({ user_id: profile.id, [key]: value } as never);
+    const { error } = await supabase
+      .from("push_preferences" as never)
+      .upsert({ user_id: profile.id, [key]: value } as never);
+    if (error) {
+      setPushPrefs((p) => ({ ...p, [key]: !value }));
+      toast.error(safeErrorMessage(error, "Couldn't save that preference."));
+    }
   };
 
   return (
@@ -1282,6 +1295,25 @@ function PrivacyModule({
   const prefs = (profile.preferences ?? {}) as PrefsState;
   const merged = { ...DEFAULT_PREFS, ...prefs };
   const set = (next: Partial<PrefsState>) => void patch({ preferences: next as never });
+
+  // Tracking opt-out lives on user_gamification, NOT profiles — patching it
+  // through update_my_profile silently dropped it and the profile row never
+  // carries it, so the toggle read as always-off. Own read/write RPCs.
+  const [trackingOptedOut, setTrackingOptedOut] = useState(false);
+  useEffect(() => {
+    void (async () => {
+      const { data } = await supabase.rpc("get_tracking_opt_out" as never);
+      setTrackingOptedOut(Boolean(data));
+    })();
+  }, []);
+  const setTrackingOptOut = async (v: boolean) => {
+    setTrackingOptedOut(v);
+    const { error } = await supabase.rpc("set_tracking_opt_out" as never, { p_opted_out: v } as never);
+    if (error) {
+      setTrackingOptedOut(!v);
+      toast.error(safeErrorMessage(error, "Could not update tracking preference."));
+    }
+  };
 
   const [blocked, setBlocked] = useState<Array<{ id: string; display_name: string | null; username: string | null; avatar_url: string | null; created_at: string }>>([]);
   const [loadingBlocked, setLoadingBlocked] = useState(true);
@@ -1358,8 +1390,8 @@ function PrivacyModule({
         <ToggleRow
           label="Opt out of activity tracking"
           hint="We won't use your activity for personalised recommendations or analytics."
-          checked={!!profile.tracking_opted_out}
-          onChange={(v) => void patch({ tracking_opted_out: v }, "tracking_opted_out")}
+          checked={trackingOptedOut}
+          onChange={(v) => void setTrackingOptOut(v)}
         />
       </Card>
 
@@ -1519,9 +1551,17 @@ function CreatorModule({ profile, onSaved }: { profile: ProfileRow; onSaved?: ()
     return false;
   };
   const updateTier = async (id: string, patch: Partial<{ name: string; monthly_credits: number; perks: string; accent_hsl: string }>) => {
+    // P3: optimistic with rollback + toast. Previously a failed update silently
+    // persisted in the UI and reverted on reload.
+    const prev = tiers.find((t) => t.id === id);
     setTiers((p) => p.map((t) => t.id === id ? { ...t, ...patch } : t));
     const { error } = await supabase.from("patron_tiers" as never).update(patch as never).eq("id", id);
-    if (!error) onSaved?.();
+    if (error) {
+      if (prev) setTiers((p) => p.map((t) => t.id === id ? prev : t));
+      toast.error(safeErrorMessage(error, "Couldn't save the tier."));
+      return;
+    }
+    onSaved?.();
   };
   const removeTier = async (id: string) => {
     if (!(await confirmAsync({
@@ -1645,7 +1685,9 @@ function PayoutAccountBlock({ creatorId }: { creatorId: string }) {
     setOpening(true);
     try {
       const { data, error } = await supabase.functions.invoke("stripe-connect-onboard", {
-        body: { return_path: "/account?tab=settings&m=creator" },
+        // P3: the fn reads body.returnUrl; the old field name was ignored, so the
+        // user landed on the default page after payout onboarding instead of here.
+        body: { returnUrl: "/account?tab=settings&m=creator" },
       });
       if (error) throw error;
       const url = (data as any)?.url;
@@ -2423,7 +2465,11 @@ function DataModule({ profile }: { profile: ProfileRow }) {
       destructive: true,
     }))) return;
     setDeactivating(true);
-    const { error } = await supabase.from("profiles" as never).update({ deactivated_at: new Date().toISOString() } as never).eq("id", profile.id);
+    // Route through the RPC — authenticated has no direct UPDATE on profiles
+    // (the old .from('profiles').update() was always permission-denied).
+    const { error } = await supabase.rpc("update_my_profile" as never, {
+      p_patch: { deactivate: true },
+    } as never);
     setDeactivating(false);
     if (error) { toast.error(safeErrorMessage(error, "Could not deactivate your account.")); return; }
     await supabase.auth.signOut();
@@ -2500,12 +2546,36 @@ function DataModule({ profile }: { profile: ProfileRow }) {
 
 function DeleteAccountDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [confirm, setConfirm] = useState("");
+  const [password, setPassword] = useState("");
+  // null = unknown (still loading identities). Password accounts must re-auth.
+  const [hasPassword, setHasPassword] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    let active = true;
+    void supabase.auth.getUser().then(({ data }) => {
+      if (!active) return;
+      const ids = (data?.user?.identities ?? []) as Array<{ provider?: string }>;
+      setHasPassword(ids.some((i) => i?.provider === "email"));
+    });
+    return () => { active = false; };
+  }, [open]);
+
   const submit = async () => {
     if (confirm !== "DELETE") return;
+    if (hasPassword && !password) {
+      toast.error("Enter your password to confirm.");
+      return;
+    }
     setBusy(true);
     try {
-      await supabase.functions.invoke("delete-user-account");
+      // P1-18: the edge fn REQUIRES a body — a real password (password accounts)
+      // or the exact confirm phrase (passwordless). Previously we sent nothing →
+      // 400 every time, so deletion was broken for everyone.
+      const body = hasPassword ? { password } : { confirm: "DELETE MY ACCOUNT" };
+      const { error } = await supabase.functions.invoke("delete-user-account", { body });
+      if (error) throw error;
       await supabase.auth.signOut();
       window.location.href = "/auth?deleted=1";
     } catch (e) {
@@ -2513,6 +2583,8 @@ function DeleteAccountDialog({ open, onClose }: { open: boolean; onClose: () => 
       setBusy(false);
     }
   };
+  const canSubmit =
+    confirm === "DELETE" && (hasPassword !== true || password.length > 0) && !busy;
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent>
@@ -2523,9 +2595,18 @@ function DeleteAccountDialog({ open, onClose }: { open: boolean; onClose: () => 
           </DialogDescription>
         </DialogHeader>
         <Input value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="DELETE" />
+        {hasPassword && (
+          <Input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Confirm your password"
+            autoComplete="current-password"
+          />
+        )}
         <DialogFooter>
           <Button variant="ghost" onClick={onClose} disabled={busy}>Cancel</Button>
-          <Button variant="destructive" disabled={confirm !== "DELETE" || busy} onClick={() => void submit()}>
+          <Button variant="destructive" disabled={!canSubmit} onClick={() => void submit()}>
             {busy && <Loader2 className="h-3 w-3 mr-2 animate-spin" />}I understand · Delete
           </Button>
         </DialogFooter>

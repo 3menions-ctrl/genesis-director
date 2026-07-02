@@ -17,8 +17,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Timeouts
-const STUCK_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
+// Timeouts.
+// 15 min, NOT 5: a single pipeline step legitimately runs longer than 5
+// minutes with zero writes to movie_projects.updated_at (a sora/veo clip
+// can take ~10 min; a long stitch runs on the cog with no heartbeat).
+// At 5 min the reaper killed ACTIVE renders (observed live 2026-07-01:
+// projects failed with "timed out after extended inactivity" while their
+// Replicate prediction / stitch was still running).
+const STUCK_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes
 const MAX_AGE_FOR_REFUND_MS = 2 * 60 * 60 * 1000; // 2 hours (no refund for very old projects)
 
 interface ZombieReport {

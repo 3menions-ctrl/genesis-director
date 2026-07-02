@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
 import { validateAuth, unauthorizedResponse } from '../_shared/auth-guard.ts'
+import { publicErrorMessage } from '../_shared/safe-error.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -124,7 +125,7 @@ Deno.serve(async (req) => {
     )
   } catch (error) {
     console.error('[AdminForceLogout] Error:', error)
-    return new Response(JSON.stringify({ error: (error as Error).message || 'Internal server error' }), {
+    return new Response(JSON.stringify({ error: publicErrorMessage(error, 'Internal server error') }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

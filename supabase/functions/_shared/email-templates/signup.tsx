@@ -93,12 +93,16 @@ const code = {
   borderRadius: '10px',
   color: '#0f172a',
   fontFamily: 'Arial, sans-serif',
-  fontSize: '32px',
+  // Sized to fit the 8-digit verification code on a single line, including on
+  // narrow mobile email clients. letter-spacing adds a trailing gap after the
+  // last digit, so a small extra left padding keeps the code visually centered.
+  fontSize: '28px',
   fontWeight: 'bold' as const,
-  letterSpacing: '8px',
+  letterSpacing: '6px',
   lineHeight: '1',
   margin: '0 0 24px',
-  padding: '18px 20px',
+  padding: '18px 14px 18px 20px',
   textAlign: 'center' as const,
+  whiteSpace: 'nowrap' as const,
 }
 const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }

@@ -208,6 +208,7 @@ export function buildSeamlessCommand({
   titleClips,
   overlays,
   auxAudio,
+  silentAudio,
 }: {
   inputs: StitchInput[];
   transitionDuration: number;
@@ -234,6 +235,12 @@ export function buildSeamlessCommand({
    *  FULL level — it IS the narration. `kind:"music"` (A2+, the default) is
    *  amixed and, with autoDuck, sidechain-ducked under the voice+master. */
   auxAudio?: Array<{ timelineStartSec: number; durationSec: number; kind?: "music" | "voice" }>;
+  /** Fallback for inputs with NO audio stream (e.g. kling t2v with music/
+   *  narration off): `[i:a]` in the graph fails with "Stream specifier ':a'
+   *  matches no streams", so each per-input audio stage is replaced by an
+   *  anullsrc silence source of the clip's duration. The rest of the audio
+   *  graph (acrossfade, aux-audio mix, loudnorm) is unchanged. */
+  silentAudio?: boolean;
 }): { command: string } {
   const n = inputs.length;
   if (n < 1) {
@@ -332,9 +339,19 @@ export function buildSeamlessCommand({
     const fadeDur = 0.005;
     const fadeOutStart = Math.max(0, round(clipDur - fadeDur));
     const microFades = `,afade=t=in:st=0:d=${fadeDur},afade=t=out:st=${fadeOutStart}:d=${fadeDur}`;
-    normalizeChunks.push(
-      `[${i}:a]${trimAStage}aresample=${TARGET_SAMPLE_RATE},aformat=sample_fmts=fltp:channel_layouts=${TARGET_CHANNELS}${audioSpeedChain}${microFades}${fadeAfStage}${mixStage}${aKfStage}[a${i}]`,
-    );
+    if (silentAudio) {
+      // Input has no audio stream — synthesize silence of the clip's
+      // (post-trim) duration so the downstream acrossfade/mix graph is
+      // untouched. clipDur is effectiveDuration(), so join-trim stays
+      // in sync for silent inputs too.
+      normalizeChunks.push(
+        `anullsrc=r=${TARGET_SAMPLE_RATE}:cl=${TARGET_CHANNELS}:d=${clipDur}[a${i}]`,
+      );
+    } else {
+      normalizeChunks.push(
+        `[${i}:a]${trimAStage}aresample=${TARGET_SAMPLE_RATE},aformat=sample_fmts=fltp:channel_layouts=${TARGET_CHANNELS}${audioSpeedChain}${microFades}${fadeAfStage}${mixStage}${aKfStage}[a${i}]`,
+      );
+    }
   }
 
   // ── Chained xfade ──────────────────────────────────────────────────

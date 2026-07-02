@@ -37,7 +37,6 @@ import {
   Stars,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { FoundationShell } from "@/components/foundation/FoundationShell";
 import { EditorialCanvas, EditorialEyebrow, EditorialHeadline } from "@/components/foundation/EditorialCanvas";
@@ -528,8 +527,10 @@ function EnvironmentsContent() {
   const activeBlueprint = drawerOpenId ? getEnvironmentBlueprint(drawerOpenId) ?? null : null;
 
   const handleApply = useCallback((bp: EnvironmentBlueprint) => {
+    // P1-16: don't toast "Applied" here — it was premature (fired before navigation
+    // and even when the destination couldn't resolve the env). The /create page's
+    // loadEnvironment now owns the success toast once the scene is actually applied.
     navigate(moduleLink(`/create?environment=${bp.id}`));
-    toast.success(`Applied scene "${bp.name}"`);
     setDrawerOpenId(null);
   }, [navigate, moduleLink]);
 

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
 
@@ -173,7 +174,7 @@ serve(async (req) => {
     
     const response: AvatarSceneResponse = {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: publicErrorMessage(error),
     };
 
     return new Response(

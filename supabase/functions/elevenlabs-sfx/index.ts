@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { validateAuth, unauthorizedResponse } from "../_shared/auth-guard.ts";
 import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
@@ -92,7 +93,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("[ElevenLabs-SFX] Error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: publicErrorMessage(error) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

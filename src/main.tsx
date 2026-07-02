@@ -33,6 +33,11 @@ import {
 // / JWTs before events leave the browser.
 import { bootObservability } from "./lib/observability";
 bootObservability();
+// Prod-safe crash/error telemetry → error_reports. Runs in prod (unlike the
+// dev-only DiagnosticsLogger). Includes an OOM heartbeat that captures iOS
+// Safari renderer crashes (which window.onerror can't see).
+import { initCrashReporter } from "./lib/crashReporter";
+initCrashReporter();
 // PostHog product analytics backbone (no-op until VITE_POSTHOG_KEY is set).
 import { initPostHog } from "./admin/analytics/posthog";
 initPostHog();
@@ -385,9 +390,29 @@ console.info('[Boot] Starting React render...', { safeMode: SAFE_MODE });
 // via VITE_DISABLE_STRICT=1 when chasing perf locally; production
 // always runs without StrictMode anyway (vite strips it).
 const disableStrict = import.meta.env.VITE_DISABLE_STRICT === "1";
-createRoot(document.getElementById("root")!).render(
-  disableStrict ? <App /> : <StrictMode><App /></StrictMode>
-);
+
+// Boot guard: if Supabase env vars are missing, the supabase client falls back
+// to inert placeholders (see integrations/supabase/client.ts) and sets this
+// flag. Render an actionable configuration screen instead of a blank page.
+const envMissing = (globalThis as { __SUPABASE_ENV_MISSING__?: boolean }).__SUPABASE_ENV_MISSING__;
+if (envMissing) {
+  createRoot(document.getElementById("root")!).render(
+    <div style={{ position: "fixed", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#030303", color: "#fff", fontFamily: "system-ui, sans-serif", padding: 24, textAlign: "center" }}>
+      <div style={{ maxWidth: 460 }}>
+        <div style={{ fontSize: 12, letterSpacing: "0.22em", color: "#f59e0b", marginBottom: 14 }}>CONFIGURATION REQUIRED</div>
+        <h1 style={{ fontSize: 22, fontWeight: 600, margin: "0 0 12px" }}>Supabase environment not set</h1>
+        <p style={{ color: "#a1a1aa", fontSize: 14, lineHeight: 1.65, margin: 0 }}>
+          Copy <code style={{ color: "#fff" }}>.env.example</code> to <code style={{ color: "#fff" }}>.env.local</code> and set{" "}
+          <code style={{ color: "#fff" }}>VITE_SUPABASE_URL</code> and <code style={{ color: "#fff" }}>VITE_SUPABASE_PUBLISHABLE_KEY</code>, then restart the dev server.
+        </p>
+      </div>
+    </div>
+  );
+} else {
+  createRoot(document.getElementById("root")!).render(
+    disableStrict ? <App /> : <StrictMode><App /></StrictMode>
+  );
+}
 
 // Mark boot complete
 console.info('[Boot] React render initiated');

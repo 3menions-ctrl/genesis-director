@@ -6,6 +6,7 @@ import {
   GUARD_RAIL_CONFIG,
 } from "../_shared/pipeline-guard-rails.ts";
 import { persistVideoToStorage } from "../_shared/video-persistence.ts";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -408,7 +409,7 @@ serve(async (req) => {
             status: "FAILED",
             progress: 0,
             videoUrl: null,
-            error: replicateError instanceof Error ? replicateError.message : "Replicate status check failed",
+            error: publicErrorMessage(replicateError, "Replicate status check failed"),
             provider: "replicate",
             model: KLING_MODEL,
           }),
@@ -436,7 +437,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: publicErrorMessage(error)
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

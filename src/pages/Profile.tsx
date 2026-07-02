@@ -318,7 +318,7 @@ export default function Profile() {
       if (upErr) throw upErr;
       const { data: pub } = supabase.storage.from(bucket).getPublicUrl(path);
       const col = kind === "cover" ? "cover_url" : "avatar_url";
-      const { error: setErr } = await supabase.from("profiles").update({ [col]: pub.publicUrl }).eq("id", user.id);
+      const { error: setErr } = await supabase.rpc("update_my_profile" as never, { p_patch: { [col]: pub.publicUrl } } as never);
       if (setErr) throw setErr;
       setPayload((prev) => prev ? { ...prev, profile: { ...prev.profile, [col]: pub.publicUrl } } : prev);
       await refreshProfile();
@@ -981,7 +981,7 @@ export default function Profile() {
                   <SectionLabel icon={ShieldCheck} label="Security" tone="emerald" />
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div><TwoFactorCard /></div>
-                    <div><SessionsCard /></div>
+                    <div><SessionsCard glassCard="" /></div>
                   </div>
                   <div className="mt-6">
                     <button
@@ -1242,10 +1242,9 @@ function DiscoverabilityCard({
     setBusy(true);
     setOn(next); // optimistic
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ is_discoverable: next })
-        .eq("id", userId);
+      const { error } = await supabase.rpc("update_my_profile" as never, {
+        p_patch: { is_discoverable: next },
+      } as never);
       if (error) throw error;
       onChanged(next);
       toast.success(next ? "You're now listed in Find Friends." : "You're hidden from Find Friends.");

@@ -44,6 +44,7 @@ import {
 } from "../_shared/network-resilience.ts";
 import { persistVideoToStorage, isTemporaryReplicateUrl } from "../_shared/video-persistence.ts";
 import { requireCronSecret } from "../_shared/auth-guard.ts";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1431,18 +1432,21 @@ serve(async (req) => {
                 .limit(1);
               
               if (!existingRefund || existingRefund.length === 0) {
-                await supabase.rpc('increment_credits', {
-                  user_id_param: project.user_id,
-                  amount_param: estimatedCredits,
+                // P1-8: single canonical, org-aware, idempotent refund. The old
+                // increment_credits + manual 'refund' insert DOUBLE-credited
+                // (the RPC already writes the ledger row). Mirrors zombie-cleanup.
+                const { error: refundError } = await supabase.rpc('refund_credits', {
+                  p_user_id: project.user_id,
+                  p_amount: estimatedCredits,
+                  p_description: `Partial refund: ${failedClipCount}/${totalExpectedClipsForTimeout} clips timed out`,
+                  p_project_id: project.id,
+                  p_idempotency_key: `watchdog-refund:${project.id}`,
                 });
-                await supabase.from('credit_transactions').insert({
-                  user_id: project.user_id,
-                  amount: estimatedCredits,
-                  transaction_type: 'refund',
-                  description: `Partial refund: ${failedClipCount}/${totalExpectedClipsForTimeout} clips timed out`,
-                  project_id: project.id,
-                });
-                console.log(`[Watchdog] 💰 Partial refund: ${estimatedCredits} credits for ${failedClipCount} failed clips`);
+                if (refundError) {
+                  console.error(`[Watchdog] refund_credits failed:`, refundError.message);
+                } else {
+                  console.log(`[Watchdog] 💰 Partial refund: ${estimatedCredits} credits for ${failedClipCount} failed clips`);
+                }
               }
             } catch (refundError) {
               console.error(`[Watchdog] Partial refund failed:`, refundError);
@@ -1505,18 +1509,19 @@ serve(async (req) => {
             .limit(1);
           
           if (!existingRefund || existingRefund.length === 0) {
-            await supabase.rpc('increment_credits', {
-              user_id_param: project.user_id,
-              amount_param: estimatedCredits,
+            // P1-8: idempotent, org-aware refund (old path double-credited).
+            const { error: refundError } = await supabase.rpc('refund_credits', {
+              p_user_id: project.user_id,
+              p_amount: estimatedCredits,
+              p_description: `Full refund: Avatar generation timed out (0/${totalExpectedClipsForTimeout} clips)`,
+              p_project_id: project.id,
+              p_idempotency_key: `watchdog-refund:${project.id}`,
             });
-            await supabase.from('credit_transactions').insert({
-              user_id: project.user_id,
-              amount: estimatedCredits,
-              transaction_type: 'refund',
-              description: `Full refund: Avatar generation timed out (0/${totalExpectedClipsForTimeout} clips)`,
-              project_id: project.id,
-            });
-            console.log(`[Watchdog] 💰 Full refund: ${estimatedCredits} credits`);
+            if (refundError) {
+              console.error(`[Watchdog] refund_credits failed:`, refundError.message);
+            } else {
+              console.log(`[Watchdog] 💰 Full refund: ${estimatedCredits} credits`);
+            }
           }
         } catch (refundError) {
           console.error(`[Watchdog] Refund failed:`, refundError);
@@ -1816,20 +1821,19 @@ serve(async (req) => {
           if (existingRefund && existingRefund.length > 0) {
             console.log(`[Watchdog] Skipping duplicate refund for project ${project.id}`);
           } else {
-            await supabase.rpc('increment_credits', {
-              user_id_param: project.user_id,
-              amount_param: estimatedCredits,
+            // P1-8: idempotent, org-aware refund (old path double-credited).
+            const { error: refundError } = await supabase.rpc('refund_credits', {
+              p_user_id: project.user_id,
+              p_amount: estimatedCredits,
+              p_description: `Auto-refund: Avatar generation failed (${project.title || project.id})`,
+              p_project_id: project.id,
+              p_idempotency_key: `watchdog-refund:${project.id}`,
             });
-            
-            await supabase.from('credit_transactions').insert({
-              user_id: project.user_id,
-              amount: estimatedCredits,
-              transaction_type: 'refund',
-              description: `Auto-refund: Avatar generation failed (${project.title || project.id})`,
-              project_id: project.id,
-            });
-            
-            console.log(`[Watchdog] 💰 Refunded ${estimatedCredits} credits to user ${project.user_id}`);
+            if (refundError) {
+              console.error(`[Watchdog] refund_credits failed:`, refundError.message);
+            } else {
+              console.log(`[Watchdog] 💰 Refunded ${estimatedCredits} credits to user ${project.user_id}`);
+            }
           }
         } catch (refundError) {
           console.error(`[Watchdog] Credit refund failed:`, refundError);
@@ -3278,7 +3282,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : "Watchdog failed",
+        error: publicErrorMessage(error, "Watchdog failed"),
         processingTimeMs: Date.now() - startTime,
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -112,7 +112,12 @@ const INTRO_BUCKET = "brand-assets";
 const INTRO_PATH = "intro/intro.mp4";
 
 const OUTPUT_BUCKET = "published-renders";
-const SIGNED_URL_TTL = 60 * 60 * 24; // 24 hours
+// Final rendered videos must NOT expire — the signed URL is written into
+// movie_projects.video_url and is what the player/reel/lobby load. A 24h TTL
+// made every finished film 404 the next day. Use a ~10-year TTL so the link is
+// effectively permanent while keeping the bucket private (token-gated).
+// (Proper long-term fix: a re-sign-on-load endpoint; tracked in the audit.)
+const SIGNED_URL_TTL = 60 * 60 * 24 * 3650; // ~10 years
 
 // Canonical pipeline constants, the aspect/format helpers, and the
 // command builder live in `../_shared/seamless-command.ts` so the
@@ -354,6 +359,9 @@ serve(async (req) => {
     // charge-on-delivery) which runs after the stitch below.
     let projectUserId: string | null = null;
     let projectVideoEngine: string | null = null;
+    // Set from pending_video_tasks.audiolessInputs — a prior invocation
+    // learned the clips carry no audio stream (see the retry catch below).
+    let projectKnownAudioless = false;
     let projectQualityOptions: QualityPostOpts = { upscale4k: false, fps60: false };
     // Hoisted to outer scope: the shared stitch-input loop (and track-hash
     // below) reference these AFTER the `if (isProjectMode)` block. Declaring
@@ -381,12 +389,20 @@ serve(async (req) => {
     if (isProjectMode) {
       const { data: project, error: projectErr } = await supabase
         .from("movie_projects")
-        .select("id, user_id, title, video_url, editor_state, video_engine")
+        .select("id, user_id, title, video_url, editor_state, video_engine, pending_video_tasks")
         .eq("id", body.projectId)
         .maybeSingle();
       if (projectErr || !project) {
         throw new Error(`project_not_found: ${projectErr?.message ?? body.projectId}`);
       }
+      // A prior invocation discovered the clips have NO audio stream and
+      // stamped this flag: build the silent-audio command straight away. The
+      // fail-then-retry path costs a full extra cog round, which pushed the
+      // whole request past the edge host's 150s idle timeout on retries.
+      projectKnownAudioless = !!(
+        (project as { pending_video_tasks?: { audiolessInputs?: boolean } })
+          .pending_video_tasks?.audiolessInputs
+      );
       // Pull the tracks array from editor_state. The track mute/lock/solo
       // toggles in the TrackHeader UI write here via setTrackProps; we
       // use it to filter clips at render time. Without this, the UI
@@ -401,6 +417,25 @@ serve(async (req) => {
           timelineStartSec?: number;
           durationSec?: number;
         }> }>;
+        /** Flat shapes actually persisted by useEditorStateSync.collect().
+         *  The client has never written scenes[] — only these flat arrays —
+         *  so every read below must accept BOTH (scenes[] kept for
+         *  back-compat with any legacy rows). */
+        clips?: Array<{
+          kind?: string;
+          titleText?: string;
+          titleColor?: string;
+          timelineStartSec?: number;
+          durationSec?: number;
+          videoUrl?: string | null;
+        }>;
+        titles?: Array<{
+          kind?: string;
+          titleText?: string;
+          titleColor?: string;
+          timelineStartSec?: number;
+          durationSec?: number;
+        }>;
         textOverlays?: unknown[];
         /** Per-boundary transitions authored on the timeline. Previously
          *  not extracted — every project-mode render used the global
@@ -443,9 +478,17 @@ serve(async (req) => {
       // editor_state, NOT video_clips (no video_url). Collect them
       // with their absolute time windows so we can emit drawtext
       // overlays in the final video chain.
+      // Title sources, most-specific first: the flat titles[]/clips[] the
+      // client persists, then the legacy scenes[] shape (old rows only).
+      // A title lives in BOTH titles[] and clips[] (collect() writes it to
+      // each), so take the first non-empty source rather than concatenating —
+      // concatenation would bake every title twice.
+      const titleSource =
+        (editorState.titles?.length ? editorState.titles : undefined) ??
+        (editorState.clips?.length ? editorState.clips : undefined) ??
+        (editorState.scenes ?? []).flatMap((s) => s.clips ?? []);
       titleClips =
-        (editorState.scenes ?? [])
-          .flatMap((s) => s.clips ?? [])
+        titleSource
           .filter((c) => c.kind === "title" && typeof c.titleText === "string" && c.titleText.trim() !== "")
           .map((c) => ({
             text: (c.titleText as string).trim(),
@@ -591,17 +634,20 @@ serve(async (req) => {
       // backward compat, falls back to created_at order's natural
       // position (which is just clip's index in the loaded list).
       const editorClipByVideoUrl = new Map<string, { timelineStartSec?: number; durationSec?: number }>();
-      for (const s of editorState.scenes ?? []) {
-        for (const c of s.clips ?? []) {
-          if ((c as unknown as { videoUrl?: string }).videoUrl) {
-            editorClipByVideoUrl.set(
-              (c as unknown as { videoUrl: string }).videoUrl,
-              {
-                timelineStartSec: (c as { timelineStartSec?: number }).timelineStartSec,
-                durationSec: (c as { durationSec?: number }).durationSec,
-              },
-            );
-          }
+      // The client persists the timeline as a FLAT editor_state.clips[] —
+      // it has never written scenes[].clips[] (that shape is legacy rows
+      // only). Read both, flat last so it wins on any URL collision.
+      const positionSource = [
+        ...(editorState.scenes ?? []).flatMap((s) => s.clips ?? []),
+        ...(editorState.clips ?? []),
+      ];
+      for (const c of positionSource) {
+        const url = (c as { videoUrl?: string | null }).videoUrl;
+        if (url) {
+          editorClipByVideoUrl.set(url, {
+            timelineStartSec: (c as { timelineStartSec?: number }).timelineStartSec,
+            durationSec: (c as { durationSec?: number }).durationSec,
+          });
         }
       }
       overlayDescs = overlayClips.map((c, i) => {
@@ -937,21 +983,44 @@ serve(async (req) => {
           extraArgs.push(`-i ${key}`);
         }
       });
-      const url = await runFfmpeg({
-        replicateKey: Deno.env.get("REPLICATE_API_KEY")!,
-        command: singleInputNormalizeCommand({
-          colorFilter:  single.colorFilter,
-          effectChain:  single.effectChain,
-          audioFilter:  single.audioFilter,
-          extraArgs,
-          extraInputCount: extras.length,
-          masterLoudness: body.masterLoudness,
-          aspectRatio:    body.aspectRatio,
-          resolution:     body.resolution,
-        }),
-        inputs: ffmpegInputs,
-        outputName: `stitch_${namespaceId}.${encodeProfileFor(body.format).ext}`,
-      });
+      const normArgs = {
+        colorFilter:  single.colorFilter,
+        effectChain:  single.effectChain,
+        audioFilter:  single.audioFilter,
+        extraArgs,
+        extraInputCount: extras.length,
+        masterLoudness: body.masterLoudness,
+        aspectRatio:    body.aspectRatio,
+        resolution:     body.resolution,
+        silentAudio:    projectKnownAudioless,
+        silentAudioDurationSec: single.duration,
+      };
+      const singleOutputName = `stitch_${namespaceId}.${encodeProfileFor(body.format).ext}`;
+      let url: string;
+      try {
+        url = await runFfmpeg({
+          replicateKey: Deno.env.get("REPLICATE_API_KEY")!,
+          command: singleInputNormalizeCommand(normArgs),
+          inputs: ffmpegInputs,
+          outputName: singleOutputName,
+        });
+      } catch (e) {
+        // Clip with NO audio stream (e.g. kling t2v, music+narration off):
+        // [0:a] fails — retry once with synthesized silence. Without this
+        // the stitch retry-loops until the zombie reaper fails the project.
+        if (e instanceof Error && /matches no streams/i.test(e.message)) {
+          console.warn("[seamless-stitcher] single input has no audio stream — retrying with synthesized silence");
+          await stampAudiolessFlag(supabase, body.projectId);
+          url = await runFfmpeg({
+            replicateKey: Deno.env.get("REPLICATE_API_KEY")!,
+            command: singleInputNormalizeCommand({ ...normArgs, silentAudio: true }),
+            inputs: ffmpegInputs,
+            outputName: singleOutputName,
+          });
+        } else {
+          throw e;
+        }
+      }
       const signed = await persistOutput(supabase, url, outputKey);
       return ok({
         url: signed,
@@ -1016,7 +1085,9 @@ serve(async (req) => {
     // overlays begin.
     const overlayUrls = overlayDescs.map((d) => d.row.video_url ?? "").filter(Boolean);
     const auxAudioUrls = auxAudioDescs.map((d) => d.row.video_url ?? "").filter(Boolean);
-    const { command } = buildSeamlessCommand({
+    // Captured so the no-audio-stream fallback below can rebuild the same
+    // command with silentAudio:true.
+    const seamlessArgs = {
       inputs,
       transitionDuration,
       transitionType,
@@ -1042,7 +1113,9 @@ serve(async (req) => {
           // A1 = narration (full level); A2+ = music (ducked under voice).
           kind: (d.row.properties?.trackId === "sys:A1" ? "voice" : "music") as "voice" | "music",
         })),
-    });
+      silentAudio: projectKnownAudioless,
+    };
+    const { command } = buildSeamlessCommand(seamlessArgs);
     const inputArgs: Record<string, string> = {};
     inputs.forEach((inp, i) => { inputArgs[`file${i + 1}`] = inp.url; });
     // Overlay videos as file{N}.. then aux audio after that. The
@@ -1054,12 +1127,34 @@ serve(async (req) => {
       inputArgs[`file${inputs.length + overlayUrls.length + i + 1}`] = url;
     });
 
-    const outputUrl = await runFfmpeg({
-      replicateKey: Deno.env.get("REPLICATE_API_KEY")!,
-      command,
-      inputs: inputArgs,
-      outputName: `stitch_${namespaceId}.mp4`,
-    });
+    let outputUrl: string;
+    try {
+      outputUrl = await runFfmpeg({
+        replicateKey: Deno.env.get("REPLICATE_API_KEY")!,
+        command,
+        inputs: inputArgs,
+        outputName: `stitch_${namespaceId}.mp4`,
+      });
+    } catch (e) {
+      // Engine output with NO audio stream (e.g. kling t2v with music +
+      // narration off): the graph's [i:a] references fail. Rebuild with
+      // synthesized silence per input and retry once — without this, a
+      // silent-clip project can NEVER stitch (it retry-loops until the
+      // zombie reaper fails the whole project).
+      if (e instanceof Error && /matches no streams/i.test(e.message)) {
+        console.warn("[seamless-stitcher] input(s) have no audio stream — retrying with synthesized silence");
+        await stampAudiolessFlag(supabase, body.projectId);
+        const { command: silentCommand } = buildSeamlessCommand({ ...seamlessArgs, silentAudio: true });
+        outputUrl = await runFfmpeg({
+          replicateKey: Deno.env.get("REPLICATE_API_KEY")!,
+          command: silentCommand,
+          inputs: inputArgs,
+          outputName: `stitch_${namespaceId}.mp4`,
+        });
+      } else {
+        throw e;
+      }
+    }
 
     let signed = await persistOutput(supabase, outputUrl, outputKey);
 
@@ -1264,6 +1359,15 @@ function singleInputNormalizeCommand(args: {
   masterLoudness?: MasterLoudnessPreset;
   aspectRatio?: string;
   resolution?: string;
+  /** The input has NO audio stream (silent engine output) — synthesize a
+   *  silent track instead of referencing [0:a], which fails with "Stream
+   *  specifier ':a' matches no streams". */
+  silentAudio?: boolean;
+  /** REQUIRED with silentAudio: explicit bound for the anullsrc source.
+   *  `-shortest` does NOT terminate an infinite lavfi filter source — an
+   *  unbounded anullsrc kept the muxer writing silent audio for 165+ HOURS
+   *  at 354x on the cog (observed live) until manually cancelled. */
+  silentAudioDurationSec?: number;
 }): string {
   const cf  = (args.colorFilter ?? "").trim();
   const efx = (args.effectChain ?? "").trim();
@@ -1295,7 +1399,13 @@ function singleInputNormalizeCommand(args: {
 
   // Audio chain — per-clip mix filter, then optional master loudnorm.
   const audioStages: string[] = [];
-  const baseAudio = `[0:a]aresample=${TARGET_SAMPLE_RATE},aformat=sample_fmts=fltp:channel_layouts=stereo`;
+  // Silence MUST be duration-bounded (d=…): -shortest alone does not stop
+  // an infinite lavfi source (see silentAudioDurationSec doc above). Pad
+  // slightly past the video; -shortest trims the remainder.
+  const silentDur = Math.max(1, Math.ceil(args.silentAudioDurationSec ?? 60) + 1);
+  const baseAudio = args.silentAudio
+    ? `anullsrc=r=${TARGET_SAMPLE_RATE}:cl=stereo:d=${silentDur}`
+    : `[0:a]aresample=${TARGET_SAMPLE_RATE},aformat=sample_fmts=fltp:channel_layouts=stereo`;
   // Empty string is truthy in JS but invalid here — emits a trailing
   // comma that breaks the FFmpeg parser. Trim and check length.
   if (af && af.trim().length > 0) {
@@ -1322,6 +1432,7 @@ function singleInputNormalizeCommand(args: {
     `-c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p ` +
     `-profile:v high -level:v 4.1 ` +
     `-c:a aac -b:a 192k -ar ${TARGET_SAMPLE_RATE} -ac 2 ` +
+    (args.silentAudio ? `-shortest ` : ``) +
     `-movflags +faststart ` +
     `output1`
   );
@@ -1418,13 +1529,52 @@ async function runFfmpeg(args: {
       throw new Error("succeeded_but_no_url");
     }
     if (pred.status === "failed" || pred.status === "canceled") {
-      throw new Error(`replicate_${pred.status}: ${pred.error ?? "no detail"}`);
+      // Include the ffmpeg log tail: the cog's error field is usually the
+      // generic "Got error trying to upload output files" while the REAL
+      // cause (e.g. "Stream specifier ':a' matches no streams" for silent
+      // clips) only appears in the logs — callers match on it to retry.
+      const logsTail = typeof pred.logs === "string" ? pred.logs.slice(-400).replace(/\n/g, " | ") : "";
+      throw new Error(
+        `replicate_${pred.status}: ${pred.error ?? "no detail"}${logsTail ? ` :: ${logsTail}` : ""}`,
+      );
     }
   }
   throw new Error(`replicate_timeout_after_4m (last=${lastStatus})`);
 }
 
 // ── Persistence + helpers ─────────────────────────────────────────────
+
+/**
+ * Remember that this project's clips have NO audio stream, so the NEXT
+ * stitch invocation builds the silent-audio command immediately instead of
+ * burning a doomed cog round on [i:a] (which pushed retried stitches past
+ * the edge host's 150s request timeout). Merge-write: reads the current
+ * pending_video_tasks and adds one key. Best-effort — a race here only
+ * costs the optimization, never correctness.
+ */
+async function stampAudiolessFlag(
+  // Structural type: the full SupabaseClient generic degrades to `never`
+  // under the local deno's supabase-js resolution (same pre-existing noise
+  // as persistOutput) — this keeps the helper out of that class of error.
+  supabase: { from: (table: string) => any },
+  projectId?: string | null,
+): Promise<void> {
+  if (!projectId) return;
+  try {
+    const { data } = await supabase
+      .from("movie_projects")
+      .select("pending_video_tasks")
+      .eq("id", projectId)
+      .maybeSingle();
+    const pvt = (data?.pending_video_tasks ?? {}) as Record<string, unknown>;
+    await supabase
+      .from("movie_projects")
+      .update({ pending_video_tasks: { ...pvt, audiolessInputs: true } })
+      .eq("id", projectId);
+  } catch (e) {
+    console.warn("[seamless-stitcher] could not stamp audiolessInputs flag:", e);
+  }
+}
 
 async function persistOutput(
   supabase: ReturnType<typeof createClient>,

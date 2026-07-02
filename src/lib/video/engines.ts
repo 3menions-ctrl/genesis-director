@@ -226,6 +226,8 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     upscale4kCredits: 10,
     fps60Credits: 5,
     pipelineId: 'pipe.seedance.v2',
+    // Unified orchestrator — the legacy seedance-pipeline fn was deleted;
+    // seedance runs through hollywood-pipeline's parallel dispatch strategy.
     pipelineFunction: 'hollywood-pipeline',
     maxScenesPerProject: 10,
     recommendedScenes: 6,

@@ -216,7 +216,7 @@ export default function Library() {
     navigate(`/r/${pick.id}`);
   };
 
-  // DELETE handler — confirmed via dialog state then writes to DB.
+  // DELETE handler — confirmed via dialog state then deletes via the edge fn.
   // Optimistic remove from UI; if the delete fails we put it back and
   // toast the error.
   const [pendingDelete, setPendingDelete] = useState<LibraryProject | null>(null);
@@ -226,11 +226,18 @@ export default function Library() {
     setPendingDelete(null);
     setDeletedIds((s) => new Set(s).add(target.id));
     try {
-      const { error } = await supabase
-        .from("movie_projects")
-        .delete()
-        .eq("id", target.id);
-      if (error) throw error;
+      // P1-19: route through delete-project (same as StudioContext) instead of a
+      // raw movie_projects.delete(). The edge fn cancels in-flight Replicate
+      // predictions (stops ongoing spend), batch-deletes storage (final video,
+      // clips, thumbnails, frames, HLS), and cleans non-cascade children. A raw
+      // delete orphaned all storage AND hard-failed (FK RESTRICT) for projects
+      // with genesis_scene_clips rows — those films couldn't be deleted at all.
+      const { data, error } = await supabase.functions.invoke("delete-project", {
+        body: { projectId: target.id },
+      });
+      if (error || !data?.success) {
+        throw new Error(data?.error || error?.message || "Deletion failed");
+      }
       toast.success(`Deleted "${target.name ?? "Untitled"}"`);
     } catch (e) {
       setDeletedIds((s) => {

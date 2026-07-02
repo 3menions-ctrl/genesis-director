@@ -6,14 +6,14 @@
  */
 
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { isExpiringUrl } from "./url-durability.ts";
 
 /**
- * Check if a URL is a temporary Replicate delivery URL
+ * Check if a URL is temporary/expiring (Replicate delivery OR a Supabase signed
+ * URL). Re-exported from the pure `url-durability` module so the logic is unit
+ * testable and shared with every call site. See P0-1 (final-film 24h URL bug).
  */
-export function isTemporaryReplicateUrl(url: string | null | undefined): boolean {
-  if (!url) return false;
-  return url.includes('replicate.delivery');
-}
+export const isTemporaryReplicateUrl = isExpiringUrl;
 
 /**
  * Download video from URL and store in Supabase storage

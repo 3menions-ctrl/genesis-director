@@ -8,6 +8,7 @@ import { MagicLinkEmail } from '../_shared/email-templates/magic-link.tsx'
 import { RecoveryEmail } from '../_shared/email-templates/recovery.tsx'
 import { EmailChangeEmail } from '../_shared/email-templates/email-change.tsx'
 import { ReauthenticationEmail } from '../_shared/email-templates/reauthentication.tsx'
+import { publicErrorMessage } from '../_shared/safe-error.ts'
 
 // @public-endpoint
 // Supabase Auth "Send Email Hook" target. Supabase Auth (not an end user)
@@ -68,12 +69,12 @@ const FROM_DOMAIN = 'smallbridges.co'
 const SAMPLE_PROJECT_URL = `https://${ROOT_DOMAIN}`
 const SAMPLE_EMAIL = 'user@example.test'
 const SAMPLE_DATA: Record<string, object> = {
-  signup: { siteName: SITE_NAME, siteUrl: SAMPLE_PROJECT_URL, recipient: SAMPLE_EMAIL, confirmationUrl: SAMPLE_PROJECT_URL, token: '123456' },
+  signup: { siteName: SITE_NAME, siteUrl: SAMPLE_PROJECT_URL, recipient: SAMPLE_EMAIL, confirmationUrl: SAMPLE_PROJECT_URL, token: '12345678' },
   magiclink: { siteName: SITE_NAME, confirmationUrl: SAMPLE_PROJECT_URL },
   recovery: { siteName: SITE_NAME, confirmationUrl: SAMPLE_PROJECT_URL },
   invite: { siteName: SITE_NAME, siteUrl: SAMPLE_PROJECT_URL, confirmationUrl: SAMPLE_PROJECT_URL },
   email_change: { siteName: SITE_NAME, oldEmail: SAMPLE_EMAIL, email: SAMPLE_EMAIL, newEmail: SAMPLE_EMAIL, confirmationUrl: SAMPLE_PROJECT_URL },
-  reauthentication: { token: '123456' },
+  reauthentication: { token: '12345678' },
 }
 
 async function handlePreview(req: Request): Promise<Response> {
@@ -283,7 +284,7 @@ Deno.serve(async (req) => {
     return await handleWebhook(req)
   } catch (error) {
     console.error('Webhook handler error:', error)
-    const message = error instanceof Error ? error.message : 'Unknown error'
+    const message = publicErrorMessage(error)
     return new Response(
       JSON.stringify({ error: { http_code: 500, message } }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },

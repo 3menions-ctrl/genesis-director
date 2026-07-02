@@ -292,3 +292,98 @@ export const HANDLER_COLLAPSE: Record<string, HandlerCollapseRow> = {
     scriptGenerate: false, operation: 'pose-transfer', executionLane: 'single-pass-effect', audio: 'native',
   },
 };
+
+export type HandlerKey = keyof typeof HANDLER_COLLAPSE;
+
+// ─── Builder + dispatch resolver (the keystone that ACTIVATES the normalizer) ──
+// mode-router builds a canonical ProductionRequest from its raw entry fields,
+// then resolveHandlerKey() decides which handler runs. This replaces the raw
+// `switch (mode)` selection with a single normalizer-owned decision (docs/PIPELINE.md).
+// Kept minimal for the handler-selection cutover; later phases fold each mode's
+// execution into the unified clip-loop and populate the full stage fields.
+
+export function buildProductionRequest(raw: {
+  mode?: string | null;
+  videoEngine?: string | null;
+  isBreakout?: boolean;
+  isAvatarMode?: boolean;
+  /** Whether the flow generates a script (cinematic) vs runs verbatim/effect. */
+  hasScript?: boolean;
+}): ProductionRequest {
+  const mode = normalizeMode(raw.mode);
+  const engine: RequestEngine = (raw.videoEngine as RequestEngine) || 'auto';
+  const isAvatar = raw.isAvatarMode ?? (mode === 'avatar');
+  // Avatar CINEMATIC (script-driven, hollywood clip-loop) vs DIRECT (verbatim
+  // single-pass) is keyed on the seedance engine in the legacy router.
+  const scriptGenerate = raw.hasScript ??
+    (mode === 'avatar' ? (raw.isBreakout || engine === 'seedance') : (mode !== 'video2video' && mode !== 'motion-transfer'));
+  return {
+    mode,
+    engine,
+    inputs: {} as ProductionInputs,
+    script: { generate: scriptGenerate } as ProductionScript,
+    continuity: {} as ProductionContinuity,
+    format: {} as ProductionFormat,
+    audio: {} as ProductionAudio,
+    breakout: { isBreakout: !!raw.isBreakout } as ProductionBreakout,
+    gate: {} as ProductionGate,
+    isAvatarMode: isAvatar,
+  };
+}
+
+// Single source of truth for which legacy handler runs. EXACTLY reproduces the
+// mode-router switch: avatar cinematic-vs-direct keys on the (breakout-forced)
+// seedance engine; effects map by mode; everything else is cinematic.
+export function resolveHandlerKey(pr: ProductionRequest): HandlerKey {
+  switch (pr.mode) {
+    case 'video2video':
+      return 'handleStyleTransferMode';
+    case 'motion-transfer':
+      return 'handleMotionTransferMode';
+    case 'avatar':
+      // Keyed on the RAW requested engine (matches the legacy switch's
+      // `videoEngine === 'seedance'`), NOT the breakout-forced engine.
+      return pr.engine === 'seedance' ? 'handleAvatarCinematicMode' : 'handleAvatarDirectMode';
+    case 'text':
+    case 'image':
+    case 'broll':
+    default:
+      return 'handleCinematicMode';
+  }
+}
+
+// ─── Canonical resolved plan (the golden-harness + unified-executor contract) ──
+// The single, fully-resolved description of HOW a request executes. As each mode
+// is folded into the unified clip-loop, the executor follows THIS plan; the
+// golden-render harness snapshots it per product type so a fold can't silently
+// change what runs.
+export interface ProductionPlan {
+  mode: ProductionMode;
+  handlerKey: HandlerKey;
+  engine: BackendEngine;
+  dispatchStrategy: DispatchStrategyKind;
+  audioStrategy: AudioStrategy;
+  operation: ShotOperation;
+  executionLane: ExecutionLane;
+  effectFn: 'stylize-video' | 'motion-transfer' | 'generate-avatar-direct' | null;
+  scriptGenerate: boolean;
+  /** Per-shot operation for the first 3 shots (no carried start image). */
+  shotOperations: ShotOperation[];
+}
+
+export function resolvePlan(pr: ProductionRequest): ProductionPlan {
+  const engine = resolveEngine(pr);
+  const op = resolveOperation(pr);
+  return {
+    mode: pr.mode,
+    handlerKey: resolveHandlerKey(pr),
+    engine,
+    dispatchStrategy: resolveDispatchStrategy(engine),
+    audioStrategy: resolveAudioStrategy(pr),
+    operation: op.operation,
+    executionLane: op.executionLane,
+    effectFn: op.effectFn ?? null,
+    scriptGenerate: pr.script.generate,
+    shotOperations: [0, 1, 2].map((i) => resolveShotOperation(pr, i, false)),
+  };
+}

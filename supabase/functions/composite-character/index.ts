@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -77,14 +78,17 @@ serve(async (req) => {
     
     const characterInput = characterImageUrl || `data:image/jpeg;base64,${characterBase64}`;
     
-    const bgRemovalResponse = await fetch("https://api.replicate.com/v1/predictions", {
+    // Replicate runs a model by SLUG via the model-predictions endpoint. The
+    // bare /v1/predictions endpoint requires a 64-hex version HASH, so passing
+    // a slug there ("version":"lucataco/remove-bg") 422s. Use the model
+    // endpoint like studio-image does.
+    const bgRemovalResponse = await fetch("https://api.replicate.com/v1/models/lucataco/remove-bg/predictions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${REPLICATE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        version: "lucataco/remove-bg",
         input: {
           image: characterInput,
         },
@@ -144,14 +148,13 @@ serve(async (req) => {
     const compositingPrompt = `A professional presenter standing ${placement === "center" ? "in the center" : placement === "left" ? "on the left side" : "on the right side"} of the frame, facing the camera, ready to speak. Natural lighting matching the environment. The person is dressed professionally and has a confident, friendly expression.`;
     
     // Use FLUX Fill for natural compositing
-    const compositeResponse = await fetch("https://api.replicate.com/v1/predictions", {
+    const compositeResponse = await fetch("https://api.replicate.com/v1/models/black-forest-labs/flux-1.1-pro/predictions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${REPLICATE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        version: "black-forest-labs/flux-1.1-pro",
         input: {
           prompt: compositingPrompt,
           image: extractedCharacterUrl,
@@ -252,8 +255,8 @@ serve(async (req) => {
     console.error("[composite-character] Error:", error);
     return new Response(
       JSON.stringify({ 
-        success: false, 
-        error: error instanceof Error ? error.message : "Unknown error" 
+        success: false,
+        error: publicErrorMessage(error)
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, type ReactNode } from "react";
 // Sonner is the canonical toast system; the legacy `@/components/ui/toaster`
 // Radix-based renderer is no longer mounted to avoid duplicate stacking.
 // Callers should use `import { toast } from "sonner"` everywhere.
@@ -71,6 +71,24 @@ function LegacyParamRedirect({ to }: { to: string }) {
 function QueryPreservingRedirect({ to }: { to: string }) {
   const location = useLocation();
   return <Navigate to={`${to}${location.search}`} replace />;
+}
+
+// Access gate for the /editor/:id route. The synthetic /editor/demo sandbox
+// (buildDemoProject() — no Supabase, no auth, no user data; allowlisted in
+// publicRoutes.ts) is PUBLIC: it skips ProtectedRoute and the business
+// redirect so logged-out visitors and CI can open it. Every real project id
+// stays fully gated. We gate here rather than via a separate static
+// "/editor/demo" route so the ":id" param still resolves to "demo" and
+// useProject() actually loads the demo (a static route drops the param, leaving
+// project=null and the project-gated panels unmounted).
+function EditorAccessGate({ children }: { children: ReactNode }) {
+  const { id } = useParams<{ id?: string }>();
+  if (id === "demo") return <>{children}</>;
+  return (
+    <RedirectBusinessToModule base="/editor" target="/business/editor">
+      <ProtectedRoute>{children}</ProtectedRoute>
+    </RedirectBusinessToModule>
+  );
 }
 
 const Cinema = lazy(() => import("./pages/Cinema"));
@@ -152,6 +170,7 @@ const VideoEditorPage = lazy(() => import("./pages/VideoEditor"));
 // Canonical surfaces on Foundation design. Other routes redirect into these.
 const Library = lazy(() => import("./pages/Library"));
 const Reel = lazy(() => import("./pages/Reel"));
+const Discover = lazy(() => import("./pages/Discover"));
 const Account = lazy(() => import("./pages/Account"));
 
 // Standalone creation-adjacent surfaces — restored after the earlier merge
@@ -371,7 +390,11 @@ const App = () => {
                   </RouteContainer>
                 } />
                 {/* /discover → /search is the natural hub-discovery path now */}
-                <Route path="/discover" element={<Navigate to="/search" replace />} />
+                <Route path="/discover" element={
+                  <RouteContainer fallbackMessage="Loading Discover…">
+                    <Discover />
+                  </RouteContainer>
+                } />
                 <Route path="/search" element={
                   <RouteContainer fallbackMessage="Loading search…">
                     <AppShell><SearchHub /></AppShell>
@@ -844,7 +867,9 @@ const App = () => {
                 
                 {/* Video Editor - Twick Studio. Both /editor and /editor/:id
                     resolve to the same page; the editor reads `:id` from
-                    params or `?project=` from search. */}
+                    params or `?project=` from search. /editor/demo is the
+                    public synthetic sandbox — EditorAccessGate lets it through
+                    without auth while keeping every real project gated. */}
                 <Route path="/editor" element={
                   <RouteContainer fallbackMessage="Loading the cutting room…">
                     <RedirectBusinessToModule base="/editor" target="/business/editor">
@@ -856,11 +881,9 @@ const App = () => {
                 } />
                 <Route path="/editor/:id" element={
                   <RouteContainer fallbackMessage="Loading the cutting room…">
-                    <RedirectBusinessToModule base="/editor" target="/business/editor">
-                      <ProtectedRoute>
-                        <VideoEditorPage />
-                      </ProtectedRoute>
-                    </RedirectBusinessToModule>
+                    <EditorAccessGate>
+                      <VideoEditorPage />
+                    </EditorAccessGate>
                   </RouteContainer>
                 } />
                 

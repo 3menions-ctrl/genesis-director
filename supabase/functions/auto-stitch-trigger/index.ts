@@ -150,6 +150,17 @@ serve(async (req) => {
       if (!ownerRow || ownerRow.user_id !== auth.userId) {
         return forbiddenResponse(corsHeaders, 'Forbidden: you do not own this project');
       }
+      // COST GUARD: every (re)stitch runs a paid ffmpeg cog on Replicate and
+      // isn't credit-gated. 6 stitch triggers / 10 min per user covers real
+      // recovery flows; anything hotter is abuse.
+      const { checkRateLimitDb } = await import("../_shared/rate-limiter.ts");
+      const allowed = await checkRateLimitDb(supabase, `auto-stitch:${auth.userId}`, 6, 600);
+      if (!allowed) {
+        return new Response(
+          JSON.stringify({ success: false, error: "rate_limited", message: "Too many stitch requests — wait a few minutes and try again." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
     }
 
     // Step 1: Get project details (include pipeline_state for avatar totalClips)
@@ -242,11 +253,13 @@ serve(async (req) => {
     console.log("[AutoStitch] Calling seamless-stitcher for manifest creation...");
     
     const { data: stitchResult, error: stitchError } = await supabase.functions.invoke('seamless-stitcher', {
+      // includeIntro:false mirrors the canonical hollywood-pipeline stitch path
+      // so the stitcher produces the bare film (and writes video_url) consistently.
       // joinTrim: pipeline renders are frame-chained — clip boundaries hard-cut
       // on the matched handoff frame with the vendor 6-frame/1-frame join trim
       // (continuity v2) instead of blurring the seam with a 0.4s crossfade.
       // Editor re-exports call seamless-stitcher directly without this flag.
-      body: { projectId, userId, joinTrim: true },
+      body: { projectId, userId, includeIntro: false, joinTrim: true },
     });
     
     if (stitchError) {
@@ -284,6 +297,53 @@ serve(async (req) => {
     
     console.log("[AutoStitch] seamless-stitcher result:", JSON.stringify(stitchResult));
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // P1-1: FINALIZE THE PROJECT IN THE DB.
+    // Previously this success path returned WITHOUT writing status='completed'
+    // or video_url, so the project sat at 'stitching' (set above) forever — a
+    // permanent spinner even though the stitch succeeded. Persist a DURABLE URL
+    // (P0-1: the stitcher returns a 24h signed URL) and write the terminal state.
+    // ─────────────────────────────────────────────────────────────────────────
+    const rawFinalUrl: string | null =
+      stitchResult?.finalVideoUrl || stitchResult?.url || null;
+    let durableFinalUrl = rawFinalUrl;
+    try {
+      if (rawFinalUrl) {
+        const { persistVideoToStorage, isTemporaryReplicateUrl } =
+          await import("../_shared/video-persistence.ts");
+        if (isTemporaryReplicateUrl(rawFinalUrl)) {
+          const persisted = await persistVideoToStorage(
+            supabase,
+            rawFinalUrl,
+            projectId,
+            { prefix: "final_video" },
+          );
+          if (persisted) durableFinalUrl = persisted;
+        }
+      }
+    } catch (persistErr) {
+      console.warn("[AutoStitch] durable persist failed, storing returned URL:", persistErr);
+    }
+
+    await supabase
+      .from('movie_projects')
+      .update({
+        status: 'completed',
+        // Manifest-only renders may have no single URL; still mark completed so
+        // the client stops spinning and plays via clips/manifest.
+        ...(durableFinalUrl ? { video_url: durableFinalUrl } : {}),
+        pending_video_tasks: {
+          ...(tasks || {}),
+          stage: 'complete',
+          progress: 100,
+          mode: stitchResult?.mode || 'manifest_playback',
+          finalVideoUrl: durableFinalUrl,
+          completedAt: new Date().toISOString(),
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', projectId);
+
     // Fire the "render complete" email + insert an in-app notification. Both
     // are best-effort — the success response is independent of either.
     void notifyRenderComplete({
@@ -298,7 +358,7 @@ serve(async (req) => {
         success: true,
         readyToStitch: true,
         stitchMode: stitchResult?.mode || 'manifest_playback',
-        finalVideoUrl: stitchResult?.finalVideoUrl,
+        finalVideoUrl: durableFinalUrl,
         completedClips: completedCount,
         processingTimeMs: Date.now() - startTime,
       }),

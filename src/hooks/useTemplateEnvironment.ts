@@ -9,6 +9,9 @@ import {
 } from '@/lib/templates/breakout-templates';
 import { getTemplateBlueprint } from '@/lib/templates/registry';
 import { getBreakthroughTemplate } from '@/lib/templates/breakthrough';
+// P1-16: the full environment registry (122 blueprints) — the local preset list
+// only has 20, so loadEnvironment must fall back here for the other ~102.
+import { getEnvironmentBlueprint } from '@/lib/environments/registry';
 
 // Import breakout template images - NEW 5-TEMPLATE SYSTEM
 import postEscapeImg from '@/assets/templates/post-escape.jpg';
@@ -1455,25 +1458,43 @@ export function useTemplateEnvironment() {
   // Load environment by ID
   const loadEnvironment = useCallback((id: string) => {
     const env = ENVIRONMENT_PRESETS.find(e => e.id === id);
-    if (!env) {
+    if (env) {
+      const envPrompt = environmentToPrompt(env);
+      const settings: AppliedSettings = {
+        concept: '',
+        mood: env.mood,
+        genre: 'cinematic',
+        clipCount: 6,
+        colorGrading: env.mood === 'dramatic' ? 'noir' : env.mood === 'professional' ? 'neutral' : 'cinematic',
+        environmentPrompt: envPrompt,
+        environmentName: env.name,
+      };
+      setAppliedSettings(settings);
+      toast.success(`Environment "${env.name}" applied`);
+      return settings;
+    }
+
+    // P1-16: fall back to the full environment registry. The page renders all
+    // 122 blueprints (getAllEnvironmentBlueprints) but only 20 live in
+    // ENVIRONMENT_PRESETS, so ~102 environments silently failed with
+    // "Environment not found". The registry blueprint carries everything we need
+    // (name, mood, generatorPrompt) to build the applied settings.
+    const bp = getEnvironmentBlueprint(id);
+    if (!bp) {
       toast.error('Environment not found');
       return null;
     }
-
-    const envPrompt = environmentToPrompt(env);
-    
     const settings: AppliedSettings = {
       concept: '',
-      mood: env.mood,
+      mood: bp.mood,
       genre: 'cinematic',
       clipCount: 6,
-      colorGrading: env.mood === 'dramatic' ? 'noir' : env.mood === 'professional' ? 'neutral' : 'cinematic',
-      environmentPrompt: envPrompt,
-      environmentName: env.name,
+      colorGrading: 'cinematic',
+      environmentPrompt: bp.generatorPrompt || bp.description,
+      environmentName: bp.name,
     };
-
     setAppliedSettings(settings);
-    toast.success(`Environment "${env.name}" applied`);
+    toast.success(`Environment "${bp.name}" applied`);
     return settings;
   }, []);
 

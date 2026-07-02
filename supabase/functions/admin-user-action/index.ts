@@ -8,6 +8,7 @@ import { newErrorId } from "../_shared/error-response.ts";
 // delete-user, force-verify, password-reset, magic-link and impersonation.
 // Static imports are always bundled.
 import { validateAuth, unauthorizedResponse } from "../_shared/auth-guard.ts";
+import { sendResendEmail } from "../_shared/resend.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -141,13 +142,19 @@ serve(async (req) => {
           },
         });
         if (error) return adminFail("password_reset_failed", error, 500);
+        const resetLink = data?.properties?.action_link ?? null;
+        // generateLink does NOT send mail — deliver it ourselves via Resend.
+        const resetEmailed = resetLink
+          ? await deliverAuthEmail("recovery", profile.email, resetLink)
+          : false;
         await logAction(admin, auth.userId!, "send_password_reset", body.userId, body.reason);
         return json({
           ok: true,
-          // The recovery link is also emailed by Supabase. We surface it
-          // here so the admin can copy/paste it to the user in chat if
-          // the user reports the email never arrived.
-          action_link: data?.properties?.action_link ?? null,
+          emailed: resetEmailed,
+          // Always surface the link so the admin can copy/paste it to the user
+          // (e.g. in support chat) if email delivery is disabled or bounces.
+          action_link: resetLink,
+          warning: resetEmailed ? undefined : "Email not sent — copy the link to the user manually.",
         });
       }
 
@@ -162,7 +169,7 @@ serve(async (req) => {
         }
         const siteUrl =
           Deno.env.get("PUBLIC_SITE_URL") ?? "https://smallbridges.co";
-        const { error } = await admin.auth.admin.generateLink({
+        const { data, error } = await admin.auth.admin.generateLink({
           type: "magiclink",
           email: profile.email,
           options: {
@@ -170,8 +177,20 @@ serve(async (req) => {
           },
         });
         if (error) return adminFail("magic_link_failed", error, 500);
+        const magicLink = data?.properties?.action_link ?? null;
+        // generateLink does NOT send mail — deliver it ourselves via Resend.
+        const magicEmailed = magicLink
+          ? await deliverAuthEmail("magiclink", profile.email, magicLink)
+          : false;
         await logAction(admin, auth.userId!, "send_magic_link", body.userId, body.reason);
-        return json({ ok: true });
+        return json({
+          ok: true,
+          emailed: magicEmailed,
+          // Surface the link as a fallback so the admin can deliver it manually
+          // if email is disabled or bounces.
+          action_link: magicLink,
+          warning: magicEmailed ? undefined : "Email not sent — copy the link to the user manually.",
+        });
       }
 
       case "generate_impersonation_link": {
@@ -237,6 +256,71 @@ async function logAction(
     });
   } catch (e) {
     console.warn("[admin-user-action] audit-log insert failed", e);
+  }
+}
+
+// Deliver an auth action link by email via Resend.
+//
+// `auth.admin.generateLink()` only GENERATES a link — it does NOT send mail
+// (that only happens on GoTrue's own send path / Send Email hook, which the
+// admin API bypasses). So for admin-initiated password resets and magic links
+// we send the email ourselves here. Best-effort: returns false on any failure
+// (missing RESEND_API_KEY, send error) so the caller can still surface the link
+// for the admin to copy/paste manually instead of failing the whole action.
+type AuthEmailKind = "recovery" | "magiclink";
+
+async function deliverAuthEmail(
+  kind: AuthEmailKind,
+  to: string,
+  actionLink: string,
+): Promise<boolean> {
+  const apiKey = Deno.env.get("RESEND_API_KEY");
+  if (!apiKey) {
+    console.warn("[admin-user-action] RESEND_API_KEY unset — cannot send", kind);
+    return false;
+  }
+  const fromDomain = Deno.env.get("EMAIL_FROM_DOMAIN") ?? "smallbridges.co";
+  const from = `Small Bridges <noreply@${fromDomain}>`;
+  const copy = kind === "recovery"
+    ? {
+        subject: "Reset your Small Bridges password",
+        heading: "Reset your password",
+        body: "We received a request to reset your password. Click the button below to choose a new one. If you didn’t request this, you can safely ignore this email.",
+        cta: "Reset password",
+      }
+    : {
+        subject: "Your Small Bridges sign-in link",
+        heading: "Sign in to Small Bridges",
+        body: "Click the button below to sign in. This link is single-use and expires shortly. If you didn’t request this, you can safely ignore this email.",
+        cta: "Sign in",
+      };
+
+  const safeLink = actionLink.replace(/"/g, "&quot;");
+  const html = `<!doctype html><html><body style="margin:0;padding:0;background:#070a12;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+  <div style="max-width:480px;margin:0 auto;padding:40px 24px;color:#e8ecf4;">
+    <h1 style="font-size:20px;font-weight:600;margin:0 0 16px;">${copy.heading}</h1>
+    <p style="font-size:14px;line-height:1.6;color:#aeb6c6;margin:0 0 24px;">${copy.body}</p>
+    <a href="${safeLink}" style="display:inline-block;background:#6366f1;color:#fff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 22px;border-radius:10px;">${copy.cta}</a>
+    <p style="font-size:12px;line-height:1.6;color:#6b748a;margin:24px 0 0;">If the button doesn’t work, copy and paste this link into your browser:<br><span style="color:#8b93a8;word-break:break-all;">${safeLink}</span></p>
+  </div></body></html>`;
+  const text = `${copy.heading}\n\n${copy.body}\n\n${copy.cta}: ${actionLink}\n`;
+
+  try {
+    await sendResendEmail(
+      {
+        to,
+        from,
+        subject: copy.subject,
+        html,
+        text,
+        label: kind === "recovery" ? "admin_password_reset" : "admin_magic_link",
+      },
+      { apiKey },
+    );
+    return true;
+  } catch (e) {
+    console.error("[admin-user-action] resend send failed for", kind, e);
+    return false;
   }
 }
 

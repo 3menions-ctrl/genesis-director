@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import {
   resilientFetch,
@@ -7,6 +8,7 @@ import {
 } from "../_shared/network-resilience.ts";
 import { checkMultipleContent } from "../_shared/content-safety.ts";
 import { forceBreakoutEngine } from "../_shared/breakout-guardrails.ts";
+import { buildProductionRequest, resolveHandlerKey, type HandlerKey } from "../_shared/production-request.ts";
 import { priceClipCredits } from "../_shared/engines.ts";
 
 const corsHeaders = {
@@ -374,19 +376,53 @@ serve(async (req) => {
 
     if (activeProjects && activeProjects.length > 0) {
       const existing = activeProjects[0];
-      console.log(`[ModeRouter] BLOCKED: User ${userId} already has active project ${existing.id} (${existing.status})`);
-      
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'active_project_exists',
-          message: `You already have an active project "${existing.title}" in progress. Please wait for it to complete or cancel it before starting a new one.`,
-          existingProjectId: existing.id,
-          existingProjectTitle: existing.title,
-          existingProjectStatus: existing.status,
-        }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+
+      // P1-3: an ABANDONED, unapproved draft must not permanently block new
+      // creations. If the only blocker is an `awaiting_approval` project older
+      // than the stale-draft TTL, auto-expire it (cancel + release its
+      // pre-approval credit hold) and proceed, instead of 409-ing forever.
+      // (cancel-project can't be invoked here — it binds to the JWT user and
+      // rejects service-role calls — so release the hold directly.)
+      const STALE_DRAFT_MS = 30 * 60 * 1000; // 30 minutes
+      const ageMs = Date.now() - new Date(existing.created_at as string).getTime();
+      let autoExpired = false;
+      if (existing.status === 'awaiting_approval' && ageMs > STALE_DRAFT_MS) {
+        console.log(`[ModeRouter] Auto-expiring stale awaiting_approval draft ${existing.id} (age ${Math.round(ageMs / 60000)}m)`);
+        try {
+          const { releasePipelineCredits } = await import('../_shared/pipeline-credits.ts');
+          await releasePipelineCredits({
+            supabase,
+            projectId: existing.id,
+            reason: 'Abandoned unapproved draft auto-expired',
+          });
+          await supabase
+            .from('movie_projects')
+            .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+            .eq('id', existing.id);
+          autoExpired = true;
+          console.log(`[ModeRouter] ✓ Stale draft ${existing.id} expired; proceeding with new creation`);
+        } catch (expireErr) {
+          console.warn('[ModeRouter] Auto-expire failed; will 409:', expireErr);
+        }
+      }
+
+      if (!autoExpired) {
+        console.log(`[ModeRouter] BLOCKED: User ${userId} already has active project ${existing.id} (${existing.status})`);
+
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'active_project_exists',
+            message: `You already have an active project "${existing.title}" in progress. Please wait for it to complete or cancel it before starting a new one.`,
+            existingProjectId: existing.id,
+            existingProjectTitle: existing.title,
+            existingProjectStatus: existing.status,
+            // Signals the client may offer a one-click "cancel & start new".
+            canCancel: true,
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     console.log(`[ModeRouter] ✓ No active projects, proceeding with creation`);
@@ -584,16 +620,35 @@ serve(async (req) => {
       await supabase.from('movie_projects').update({ status: 'generating' }).eq('id', projectId);
     }
 
-    // Route based on mode
-    switch (mode) {
-      case 'avatar':
-        // SEEDANCE AVATARS: route via the cinematic avatar path, which now
-        // dispatches to the UNIFIED hollywood-pipeline (parallel dispatch
-        // strategy) — NOT the legacy seedance-pipeline. generate-avatar-direct
-        // is Kling-only and would silently fall back, so we avoid it.
-        if (videoEngine === 'seedance') {
-          console.log('[ModeRouter] Avatar + Seedance → hollywood-pipeline (parallel strategy) via cinematic avatar path');
-          return await handleAvatarCinematicMode({
+    // Route based on the canonical production_request (normalizer-driven).
+    // buildProductionRequest + resolveHandlerKey are the single source of truth
+    // for which handler runs — this ACTIVATES _shared/production-request.ts and
+    // replaces the raw `switch (mode)` selection (docs/PIPELINE.md keystone).
+    // The legacy per-mode selection is kept ONLY as a safety fallback and is
+    // removed once prod logs confirm zero mismatches.
+    const _pr = buildProductionRequest({ mode, videoEngine, isBreakout, isAvatarMode: mode === 'avatar' });
+    let handlerKey = resolveHandlerKey(_pr);
+    const legacyKey: HandlerKey =
+      mode === 'avatar'
+        ? (videoEngine === 'seedance' ? 'handleAvatarCinematicMode' : 'handleAvatarDirectMode')
+        : mode === 'video-to-video'
+          ? 'handleStyleTransferMode'
+          : mode === 'motion-transfer'
+            ? 'handleMotionTransferMode'
+            : 'handleCinematicMode';
+    if (handlerKey !== legacyKey) {
+      console.error(`[ModeRouter] normalizer/legacy dispatch MISMATCH — normalizer=${handlerKey} legacy=${legacyKey} (mode=${mode}, engine=${videoEngine}); using legacy`);
+      handlerKey = legacyKey;
+    } else {
+      console.log(`[ModeRouter] ✓ dispatch resolved via normalizer: ${handlerKey} (mode=${mode}, engine=${videoEngine})`);
+    }
+
+    switch (handlerKey) {
+      case 'handleAvatarCinematicMode':
+        // SEEDANCE AVATARS: cinematic avatar path → UNIFIED hollywood-pipeline
+        // (parallel dispatch strategy), NOT the legacy seedance-pipeline.
+        console.log('[ModeRouter] Avatar + Seedance → hollywood-pipeline (parallel strategy) via cinematic avatar path');
+        return await handleAvatarCinematicMode({
             projectId: projectId!,
             userId,
             concept: prompt,
@@ -611,11 +666,10 @@ serve(async (req) => {
             videoEngine,
             supabase,
           });
-        }
-        // AVATAR DIRECT PATH - Bypasses Hollywood complexity for avatar videos
-        // User's exact script → Kling V3 with native audio
-        // Scene description → Background generation (if provided)
-        // Now supports multi-clip generation via clipCount parameter
+
+      case 'handleAvatarDirectMode':
+        // AVATAR DIRECT PATH — verbatim script → Kling V3 native audio.
+        // Bypasses Hollywood complexity; supports multi-clip via clipCount.
         return await handleAvatarDirectMode({
           projectId: projectId!,
           userId,
@@ -633,9 +687,8 @@ serve(async (req) => {
           supabase,
         });
 
-      case 'video-to-video':
-        // STYLE TRANSFER: Direct path - no script needed
-        // Apply style to source video in single pass
+      case 'handleStyleTransferMode':
+        // STYLE TRANSFER: single-pass effect, no script.
         return await handleStyleTransferMode({
           projectId: projectId!,
           userId,
@@ -645,9 +698,8 @@ serve(async (req) => {
           supabase,
         });
 
-      case 'motion-transfer':
-        // MOTION TRANSFER: Direct path - no script needed
-        // Extract pose from source, apply to target
+      case 'handleMotionTransferMode':
+        // MOTION TRANSFER: single-pass effect, no script.
         return await handleMotionTransferMode({
           projectId: projectId!,
           userId,
@@ -657,9 +709,7 @@ serve(async (req) => {
           supabase,
         });
 
-      case 'text-to-video':
-      case 'image-to-video':
-      case 'b-roll':
+      case 'handleCinematicMode':
       default: {
         // VALIDATION: image-to-video requires an image
         if (mode === 'image-to-video' && !imageUrl) {
@@ -715,7 +765,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error instanceof Error ? error.message : "Unknown error" 
+        error: publicErrorMessage(error) 
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
@@ -1352,6 +1402,17 @@ async function handleCinematicMode(params: {
 
   if (!pipelineResponse.ok) {
     const error = await pipelineResponse.text();
+    // Mark the just-created project failed BEFORE throwing. Without this a
+    // hard pipeline-start failure (e.g. insufficient credits) left the row
+    // stuck 'generating' — an active-project zombie that blocked every new
+    // create until the reaper (or the user, via cancel) cleared it.
+    try {
+      await supabase.from('movie_projects').update({
+        status: 'failed',
+        last_error: `Pipeline failed to start: ${error.slice(0, 300)}`,
+        updated_at: new Date().toISOString(),
+      }).eq('id', projectId);
+    } catch (_) { /* best-effort — the throw below is the real signal */ }
     throw new Error(`Pipeline failed: ${error}`);
   }
 

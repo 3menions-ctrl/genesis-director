@@ -5,13 +5,32 @@ import type { Database } from './types';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+// Boot guard (PRESERVE ON REGEN): without env vars, createClient() throws at
+// module-load — BEFORE React mounts — yielding a blank white screen and only a
+// cryptic "supabaseUrl is required" console error. Instead we flag the missing
+// config (main.tsx renders an actionable screen) and fall back to inert
+// placeholders so module evaluation doesn't crash the whole app.
+const SUPABASE_ENV_MISSING = !SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY;
+if (SUPABASE_ENV_MISSING) {
+  (globalThis as { __SUPABASE_ENV_MISSING__?: boolean }).__SUPABASE_ENV_MISSING__ = true;
+  // eslint-disable-next-line no-console
+  console.error(
+    '[config] Missing VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY. ' +
+      'Copy .env.example to .env.local and set your Supabase values, then restart.',
+  );
+}
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    storage: localStorage,
-    persistSession: true,
-    autoRefreshToken: true,
-  }
-});
+export const supabase = createClient<Database>(
+  SUPABASE_URL ?? 'https://placeholder.supabase.co',
+  SUPABASE_PUBLISHABLE_KEY ?? 'placeholder-anon-key',
+  {
+    auth: {
+      storage: localStorage,
+      persistSession: true,
+      autoRefreshToken: true,
+    },
+  },
+);

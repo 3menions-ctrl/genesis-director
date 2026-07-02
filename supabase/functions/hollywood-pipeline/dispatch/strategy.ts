@@ -21,6 +21,7 @@
 
 import type { BackendEngine } from "../../_shared/production-request.ts";
 import { getEngineProfile } from "../../_shared/engine-profiles.ts";
+import { acquireGenerationLock, releaseGenerationLock } from "../../_shared/generation-mutex.ts";
 
 export type DispatchKind = "sequential" | "parallel";
 
@@ -158,75 +159,127 @@ export async function dispatchParallel(
     },
   }).eq("id", projectId);
 
-  const dispatchResults = await Promise.allSettled(
-    clips.map(async (clip, i) => {
-      const imageUrl = sceneImageLookup[i] ?? sceneImageLookup[0] ?? null;
-      // Seedance unique: use NEXT scene image as the end-frame target for
-      // inter-scene continuity. NEVER an extracted prior frame (parallel batch
-      // has none). Both null-guards: differs-from-start AND identity-lock
-      // (all-same-image) suppression. Regression mitigations #3/#4.
-      const nextImg = sceneImageLookup[i + 1] ?? null;
-      const endImageUrl = nextImg && nextImg !== imageUrl ? nextImg : null;
+  // ═══ BATCH GENERATION LOCK ═══ The spine's acquireGenerationLock is a
+  // per-PROJECT mutex built for the sequential chain — N simultaneous
+  // generate-single-clip calls means clip 0 wins the lock and every other
+  // clip 409s GENERATION_LOCKED (observed live: a 2-clip seedance batch
+  // dispatched only clip 0 and the project hung until the zombie reaper
+  // failed it). Acquire the lock ONCE here and thread it as ownedLockId so
+  // every batch call REUSES it (the P0-2 reuse path); released right after
+  // dispatch — generation itself continues via pollers/watchdog.
+  const batchLockId = crypto.randomUUID();
+  const batchLock = await acquireGenerationLock(supabase, projectId, 0, batchLockId);
+  const batchOwnedLockId = batchLock.acquired ? batchLockId : undefined;
+  if (!batchLock.acquired) {
+    console.warn(`[Hollywood][Parallel] ⚠️ Could not pre-acquire batch lock (held by clip ${batchLock.blockedByClip}) — dispatching without lock reuse`);
+  }
 
-      // Call the SAME engine-agnostic spine. skipPolling → spine writes the
-      // video_clips row (veo_operation_name lookup col) AND fires
-      // poll-replicate-prediction itself. triggerNextClip:false → no callback
-      // chain (parallel batch, watchdog reconciles).
-      const clipResult = await callEdgeFunction("generate-single-clip", {
-        projectId,
-        userId,
-        shotIndex: i,
-        prompt: clip.prompt,
-        startImageUrl: imageUrl || undefined,
-        endImageUrl: endImageUrl || undefined,
-        aspectRatio,
-        durationSeconds: scriptShots[i]?.["durationSeconds" as any] ?? clipDuration,
+  const dispatchOne = async (i: number) => {
+    const clip = clips[i];
+    const imageUrl = sceneImageLookup[i] ?? sceneImageLookup[0] ?? null;
+    // Seedance unique: use NEXT scene image as the end-frame target for
+    // inter-scene continuity. NEVER an extracted prior frame (parallel batch
+    // has none). Both null-guards: differs-from-start AND identity-lock
+    // (all-same-image) suppression. Regression mitigations #3/#4.
+    const nextImg = sceneImageLookup[i + 1] ?? null;
+    const endImageUrl = nextImg && nextImg !== imageUrl ? nextImg : null;
+
+    // Call the SAME engine-agnostic spine. skipPolling → spine writes the
+    // video_clips row (veo_operation_name lookup col) AND fires
+    // poll-replicate-prediction itself. triggerNextClip:false → no callback
+    // chain (parallel batch, watchdog reconciles).
+    const clipResult = await callEdgeFunction("generate-single-clip", {
+      projectId,
+      userId,
+      shotIndex: i,
+      prompt: clip.prompt,
+      startImageUrl: imageUrl || undefined,
+      endImageUrl: endImageUrl || undefined,
+      aspectRatio,
+      durationSeconds: scriptShots[i]?.["durationSeconds" as any] ?? clipDuration,
+      videoEngine: "seedance",
+      isAvatarMode: ctx.isAvatarMode,
+      cameraFixed,
+      skipPolling: true,
+      triggerNextClip: false,
+      // CRITICAL: the spine's chain gate parks any shot>0 whose predecessor
+      // isn't completed (scene_chain_queue, success:true + queued:true, NO
+      // prediction) — and the parallel batch's completion path never drains
+      // that queue, so parked shots hang until the zombie reaper fails the
+      // project (observed live, both validation rounds). Parallel seedance
+      // uses NEXT-scene-image continuity, not last-frame chaining — the gate
+      // does not apply.
+      chainFromPrevious: false,
+      totalClips: clips.length,
+      sceneContext: clip.sceneContext,
+      sceneImageUrl: imageUrl || undefined,
+      ownedLockId: batchOwnedLockId,
+      pipelineContext: {
         videoEngine: "seedance",
         isAvatarMode: ctx.isAvatarMode,
-        cameraFixed,
-        skipPolling: true,
-        triggerNextClip: false,
-        totalClips: clips.length,
-        sceneContext: clip.sceneContext,
-        sceneImageUrl: imageUrl || undefined,
-        pipelineContext: {
-          videoEngine: "seedance",
-          isAvatarMode: ctx.isAvatarMode,
-          clipDuration: scriptShots[i]?.["durationSeconds" as any] ?? clipDuration,
-          aspectRatio,
-          sceneImageLookup,
-        },
-      });
+        clipDuration: scriptShots[i]?.["durationSeconds" as any] ?? clipDuration,
+        aspectRatio,
+        sceneImageLookup,
+      },
+    });
 
-      const predictionId = clipResult?.predictionId || clipResult?.clipResult?.predictionId;
-      if (!clipResult?.success && !predictionId) {
-        throw new Error(clipResult?.error || `Seedance clip ${i} dispatch failed`);
-      }
+    const predictionId = clipResult?.predictionId || clipResult?.clipResult?.predictionId;
+    if (!clipResult?.success && !predictionId) {
+      throw new Error(clipResult?.error || `Seedance clip ${i} dispatch failed`);
+    }
 
-      // Best-effort stamp of the engine columns the watchdog/stitcher key on.
-      // (Spine writes veo_operation_name; we add video_engine/end_image for
-      // parity with the legacy seedance row. Non-fatal on race.)
-      try {
-        await supabase.from("video_clips").update({
-          video_engine: "seedance",
-          engine: "seedance",
-          generation_mode: "seedance",
-          replicate_prediction_id: predictionId,
-          start_image_url: imageUrl,
-          end_image_url: endImageUrl,
-        }).eq("project_id", projectId).eq("shot_index", i);
-      } catch (_) { /* non-fatal */ }
+    // Best-effort stamp of the engine columns the watchdog/stitcher key on.
+    // (Spine writes veo_operation_name; we add video_engine/end_image for
+    // parity with the legacy seedance row. Non-fatal on race.)
+    try {
+      await supabase.from("video_clips").update({
+        video_engine: "seedance",
+        engine: "seedance",
+        generation_mode: "seedance",
+        replicate_prediction_id: predictionId,
+        start_image_url: imageUrl,
+        end_image_url: endImageUrl,
+      }).eq("project_id", projectId).eq("shot_index", i);
+    } catch (_) { /* non-fatal */ }
 
-      return { shotIndex: i, predictionId };
-    }),
+    return { shotIndex: i, predictionId };
+  };
+
+  const dispatchResults = await Promise.allSettled(
+    clips.map((_, i) => dispatchOne(i)),
   );
 
   const dispatched = dispatchResults
     .filter((r): r is PromiseFulfilledResult<{ shotIndex: number; predictionId: string }> => r.status === "fulfilled")
     .map((r) => r.value);
-  const failed = dispatchResults
+  let failed = dispatchResults
     .map((r, i) => r.status === "rejected" ? { shotIndex: i, error: String((r as any).reason?.message ?? (r as any).reason) } : null)
     .filter(Boolean);
+
+  // ═══ ONE SEQUENTIAL RETRY PASS ═══ A failed dispatch has NO recovery
+  // path downstream (the watchdog reconciles completions, not dispatch
+  // failures) — the project would hang until the zombie reaper fails it.
+  // One bounded retry absorbs transient submit errors.
+  if (failed.length > 0 && dispatched.length > 0) {
+    const stillFailed: typeof failed = [];
+    for (const f of failed) {
+      const idx = (f as { shotIndex: number }).shotIndex;
+      try {
+        console.log(`[Hollywood][Parallel] Retrying dispatch for clip ${idx}...`);
+        dispatched.push(await dispatchOne(idx));
+      } catch (e) {
+        stillFailed.push({ shotIndex: idx, error: String((e as Error)?.message ?? e) });
+      }
+    }
+    failed = stillFailed;
+  }
+
+  // Dispatch is done (success or not) — release the batch lock. Generation
+  // continues via pollers/webhooks; holding the lock longer would block
+  // retry-failed-clip and any manual re-dispatch.
+  if (batchOwnedLockId) {
+    await releaseGenerationLock(supabase, projectId, batchLockId).catch(() => {});
+  }
 
   console.log(`[Hollywood][Parallel] Dispatched ${dispatched.length}/${clips.length} clips. Failed: ${failed.length}`);
 

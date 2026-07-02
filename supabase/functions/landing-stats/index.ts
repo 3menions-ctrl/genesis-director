@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 // @public-endpoint
@@ -139,7 +140,7 @@ serve(async (req) => {
         rendered_today: 0,
         queue_depth: 0,
         last_prompt: null,
-        error: error instanceof Error ? error.message : "Unknown",
+        error: publicErrorMessage(error),
       }),
       {
         status: 200, // never fail the ribbon — degrade gracefully

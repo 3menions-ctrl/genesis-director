@@ -74,6 +74,8 @@ import {
   RADIUS,
 } from "@/lib/design-system";
 import { GlassButton, GlassPanel } from "@/components/foundation/Floating";
+import { PublicReelCTA } from "@/components/reel/PublicReelCTA";
+import { confirmAsync } from "@/components/ui/global-confirm";
 
 interface ReelData {
   id: string;
@@ -198,6 +200,7 @@ export default function Reel() {
   // sequence with their effects applied live. Empty → single-file path.
   const [timelineClips, setTimelineClips] = useState<PlayerClip[]>([]);
   const [downloading, setDownloading] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -228,7 +231,12 @@ export default function Reel() {
     title: reel?.title
       ? `${reel.title} — Small Bridges`
       : "Reel — Small Bridges",
-    description: "Watch a cinematic Small Bridges production.",
+    description: reel?.creator?.display_name
+      ? `${reel.creator.display_name} made this with a single prompt on Small Bridges. Make your own cinematic AI video — free.`
+      : "Watch a cinematic AI film made on Small Bridges. Make your own from a single prompt — free.",
+    canonicalPath: id ? `/r/${id}` : undefined,
+    ogImage: reel?.thumbnail_url ?? undefined,
+    ogType: "video.other",
   });
 
   // ── Load the reel ─────────────────────────────────────────────────
@@ -258,7 +266,7 @@ export default function Reel() {
         if (!data) {
           const { data: pub } = await supabase
             .from("published_reels")
-            .select("project_id, is_taken_down")
+            .select("project_id, is_taken_down, title, video_url, thumbnail_url, creator_id, created_at")
             .eq("id", id)
             .maybeSingle();
           if (pub?.project_id && !pub.is_taken_down) {
@@ -269,6 +277,25 @@ export default function Reel() {
               .eq("id", pub.project_id)
               .maybeSingle();
             data = reReg.data;
+            // The source project may be RLS-hidden (owner later made it
+            // private, or an anon viewer). A live published reel is public
+            // by definition and carries a frozen snapshot exactly for this
+            // case — fall back to it instead of erroring "not found".
+            if (!data && pub.video_url) {
+              data = {
+                id: pub.project_id,
+                title: pub.title,
+                video_url: pub.video_url,
+                thumbnail_url: pub.thumbnail_url,
+                created_at: pub.created_at,
+                updated_at: pub.created_at,
+                user_id: pub.creator_id,
+                is_public: true,
+                likes_count: 0,
+                pending_video_tasks: null,
+                editor_state: null,
+              } as typeof data;
+            }
           }
         }
 
@@ -339,6 +366,40 @@ export default function Reel() {
     };
   }, [id, user?.id]);
 
+  // ── P1-10: poll for completion while the reel is still rendering ──
+  // Previously "Still rendering…" never updated (the loader only ran on
+  // [id, user?.id]); a finished-or-dead render needed a manual refresh. Poll the
+  // project row every 5s while there's no playable output and self-clear once a
+  // video_url or timeline clips appear.
+  useEffect(() => {
+    if (!reel?.id) return;
+    const stillRendering = !reel.video_url && timelineClips.length === 0;
+    if (!stillRendering) return;
+    let cancelled = false;
+    const interval = setInterval(async () => {
+      const { data } = await supabase
+        .from("movie_projects")
+        .select("*")
+        .eq("id", reel.id)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      // Mirror the loader's HLS/manifest fallback for in-flight renders.
+      if (!data.video_url) {
+        const pt = (data as { pending_video_tasks?: { hlsPlaylistUrl?: string; manifestUrl?: string } }).pending_video_tasks;
+        if (pt?.hlsPlaylistUrl) data.video_url = pt.hlsPlaylistUrl;
+        else if (pt?.manifestUrl) data.video_url = pt.manifestUrl;
+      }
+      const players = await buildTimelineClips(data.id, (data as { editor_state?: unknown }).editor_state);
+      if (cancelled) return;
+      if (data.video_url || players.length > 0) {
+        setReel((prev) => (prev ? { ...prev, ...data } : prev));
+        setTimelineClips(players);
+        clearInterval(interval);
+      }
+    }, 5000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [reel?.id, reel?.video_url, timelineClips.length]);
+
   // ── Load the watch party (if URL carries ?party=:id) ─────────────
   useEffect(() => {
     if (!partyId) { setParty(null); return; }
@@ -365,6 +426,41 @@ export default function Reel() {
   }, [partyId]);
 
   const isOwner = !!user && reel?.user_id === user.id;
+  // Logged-out visitor arriving via a shared link. RLS guarantees `reel` is
+  // only ever a public/published reel here; we show a read-only view (no
+  // reactions/comments, which need auth) capped with a signup CTA.
+  const isAnon = !user;
+
+  // ── Cancel an in-progress render ──────────────────────────────────
+  // Owner-only. Delegates to the proven cancel-project edge function, which
+  // cancels the Replicate predictions, stops background processing, and refunds
+  // any unused credits. Ownership is also enforced server-side.
+  const handleCancelRender = async () => {
+    if (!reel || cancelling) return;
+    const ok = await confirmAsync({
+      title: "Cancel this render?",
+      description:
+        "This stops the video generation and refunds any unused credits. It cannot be undone.",
+      confirmLabel: "Cancel render",
+      cancelLabel: "Keep rendering",
+      destructive: true,
+    });
+    if (!ok) return;
+    setCancelling(true);
+    try {
+      const { data, error: cancelErr } = await supabase.functions.invoke("cancel-project", {
+        body: { projectId: reel.id },
+      });
+      if (cancelErr) throw new Error(cancelErr.message || "Failed to cancel");
+      if (!data?.success) throw new Error(data?.error || "Cancellation failed");
+      toast.success("Render cancelled — unused credits were refunded.");
+      navigate("/library");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to cancel the render.");
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   // ── Download ─────────────────────────────────────────────────────
   // Fetch the video as a blob and save it. A plain <a download> on a
@@ -551,9 +647,13 @@ export default function Reel() {
               ? "Only the director can view it."
               : "It may have been removed or the link is wrong."}
           </p>
-          <GlassButton onClick={() => navigate("/library")} className="mt-8" ariaLabel="Back to Library">
+          <GlassButton
+            onClick={() => navigate(isAnon ? "/" : "/library")}
+            className="mt-8"
+            ariaLabel={isAnon ? "Explore Small Bridges" : "Back to Library"}
+          >
             <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
-            <span>Back to Library</span>
+            <span>{isAnon ? "Explore Small Bridges" : "Back to Library"}</span>
           </GlassButton>
         </div>
       </FoundationShell>
@@ -598,14 +698,16 @@ export default function Reel() {
           transition={{ duration: 0.3, ease: EASE_PREMIUM }}
         >
           <Link
-            to="/library"
+            to={isAnon ? "/" : "/library"}
             className={cn(
               "inline-flex items-center gap-2 text-muted-foreground/65",
               "transition-colors hover:text-foreground",
             )}
           >
             <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.5} />
-            <span className={cn(TYPE_EYEBROW, "text-current")}>Library</span>
+            <span className={cn(TYPE_EYEBROW, "text-current")}>
+              {isAnon ? "Small Bridges" : "Library"}
+            </span>
           </Link>
         </motion.div>
 
@@ -650,6 +752,25 @@ export default function Reel() {
                   <p className={cn(TYPE_EYEBROW, "text-current")}>
                     Still rendering…
                   </p>
+                  {isOwner && (
+                    <button
+                      onClick={() => void handleCancelRender()}
+                      disabled={cancelling}
+                      className={cn(
+                        TYPE_META,
+                        "mt-4 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5",
+                        "text-muted-foreground/60 transition-colors hover:text-foreground",
+                        "hover:bg-[hsl(var(--foreground)/0.06)] disabled:opacity-50",
+                      )}
+                    >
+                      {cancelling ? (
+                        <Loader2 className="h-3 w-3 animate-spin" strokeWidth={1.5} />
+                      ) : (
+                        <AlertCircle className="h-3 w-3" strokeWidth={1.5} />
+                      )}
+                      Cancel render
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -756,24 +877,32 @@ export default function Reel() {
           </motion.div>
         )}
 
-        {/* Reactions + comments */}
-        <motion.div
-          initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: EASE_PREMIUM, delay: 0.15 }}
-          className="mt-10"
-        >
-          <VideoReactionsBar projectId={reel.id} />
-        </motion.div>
+        {/* Reactions + comments (require auth) OR the signup CTA for anon. A
+            logged-out visitor arrived via a shared link — convert them instead
+            of showing interaction surfaces they can't use. */}
+        {isAnon ? (
+          <PublicReelCTA creatorName={reel.creator?.display_name} />
+        ) : (
+          <>
+            <motion.div
+              initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: EASE_PREMIUM, delay: 0.15 }}
+              className="mt-10"
+            >
+              <VideoReactionsBar projectId={reel.id} />
+            </motion.div>
 
-        <motion.div
-          initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: EASE_PREMIUM, delay: 0.2 }}
-          className="mt-8"
-        >
-          <VideoCommentsSection projectId={reel.id} />
-        </motion.div>
+            <motion.div
+              initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: EASE_PREMIUM, delay: 0.2 }}
+              className="mt-8"
+            >
+              <VideoCommentsSection projectId={reel.id} />
+            </motion.div>
+          </>
+        )}
       </div>
 
       {/* ── Watch Party sidebar — mounts whenever ?party=:id is set

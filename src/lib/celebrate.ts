@@ -18,7 +18,8 @@ export type Milestone =
   | "first-credit-purchase"
   | "first-payout"
   | "follower-100"
-  | "tip-received-first";
+  | "tip-received-first"
+  | "first-video";
 
 const KEY = (uid: string, m: Milestone) => `sb.celebrated.${m}.${uid}`;
 
@@ -34,7 +35,31 @@ const PALETTES: Record<Milestone, string[]> = {
   "first-payout":       ["#0A84FF", "#10B981", "#A7F3D0", "#FFCB6B"],
   "follower-100":       ["#FF61A6", "#A78BFA", "#0A84FF", "#FFCB6B"],
   "tip-received-first": ["#FFCB6B", "#FFB020", "#0A84FF", "#FF61A6"],
+  "first-video":        ["#0A84FF", "#7B61FF", "#10B981", "#FFCB6B"],
 };
+
+const RENDER_PALETTE = ["#0A84FF", "#7B61FF", "#FF61A6", "#FFCB6B", "#10B981"];
+
+/** Shared confetti burst (two side cannons + a center pop). */
+function burst(palette: string[]) {
+  if (reducedMotion()) return;
+  const fire = (origin: { x: number; y: number }) => {
+    confetti({
+      particleCount: 80,
+      spread: 70,
+      startVelocity: 45,
+      ticks: 240,
+      scalar: 1.1,
+      gravity: 0.9,
+      decay: 0.92,
+      origin,
+      colors: palette,
+    });
+  };
+  fire({ x: 0.1, y: 0.6 });
+  setTimeout(() => fire({ x: 0.9, y: 0.6 }), 120);
+  setTimeout(() => fire({ x: 0.5, y: 0.7 }), 240);
+}
 
 /**
  * Fire the celebration if this user hasn't seen it before.
@@ -48,30 +73,19 @@ export function celebrate(milestone: Milestone, userId: string | null | undefine
     localStorage.setItem(key, new Date().toISOString());
   } catch { /* localStorage may be blocked — fire anyway */ }
 
-  const palette = PALETTES[milestone];
-
-  if (!reducedMotion()) {
-    // Two-burst cannon from each side of the screen.
-    const fire = (origin: { x: number; y: number }) => {
-      confetti({
-        particleCount: 80,
-        spread: 70,
-        startVelocity: 45,
-        ticks: 240,
-        scalar: 1.1,
-        gravity: 0.9,
-        decay: 0.92,
-        origin,
-        colors: palette,
-      });
-    };
-    fire({ x: 0.1, y: 0.6 });
-    setTimeout(() => fire({ x: 0.9, y: 0.6 }), 120);
-    setTimeout(() => fire({ x: 0.5, y: 0.7 }), 240);
-  }
-
+  burst(PALETTES[milestone]);
   sfx.play("render-done", 0.7);
   return true;
+}
+
+/**
+ * Celebrate a finished render. Unlike `celebrate()`, this fires EVERY time
+ * (renders complete repeatedly) — it is not gated by localStorage. Still
+ * honors prefers-reduced-motion (skips confetti, keeps the sound).
+ */
+export function celebrateRender(): void {
+  burst(RENDER_PALETTE);
+  sfx.play("render-done", 0.7);
 }
 
 /** Force-replay a milestone (for debug / settings "show me again"). */

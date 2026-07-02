@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { type StripeEnv, createStripeClient } from "../_shared/stripe.ts";
+import { publicErrorMessage } from "../_shared/safe-error.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -125,7 +126,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.error("[CREATE-CINEMA-CHECKOUT] Error", err);
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Unexpected error" }),
+      JSON.stringify({ error: publicErrorMessage(err, "Unexpected error") }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }

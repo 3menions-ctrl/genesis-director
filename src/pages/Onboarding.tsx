@@ -76,14 +76,14 @@ export default function Onboarding() {
         // refreshProfile() could time out and fall back to onboarding_completed
         // = false, bouncing the user straight back here in an infinite loop.
         patchProfile({ onboarding_completed: true });
-        try {
-          await supabase
-            .from('profiles')
-            .update({ onboarding_completed: true })
-            .eq('id', user.id);
-        } catch (e) {
-          console.warn('[Onboarding] mark completed failed', e);
-        }
+        // Persist via the SECURITY DEFINER RPC — authenticated has no direct
+        // UPDATE on profiles, so the old .from('profiles').update() was
+        // silently denied and the flag never stuck (users were re-bounced
+        // through onboarding every session).
+        const { error: markErr } = await supabase.rpc('update_my_profile' as never, {
+          p_patch: { onboarding_completed: true },
+        } as never);
+        if (markErr) console.warn('[Onboarding] mark completed failed', markErr);
       }
 
       if (cancelled) return;

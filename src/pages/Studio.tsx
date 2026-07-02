@@ -51,6 +51,7 @@ import { useCinemaGuard } from "@/hooks/useCinemaEntitlement";
 import { useLiveRenderTimecode } from "@/hooks/useLiveRenderTimecode";
 import { VideoGenerationMode, VideoStylePreset } from "@/types/video-modes";
 import { supabase } from "@/integrations/supabase/client";
+import { confirmAsync } from "@/components/ui/global-confirm";
 import {
   handleEdgeFunctionError,
   showUserFriendlyError,
@@ -460,10 +461,34 @@ function StudioContentInner() {
           requestBody.imageUrl = config.avatarImageUrl;
         }
 
-        const { data, error } = await supabase.functions.invoke(
+        let { data, error } = await supabase.functions.invoke(
           "mode-router",
           { body: requestBody },
         );
+
+        // P1-3: one-click recovery from a stuck/unfinished project. If creation
+        // is blocked by an existing active project, offer to cancel it and retry
+        // ONCE — so an abandoned draft doesn't permanently wall off new work.
+        if (
+          data?.error === "active_project_exists" &&
+          data?.canCancel &&
+          data?.existingProjectId
+        ) {
+          const proceed = await confirmAsync({
+            title: "Cancel your unfinished project?",
+            description: `"${data.existingProjectTitle ?? "Your previous project"}" hasn't finished. Cancel it and start this new one?`,
+            confirmLabel: "Cancel it & start new",
+            cancelLabel: "Keep it",
+          });
+          if (proceed) {
+            await supabase.functions.invoke("cancel-project", {
+              body: { projectId: data.existingProjectId },
+            });
+            ({ data, error } = await supabase.functions.invoke("mode-router", {
+              body: requestBody,
+            }));
+          }
+        }
 
         if (error || data?.error) {
           const { handled } = await handleEdgeFunctionError(

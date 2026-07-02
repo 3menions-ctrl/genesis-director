@@ -18,15 +18,16 @@
 - Earlier project notes that said "prod = Cloudflare, NOT Vercel" were **stale
   and wrong** — corrected here. Trust the live headers.
 
-### ⚠️ Open follow-up: prod deploy is currently ungated
-The audit's "ungated prod deploy" fix added a typecheck/edge-auth/test gate to
-the (now-disabled) Cloudflare workflow, so it does **not** gate live Vercel
-deploys. Vercel builds and ships on push to `main` with no gate. To close this:
-make the `ci.yml` `guard` job a **required status check on `main`** and enable
-"wait for CI" in Vercel, OR move the gate into a Vercel **Ignored Build Step** /
-`buildCommand`. (Note: `ci.yml`'s `guard` currently fails on pre-existing
-`no-console` lint warnings — the real gates typecheck/tests/`audit:edge-auth`
-pass; fix or downgrade the lint rule before making it a required check.)
+### Prod deploy gating — partially closed (2026-07-01)
+`vercel.json` `buildCommand` now runs **`npm run typecheck && npm run build`**,
+so a type-broken push to `main` fails the Vercel build and never ships. The
+`ci.yml` `guard` job is green on `main` (lint was made non-blocking). Still
+open if you want a *full* gate: unit tests and `audit:edge-auth` run only in CI,
+not in the Vercel build, and `main` has **no branch protection** — making
+`guard` ("Guard the build") a required status check would also block direct
+pushes to `main`, which the current agent workflow relies on; decide
+deliberately before enabling. The Playwright E2E job is a known intermittent
+flake (editor-controls panel-sweep 6-min hang) — do NOT make it required.
 
 ## Database / Supabase
 
@@ -40,12 +41,15 @@ pass; fix or downgrade the lint rule before making it a required check.)
   without Docker.
 - Migrations apply in timestamp order; prod has had out-of-band/Mgmt-API applies,
   so always check `supabase migration list` and reconcile history before a push.
-  ⚠️ STALE-CLAIM CORRECTED: `prod == repo (0 pending)` is NO LONGER true. The
-  `feat/creative-vfx-gen` branch carries ~24 migrations not on `main` (several
-  applied to prod out-of-band via the Mgmt API this session). Before merging,
-  reconcile with `supabase migration list`. Two same-timestamp collisions from
-  parallel-agent work were resolved by renaming the finishing/routing migrations
-  to `20260706008000`/`20260706009000`.
+  ✅ **RECONCILED 2026-07-01:** repo `main` and prod history are 1:1 (0 pending,
+  0 stray). Ten out-of-band Mgmt-API applies were recorded via
+  `migration repair --status applied`, the stray prod-only `20260706006000`
+  (pre-renumber `shot_routing_map` dup) was marked reverted, and the duplicate
+  version `20260706011000` was resolved by renaming
+  `fix_onboarding_intents_email_rls` → `20260706013000`. Keep it clean: when a
+  parallel agent applies SQL via the Mgmt API, it must ALSO add the repo file
+  and repair history in the same session. (`feat/creative-vfx-gen` is 76 commits
+  behind main / abandoned — its migration backlog is moot unless revived.)
 - Money/credits live in `credit_transactions` (the ledger), NOT
   `profiles.credits_balance` (a cache).
 

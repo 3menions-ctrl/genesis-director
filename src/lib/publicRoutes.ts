@@ -35,6 +35,11 @@ const PUBLIC_EXACT: ReadonlySet<string> = new Set<string>([
   "/breakthrough-lab",
   "/films",
   "/pipeline-preview",
+  // Public community showcase — read-only grid of published reels (anon RLS:
+  // is_taken_down=false only). Indexable discovery surface; every card links to
+  // a public /r/:id. No private data, no writes.
+  "/discover",
+  "/editor/demo", // synthetic buildDemoProject() sandbox — no Supabase/auth/user data; CI + E2E editor entrypoint. Exact match keeps real /editor/:id gated.
 
   // ── Content marketing / support ────────────────────────────
   "/blog",
@@ -56,6 +61,14 @@ const PUBLIC_PREFIXES: readonly string[] = [
   "/help/", // /help/:slug
   "/enterprise/", // /enterprise/*
   "/invite/", // /invite/:token — invite links must open while logged out
+  // /r/:id — shared reels open without login so a shared link can pull in new
+  // visitors (the growth loop). This is SAFE despite the "keep it tight" rule
+  // above because it exposes NO private data: the reel query runs under the
+  // anon RLS policy, which returns a row ONLY when the project is_public=true
+  // (or has a live, non-taken-down published_reels copy). A logged-out visitor
+  // hitting a private reel id gets an empty result → the "private" error state.
+  // Reel.tsx renders a stripped, read-only view + signup CTA for anon.
+  "/r/",
 ];
 
 function normalize(pathname: string): string {

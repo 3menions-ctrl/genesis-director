@@ -244,6 +244,10 @@ export function buildSeamlessCommand({
     durationSec: number;
     x?: number;
     y?: number;
+    /** 9-grid anchor ("middle-left", "bottom-center", …). The bake used to
+     *  always center the text on (x,y), so a left-anchored lower-third shoved
+     *  itself half off-screen. */
+    anchor?: string;
     sizePct?: number;
     bold?: boolean;
   }>;
@@ -416,11 +420,18 @@ export function buildSeamlessCommand({
       const sizePctClamped = Math.max(1, Math.min(40, tc.sizePct ?? 6));
       const fontSize = Math.round(outH * (sizePctClamped / 100));
       const hasPos = typeof tc.x === "number" && typeof tc.y === "number";
+      // Honor the 9-grid anchor so the text sits where the editor shows it.
+      // The anchor names which point of the text box lands on (x,y):
+      //   horizontal: left → x, center → x-text_w/2, right → x-text_w
+      //   vertical:   top  → y, middle → y-text_h/2, bottom → y-text_h
+      const a = tc.anchor ?? "middle-center";
+      const hAdj = a.endsWith("-left") ? "" : a.endsWith("-right") ? "-text_w" : "-text_w/2";
+      const vAdj = a.startsWith("top-") ? "" : a.startsWith("bottom-") ? "-text_h" : "-text_h/2";
       const xExpr = hasPos
-        ? `${Math.round((tc.x ?? 0.5) * outW)}-text_w/2`
+        ? `${Math.round((tc.x ?? 0.5) * outW)}${hAdj}`
         : `(w-text_w)/2`;
       const yExpr = hasPos
-        ? `${Math.round((tc.y ?? 0.5) * outH)}-text_h/2`
+        ? `${Math.round((tc.y ?? 0.5) * outH)}${vAdj}`
         : `(h-text_h)/2`;
       const shadowOffset = Math.max(2, Math.round(fontSize * 0.05));
       const shadowLabel = `vts${i}`;

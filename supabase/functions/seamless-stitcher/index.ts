@@ -371,6 +371,7 @@ serve(async (req) => {
       durationSec: number;
       x?: number;
       y?: number;
+      anchor?: string;
       sizePct?: number;
       fontFamily?: string;
       bold?: boolean;
@@ -507,6 +508,7 @@ serve(async (req) => {
             font?: string;
             weight?: number;
             uppercase?: boolean;
+            anchor?: string;
             fill?: { color?: string };
           }>)
         : [];
@@ -521,6 +523,7 @@ serve(async (req) => {
           durationSec: Math.max(0.1, ov.durationSec ?? 3),
           x: typeof ov.x === "number" ? ov.x : undefined,
           y: typeof ov.y === "number" ? ov.y : undefined,
+          anchor: typeof ov.anchor === "string" ? ov.anchor : undefined,
           sizePct: typeof ov.sizePct === "number" ? ov.sizePct : undefined,
           bold: (ov.weight ?? 400) >= 600,
         });

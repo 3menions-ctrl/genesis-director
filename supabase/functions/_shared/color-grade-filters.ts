@@ -51,8 +51,34 @@ export function gradeToFfmpeg(grade: ColorGrade, lut: LutLook | null): string {
   if (Math.abs(stops)        > 0.01) eqArgs.push(`brightness=${(stops * 0.1).toFixed(3)}`);
   if (Math.abs(g.contrast)   > 0.5)  eqArgs.push(`contrast=${(1 + g.contrast / 100).toFixed(3)}`);
   if (Math.abs(g.saturation) > 0.5)  eqArgs.push(`saturation=${Math.max(0, 1 + g.saturation / 100).toFixed(3)}`);
-  if (Math.abs(g.shadows)    > 0.5)  eqArgs.push(`gamma_r=${(1 + g.shadows / 200).toFixed(3)}`);
   if (eqArgs.length) parts.push(`eq=${eqArgs.join(":")}`);
+
+  // ── shadows / highlights — luminance tone curve (all channels) ──
+  // Previously `shadows` mapped to `gamma_r` (RED channel only) so
+  // "recover shadows" red-tinted the image instead of lifting it, and
+  // `highlights` was consumed NOWHERE. Both now ride a master tone
+  // curve: shadows lifts/drops the black point, highlights the white.
+  const gh = (g as { highlights?: number }).highlights ?? 0;
+  if (Math.abs(g.shadows) > 0.5 || Math.abs(gh) > 0.5) {
+    const y0 = Math.max(0, Math.min(0.5, g.shadows / 300)).toFixed(3);
+    const y1 = Math.max(0.5, Math.min(1, 1 + gh / 300)).toFixed(3);
+    parts.push(`curves=all='0/${y0} 0.5/0.5 1/${y1}'`);
+  }
+
+  // ── tint — green ↔ magenta balance (was never emitted) ────────
+  // +tint = magenta (+R +B −G), −tint = green. Most LUTs set a nonzero
+  // tint, so every LUT previously baked slightly off.
+  const gt = (g as { tint?: number }).tint ?? 0;
+  if (Math.abs(gt) > 1) {
+    const t = (gt / 400);
+    parts.push(`colorbalance=rm=${t.toFixed(3)}:gm=${(-t).toFixed(3)}:bm=${t.toFixed(3)}`);
+  }
+
+  // ── vibrance — smart saturation of muted tones (was never emitted) ──
+  const gv = (g as { vibrance?: number }).vibrance ?? 0;
+  if (Math.abs(gv) > 0.5) {
+    parts.push(`vibrance=intensity=${Math.max(-2, Math.min(2, gv / 100)).toFixed(3)}`);
+  }
 
   // ── sharpness (real unsharp mask) ────────────────────────────
   // FFmpeg unsharp: luma_msize=5, chroma_msize=5; amount range

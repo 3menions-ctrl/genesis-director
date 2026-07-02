@@ -16,6 +16,12 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { publicErrorMessage } from '../_shared/safe-error.ts';
 import { validateEffectPlan, resolveInputs, type EffectPlan, type EffectStage } from '../_shared/effect-plan.ts';
 import { invokeTool, resumeToolPrediction, PendingPrediction, setStageBudget, type ToolResult } from '../_shared/effect-tools.ts';
+import { preflightAiGate, chargeAiGate } from '../_shared/ai-credit-gate.ts';
+
+// Flat price for one effect run, sized to WORST-CASE bounded spend (2 seedance
+// clips + 1 budgeted video retry + images/critic/ffmpeg ≈ $8 COGS) so the 30%
+// margin holds even when the retry fires. Reprice deliberately, not casually.
+const EFFECT_RUN_COST_CREDITS = 150;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -102,6 +108,8 @@ serve(async (req) => {
 
   const supabase = admin();
   let runId: string | undefined;
+  let runUserId: string | null = null;
+  let runProjectId: string | null = null;
   try {
     const { validateAuth, unauthorizedResponse } = await import('../_shared/auth-guard.ts');
     const auth = await validateAuth(req);
@@ -119,6 +127,8 @@ serve(async (req) => {
       if (run.status !== 'running') return json(200, { runId, status: run.status, finalUrl: run.final_url });
       plan = run.plan as EffectPlan;
       state = run.state as RunState;
+      runUserId = (run.user_id as string) ?? null;
+      runProjectId = (run.project_id as string) ?? null;
     } else {
       let rawPlan = body.plan;
       if (!rawPlan && body.recipeSlug) {
@@ -129,6 +139,18 @@ serve(async (req) => {
       const v = validateEffectPlan(rawPlan);
       if (!v.ok) return json(400, { error: 'invalid plan', details: v.errors });
       plan = v.plan;
+      // ── CREDIT GATE (new runs only; continuations are service-role) ────
+      const blocked = await preflightAiGate({
+        supabase,
+        fnName: 'effect-executor',
+        userId: auth.userId ?? null,
+        isServiceRole: auth.isServiceRole ?? false,
+        projectId: body.projectId ?? null,
+        cost: EFFECT_RUN_COST_CREDITS,
+        dailyCap: 20,
+        corsHeaders,
+      });
+      if (blocked) return blocked;
       state = { stageIdx: 0, outputs: {}, attempts: {}, pending: null, critic: {} };
       const { data: created, error } = await supabase
         .from('effect_runs')
@@ -137,6 +159,8 @@ serve(async (req) => {
         .maybeSingle();
       if (error || !created) throw new Error(`run insert failed: ${error?.message}`);
       runId = created.id as string;
+      runUserId = auth.userId ?? null;
+      runProjectId = (body.projectId as string) ?? null;
     }
 
     const save = async (patch: Partial<{ state: RunState; status: string; final_url: string; error: string }>) => {
@@ -238,6 +262,17 @@ serve(async (req) => {
 
     const finalUrl = String(state.outputs[plan.finalStage]?.url ?? '');
     await save({ status: 'completed', final_url: finalUrl, state });
+    // Charge on success, once (idempotency key = runId collapses any retry).
+    await chargeAiGate({
+      supabase,
+      fnName: 'effect-executor',
+      userId: runUserId,
+      projectId: runProjectId,
+      cost: EFFECT_RUN_COST_CREDITS,
+      dailyCap: 20,
+      idempotencyKey: `effect-run-${runId}`,
+      corsHeaders,
+    });
     console.log(`[effect-executor] run=${runId} COMPLETED → ${finalUrl}`);
       } catch (e) {
         console.error('[effect-executor] slice fatal:', e);

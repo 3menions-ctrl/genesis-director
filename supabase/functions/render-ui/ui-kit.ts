@@ -26,6 +26,9 @@ const A = (slug: string, w: number) =>
 export const AV = ['av1', 'av2', 'av3', 'av4', 'av5', 'av6', 'av7', 'av8'].map((x) => A(x, 192));
 export const TH = ['th1', 'th2', 'th3', 'th4', 'th5'].map((x) => A(x, 512));
 export const ST = ['st1', 'st2'].map((x) => A(x, 384));
+// Fun-content pack: dog-on-skateboard, cat castle, brunch, beach jump, pug,
+// skateboarding grandma, concert, kid+kite, latte face, ice-cream selfie.
+export const FUN = ['fun1','fun2','fun3','fun4','fun5','fun6','fun7','fun8','fun9','fun10'].map((x) => A(x, 512));
 
 // ── vector icon set ──────────────────────────────────────────────────────────
 const PATHS: Record<string, string> = {

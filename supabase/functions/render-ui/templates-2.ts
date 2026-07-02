@@ -5,7 +5,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { h, row, col, txt, img, box, icon, statusBar, AV, TH, type El } from './ui-kit.ts';
-import { facebookMobile, facebookDesktop, instagramMobile, instagramReels, tiktokMobile, tiktokDesktop, type Tpl } from './templates.ts';
+import { facebookMobile, facebookDesktop, instagramMobile, instagramReels, tiktokMobile, tiktokDesktop, facebookMobileScroll, instagramMobileScroll, type Tpl } from './templates.ts';
 
 const SLOT = '#0a0a0c';
 
@@ -20,7 +20,7 @@ function youtubeMobile(p: Record<string, string>): El {
   const titleRow = row({ gap: 18, padding: 20, alignItems: 'flex-start' },
     img(AV[1], 72, 72, { borderRadius: 36 }),
     col({ gap: 8 },
-      txt(p.title ?? "he knows you're watching… (don't blink)", { fontSize: 32, fontWeight: 700, color: '#F1F1F1' }),
+      txt(p.title ?? "we taught grandma to skate and she is BETTER than us", { fontSize: 32, fontWeight: 700, color: '#F1F1F1' }),
       txt('412K views · 2 days ago · ...more', { fontSize: 24, color: SEC })));
 
   const actionRow = row({ gap: 16, paddingLeft: 24, paddingRight: 24, alignItems: 'center' },
@@ -40,7 +40,7 @@ function youtubeMobile(p: Record<string, string>): El {
     row({ gap: 14, alignItems: 'center' }, txt('Comments', { fontSize: 26, fontWeight: 700, color: '#F1F1F1' }), txt('4.1K', { fontSize: 24, color: SEC })),
     row({ gap: 14, alignItems: 'flex-start' },
       img(AV[3], 48, 48, { borderRadius: 24 }),
-      txt('the way she looks at the camera at 0:04 is genuinely unsettling', { fontSize: 24, color: '#F1F1F1' })));
+      txt('grandma hitting that turn better than people half her age, legend', { fontSize: 24, color: '#F1F1F1' })));
 
   const chip = (label: string, active: boolean) => h('div', { display: 'flex', height: 60, borderRadius: 16, backgroundColor: active ? '#F1F1F1' : CHIP, alignItems: 'center', paddingLeft: 22, paddingRight: 22 },
     txt(label, { fontSize: 24, fontWeight: active ? 700 : 400, color: active ? '#0F0F0F' : '#F1F1F1' }));
@@ -84,7 +84,7 @@ function youtubeDesktop(p: Record<string, string>): El {
         box(34, 24, '#FF0000', { borderRadius: 7, alignItems: 'center', justifyContent: 'center' }, icon('play', 13, '#fff', { fill: true })),
         txt('StreamTube', { fontSize: 20, fontWeight: 700, color: '#F1F1F1', letterSpacing: -1 }))),
     row({ alignItems: 'center' },
-      h('div', { display: 'flex', width: 480, height: 40, borderRadius: '20px 0 0 20px', backgroundColor: '#121212', border: '1px solid #303030', alignItems: 'center', paddingLeft: 16 }, txt('what did she see', { fontSize: 15, color: '#888' })),
+      h('div', { display: 'flex', width: 480, height: 40, borderRadius: '20px 0 0 20px', backgroundColor: '#121212', border: '1px solid #303030', alignItems: 'center', paddingLeft: 16 }, txt('grandma skateboarding', { fontSize: 15, color: '#888' })),
       box(64, 42, '#222', { borderRadius: '0 20px 20px 0', border: '1px solid #303030', alignItems: 'center', justifyContent: 'center' }, icon('search', 18, '#F1F1F1')),
       box(40, 40, CHIP, { borderRadius: 20, marginLeft: 12, alignItems: 'center', justifyContent: 'center' }, icon('mic', 18, '#F1F1F1'))),
     row({ gap: 12, alignItems: 'center' },
@@ -109,8 +109,8 @@ function youtubeDesktop(p: Record<string, string>): El {
       actionPill([icon('more', 20, '#F1F1F1')])));
 
   const description = col({ marginTop: 14, borderRadius: 12, backgroundColor: CHIP, padding: 12, gap: 6 },
-    txt('412,392 views  Jul 1, 2026  #shortfilm #pov', { fontSize: 14, fontWeight: 700, color: '#F1F1F1' }),
-    txt('filmed in one take. she was never supposed to notice the camera. turn the sound on. ...more', { fontSize: 14, color: '#D0D0D0' }));
+    txt('412,392 views  Jul 1, 2026  #wholesome #family', { fontSize: 14, fontWeight: 700, color: '#F1F1F1' }),
+    txt('she asked for ONE lesson. three weeks later she entered a competition. ...more', { fontSize: 14, color: '#D0D0D0' }));
 
   const chip = (label: string, active: boolean) => h('div', { display: 'flex', height: 32, borderRadius: 8, backgroundColor: active ? '#F1F1F1' : CHIP, alignItems: 'center', paddingLeft: 12, paddingRight: 12 },
     txt(label, { fontSize: 13, fontWeight: active ? 700 : 400, color: active ? '#0F0F0F' : '#F1F1F1' }));
@@ -135,7 +135,7 @@ function youtubeDesktop(p: Record<string, string>): El {
     row({ paddingLeft: 24, gap: 24, paddingTop: 8 },
       col({ width: 1280 },
         box(1280, 720, SLOT, { borderRadius: 12 }), // ← slot
-        txt(p.title ?? "he knows you're watching… (don't blink)", { fontSize: 20, fontWeight: 700, color: '#F1F1F1', marginTop: 14 }),
+        txt(p.title ?? "we taught grandma to skate and she is BETTER than us", { fontSize: 20, fontWeight: 700, color: '#F1F1F1', marginTop: 14 }),
         channelRow, description),
       rail));
 }
@@ -219,6 +219,8 @@ export const TEMPLATES: Record<string, Tpl> = {
   'youtube-desktop':  { width: 1920, height: 1080, slotRect: [24, 64, 1280, 720], mode: 'slot', tree: youtubeDesktop },
   'netflix-desktop':  { width: 1920, height: 1080, slotRect: [0, 0, 1920, 1080], mode: 'chrome', tree: netflixDesktop },
   'netflix-mobile':   { width: 1920, height: 1080, slotRect: [0, 0, 1920, 1080], mode: 'chrome', tree: netflixMobile },
+  'facebook-mobile-scroll':  { width: 1080, height: 1920, slotRect: [0, 710, 1080, 560], mode: 'slot', tree: facebookMobileScroll },
+  'instagram-mobile-scroll': { width: 1080, height: 1920, slotRect: [0, 539, 1080, 1080], mode: 'slot', tree: instagramMobileScroll },
   // Back-compat aliases (v2 recipe plans reference these)
   'feed':      { width: 1920, height: 1080, slotRect: [710, 462, 500, 281], mode: 'slot', tree: facebookDesktop },
   'youtube':   { width: 1920, height: 1080, slotRect: [24, 64, 1280, 720], mode: 'slot', tree: youtubeDesktop },

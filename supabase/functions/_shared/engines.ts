@@ -44,9 +44,11 @@ export interface EngineSpec {
   healthy: boolean;
   /** When set, user must hold this entitlement to render. */
   requiresEntitlement?: EntitlementId;
-  /** Surcharge per clip for 4K upscale (Topaz Astra). */
+  /** 4K upscale surcharge (Topaz, ~$0.08/s of output video) in credits
+   *  PER STARTED 10 SECONDS of final film — Topaz bills by video length,
+   *  so a flat fee would go underwater on long films. */
   upscale4kCredits: number;
-  /** Surcharge per clip for 60fps interpolation (RIFE). */
+  /** 60fps interpolation surcharge (RIFE) in credits per started 10s. */
   fps60Credits: number;
   /** Base credit cost for `duration` seconds. Throws on unsupported duration. */
   baseCreditsFor(duration: number): number;
@@ -59,8 +61,9 @@ export function creditsFor(
   opts: QualityOptions = {},
 ): number {
   let cost = spec.baseCreditsFor(duration);
-  if (opts.upscale4k) cost += spec.upscale4kCredits;
-  if (opts.fps60) cost += spec.fps60Credits;
+  const blocks = Math.max(1, Math.ceil(duration / 10)); // per started 10s
+  if (opts.upscale4k) cost += blocks * spec.upscale4kCredits;
+  if (opts.fps60) cost += blocks * spec.fps60Credits;
   return cost;
 }
 
@@ -80,10 +83,10 @@ export const BUNDLED_ADDON_COST_USD = 0.205;   // per-clip share of image + LLM 
 export const CLIP_COST_USD: Record<string, Record<number, number>> = {
   'wan-25':      { 5: 0.60,  10: 1.20, 15: 1.80 },   // Wan 2.7: fal $0.10/s + 20% safety buffer
   'kling-v3':    { 5: 1.68,  10: 3.36,  15: 5.04 },  // Kling 3.0 Pro 1080p $20.16/min (vendor-verified) — was underpriced at $0.269/s
-  'seedance-2':  { 5: 2.692, 10: 5.385, 12: 6.538 },
-  'veo-3':       { 4: 1.923, 6: 2.923,  8: 3.846 },
+  'seedance-2':  { 5: 1.50,  10: 3.00,  12: 3.60 },  // $0.30/s = 2× verified 720p+audio rate ($9.07/min) as 1080p buffer
+  'veo-3':       { 4: 0.72,  6: 1.08,   8: 1.44 },   // Veo 3.1 Fast w/audio: fal $0.15/s + 20% buffer
   'runway-gen4': { 5: 2.0,   10: 4.0 },              // Gen-4.5 (VERIFY vs Replicate billing)
-  'sora-2':      { 4: 2.385, 8: 4.846,  12: 7.231 },
+  'sora-2':      { 4: 1.20,  8: 2.40,   12: 3.60 },  // OpenAI $0.10/s (720p) × 3 buffer for Replicate/1080p uncertainty
 };
 
 /** Credits needed to net ≥TARGET_GROSS_MARGIN on `costUsd` at the credit-value floor. */
@@ -117,8 +120,8 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     supportsAvatar: false,
     etaSeconds: 110,
     healthy: true,
-    upscale4kCredits: 10,
-    fps60Credits: 5,
+    upscale4kCredits: 15,
+    fps60Credits: 2,
     // Priced at Wan 2.7 Replicate compute (~$0.10/s) + ops, marked up 30%.
     // FE/BE parity test in src/test/engines/fe-be-parity.test.ts pins this.
     baseCreditsFor: (d) => clipCredits('wan-25', d),
@@ -139,8 +142,8 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     supportsAvatar: true,
     etaSeconds: 90,
     healthy: true,
-    upscale4kCredits: 10,
-    fps60Credits: 5,
+    upscale4kCredits: 15,
+    fps60Credits: 2,
     baseCreditsFor: (d) => clipCredits('kling-v3', d),
   },
 
@@ -160,8 +163,8 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     supportsAvatar: true,
     etaSeconds: 100,
     healthy: true,
-    upscale4kCredits: 10,
-    fps60Credits: 5,
+    upscale4kCredits: 15,
+    fps60Credits: 2,
     baseCreditsFor: (d) => clipCredits('seedance-2', d),
   },
 
@@ -182,8 +185,8 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     etaSeconds: 120,
     healthy: true,
     requiresEntitlement: 'studio_cinema',
-    upscale4kCredits: 10,
-    fps60Credits: 5,
+    upscale4kCredits: 15,
+    fps60Credits: 2,
     baseCreditsFor: (d) => clipCredits('veo-3', d),
   },
 
@@ -203,8 +206,8 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     etaSeconds: 150,
     healthy: true,
     requiresEntitlement: 'studio_cinema',
-    upscale4kCredits: 10,
-    fps60Credits: 5,
+    upscale4kCredits: 15,
+    fps60Credits: 2,
     baseCreditsFor: (d) => clipCredits('runway-gen4', d),
   },
 
@@ -224,8 +227,8 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     etaSeconds: 360,
     healthy: true,
     requiresEntitlement: 'studio_cinema',
-    upscale4kCredits: 10,
-    fps60Credits: 5,
+    upscale4kCredits: 15,
+    fps60Credits: 2,
     baseCreditsFor: (d) => clipCredits('sora-2', d),
   },
 };

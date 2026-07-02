@@ -36,8 +36,8 @@ describe("credit packages", () => {
     expect(CREDIT_PACKAGES.filter((p) => p.popular)).toHaveLength(1);
   });
 
-  it("approxClips is ~1 clip per 10 credits", () => {
-    expect(approxClips(1000)).toBe(100);
-    expect(approxClips(90)).toBe(9);
+  it("approxClips is ~1 clip per 25 credits (mid-lineup clip after cost-based repricing)", () => {
+    expect(approxClips(1000)).toBe(40);
+    expect(approxClips(100)).toBe(4);
   });
 });

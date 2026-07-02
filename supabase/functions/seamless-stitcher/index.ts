@@ -78,6 +78,7 @@ import {
 } from "../_shared/keyframe-bake.ts";
 import {
   buildSeamlessCommand,
+  effectiveDuration,
   dimensionsForAspect,
   encodeProfileFor,
   xfadeKindFor,
@@ -1170,14 +1171,17 @@ serve(async (req) => {
             const spec = getEngine(backendToEngineId(projectVideoEngine ?? "kling"));
             return { upscale4kCredits: spec.upscale4kCredits, fps60Credits: spec.fps60Credits };
           } catch {
-            return { upscale4kCredits: 10, fps60Credits: 5 }; // canonical fallback
+            return { upscale4kCredits: 15, fps60Credits: 2 }; // canonical fallback (per started 10s)
           }
         })();
+        // Surcharges scale with FILM LENGTH (Topaz bills per second of video).
+        const filmSec = inputs.reduce((acc, i) => acc + effectiveDuration(i), 0);
         // Max the user could owe if BOTH requested cores land. Pre-check the
         // balance so we never spend Replicate compute on a core we can't bill.
         const maxCharge = deliveredSurchargeCredits(
           { upscale4k: !!projectQualityOptions.upscale4k, fps60: !!projectQualityOptions.fps60 },
           surcharge,
+          filmSec,
         );
         let canAfford = true;
         if (maxCharge > 0 && projectUserId) {
@@ -1208,7 +1212,7 @@ serve(async (req) => {
           signed = await persistOutput(supabase, post.url, `${namespaceId}/${contentHash}_${suffix}.mp4`);
         }
 
-        const charge = deliveredSurchargeCredits(post.applied, surcharge);
+        const charge = deliveredSurchargeCredits(post.applied, surcharge, filmSec);
 
         if (charge > 0 && projectUserId) {
           const { data: deductOk, error: deductErr } = await supabase.rpc("deduct_credits", {

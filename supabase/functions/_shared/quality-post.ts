@@ -244,9 +244,14 @@ export function readQualityIntent(editorState: unknown): QualityPostOpts {
 export function deliveredSurchargeCredits(
   applied: { fps60: boolean; upscale4k: boolean },
   surcharge: { fps60Credits: number; upscale4kCredits: number },
+  /** Final film length. Topaz bills ~$0.08 per SECOND of output video, so
+   *  the surcharge scales per started 10s block — a flat fee went underwater
+   *  on long films (60s 4K ≈ $4.80 COGS vs the old flat $0.78 charge). */
+  totalDurationSec: number = 10,
 ): number {
+  const blocks = Math.max(1, Math.ceil(totalDurationSec / 10));
   let credits = 0;
-  if (applied.fps60) credits += surcharge.fps60Credits || 0;
-  if (applied.upscale4k) credits += surcharge.upscale4kCredits || 0;
+  if (applied.fps60) credits += blocks * (surcharge.fps60Credits || 0);
+  if (applied.upscale4k) credits += blocks * (surcharge.upscale4kCredits || 0);
   return credits;
 }

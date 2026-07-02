@@ -32,8 +32,8 @@ export const CREDIT_PACKAGES: readonly CreditPackage[] = [
 ];
 
 export function approxClips(credits: number): number {
-  // Rough guide used across the credit UI (~10 credits ≈ one clip).
-  return Math.round(credits / 10);
+  // Rough guide used across the credit UI (~25 credits ≈ one mid-lineup clip).
+  return Math.round(credits / 25);
 }
 
 /**

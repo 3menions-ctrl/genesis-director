@@ -395,7 +395,7 @@ function StudioContentInner() {
         };
         const qualitySpec = ENGINES[BACKEND_TO_ENGINE_ID[pricingEngine]];
         const qualitySurcharge = qualitySpec
-          ? renderSurchargeCredits(qualitySpec, config.qualityOptions ?? {})
+          ? renderSurchargeCredits(qualitySpec, config.qualityOptions ?? {}, requiredSeconds || 10)
           : 0;
         const requiredCredits = baseCredits + qualitySurcharge;
         if (creditState.available < requiredCredits) {

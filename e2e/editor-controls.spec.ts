@@ -199,7 +199,12 @@ async function closeOpenDialog(page: Page): Promise<boolean> {
     await page.waitForTimeout(120);
     if (await isClosed()) break;
     const x = page.locator('[role="dialog"] [aria-label="Close"]').first();
-    if (await x.count()) await x.click({ force: true }).catch(() => {}); // blockEscClose panels
+    // blockEscClose panels. The timeout is load-bearing: count() can see the
+    // dialog while it's already animating out; the unbounded click then waits
+    // for a detached element until the TEST timeout — this was the whole
+    // intermittent "6-min hang" flake (proven via CI trace: a 357s click on
+    // this exact locator). Bounded, the race costs 2s and the loop re-checks.
+    if (await x.count()) await x.click({ force: true, timeout: 2_000 }).catch(() => {});
     await page.waitForTimeout(200);
   }
   // Wait out the Surface exit animation before declaring closed — BOTH the
@@ -408,7 +413,10 @@ test.describe("Editor — right rail tabs and tools", () => {
     await page.getByRole("tab", { name: /^Tools$/i }).first().click();
     const regen = page.getByText(/Regenerate clip/i).first();
     await expect(regen).toBeVisible();
-    await regen.click().catch(() => {});
+    // Bounded for the same reason as closeOpenDialog's Close click: a
+    // swallowed unbounded click on an element that re-renders away hangs
+    // for the whole test timeout instead of failing the next assertion.
+    await regen.click({ timeout: 5_000 }).catch(() => {});
     // The fix: previously this threw "setTab is not defined". Assert the rail
     // switched to the Inspector tab and nothing was thrown.
     await expect(page.getByRole("tab", { name: /^Inspect$/i }).first()).toHaveAttribute(

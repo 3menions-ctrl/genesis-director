@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
+import { completeLLM } from "../_shared/llm-complete.ts";
 import {
   corsHeaders,
   validateInput,
@@ -119,7 +120,7 @@ interface SmartScriptRequest {
   // 'veo'      → Veo 3 Fast (native audio / physics)
   // 'runway'   → Runway Gen-4 Turbo (character consistency / concise action)
   // 'sora'     → Sora 2 (narrative coherence / longer cinematic beats)
-  videoEngine?: 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
+  videoEngine?: 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
 }
 
 interface SceneClip {
@@ -225,9 +226,13 @@ serve(async (req) => {
     
     console.log("[SmartScript] Request validated, topic:", request.topic.substring(0, 100));
 
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-    if (!OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY is not configured");
+    // LLM provider: OPENAI_API_KEY direct when present, otherwise the
+    // Replicate-hosted model via REPLICATE_API_KEY (always present — it powers
+    // video generation). See _shared/llm-complete.ts. Prod lost its direct LLM
+    // keys in the Lovable migration, which silently degraded EVERY script to
+    // the naive fallback splitter — this ends that failure mode.
+    if (!Deno.env.get("OPENAI_API_KEY") && !Deno.env.get("REPLICATE_API_KEY")) {
+      throw new Error("No LLM provider configured (need OPENAI_API_KEY or REPLICATE_API_KEY)");
     }
 
     // AUTO-DETECT dialogue and narration from user's input
@@ -468,7 +473,16 @@ ${si.allNegatives.slice(0, 10).map((n: string) => `• ${n}`).join('\n')}` : ''}
     //   • Seedance 2.0 → physics-grade motion, lens & camera vocabulary IS interpreted,
     //                    end-frame chaining critical, native 1080p 24fps cinematic
     // ═══════════════════════════════════════════════════════════════════
-    const targetEngine: 'kling' | 'veo' | 'seedance' | 'runway' | 'sora' = request.videoEngine || 'kling';
+    // NO DEFAULT MODEL: the orchestrator always names the engine (post-gate),
+    // and the script dialect below is engine-specific — refusing beats writing
+    // a Kling-shaped script for a Seedance project.
+    const targetEngine = request.videoEngine;
+    if (!targetEngine) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'ENGINE_REQUIRED', message: 'videoEngine is required — scripting is engine-dialect-specific (no default model).' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
     const isSeedance = targetEngine === 'seedance';
     const enginePersona = isSeedance
       ? 'Seedance 2.0 cinematic mode'
@@ -501,6 +515,8 @@ ${si.allNegatives.slice(0, 10).map((n: string) => `• ${n}`).join('\n')}` : ''}
     const systemPrompt = isSeedance ? `You are a master cinematographer writing for SEEDANCE 2.0 (Bytedance) — a physics-grade, 1080p, 24fps cinematic video model that REWARDS technical precision and PUNISHES vague description.
 
 Create ${clipCount} clips (${clipDuration}s each, ${targetSeconds}s total). Every clip must be of EPIC CINEMATIC PROPORTIONS — the kind of shot that wins at Cannes, that opens a Villeneuve film, that lives rent-free in the audience's head.
+
+TONE DNA: Match the concept's natural energy — a playful concept gets precision VISUAL COMEDY (comic timing in the blocking: anticipation → beat → payoff, sight gags, absurd scale contrast played straight); a dramatic concept gets full gravity; a surreal concept escalates with deadpan confidence. Whatever the tone, land at least ONE moment of pure delight per script — a surprise beat or hyper-specific living detail. Fun lives in TIMING, CONTRAST and SPECIFICITY — never in mood adjectives.
 
 ━━━ WHY SEEDANCE IS DIFFERENT (READ CAREFULLY) ━━━
 Unlike other models, Seedance 2.0:
@@ -633,6 +649,14 @@ OUTPUT FORMAT (strict JSON):
 
 YOUR MANDATE: Every clip must be a painting that MOVES. The kind of shot that makes someone stop scrolling and whisper "how is this real." Ruthlessly cinematic. Zero filler.
 ${modelBoundDirectives}
+
+━━━ TONE DNA — READ THE USER'S CONCEPT AND MATCH ITS ENERGY ━━━
+Cinematic ≠ solemn. Diagnose the concept's natural tone and commit to it:
+• PLAYFUL/COMEDIC concept → write VISUAL COMEDY: comic timing in the blocking (anticipation → beat → payoff), sight gags, absurd scale contrasts, deadpan reaction cuts, physics played for laughs (the cat DOES knock it off the shelf). Chaplin/Wes Anderson/Aardman energy — precise, never sloppy.
+• EPIC/DRAMATIC concept → full cinematic gravity (the default below).
+• HEARTWARMING concept → warmth beats grandeur: small human details, imperfect charming moments, earned smiles.
+• WEIRD/SURREAL concept → lean IN. Escalate the strangeness with total straight-faced confidence.
+EVERY script regardless of tone gets at least ONE moment of DELIGHT — a surprise, a wink, a detail so specific it feels alive (a pigeon judging the hero, a reflection doing something impossible, perfect comic timing on a slam). Fun is a craft, not a mood word: it lives in TIMING, CONTRAST, and SPECIFICITY, never in adjectives like "fun" or "quirky".
 
 ━━━ BANNED CONTENT (will break the pipeline) ━━━
 Never use: "intimate moment", "getting intimate", "in bed together", "making love", "having sex", "passionate kiss", "seductive", "sensual", "provocative", "revealing" (clothing), "lingerie", "underwear", "topless", "aroused"
@@ -964,50 +988,39 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
     const gateBlocked = await preflightAiGate(gateCtx);
     if (gateBlocked) return gateBlocked;
 
-    // GPT-4o for maximum cinematographic intelligence and creative richness
-    const response = await fetchWithRetry(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-4o", // Upgraded: Full GPT-4o for Hollywood-grade script quality
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
+    // GPT-4o-class completion for maximum cinematographic intelligence.
+    // Provider-agnostic: direct OpenAI when keyed, Replicate-hosted otherwise.
+    let llmResult: Awaited<ReturnType<typeof completeLLM>> | null = null;
+    let llmError: unknown = null;
+    for (let attempt = 0; attempt < 2 && !llmResult; attempt++) {
+      try {
+        llmResult = await completeLLM({
+          systemPrompt,
+          userPrompt,
           // Seedance scripts are denser (150-220w/clip with structured sections) — give more headroom.
-          max_tokens: isSeedance
+          maxTokens: isSeedance
             ? calculateMaxTokens(clipCount, 800, 4500, 9000)
             : calculateMaxTokens(clipCount, 500, 3000, 6000),
           temperature: isSeedance ? 0.75 : 0.8, // Slightly tighter for technical precision
-          response_format: { type: "json_object" }, // Enforce JSON for reliability
-        }),
-      },
-      { maxRetries: 2, baseDelayMs: 1500 }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("[SmartScript] OpenAI API error after retries:", response.status, errorText);
-      
-      if (response.status === 429) {
-        return errorResponse("Rate limit exceeded after retries. Please try again later.", 429);
+          json: true,
+        });
+      } catch (e) {
+        llmError = e;
+        console.warn(`[SmartScript] LLM attempt ${attempt + 1} failed:`, e instanceof Error ? e.message : String(e));
+        if (attempt === 0) await new Promise((r) => setTimeout(r, 1500));
       }
-      if (response.status === 401) {
-        return errorResponse("Invalid OpenAI API key.", 401);
-      }
-      
-      throw new Error(`OpenAI API error: ${response.status}`);
+    }
+    if (!llmResult) {
+      const msg = llmError instanceof Error ? llmError.message : 'LLM completion failed';
+      console.error('[SmartScript] LLM failed after retries:', msg);
+      if (msg.includes('429')) return errorResponse('Rate limit exceeded after retries. Please try again later.', 429);
+      throw new Error(msg);
     }
 
-    const data = await response.json();
-    const rawContent = data.choices?.[0]?.message?.content || '';
-    
-    console.log("[SmartScript] Raw AI response length:", rawContent.length);
+    const data = { usage: llmResult.usage } as { usage: unknown };
+    const rawContent = llmResult.text || '';
+
+    console.log(`[SmartScript] Raw AI response length: ${rawContent.length} (provider: ${llmResult.provider}, model: ${llmResult.model})`);
 
     // Use JSON recovery to parse the response
     const parseResult = parseJsonWithRecovery<{ clips?: any[] } | any[]>(rawContent);
@@ -1276,7 +1289,7 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
         location: lockFields.locationDescription,
         lighting: lockFields.lightingDescription,
       },
-      model: "gpt-4o",
+      model: llmResult.model,
       generationTimeMs,
       usage: data.usage,
       targetEngine,

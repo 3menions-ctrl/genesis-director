@@ -13,23 +13,27 @@
 // code branch.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { getEngineProfile } from './engine-profiles.ts';
+
 // ─── Engines ────────────────────────────────────────────────────────────────
 // Backend engine keys — these are the ONLY values the spine (generate-single-clip)
 // routes on. Mirror of generate-single-clip:1229.
 export type BackendEngine = 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
 
-// Request-level engine — UI may also send `auto` (→ per-shot router → kling base).
+// Request-level engine. `auto` is a legacy token still accepted at the parse
+// layer for old clients, but it no longer resolves to anything — resolveEngine
+// rejects it (NO DEFAULT MODEL policy).
 export type RequestEngine = BackendEngine | 'auto';
 
-// Live Replicate route labels. Mirror of generate-single-clip:1275 — DO NOT
-// change these slugs; they are audited-live (docs/PIPELINE.md §1).
+// Live Replicate route labels — DERIVED from the engine-profiles registry so
+// the slug is pinned in exactly ONE place (engine-profiles.ts).
 export const ENGINE_ROUTE_LABEL: Record<BackendEngine, string> = {
-  wan:      'wan-video/wan-2.5-t2v',
-  kling:    'kwaivgi/kling-v3-video',
-  seedance: 'bytedance/seedance-2.0',
-  veo:      'google/veo-3-fast',
-  runway:   'runwayml/gen4-turbo',
-  sora:     'openai/sora-2',
+  wan:      getEngineProfile('wan').replicateSlug,
+  kling:    getEngineProfile('kling').replicateSlug,
+  seedance: getEngineProfile('seedance').replicateSlug,
+  veo:      getEngineProfile('veo').replicateSlug,
+  runway:   getEngineProfile('runway').replicateSlug,
+  sora:     getEngineProfile('sora').replicateSlug,
 };
 
 // ─── Modes ──────────────────────────────────────────────────────────────────
@@ -168,28 +172,49 @@ export interface ProductionRequest {
 
 // ─── Resolvers (pure) ───────────────────────────────────────────────────────
 
+/** Thrown when a request reaches the pipeline without an explicit engine.
+ *  NO DEFAULT MODEL policy: users always pick their engine; the only
+ *  server-side engine assignment is a template force (breakout → seedance). */
+export class EngineRequiredError extends Error {
+  readonly code = 'ENGINE_REQUIRED';
+  constructor() {
+    super('Engine selection is required. Pick an engine — there is no default model. (Special templates force their own engine server-side.)');
+    this.name = 'EngineRequiredError';
+  }
+}
+
 // Resolve the backend engine actually used.
 //  - Breakout forces seedance (4th-wall lock; legacy mode-router:385 force).
 //  - An explicit engine wins.
-//  - `auto` falls back to kling (the per-shot router refines per shot inside
-//    the spine; kling is the safe base for the request-level lock).
+//  - Single-pass EFFECT modes (stylize / motion-transfer) never dispatch a
+//    video engine — they run dedicated effect functions. Their plan carries a
+//    nominal 'kling' placeholder (informational: legacy pricing table + logs),
+//    mirroring mode-router's isEffectMode exemption.
+//  - Otherwise `auto` / missing → EngineRequiredError. There is no default
+//    model; the entry gates (mode-router / hollywood-pipeline) turn this
+//    into a 400.
 export function resolveEngine(pr: ProductionRequest): BackendEngine {
   if (pr.breakout?.isBreakout) return 'seedance';
   if (pr.engine && pr.engine !== 'auto') return pr.engine;
-  return 'kling';
+  if (pr.mode === 'video2video' || pr.mode === 'motion-transfer') return 'kling';
+  throw new EngineRequiredError();
 }
 
-// Seedance dispatches its clips as a PARALLEL batch (Promise.allSettled +
-// last_frame_image continuity + post-render audio mux). Every other engine
-// uses the SEQUENTIAL callback-chained loop (native audio per clip).
+// Dispatch mode is a PROFILE FIELD (engine-profiles.ts), not an engine
+// special-case: parallel = Promise.allSettled batch + keyframe-pair continuity
+// + post-render audio mux (seedance today); sequential = callback-chained loop.
 export function resolveDispatchStrategy(engine: BackendEngine): DispatchStrategyKind {
-  return engine === 'seedance' ? 'parallel' : 'sequential';
+  return getEngineProfile(engine).dispatch;
 }
 
-// Audio strategy follows the engine's capability:
-//  - native: kling/veo/sora/runway/wan render audio inline.
-//  - post-mux: seedance has no audio → voice/music muxed post-stitch.
-//  - overlay: avatar TTS overlaid on a no-native-audio engine (seedance avatar).
+// Audio strategy follows the engine profile:
+//  - native: the engine renders audio inline (kling/veo/sora).
+//  - post-mux: no in-clip audio → voice/music muxed post-stitch.
+//  - overlay: avatar TTS overlaid on a post-mux engine (seedance avatar).
+// NOTE: wan/runway are audio:'post-mux' in the profile, but the legacy
+// contract treated every non-seedance engine as 'native' (their silent tracks
+// flow through the same in-clip lane). Preserve that wire behavior here —
+// the stitcher decides what to mux from postProduction flags, not from this.
 export function resolveAudioStrategy(pr: ProductionRequest): AudioStrategy {
   const engine = resolveEngine(pr);
   if (engine === 'seedance') {
@@ -238,6 +263,132 @@ export function resolveShotOperation(
   return 't2v';
 }
 
+// ─── Top-level normalizer ───────────────────────────────────────────────────
+// The single entry every surface's raw payload flows through. `mode-router`
+// calls this once and hands the canonical ProductionRequest down the pipeline,
+// so mode/engine/operation/gate are resolved in ONE place instead of being
+// re-derived per handler. (docs/PIPELINE.md §5 "One canonical request" / §6
+// Stage 1.) Pure + side-effect-free.
+
+/** The grab-bag of fields the legacy mode-router request carries. */
+export interface NormalizerInput {
+  mode?: string | null;
+  prompt?: string | null;
+  imageUrl?: string | null;
+  referenceImageUrl?: string | null;
+  avatarImageUrl?: string | null;
+  videoUrl?: string | null;
+  stylePreset?: string | null;
+  voiceId?: string | null;
+  aspectRatio?: string | null;
+  clipCount?: number | null;
+  clipDuration?: number | null;
+  enableNarration?: boolean | null;
+  enableMusic?: boolean | null;
+  isBreakout?: boolean | null;
+  breakoutPlatform?: string | null;
+  videoEngine?: string | null;
+  qualityOptions?: { upscale4k?: boolean; fps60?: boolean; autoRetake?: boolean } | null;
+  autoApprove?: boolean | null;
+  cinematicMode?: boolean | null;
+  avatarType?: string | null;
+  templateSlug?: string | null;
+  crossoverTemplateSlug?: string | null;
+  concept?: string | null;
+  sceneDescription?: string | null;
+}
+
+export interface NormalizerCtx {
+  userId?: string;
+  projectId?: string;
+}
+
+// Overrides main's minimal builder accepted — kept for golden-plan callers.
+export interface NormalizerOverrides {
+  isAvatarMode?: boolean;
+  /** Whether the flow generates a script (cinematic) vs runs verbatim/effect. */
+  hasScript?: boolean;
+}
+
+const KNOWN_ENGINES: readonly BackendEngine[] = ['wan', 'kling', 'veo', 'seedance', 'runway', 'sora'];
+
+function normalizeEngine(raw: string | null | undefined): RequestEngine {
+  if (!raw || raw === 'auto') return 'auto';
+  return KNOWN_ENGINES.includes(raw as BackendEngine) ? (raw as RequestEngine) : 'auto';
+}
+
+export function buildProductionRequest(raw: NormalizerInput & NormalizerOverrides, ctx: NormalizerCtx = {}): ProductionRequest {
+  const mode = normalizeMode(raw.mode);
+  const isBreakout = !!raw.isBreakout;
+  // pr.engine is the REQUESTED engine. The breakout→seedance force is applied
+  // by resolveEngine() — keeping request vs effective engine distinct so
+  // resolveHandlerKey can key on the raw request (legacy-switch parity).
+  const engine: RequestEngine = normalizeEngine(raw.videoEngine);
+
+  // script.generate is SERVER-DERIVED from the mode (never a client flag — this
+  // is what makes the gate fail-closed):
+  //  • video2video / motion-transfer → scriptless single-pass effects
+  //  • avatar: CINEMATIC (videoEngine==='seedance') generates a script;
+  //    verbatim avatar-direct does NOT (preserve the user's exact TTS words)
+  //  • text / image / broll → generate
+  const isCinematicAvatar = mode === 'avatar' && raw.videoEngine === 'seedance';
+  const scriptGenerate = raw.hasScript ??
+    (mode === 'video2video' || mode === 'motion-transfer'
+      ? false
+      : mode === 'avatar'
+        ? isCinematicAvatar
+        : true);
+
+  const imageRef = raw.referenceImageUrl ?? raw.imageUrl ?? null;
+  const avatarRef = raw.avatarImageUrl ?? (mode === 'avatar' ? raw.imageUrl ?? null : null);
+
+  return {
+    mode,
+    engine,
+    inputs: {
+      prompt: raw.prompt ?? null,
+      imageRef: mode === 'avatar' ? null : imageRef,
+      sourceVideo: raw.videoUrl ?? null,
+      targetImage: mode === 'motion-transfer' ? raw.imageUrl ?? null : null,
+      avatarRef,
+    },
+    script: {
+      generate: scriptGenerate,
+      preserveUserContent: mode === 'avatar' && !isCinematicAvatar, // verbatim TTS guard
+    },
+    continuity: {
+      carryFrame: true,
+      identityLock: 'loose',
+    },
+    format: {
+      aspect: raw.aspectRatio ?? '16:9',
+      clips: raw.clipCount ?? undefined,
+      duration: raw.clipDuration ?? undefined,
+      quality: {
+        upscale4k: !!raw.qualityOptions?.upscale4k,
+        fps60: !!raw.qualityOptions?.fps60,
+      },
+    },
+    audio: {
+      narration: raw.enableNarration ?? true,
+      music: raw.enableMusic ?? false,
+      voiceId: raw.voiceId ?? null,
+    },
+    breakout: { isBreakout, platform: raw.breakoutPlatform ?? null },
+    gate: {
+      requireApproval: true, // FAIL-CLOSED default (docs/PIPELINE.md §5)
+      autoApprove: raw.autoApprove === true ? true : undefined, // trusted opt-out only
+    },
+    isAvatarMode: raw.isAvatarMode ?? (mode === 'avatar'),
+    cinematicMode: isCinematicAvatar || (raw.cinematicMode ?? undefined),
+    avatarType: raw.avatarType ?? null,
+    templateSlug: raw.templateSlug ?? raw.crossoverTemplateSlug ?? null,
+    concept: raw.concept ?? null,
+    projectId: ctx.projectId,
+    userId: ctx.userId,
+  };
+}
+
 // ─── HANDLER_COLLAPSE assertion table ───────────────────────────────────────
 // Compile-time documentation: which legacy handler each (mode, engine) tuple
 // collapses into, and the resolved data fields. Used by the unit test to
@@ -276,41 +427,10 @@ export const HANDLER_COLLAPSE: Record<string, HandlerCollapseRow> = {
 
 export type HandlerKey = keyof typeof HANDLER_COLLAPSE;
 
-// ─── Builder + dispatch resolver (the keystone that ACTIVATES the normalizer) ──
-// mode-router builds a canonical ProductionRequest from its raw entry fields,
-// then resolveHandlerKey() decides which handler runs. This replaces the raw
-// `switch (mode)` selection with a single normalizer-owned decision (docs/PIPELINE.md).
-// Kept minimal for the handler-selection cutover; later phases fold each mode's
-// execution into the unified clip-loop and populate the full stage fields.
-
-export function buildProductionRequest(raw: {
-  mode?: string | null;
-  videoEngine?: string | null;
-  isBreakout?: boolean;
-  isAvatarMode?: boolean;
-  /** Whether the flow generates a script (cinematic) vs runs verbatim/effect. */
-  hasScript?: boolean;
-}): ProductionRequest {
-  const mode = normalizeMode(raw.mode);
-  const engine: RequestEngine = (raw.videoEngine as RequestEngine) || 'auto';
-  const isAvatar = raw.isAvatarMode ?? (mode === 'avatar');
-  // Avatar CINEMATIC (script-driven, hollywood clip-loop) vs DIRECT (verbatim
-  // single-pass) is keyed on the seedance engine in the legacy router.
-  const scriptGenerate = raw.hasScript ??
-    (mode === 'avatar' ? (raw.isBreakout || engine === 'seedance') : (mode !== 'video2video' && mode !== 'motion-transfer'));
-  return {
-    mode,
-    engine,
-    inputs: {} as ProductionInputs,
-    script: { generate: scriptGenerate } as ProductionScript,
-    continuity: {} as ProductionContinuity,
-    format: {} as ProductionFormat,
-    audio: {} as ProductionAudio,
-    breakout: { isBreakout: !!raw.isBreakout } as ProductionBreakout,
-    gate: {} as ProductionGate,
-    isAvatarMode: isAvatar,
-  };
-}
+// ─── Dispatch resolver (the keystone that ACTIVATES the normalizer) ──────────
+// mode-router builds a canonical ProductionRequest via buildProductionRequest
+// (the full normalizer above), then resolveHandlerKey() decides which handler
+// runs — replacing the raw `switch (mode)` selection (docs/PIPELINE.md).
 
 // Single source of truth for which legacy handler runs. EXACTLY reproduces the
 // mode-router switch: avatar cinematic-vs-direct keys on the (breakout-forced)

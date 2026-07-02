@@ -31,6 +31,7 @@ import {
   checkAndRecoverStaleMutex,
   runPreGenerationChecks,
 } from "../_shared/pipeline-guard-rails.ts";
+import { SEEDANCE_REFERENCE_CONDITIONING } from "../_shared/engine-profiles.ts";
 
 // ─────────────────────────────────────────────────────────────────────
 // Per-engine prompt optimizers — each model rewards a different prompt
@@ -74,6 +75,12 @@ function tuneForEngine(
          // Strip dialogue/lip-sync/audio directives — Seedance can't voice them.
          .replace(/\[(LIP-SYNC|AUDIO|DIALOGUE|VOICE|SOUND)\][^\n]*/gi, '')
          .replace(/\b(lip[- ]sync|mouth shapes precisely match[^.]*\.|spoken dialogue|natural diegetic sound|ambient room tone)\b/gi, '')
+         // Vendor guidance (BytePlus ModelArk Seedance guide, 2026-06): the
+         // model's support for explicit per-segment second-marks ("0-3
+         // seconds", "at 5s") is UNSTABLE and causes abnormal outputs — strip
+         // any timing annotations the director may have emitted.
+         .replace(/\b(?:at\s+)?\d{1,2}\s*(?:-|–|to)\s*\d{1,2}\s*s(?:ec(?:ond)?s?)?\b/gi, '')
+         .replace(/\(\s*\d{1,2}\s*s(?:ec(?:ond)?s?)?\s*\)/gi, '')
          .replace(/\s{2,}/g, ' ').trim();
     if (!has(/\bphysics|inertia|specular|subsurface\b/i)) {
       p += `\n\nMotion: fluid hyperreal physics, weight and inertia honored. Lighting: photographic, motivated, believable specular highlights and skin subsurface scattering. Texture: filmic grain, no plastic CGI sheen.`;
@@ -330,24 +337,40 @@ async function createWan25Prediction(
   // Wan 2.5: durations 5s or 10s — snap to nearest.
   const duration = durationSeconds <= 7 ? 5 : 10;
 
-  // wan-video/wan-2.5-t2v takes `size` (WIDTH*HEIGHT), NOT `aspect_ratio`.
+  // FRAME CHAINING FIX: wan-2.5-t2v is TEXT-ONLY — its schema has no `image`
+  // field at all, so the previous code's `input.image` never reached the
+  // model and every chained Wan clip re-rolled the subject from scratch
+  // ("two different kites"). Chained clips must route to the separate
+  // wan-video/wan-2.5-i2v model, which takes `image` + `resolution`.
+  const isI2V = !!(startImageUrl && startImageUrl.startsWith("http"));
+
+  // t2v takes `size` (WIDTH*HEIGHT); i2v takes `resolution` and derives
+  // aspect from the input image (the chained frame already has the right AR).
   const wanSize = aspectRatio === '9:16' ? '720*1280'
     : aspectRatio === '1:1' ? '960*960'
     : '1280*720';
 
-  const input: Record<string, any> = {
-    prompt: prompt.slice(0, 2500),
-    duration,
-    size: wanSize,
-    seed: Math.floor(Math.random() * 2147483647),
-  };
-  if (startImageUrl && startImageUrl.startsWith("http")) {
-    input.image = startImageUrl;
-  }
+  const input: Record<string, any> = isI2V
+    ? {
+        prompt: prompt.slice(0, 2500),
+        image: startImageUrl,
+        duration,
+        resolution: "720p",
+        seed: Math.floor(Math.random() * 2147483647),
+      }
+    : {
+        prompt: prompt.slice(0, 2500),
+        duration,
+        size: wanSize,
+        seed: Math.floor(Math.random() * 2147483647),
+      };
 
-  const mode = startImageUrl ? "I2V" : "T2V";
+  const mode = isI2V ? "I2V" : "T2V";
+  const wanModelUrl = isI2V
+    ? `https://api.replicate.com/v1/models/${WAN_MODEL_OWNER}/wan-2.5-i2v/predictions`
+    : WAN_MODEL_URL;
   console.log(`[SingleClip][Wan25] Creating ${mode} prediction:`, {
-    model: `${WAN_MODEL_OWNER}/${WAN_MODEL_NAME}`,
+    model: isI2V ? `${WAN_MODEL_OWNER}/wan-2.5-i2v` : `${WAN_MODEL_OWNER}/${WAN_MODEL_NAME}`,
     duration, aspectRatio, hasStartImage: !!input.image, promptLength: prompt.length,
   });
 
@@ -359,7 +382,7 @@ async function createWan25Prediction(
     requestBody.webhook_events_filter = ["completed"];
   }
 
-  const response = await fetch(WAN_MODEL_URL, {
+  const response = await fetch(wanModelUrl, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${REPLICATE_API_KEY}`,
@@ -388,6 +411,7 @@ async function createSeedancePrediction(
   durationSeconds: number = DEFAULT_CLIP_DURATION,
   endImageUrl?: string | null,
   cameraFixed: boolean = false,
+  identityReferenceImages?: string[] | null,
 ): Promise<{ predictionId: string }> {
   const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
   if (!REPLICATE_API_KEY) {
@@ -418,6 +442,20 @@ async function createSeedancePrediction(
     if (endImageUrl && endImageUrl.startsWith("http") && endImageUrl !== startImageUrl) {
       input.last_frame_image = endImageUrl;
     }
+  }
+
+  // CONTINUITY V2 — persistent global identity anchor (attention-sink
+  // principle, Rolling Forcing/StreamingT2V): condition EVERY clip on the
+  // SAME character references instead of relying only on frame-to-frame
+  // handoff, which structurally accumulates drift. Seedance 2.0 documents up
+  // to 9 reference images (headshot + full-body preferred; multi-view sheets
+  // explicitly discouraged — the model reads angles as different people).
+  // GATED until the Replicate packaging is verified live (needs credits).
+  if (SEEDANCE_REFERENCE_CONDITIONING && identityReferenceImages?.length) {
+    const refs = identityReferenceImages
+      .filter((u) => typeof u === "string" && u.startsWith("http"))
+      .slice(0, 9);
+    if (refs.length) input.reference_images = refs;
   }
 
   const mode = startImageUrl
@@ -1144,7 +1182,7 @@ serve(async (req) => {
       sceneImageUrl,
       endImageUrl, // Optional target end-frame (Seedance 2.0 only)
       cameraFixed = false, // Lock the virtual camera (Seedance) — breakout/identity-lock
-      videoEngine: rawVideoEngine = "kling",
+      videoEngine: rawVideoEngine, // NO DEFAULT MODEL — body engine or DB lock required (checked below)
       isAvatarMode: isAvatarModeFlag = false, // Explicit flag — do NOT derive from videoEngine
       // Optional credit reservation handle. When present, we'll consume it on
       // successful prediction creation and release it on any failure path so
@@ -1240,7 +1278,7 @@ serve(async (req) => {
     // Rule: the project's persisted `movie_projects.video_engine` ALWAYS wins.
     // The body param is only a hint and can never override the DB lock.
     type BackendEngine = 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
-    let videoEngine: BackendEngine = rawVideoEngine as BackendEngine;
+    let videoEngine: BackendEngine | undefined = rawVideoEngine as BackendEngine | undefined;
     try {
       const { data: projRow } = await supabase
         .from('movie_projects')
@@ -1282,6 +1320,22 @@ serve(async (req) => {
       console.warn(`[SingleClip] ⚠️ Engine lookup failed (using body value "${rawVideoEngine}"):`, engineLookupErr);
     }
     console.log(`[SingleClip] 🎬 ENGINE RECEIVED: rawVideoEngine=${rawVideoEngine}, isAvatarMode=${isAvatarModeFlag}, projectId=${projectId}`);
+
+    // ═══ NO DEFAULT MODEL ═══ Neither the body nor the DB lock produced an
+    // engine — refuse rather than silently decaying to Kling. Every project
+    // created via mode-router persists video_engine, so this only fires on a
+    // genuinely malformed invocation.
+    if (!videoEngine) {
+      await releaseHold('ENGINE_REQUIRED');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'ENGINE_REQUIRED',
+          message: 'No videoEngine in request body and no persisted video_engine on the project — there is no default model.',
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
     if (videoEngine === 'seedance' && isAvatarModeFlag) {
       console.log(`[SingleClip] 🎭 Avatar mode + Seedance: visuals via Seedance, TTS audio overlaid in post-stitch`);
     }
@@ -1638,6 +1692,14 @@ serve(async (req) => {
           if (imageCheckResponse.ok) {
             validatedStartImage = imageToValidate;
             console.log(`[SingleClip] ✓ Start image validated: ${imageToValidate.substring(0, 60)}...`);
+          } else {
+            // CHAIN-BREAK FIX: a non-OK HEAD (some CDNs 400/405 on HEAD) used
+            // to SILENTLY drop the frame — the clip rendered as pure T2V and
+            // the subject re-rolled ("two different kites"), with nothing in
+            // the output to say why. Use the frame anyway: if it's truly dead
+            // the provider fails loudly and the retry machinery engages.
+            console.warn(`[SingleClip] ⚠️ Start image HEAD returned ${imageCheckResponse.status} — using anyway (loud beats a silently broken chain)`);
+            validatedStartImage = imageToValidate;
           }
         } catch (urlError) {
           console.warn(`[SingleClip] ⚠️ Failed to HEAD check start image, using anyway`);
@@ -1755,6 +1817,8 @@ serve(async (req) => {
         durationSeconds,
         endImageUrl, // Optional Seedance-only end-frame target
         cameraFixed, // Locked camera for breakout / identity-lock shots
+        // Global identity anchor: the SAME reference on every clip (flag-gated).
+        referenceImageUrl ? [referenceImageUrl] : null,
       );
       predictionId = seedanceResult.predictionId;
     } else if (videoEngine === 'runway') {
@@ -1878,7 +1942,7 @@ serve(async (req) => {
             // extractedCharacters, masterSceneAnchor, goldenFrameData, accumulatedAnchors,
             // and sceneImageLookup — forcing continue-production into fragile DB fallbacks.
             pipelineContext: pipelineContext || {
-              videoEngine: videoEngine || 'kling',
+              videoEngine,
               isAvatarMode,
               identityBible,
               faceLock,
@@ -2169,7 +2233,8 @@ serve(async (req) => {
       ...pipelineContext,
       // CRITICAL: Always explicitly carry videoEngine so it survives all callback hops.
       // Do NOT rely solely on spread — the interface may strip unknown keys during parsing.
-      videoEngine: videoEngine || pipelineContext?.videoEngine || 'kling',
+      // (videoEngine is guaranteed by the ENGINE_REQUIRED gate — no kling fallback.)
+      videoEngine,
       accumulatedAnchors: [
         ...(pipelineContext?.accumulatedAnchors || []),
         {

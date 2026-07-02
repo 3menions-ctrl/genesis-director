@@ -61,6 +61,20 @@ export interface StitchInput {
   fadeOutSec?: number;
   /** Per-clip playback speed multiplier. 1.0 = real-time. */
   speed?: number;
+  /** JOIN TRIM (continuity v2): drop this many seconds from the clip's HEAD
+   *  before joining. Vendor recipe for frame-chained boundaries: the first
+   *  frame of a chained clip duplicates the previous clip's handoff frame —
+   *  trim 1 frame (1/30s) so the join doesn't stutter. */
+  trimStartSec?: number;
+  /** JOIN TRIM: drop this many seconds from the clip's TAIL. Vendor recipe:
+   *  6 frames (0.2s) — generation quality decays into the last frames of a
+   *  chained segment, and the next clip re-renders that instant anyway. */
+  trimEndSec?: number;
+}
+
+/** Post-trim playable duration of an input — all offset/fade math uses this. */
+export function effectiveDuration(inp: StitchInput): number {
+  return Math.max(0.1, inp.duration - (inp.trimStartSec ?? 0) - (inp.trimEndSec ?? 0));
 }
 
 /** Round a number to millisecond precision so the produced FFmpeg
@@ -156,7 +170,10 @@ export function xfadeKindFor(kind: string | undefined, fallback: string): string
     "vertopen", "vertclose", "horzopen", "horzclose", "pixelize",
   ]);
   if (allow.has(k)) return k;
-  if (k === "cut" || k === "hardcut") return "fade";
+  // Real hard cut — handled as a concat join (no xfade) in the chain builder.
+  // (Previously mapped to "fade", which BLURRED matched-frame chained
+  // boundaries instead of cutting cleanly on them.)
+  if (k === "cut" || k === "hardcut") return "cut";
   if (k === "crossfade") return "fade";
   return fallback;
 }
@@ -240,6 +257,16 @@ export function buildSeamlessCommand({
     const cf = (inputs[i].colorFilter ?? "").trim();
     const efx = (inputs[i].effectChain ?? "").trim();
     const gradeStage = cf ? `${cf},` : "";
+    // JOIN TRIM: drop head/tail seconds BEFORE any other processing so every
+    // downstream stage (speed, fades, xfade offsets) sees the trimmed clip.
+    const tS = round(inputs[i].trimStartSec ?? 0);
+    const tE = round(inputs[i].trimEndSec ?? 0);
+    const trimVStage = (tS > 0 || tE > 0)
+      ? `trim=start=${tS}:end=${round(inputs[i].duration - tE)},setpts=PTS-STARTPTS,`
+      : "";
+    const trimAStage = (tS > 0 || tE > 0)
+      ? `atrim=start=${tS}:end=${round(inputs[i].duration - tE)},asetpts=PTS-STARTPTS,`
+      : "";
     const sp = inputs[i].speed ?? 1;
     const speedVStage = sp !== 1 ? `setpts=PTS/${sp.toFixed(4)},` : "";
     const atempoStages: string[] = [];
@@ -252,7 +279,7 @@ export function buildSeamlessCommand({
     const audioSpeedChain = atempoStages.length ? `,${atempoStages.join(",")}` : "";
     const fIn = inputs[i].fadeInSec ?? 0;
     const fOut = inputs[i].fadeOutSec ?? 0;
-    const effDur = inputs[i].duration;
+    const effDur = effectiveDuration(inputs[i]);
     const fadeVStage = (() => {
       const parts: string[] = [];
       if (fIn > 0.001) parts.push(`fade=t=in:st=0:d=${round(fIn)}`);
@@ -279,7 +306,7 @@ export function buildSeamlessCommand({
 
     if (efx) {
       normalizeChunks.push(
-        `[${i}:v]${speedVStage}scale=${outW}:${outH}:force_original_aspect_ratio=decrease,` +
+        `[${i}:v]${trimVStage}${speedVStage}scale=${outW}:${outH}:force_original_aspect_ratio=decrease,` +
         `pad=${outW}:${outH}:(ow-iw)/2:(oh-ih)/2:` +
         `setsar=${TARGET_SAR},fps=${TARGET_FPS},` +
         `${gradeStage}` +
@@ -295,7 +322,7 @@ export function buildSeamlessCommand({
       );
     } else {
       normalizeChunks.push(
-        `[${i}:v]${speedVStage}scale=${outW}:${outH}:force_original_aspect_ratio=decrease,` +
+        `[${i}:v]${trimVStage}${speedVStage}scale=${outW}:${outH}:force_original_aspect_ratio=decrease,` +
         `pad=${outW}:${outH}:(ow-iw)/2:(oh-ih)/2:color=black,` +
         `setsar=${TARGET_SAR},fps=${TARGET_FPS},` +
         `${gradeStage}` +
@@ -308,19 +335,21 @@ export function buildSeamlessCommand({
 
     const af = (inputs[i].audioFilter ?? "").trim();
     const mixStage = af ? `,${af}` : "";
-    const clipDur = inputs[i].duration;
+    const clipDur = effectiveDuration(inputs[i]);
     const fadeDur = 0.005;
     const fadeOutStart = Math.max(0, round(clipDur - fadeDur));
     const microFades = `,afade=t=in:st=0:d=${fadeDur},afade=t=out:st=${fadeOutStart}:d=${fadeDur}`;
     if (silentAudio) {
       // Input has no audio stream — synthesize silence of the clip's
-      // duration so the downstream acrossfade/mix graph is untouched.
+      // (post-trim) duration so the downstream acrossfade/mix graph is
+      // untouched. clipDur is effectiveDuration(), so join-trim stays
+      // in sync for silent inputs too.
       normalizeChunks.push(
         `anullsrc=r=${TARGET_SAMPLE_RATE}:cl=${TARGET_CHANNELS}:d=${clipDur}[a${i}]`,
       );
     } else {
       normalizeChunks.push(
-        `[${i}:a]aresample=${TARGET_SAMPLE_RATE},aformat=sample_fmts=fltp:channel_layouts=${TARGET_CHANNELS}${audioSpeedChain}${microFades}${fadeAfStage}${mixStage}${aKfStage}[a${i}]`,
+        `[${i}:a]${trimAStage}aresample=${TARGET_SAMPLE_RATE},aformat=sample_fmts=fltp:channel_layouts=${TARGET_CHANNELS}${audioSpeedChain}${microFades}${fadeAfStage}${mixStage}${aKfStage}[a${i}]`,
       );
     }
   }
@@ -333,29 +362,41 @@ export function buildSeamlessCommand({
   // the bug fix here: the original used a `runningDuration` name that
   // was never declared, throwing ReferenceError once execution reached
   // the end of the function.
-  let cumulative = inputs[0].duration;
+  let cumulative = effectiveDuration(inputs[0]);
   let sumXPrev = 0;
 
   for (let k = 0; k < n - 1; k++) {
     const boundary = perBoundaryTransitions?.[k];
     const Tk = boundary?.kind ?? T;
-    const Xreq = boundary?.durationSec ?? X;
-    const minAdjacent = Math.min(inputs[k].duration, inputs[k + 1].duration);
-    const Xk = round(Math.max(0.05, Math.min(Xreq, minAdjacent - 0.05)));
-    const offset = round(cumulative - sumXPrev - Xk);
     const inA = k === 0 ? "v0" : `vx${k - 1}`;
     const inB = `v${k + 1}`;
     const outLabel = `vx${k}`;
-    videoChain.push(
-      `[${inA}][${inB}]xfade=transition=${Tk}:duration=${Xk}:offset=${offset}[${outLabel}]`,
-    );
     const inAa = k === 0 ? "a0" : `ax${k - 1}`;
     const inBa = `a${k + 1}`;
     const outLabelA = `ax${k}`;
+
+    if (Tk === "cut") {
+      // HARD CUT (continuity v2): frame-chained boundaries join on a matched
+      // frame — a crossfade would BLEND two near-identical frames and render
+      // any residual mismatch as ghosting. Concat cuts cleanly; the per-clip
+      // 5ms audio micro-fades already prevent clicks. Consumes no overlap.
+      videoChain.push(`[${inA}][${inB}]concat=n=2:v=1:a=0[${outLabel}]`);
+      audioChain.push(`[${inAa}][${inBa}]concat=n=2:v=0:a=1[${outLabelA}]`);
+      cumulative += effectiveDuration(inputs[k + 1]);
+      continue;
+    }
+
+    const Xreq = boundary?.durationSec ?? X;
+    const minAdjacent = Math.min(effectiveDuration(inputs[k]), effectiveDuration(inputs[k + 1]));
+    const Xk = round(Math.max(0.05, Math.min(Xreq, minAdjacent - 0.05)));
+    const offset = round(cumulative - sumXPrev - Xk);
+    videoChain.push(
+      `[${inA}][${inB}]xfade=transition=${Tk}:duration=${Xk}:offset=${offset}[${outLabel}]`,
+    );
     audioChain.push(
       `[${inAa}][${inBa}]acrossfade=d=${Xk}:c1=tri:c2=tri[${outLabelA}]`,
     );
-    cumulative += inputs[k + 1].duration;
+    cumulative += effectiveDuration(inputs[k + 1]);
     sumXPrev += Xk;
   }
 

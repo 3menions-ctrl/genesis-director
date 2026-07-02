@@ -190,7 +190,8 @@ const TrainingContent = memo(function TrainingContent() {
   const [selectedScene, setSelectedScene] = useState<string>("home_studio");
 
   // ── Settings ─────────────────────────────────────────────────────
-  const [videoEngine, setVideoEngine] = useState<"kling" | "seedance">("kling");
+  // NO DEFAULT MODEL — the presenter engine must be an explicit user pick.
+  const [videoEngine, setVideoEngine] = useState<"kling" | "seedance" | null>(null);
   const [targetDuration, setTargetDuration] = useState<number | null>(null);
   const [characterLockStrict, setCharacterLockStrict] = useState(true);
   const [aspectRatio, setAspectRatio] = useState<"16:9" | "9:16" | "1:1">("16:9");
@@ -226,9 +227,9 @@ const TrainingContent = memo(function TrainingContent() {
   const speechEstimateSec = activeVoice ? estimateSpeechSec(wordCount, activeVoice.pacing) : 0;
   const finalDuration = targetDuration ?? Math.min(Math.ceil(scriptText.length / 15), 10);
 
-  // Cost + ETA preview
-  const estimatedCredits = ENGINE_CREDITS_PER_CLIP[videoEngine] * clipCount;
-  const estimatedEtaSec = ENGINE_ETA_SEC_PER_CLIP[videoEngine] * clipCount;
+  // Cost + ETA preview (no engine picked → no quote)
+  const estimatedCredits = videoEngine ? ENGINE_CREDITS_PER_CLIP[videoEngine] * clipCount : 0;
+  const estimatedEtaSec = videoEngine ? ENGINE_ETA_SEC_PER_CLIP[videoEngine] * clipCount : 0;
 
   const isStepComplete = (i: number) => {
     if (i === 0) return scriptText.trim().length > 0;
@@ -238,7 +239,7 @@ const TrainingContent = memo(function TrainingContent() {
     return false;
   };
   const isGenerating = ["generating_audio", "generating_video", "applying_lipsync"].includes(generationStep);
-  const canGenerate = effectiveCharacterImage && scriptText.trim() && !isGenerating;
+  const canGenerate = !!videoEngine && effectiveCharacterImage && scriptText.trim() && !isGenerating;
 
   // ── Voice preview playback (preserves existing logic) ───────────
   const handleVoicePreview = useCallback(async (voiceId: string) => {
@@ -334,6 +335,10 @@ const TrainingContent = memo(function TrainingContent() {
 
   // ── GENERATION (preserved verbatim from old TrainingVideo.tsx) ─
   const handleGenerate = async () => {
+    if (!videoEngine) {
+      toast.error("Pick an engine first — there is no default model.");
+      return;
+    }
     if (!effectiveCharacterImage || !scriptText.trim()) {
       toast.error("Please select a character and enter script text");
       return;
@@ -758,7 +763,7 @@ const TrainingContent = memo(function TrainingContent() {
               <div>
                 <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-foreground/40">Engine</div>
                 <div className="text-[14px] font-medium text-foreground/95 mt-0.5">
-                  {videoEngine === "kling" ? "Kling V3" : "Seedance 2"}
+                  {videoEngine === "kling" ? "Kling V3" : videoEngine === "seedance" ? "Seedance 2" : "Pick an engine"}
                 </div>
               </div>
               <div>

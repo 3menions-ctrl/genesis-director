@@ -330,7 +330,7 @@ function StudioContentInner() {
       templateStyleAnchor?: unknown;
       templateCharacters?: unknown[];
       templateEnvironmentLock?: unknown;
-      videoEngine?: "wan" | "kling" | "veo" | "seedance" | "sora";
+      videoEngine?: "wan" | "kling" | "veo" | "seedance" | "runway" | "sora";
       qualityOptions?: { upscale4k?: boolean; fps60?: boolean };
     }) => {
       if (!user) {
@@ -372,10 +372,20 @@ function StudioContentInner() {
               { length: config.clipCount },
               () => config.clipDuration,
             );
-        const baseCredits = calculateCreditsForDurations(
-          durations,
-          (config.videoEngine || "kling") as VideoEngine,
-        );
+        // NO DEFAULT MODEL: video modes must carry an explicit engine (the
+        // creation UIs gate on it; this is the belt-and-braces check). The only
+        // engine-less requests allowed through are breakouts (server forces
+        // seedance) and single-pass effects (no video engine — priced on the
+        // legacy kling placeholder table, mirroring mode-router).
+        const isEffectMode =
+          config.mode === "video-to-video" || config.mode === "motion-transfer";
+        if (!config.videoEngine && !config.isBreakout && !isEffectMode) {
+          toast.error("Pick an engine first — there is no default model.");
+          return;
+        }
+        const pricingEngine = (config.videoEngine ??
+          (config.isBreakout ? "seedance" : "kling")) as VideoEngine;
+        const baseCredits = calculateCreditsForDurations(durations, pricingEngine);
         // Quality cores (4K / 60fps) are charged ONCE on the final film
         // (charge-on-delivery at the finalizer). Include them in the gate so
         // the user holds enough for the surcharge they'll be billed.
@@ -383,7 +393,7 @@ function StudioContentInner() {
           wan: "wan-25", kling: "kling-v3", seedance: "seedance-2",
           veo: "veo-3", runway: "runway-gen4", sora: "sora-2",
         };
-        const qualitySpec = ENGINES[BACKEND_TO_ENGINE_ID[config.videoEngine || "kling"] ?? "kling-v3"];
+        const qualitySpec = ENGINES[BACKEND_TO_ENGINE_ID[pricingEngine]];
         const qualitySurcharge = qualitySpec
           ? renderSurchargeCredits(qualitySpec, config.qualityOptions ?? {})
           : 0;

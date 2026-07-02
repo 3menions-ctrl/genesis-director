@@ -20,6 +20,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import type { BackendEngine } from "../../_shared/production-request.ts";
+import { getEngineProfile } from "../../_shared/engine-profiles.ts";
 import { acquireGenerationLock, releaseGenerationLock } from "../../_shared/generation-mutex.ts";
 
 export type DispatchKind = "sequential" | "parallel";
@@ -29,26 +30,29 @@ export interface EngineDispatchProfile {
   kind: DispatchKind;
   // Native audio in-clip? (false → post-mux). Mirrors resolveAudioStrategy.
   nativeAudio: boolean;
-  // Seedance-only: target end-frame interpolation (last_frame_image).
+  // End-frame interpolation target (last_frame_image). Profile-driven.
   endFrameInterp: boolean;
 }
 
-// Pure selector — strategy is a deterministic function of the resolved engine,
-// so a RESUMED project (engine-lock recovered before this call) picks the same
-// strategy every time. Regression mitigation #11.
+// Pure selector — strategy is a deterministic function of the resolved engine
+// PROFILE (engine-profiles.ts), so a RESUMED project (engine-lock recovered
+// before this call) picks the same strategy every time, and engine #7 is a
+// registry row — not a new branch here. Regression mitigation #11.
 export function selectDispatchStrategy(
   engine: BackendEngine | string | undefined,
 ): DispatchKind {
-  return engine === "seedance" ? "parallel" : "sequential";
+  return getEngineProfile(engine as string).dispatch;
 }
 
 export function engineProfile(engine: BackendEngine): EngineDispatchProfile {
-  const nativeAudio = engine !== "seedance"; // kling/veo/sora/runway/wan = true
+  const p = getEngineProfile(engine);
   return {
     engine,
-    kind: selectDispatchStrategy(engine),
-    nativeAudio,
-    endFrameInterp: engine === "seedance",
+    kind: p.dispatch,
+    // The wire contract treats every sequential engine as 'native' audio lane
+    // (see resolveAudioStrategy note) — only the parallel batch post-muxes.
+    nativeAudio: engine !== "seedance",
+    endFrameInterp: p.conditioning.endImage,
   };
 }
 

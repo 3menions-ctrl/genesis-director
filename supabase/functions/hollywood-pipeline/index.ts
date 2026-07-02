@@ -479,16 +479,15 @@ function calculatePipelineParams(
     console.log(`[Hollywood] Reduced clip count to ${clipCount} due to ${maxDuration}s duration limit`);
   }
   
-  // Kling V3 credit pricing: all modes use Kling V3
-  // avatarMode (videoEngine='kling') = native audio lip-sync → higher cost
-  // Default engine is 'kling' (Kling V3 / 3.1) for ALL modes including I2V.
-  // Avatar mode is determined by the isAvatarMode flag, not by the engine key.
-  const videoEngine: 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 'sora' = (request as any).videoEngine || 'kling';
+  // NO DEFAULT MODEL: the serve-handler gate guarantees request.videoEngine
+  // is set before any of this runs. Avatar mode is determined by the
+  // isAvatarMode flag, not by the engine key.
+  const videoEngine = (request as any).videoEngine as 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
+  if (!videoEngine) throw new Error('ENGINE_REQUIRED: calculatePipelineParams reached without an engine (gate bypassed?)');
   const isAvatarMode = !!(request as any).isAvatarMode;
   const totalCredits = calculateTotalCredits(clipCount, clipDuration, isAvatarMode, videoEngine);
 
   console.log(`[Hollywood] Pipeline params: ${clipCount} clips × ${clipDuration}s = ${clipCount * clipDuration}s total (max: ${maxDuration}s, engine: ${videoEngine}, avatarMode: ${isAvatarMode}, credits: ${totalCredits})`);
-  console.log(`[Hollywood] 🎬 ENGINE LOCK: ${videoEngine} (received from caller: ${(request as any).videoEngine ?? 'UNSET → defaulted to kling'})`);
   
   return { clipCount, clipDuration, totalCredits };
 }
@@ -1301,7 +1300,7 @@ async function runPreProduction(
         // SCENE IDENTITY: Full DNA for character/environment aware scripting
         sceneIdentityContext: sceneIdentityContextStory,
         // ENGINE TARGET: Tailors scripting style (Seedance vs Kling) for max quality
-        videoEngine: request.videoEngine || 'kling',
+        videoEngine: request.videoEngine,
       });
       
       if (scriptResult.shots || scriptResult.clips) {
@@ -1445,7 +1444,7 @@ async function runPreProduction(
         // SCENE IDENTITY: Pass comprehensive extraction data for character/environment aware scripting
         sceneIdentityContext,
         // ENGINE TARGET: Tailors scripting style (Seedance vs Kling) for max quality
-        videoEngine: request.videoEngine || 'kling',
+        videoEngine: request.videoEngine,
       });
       
       if (scriptResult.shots || scriptResult.clips) {
@@ -3406,7 +3405,7 @@ async function runProduction(
   //     invocation and the watchdog finishes (completion, audio mux, stitch).
   // =====================================================
   {
-    const _seamEngine = (request.videoEngine || 'kling') as 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
+    const _seamEngine = request.videoEngine as 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
     const _seamIsAvatar = !!request.isAvatarMode;
     const _dispatchKind = selectDispatchStrategy(_seamEngine);
     (state as any)._dispatchKind = _dispatchKind;
@@ -3424,14 +3423,29 @@ async function runProduction(
       // cases intentionally SHARE one image (universal fallback already filled
       // the lookup; strategy.ts:165 nextImg!==imageUrl suppresses endImageUrl) —
       // so skip them.
+      // VISUAL BIBLE EXTENSION: reference-locked (i2v) narrative projects now
+      // ALSO get per-shot keyframes — generated identity-locked via Flux
+      // Kontext (characterReferenceUrl) so every keyframe carries the SAME
+      // person placed into that shot's environment, instead of every clip
+      // starting from one static reference image with identical framing.
+      // Avatar mode (face IS the start frame, lip-sync) and breakout
+      // (template owns the start frame) keep their existing behavior.
+      // A lookup filled entirely with the ONE reference image (the universal
+      // fallback at ~2856) is degenerate — every clip would open on the same
+      // static frame and endImageUrl chaining stays suppressed. Treat it as
+      // "no per-shot keyframes yet" so the identity-locked generation runs.
+      const lookupValues = Object.values(sceneImageLookup);
+      const lookupIsDegenerateReferenceFill =
+        !!referenceImageUrl &&
+        lookupValues.length >= clips.length &&
+        lookupValues.every((u) => u === referenceImageUrl);
       if (
         !request.isBreakout &&
         !_seamIsAvatar &&
-        !referenceImageUrl &&
-        Object.keys(sceneImageLookup).length < clips.length
+        (Object.keys(sceneImageLookup).length < clips.length || lookupIsDegenerateReferenceFill)
       ) {
         try {
-          console.log(`[Hollywood][Parallel] No reference/scene images → generating ${clips.length} per-shot keyframes for last_frame chaining`);
+          console.log(`[Hollywood][Parallel] Generating ${clips.length} per-shot keyframes for last_frame chaining${referenceImageUrl ? ' (identity-locked via character reference)' : ''}`);
           // generate-scene-images destructures `scenes` (NOT `shots`) and each
           // scene needs { sceneNumber, visualDescription, mood?, characters? }
           // (it throws "Scenes array is required" otherwise). It returns
@@ -3452,6 +3466,7 @@ async function runProduction(
             scenes: scenesForImages,
             globalStyle: request.templateStyleAnchor,
             globalEnvironment: request.templateEnvironmentLock,
+            characterReferenceUrl: referenceImageUrl || undefined,
           });
           const imgs: Array<{ sceneNumber?: number; imageUrl?: string }> = imgRes?.images ?? [];
           let populated = 0;
@@ -3841,7 +3856,7 @@ async function runProduction(
         
         // Determine engine: ALL modes use Kling V3 (kwaivgi/kling-v3-video)
         // isAvatarMode is an EXPLICIT flag — not derived from videoEngine
-        const videoEngine = request.videoEngine || 'kling'; // DEFAULT: Kling V3 (all modes)
+        const videoEngine = request.videoEngine; // gate-guaranteed — no default model
         const isAvatarMode = !!request.isAvatarMode;
         
         const clipResult = await callEdgeFunction('generate-single-clip', {
@@ -4418,7 +4433,7 @@ async function runProduction(
                 sharedCastCount: continuityBoundary.sharedCast.length,
                 attempt: retryCount,
                 maxAttempts: qualityMaxRetries,
-                currentEngine: request.videoEngine || (state as any).videoEngine || 'kling-2-master',
+                currentEngine: request.videoEngine || (state as any).videoEngine,
                 availableEngines: ['seedance-1-pro', 'kling-2-master', 'kling-1-6-pro', 'runway-gen-4', 'veo-3-pro', 'sora-2'],
               });
               console.log(`[Hollywood] Continuity gate clip ${i + 1}: ${continuityBoundary.type} → ${audit.score.verdict} (composite ${audit.score.composite}, admit=${audit.admit})${audit.correction ? ` next=${audit.correction.step}` : ''}`);
@@ -6906,7 +6921,22 @@ serve(async (req) => {
     // last_frame_image continuity + post-mux audio) selected at the Phase A/B
     // seam. The allow-list now exists ONLY to reject genuinely-unknown engine
     // slugs (a 7th engine is data, not a new pipeline).
-    const incomingEngine = ((request as any).videoEngine ?? 'kling') as string;
+    // NO DEFAULT MODEL: an explicit engine is required. For existing projects
+    // the DB engine-lock above already injected the persisted engine; a first
+    // run with no engine in the body is a caller bug (the client must send the
+    // user's explicit pick, or a template force must have set it upstream).
+    const incomingEngine = (request as any).videoEngine as string | undefined;
+    if (!incomingEngine) {
+      console.error('[Hollywood] ❌ ENGINE_REQUIRED: request carried no videoEngine and no persisted engine lock exists.');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'ENGINE_REQUIRED',
+          message: 'Engine selection is required — there is no default model. Send videoEngine (user-selected), or use a template that forces one.',
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     const ALLOWED_HOLLYWOOD_ENGINES = ['kling', 'wan', 'veo', 'runway', 'sora', 'seedance'];
     if (!ALLOWED_HOLLYWOOD_ENGINES.includes(incomingEngine)) {
       console.error(

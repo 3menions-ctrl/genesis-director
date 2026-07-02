@@ -255,7 +255,11 @@ serve(async (req) => {
     const { data: stitchResult, error: stitchError } = await supabase.functions.invoke('seamless-stitcher', {
       // includeIntro:false mirrors the canonical hollywood-pipeline stitch path
       // so the stitcher produces the bare film (and writes video_url) consistently.
-      body: { projectId, userId, includeIntro: false },
+      // joinTrim: pipeline renders are frame-chained — clip boundaries hard-cut
+      // on the matched handoff frame with the vendor 6-frame/1-frame join trim
+      // (continuity v2) instead of blurring the seam with a 0.4s crossfade.
+      // Editor re-exports call seamless-stitcher directly without this flag.
+      body: { projectId, userId, includeIntro: false, joinTrim: true },
     });
     
     if (stitchError) {

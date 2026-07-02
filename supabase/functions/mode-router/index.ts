@@ -10,6 +10,13 @@ import { checkMultipleContent } from "../_shared/content-safety.ts";
 import { forceBreakoutEngine } from "../_shared/breakout-guardrails.ts";
 import { buildProductionRequest, resolveHandlerKey, type HandlerKey } from "../_shared/production-request.ts";
 import { priceClipCredits } from "../_shared/engines.ts";
+import {
+  buildProductionRequest,
+  resolveEngine,
+  resolveOperation,
+  resolveAudioStrategy,
+  resolveDispatchStrategy,
+} from "../_shared/production-request.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -233,9 +240,10 @@ interface ModeRouterRequest {
   templateCharacters?: any[];
   templateEnvironmentLock?: any;
 
-  // Video engine selection — all modes now unified on Kling V3
-  // 'kling' = avatar mode with native audio; anything else = standard T2V/I2V
-  videoEngine?: 'wan' | 'kling' | 'veo' | 'seedance' | 'sora';
+  // Video engine selection — REQUIRED for all video modes (no default model).
+  // Only single-pass effect modes (video-to-video / motion-transfer) may omit
+  // it; breakout templates force 'seedance' server-side.
+  videoEngine?: 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
   // Seedance native camera lock. Breakouts force true downstream; otherwise this
   // explicit user-selected flag is forwarded to hollywood → generate-single-clip.
   cameraFixed?: boolean;
@@ -306,7 +314,26 @@ serve(async (req) => {
 
     console.log(`[ModeRouter] Routing ${mode} request for user ${userId}`);
     console.log(`[ModeRouter] Config: ${clipCount} clips × ${clipDuration}s, aspect ${aspectRatio}`);
-    console.log(`[ModeRouter] 🎬 ENGINE SELECTION: videoEngine=${videoEngine ?? '(unset → kling default)'}`);
+    console.log(`[ModeRouter] 🎬 ENGINE SELECTION: videoEngine=${videoEngine ?? '(unset)'}`);
+
+    // ═══ NO DEFAULT MODEL ═══
+    // Engine selection is always explicit: the user picks, or a special
+    // template forces one (breakout → seedance below). The single-pass effect
+    // modes (stylize / motion-transfer) don't dispatch a video engine at all,
+    // so they are exempt. Everything else without an engine is a 400.
+    const isEffectMode = mode === 'video-to-video' || mode === 'motion-transfer';
+    if (!isBreakout && !isEffectMode && !videoEngine) {
+      console.error(`[ModeRouter] ❌ ENGINE_REQUIRED: mode=${mode} arrived without videoEngine`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'ENGINE_REQUIRED',
+          message: 'Engine selection is required — there is no default model. Send videoEngine (user-selected), or use a template that forces one.',
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (isBreakout) {
       console.log(`[ModeRouter] BREAKOUT MODE: Platform=${breakoutPlatform}, StartImage=${breakoutStartImageUrl ? 'provided' : 'none'}`);
     }
@@ -422,7 +449,14 @@ serve(async (req) => {
     // the downstream seedance-pipeline DB engine-lock agrees (otherwise a breakout
     // created without an explicit engine would persist 'kling' and the pipeline's
     // lock would override the forced 'seedance' back to 'kling' → hard-reject).
-    const persistedEngine = isBreakout ? forceBreakoutEngine() : (videoEngine || 'kling');
+    // Breakouts force seedance; otherwise the gate above guarantees an engine
+    // for every video mode. Effect modes (stylize/motion-transfer) never
+    // dispatch a video engine — persist 'kling' only as the legacy row
+    // placeholder for those (the column is informational for effects).
+    const persistedEngine = isBreakout
+      ? forceBreakoutEngine()
+      : (videoEngine ?? (isEffectMode ? 'kling' : undefined));
+    if (!persistedEngine) throw new Error('unreachable: ENGINE_REQUIRED gate');
 
     // Create or get project FIRST (status: 'creating' or 'pending_payment')
     // This ensures we have a record to attach the transaction to, or refund against if needed.
@@ -455,6 +489,18 @@ serve(async (req) => {
             progress: 0,
             startedAt: new Date().toISOString(),
             message: 'Initializing pipeline...',
+            // EFFECTS PHASE params — final-assembly's breakout-VFX stage reads
+            // pipeline_state.breakout to composite UI chrome + shatter on each
+            // clip pre-stitch (inert unless BREAKOUT_VFX_ENABLED='true').
+            // Downstream stages spread-merge pipeline_state, so this survives.
+            ...(isBreakout ? {
+              breakout: {
+                isBreakout: true,
+                platform: breakoutPlatform ?? null,
+                templateSlug: request.templateName ?? null,
+                chromeKind: breakoutPlatform ?? null,
+              },
+            } : {}),
           },
         })
         .select('id')
@@ -493,6 +539,15 @@ serve(async (req) => {
             progress: 0,
             startedAt: new Date().toISOString(),
             message: 'Initializing pipeline...',
+            // EFFECTS PHASE params — see create branch above.
+            ...(isBreakout ? {
+              breakout: {
+                isBreakout: true,
+                platform: breakoutPlatform ?? null,
+                templateSlug: request.templateName ?? null,
+                chromeKind: breakoutPlatform ?? null,
+              },
+            } : {}),
           },
         })
         .eq('id', projectId);
@@ -506,7 +561,9 @@ serve(async (req) => {
       // Seedance (guardrail), so price them as Seedance regardless of the
       // requested engine. Avatar mode adds the Kling +50% native-audio premium.
       const isAvatar = mode === 'avatar';
-      const pricingEngine = isBreakout ? 'seedance' : (videoEngine || 'kling');
+      // Effect modes have no video engine — they price on the kling table as
+      // the legacy placeholder (pre-existing behavior; effects COGS ≠ engine).
+      const pricingEngine = isBreakout ? 'seedance' : (videoEngine ?? 'kling');
       const creditsPerClip = priceClipCredits(pricingEngine, clipDuration, { avatar: isAvatar });
 
       let totalCredits = clipCount * creditsPerClip;

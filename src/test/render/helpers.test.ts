@@ -32,8 +32,10 @@ describe("xfadeKindFor", () => {
   });
 
   it("maps UI synonyms to FFmpeg names", () => {
-    expect(xfadeKindFor("cut", "dissolve")).toBe("fade");
-    expect(xfadeKindFor("hardcut", "dissolve")).toBe("fade");
+    // Continuity v2: "cut"/"hardcut" are REAL hard cuts now (concat join in
+    // the chain builder) — previously they were silently blurred into fades.
+    expect(xfadeKindFor("cut", "dissolve")).toBe("cut");
+    expect(xfadeKindFor("hardcut", "dissolve")).toBe("cut");
     expect(xfadeKindFor("crossfade", "dissolve")).toBe("fade");
   });
 

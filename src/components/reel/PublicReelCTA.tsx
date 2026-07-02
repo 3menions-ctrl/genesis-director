@@ -7,13 +7,18 @@
  */
 import { motion, useReducedMotion } from "framer-motion";
 import { Sparkles, ArrowRight } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { GlassPanel, GlassButton } from "@/components/foundation/Floating";
 import { EASE_PREMIUM, TYPE_EYEBROW, TYPE_META } from "@/lib/design-system";
 
 export function PublicReelCTA({ creatorName }: { creatorName?: string | null }) {
   const reducedMotion = useReducedMotion();
+  // Preserve a referral code arriving on the share link (/r/:id?ref=CODE)
+  // through the signup CTA — otherwise the referral attribution is lost.
+  const [params] = useSearchParams();
+  const refCode = params.get("ref");
+  const signupTo = `/auth?mode=signup${refCode ? `&ref=${encodeURIComponent(refCode)}` : ""}`;
   return (
     <motion.div
       initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 12 }}
@@ -38,7 +43,7 @@ export function PublicReelCTA({ creatorName }: { creatorName?: string | null }) 
           locations, and sound. Your first 5-second clip is free, up to 4K HDR.
         </p>
         <div className="mt-1 flex flex-wrap items-center justify-center gap-3">
-          <Link to="/auth?mode=signup">
+          <Link to={signupTo}>
             <GlassButton tone="accent" ariaLabel="Make your own free">
               <span>Make your own — free</span>
               <ArrowRight className="h-4 w-4" strokeWidth={1.5} />

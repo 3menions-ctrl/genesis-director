@@ -266,7 +266,7 @@ export default function Reel() {
         if (!data) {
           const { data: pub } = await supabase
             .from("published_reels")
-            .select("project_id, is_taken_down")
+            .select("project_id, is_taken_down, title, video_url, thumbnail_url, creator_id, created_at")
             .eq("id", id)
             .maybeSingle();
           if (pub?.project_id && !pub.is_taken_down) {
@@ -277,6 +277,25 @@ export default function Reel() {
               .eq("id", pub.project_id)
               .maybeSingle();
             data = reReg.data;
+            // The source project may be RLS-hidden (owner later made it
+            // private, or an anon viewer). A live published reel is public
+            // by definition and carries a frozen snapshot exactly for this
+            // case — fall back to it instead of erroring "not found".
+            if (!data && pub.video_url) {
+              data = {
+                id: pub.project_id,
+                title: pub.title,
+                video_url: pub.video_url,
+                thumbnail_url: pub.thumbnail_url,
+                created_at: pub.created_at,
+                updated_at: pub.created_at,
+                user_id: pub.creator_id,
+                is_public: true,
+                likes_count: 0,
+                pending_video_tasks: null,
+                editor_state: null,
+              } as typeof data;
+            }
           }
         }
 

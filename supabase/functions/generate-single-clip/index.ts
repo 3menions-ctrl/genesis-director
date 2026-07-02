@@ -31,7 +31,7 @@ import {
   checkAndRecoverStaleMutex,
   runPreGenerationChecks,
 } from "../_shared/pipeline-guard-rails.ts";
-import { SEEDANCE_REFERENCE_CONDITIONING, SEEDANCE_NATIVE_AUDIO } from "../_shared/engine-profiles.ts";
+import { SEEDANCE_REFERENCE_CONDITIONING, SEEDANCE_NATIVE_AUDIO, WAN_CLIP_CONTINUATION } from "../_shared/engine-profiles.ts";
 
 // ─────────────────────────────────────────────────────────────────────
 // Per-engine prompt optimizers — each model rewards a different prompt
@@ -322,6 +322,9 @@ async function createWan25Prediction(
   startImageUrl?: string | null,
   aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
   durationSeconds: number = DEFAULT_CLIP_DURATION,
+  /** Previous clip's VIDEO URL — Wan 2.7 i2v `first_clip` native continuation
+   *  (flag-gated by WAN_CLIP_CONTINUATION). */
+  previousClipUrl?: string | null,
 ): Promise<{ predictionId: string }> {
   const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
   if (!REPLICATE_API_KEY) {
@@ -347,6 +350,9 @@ async function createWan25Prediction(
         image: startImageUrl,
         duration,
         resolution: "1080p",
+        // NATIVE CONTINUATION (flag-gated): hand Wan the previous clip's
+        // video so it continues the motion, not just the final still.
+        ...(WAN_CLIP_CONTINUATION && previousClipUrl ? { first_clip: previousClipUrl } : {}),
         seed: Math.floor(Math.random() * 2147483647),
       }
     : {

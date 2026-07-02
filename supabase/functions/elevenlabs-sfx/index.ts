@@ -9,6 +9,35 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+
+// ── Replicate fallback (SFX — Stable Audio Open) — the ElevenLabs key died
+// with the Lovable migration; this keeps SFX alive on REPLICATE_API_KEY.
+const STABLE_AUDIO_VERSION = "9aff84a639f96d0f7e6081cdea002d15133d0043727f849c40abdd166b7c75a8";
+async function replicateSfx(prompt: string, seconds: number): Promise<ArrayBuffer> {
+  const key = Deno.env.get("REPLICATE_API_KEY");
+  if (!key) throw new Error("No SFX provider configured");
+  const create = await fetch("https://api.replicate.com/v1/predictions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", Prefer: "wait" },
+    body: JSON.stringify({
+      version: STABLE_AUDIO_VERSION,
+      input: { prompt, seconds_total: Math.max(1, Math.min(30, seconds)) },
+    }),
+  });
+  if (!create.ok) throw new Error(`replicate sfx error ${create.status}`);
+  let pred = await create.json();
+  const started = Date.now();
+  while (pred.status !== "succeeded" && pred.status !== "failed" && pred.status !== "canceled") {
+    if (Date.now() - started > 180_000) throw new Error("sfx generation timeout");
+    await new Promise((r) => setTimeout(r, 2000));
+    const poll = await fetch(`https://api.replicate.com/v1/predictions/${pred.id}`, { headers: { Authorization: `Bearer ${key}` } });
+    if (poll.ok) pred = await poll.json();
+  }
+  const out = Array.isArray(pred.output) ? pred.output[0] : pred.output;
+  if (pred.status !== "succeeded" || !out) throw new Error(`sfx generation ${pred.status}`);
+  return await (await fetch(out)).arrayBuffer();
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -21,13 +50,6 @@ serve(async (req) => {
   try {
     const { prompt, duration } = await req.json();
     const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
-
-    if (!ELEVENLABS_API_KEY) {
-      return new Response(
-        JSON.stringify({ error: "ElevenLabs API key not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
 
     if (!prompt) {
       return new Response(
@@ -55,6 +77,13 @@ serve(async (req) => {
     if (gateBlock) return gateBlock;
 
     console.log(`[ElevenLabs-SFX] Generating: "${prompt.substring(0, 100)}" (${duration || 5}s)`);
+
+    if (!ELEVENLABS_API_KEY) {
+      const buf = await replicateSfx(prompt, duration || 5);
+      console.log(`[ElevenLabs-SFX] ✅ stable-audio fallback generated ${buf.byteLength} bytes`);
+      await chargeAiGate(gateCtx);
+      return new Response(buf, { headers: { ...corsHeaders, "Content-Type": "audio/mpeg" } });
+    }
 
     const response = await fetch("https://api.elevenlabs.io/v1/sound-generation", {
       method: "POST",

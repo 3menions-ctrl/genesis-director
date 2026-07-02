@@ -197,3 +197,8 @@ export const SEEDANCE_NATIVE_AUDIO = true;           // joint A/V generation —
 // The TTS combined-voice step is skipped for seedance when this is on (the
 // model voices the dialogue itself); music stays post-mux per user toggle.
 export const SEEDANCE_REFERENCE_CONDITIONING = true; // 9-image identity refs — LIVE
+// Wan 2.7 i2v accepts `first_clip` — NATIVE video continuation (extend the
+// previous clip instead of restarting from its last frame). Boundary-breaking
+// for continuous long takes; OFF until a paired continuation render is
+// evaluated (costs credits — owner-approved test required).
+export const WAN_CLIP_CONTINUATION = false;

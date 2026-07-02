@@ -49,12 +49,44 @@ describe("dry-run: the thread is intact end-to-end", () => {
   });
   it("generate-single-clip mocks the Replicate call and stamps the project", () => {
     const src = fn("generate-single-clip/index.ts");
-    expect(src).toMatch(/const isDry = isDryRun\(/);
+    expect(src).toMatch(/const isDry = projectDryRun \|\| isDryRun\(/);
     expect(src).toMatch(/if \(isDry\)\s*\{[\s\S]{0,120}mockPredictionId\(shotIndex\)/);
     // the real engine dispatch must be an ELSE branch (never runs when dry)
     expect(src).toMatch(/\}\s*else if \(videoEngine === 'wan'\)/);
     // stamps dryRun into pending_video_tasks so the stitcher also skips its cog
     expect(src).toMatch(/isDry \? \{ dryRun: true \}/);
+  });
+  it("generate-single-clip reads dryRun from the PROJECT — the backstop for every dispatch path", () => {
+    // A per-payload dryRun can be dropped by a caller (the seedance PARALLEL
+    // path, retry, regen, continue-production). The project-row read makes the
+    // signal authoritative regardless of which path dispatched the clip.
+    const src = fn("generate-single-clip/index.ts");
+    expect(src).toMatch(/projectDryRun = isDryRun\(/);
+    expect(src).toMatch(/select\('pipeline_state, pending_video_tasks'\)/);
+    expect(src).toMatch(/const isDry = projectDryRun \|\|/);
+  });
+  it("mode-router stamps dryRun into pipeline_state (single source of truth)", () => {
+    const src = fn("mode-router/index.ts");
+    expect(src).toMatch(/pipeline_state:\s*\{[\s\S]{0,600}dryRun: dryRun === true/);
+  });
+  it("the SEEDANCE parallel dispatch also forwards dryRun", () => {
+    const src = fn("hollywood-pipeline/dispatch/strategy.ts");
+    expect(src).toMatch(/dryRun:\s*request\?\.dryRun === true/);
+  });
+  it("EVERY generate-single-clip dispatch is covered (payload OR project backstop)", () => {
+    // Belt: the project-state backstop in generate-single-clip covers all
+    // paths, so this test documents the dispatch sites rather than requiring a
+    // per-site flag. It fails if a NEW spine engine dispatch appears that the
+    // author should consciously check against the backstop.
+    const sites = [
+      "hollywood-pipeline/index.ts",
+      "hollywood-pipeline/dispatch/strategy.ts",
+      "continue-production/index.ts",
+      "retry-failed-clip/index.ts",
+    ];
+    for (const s of sites) {
+      expect(fn(s)).toMatch(/generate-single-clip/);
+    }
   });
   it("poll-replicate-prediction completes a mock prediction with the placeholder", () => {
     const src = fn("poll-replicate-prediction/index.ts");

@@ -17,7 +17,7 @@ function youtubeMobile(p: Record<string, string>): El {
   const pill = (c: (El | string | null)[], extra: Record<string, unknown> = {}) =>
     h('div', { display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 12, height: 72, borderRadius: 36, backgroundColor: CHIP, paddingLeft: 26, paddingRight: 26, ...extra }, ...c);
 
-  const titleRow = row({ gap: 18, padding: 24, alignItems: 'flex-start' },
+  const titleRow = row({ gap: 18, padding: 20, alignItems: 'flex-start' },
     img(AV[1], 72, 72, { borderRadius: 36 }),
     col({ gap: 8 },
       txt(p.title ?? "he knows you're watching… (don't blink)", { fontSize: 32, fontWeight: 700, color: '#F1F1F1' }),
@@ -30,7 +30,7 @@ function youtubeMobile(p: Record<string, string>): El {
     pill([icon('download', 34, '#F1F1F1')]),
     pill([icon('more', 34, '#F1F1F1')]));
 
-  const channelRow = row({ gap: 16, padding: 24, alignItems: 'center' },
+  const channelRow = row({ gap: 16, paddingLeft: 24, paddingRight: 24, paddingTop: 14, paddingBottom: 14, alignItems: 'center' },
     txt(p.username ?? '@daily.wander', { fontSize: 28, fontWeight: 700, color: '#F1F1F1' }),
     txt('1.24M', { fontSize: 24, color: SEC }),
     h('div', { display: 'flex', marginLeft: 'auto', height: 66, borderRadius: 33, backgroundColor: '#F1F1F1', alignItems: 'center', paddingLeft: 30, paddingRight: 30 },
@@ -44,11 +44,11 @@ function youtubeMobile(p: Record<string, string>): El {
 
   const chip = (label: string, active: boolean) => h('div', { display: 'flex', height: 60, borderRadius: 16, backgroundColor: active ? '#F1F1F1' : CHIP, alignItems: 'center', paddingLeft: 22, paddingRight: 22 },
     txt(label, { fontSize: 24, fontWeight: active ? 700 : 400, color: active ? '#0F0F0F' : '#F1F1F1' }));
-  const chips = row({ gap: 14, paddingLeft: 24, paddingTop: 20, paddingBottom: 8 }, chip('All', true), chip('Related', false), chip('From daily.wander', false));
+  const chips = row({ gap: 14, paddingLeft: 24, paddingTop: 14, paddingBottom: 4 }, chip('All', true), chip('Related', false), chip('From daily.wander', false));
 
   const rec = (image: string, dur: string, title: string, meta: string) => row({ gap: 16, paddingLeft: 24, paddingRight: 24, paddingTop: 14 },
     h('div', { display: 'flex', position: 'relative' },
-      img(image, 340, 190, { borderRadius: 20 }),
+      img(image, 320, 180, { borderRadius: 20 }),
       h('div', { display: 'flex', position: 'absolute', right: 10, bottom: 10, backgroundColor: 'rgba(0,0,0,0.8)', borderRadius: 8, paddingLeft: 10, paddingRight: 10, paddingTop: 3, paddingBottom: 3 }, txt(dur, { fontSize: 20, fontWeight: 700, color: '#fff' }))),
     col({ gap: 8, width: 640, paddingTop: 4 },
       txt(title, { fontSize: 26, fontWeight: 600, color: '#F1F1F1' }),
@@ -70,6 +70,7 @@ function youtubeMobile(p: Record<string, string>): El {
     chips,
     rec(TH[0], '12:41', 'We found the bluest water on earth', 'Wander Duo · 2.1M views · 3 days ago'),
     rec(TH[2], '22:17', 'I slept above the clouds', 'Peak Season · 4.7M views · 2 months ago'),
+    rec(TH[1], '8:03', 'Night market noodles at 2am', 'Street Eats · 890K views · 1 week ago'),
     h('div', { display: 'flex', flexGrow: 1 }),
     bottomNav);
 }

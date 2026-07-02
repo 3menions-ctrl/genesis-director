@@ -46,7 +46,7 @@ function facebookMobile(p: Record<string, string>): El {
     box(64, 64, BLUE, { borderRadius: 32, marginTop: -32, border: '6px solid #fff', alignItems: 'center', justifyContent: 'center' }, icon('plus', 34, '#fff')),
     txt('Create story', { fontSize: 24, fontWeight: 700, color: TXTC, marginTop: 8 }));
   const stories = row({ gap: 14, padding: 18, backgroundColor: '#fff' },
-    createCard, storyCard(ST[0], AV[2], 'mia.torres'), storyCard(TH[2], AV[4], 'leila.k'), storyCard(ST[1], AV[3], 'noah'));
+    createCard, storyCard(ST[0], AV[2], 'mia.torres'), storyCard(TH[2], AV[4], 'leila.k'), storyCard(ST[1], AV[3], 'noah'), storyCard(TH[4], AV[6], 'pink.pixel'));
 
   const postHeader = row({ alignItems: 'center', gap: 16, padding: 20 },
     img(AV[0], 78, 78, { borderRadius: 39 }),
@@ -70,6 +70,14 @@ function facebookMobile(p: Record<string, string>): El {
   const actions = row({ borderTop: '1px solid #CED0D4', marginLeft: 24, marginRight: 24 },
     actionBtn('thumbUp', 'Like'), actionBtn('comment', 'Comment'), actionBtn('send', 'Send'), actionBtn('shareArrow', 'Share'));
 
+  const commentBubble = (av: string, name: string, text: string) => row({ gap: 14, paddingLeft: 24, paddingRight: 24, alignItems: 'flex-start' },
+    img(av, 56, 56, { borderRadius: 28 }),
+    col({ backgroundColor: '#F0F2F5', borderRadius: 28, paddingLeft: 22, paddingRight: 22, paddingTop: 12, paddingBottom: 12, gap: 4 },
+      txt(name, { fontSize: 24, fontWeight: 700, color: TXTC }),
+      txt(text, { fontSize: 25, color: TXTC })));
+  const comments = col({ gap: 12, paddingTop: 8, paddingBottom: 12 },
+    commentBubble(AV[3], 'noahwrites', 'nah this is wild, the way she LOOKS at 0:04'),
+    txt('View 841 more comments', { fontSize: 24, fontWeight: 600, color: SEC, paddingLeft: 94 }));
   const tabBar = row({ height: 128, backgroundColor: '#fff', borderTop: '1px solid #CED0D4', alignItems: 'center', justifyContent: 'space-around', paddingLeft: 10, paddingRight: 10 },
     icon('home', 46, BLUE, { fill: true }),
     icon('film', 46, SEC),
@@ -85,7 +93,7 @@ function facebookMobile(p: Record<string, string>): El {
     col({ backgroundColor: '#fff', flexGrow: 1 },
       postHeader, caption,
       box(1080, 560, SLOT), // ← slot: y = 66+104+108+408+14+118+90 ≈ 908
-      social, actions),
+      social, actions, comments),
     tabBar);
 }
 
@@ -192,7 +200,7 @@ function instagramMobile(p: Record<string, string>): El {
       box(40, 40, '#0095F6', { position: 'absolute', right: 0, bottom: 0, borderRadius: 20, border: '4px solid #fff', alignItems: 'center', justifyContent: 'center' }, icon('plus', 22, '#fff'))),
     txt('Your story', { fontSize: 22, color: SEC }));
   const stories = row({ gap: 24, paddingLeft: 28, paddingTop: 8, paddingBottom: 16, backgroundColor: '#fff' },
-    yourStory, storyItem(AV[0], 'daily.wander', false), storyItem(AV[2], 'mia.torres', false), storyItem(AV[4], 'leila.k', false), storyItem(AV[6], 'pink.pixel', false), storyItem(AV[5], 'greg', true));
+    yourStory, storyItem(AV[0], 'daily.wander', false), storyItem(AV[2], 'mia.torres', false), storyItem(AV[4], 'leila.k', false), storyItem(AV[6], 'pink.pixel', false), storyItem(AV[5], 'greg', true), storyItem(AV[7], 'marcusfit', false));
 
   const postHeader = row({ alignItems: 'center', gap: 14, paddingLeft: 24, paddingRight: 24, height: 96, backgroundColor: '#fff' },
     ringAvatar(AV[0], 60, 4, 3),
@@ -210,13 +218,18 @@ function instagramMobile(p: Record<string, string>): El {
     icon('send', 46, TXTC),
     h('div', { display: 'flex', marginLeft: 'auto' }, icon('bookmark', 46, TXTC)));
 
-  const below = col({ paddingLeft: 24, paddingRight: 24, gap: 8, backgroundColor: '#fff', paddingBottom: 12 },
+  const below = col({ paddingLeft: 24, paddingRight: 24, gap: 10, backgroundColor: '#fff', paddingBottom: 10 },
     row({ gap: 8, alignItems: 'center' },
       img(AV[2], 28, 28, { borderRadius: 14 }), img(AV[3], 28, 28, { borderRadius: 14, marginLeft: -14 }),
-      txt('Liked by mia.torres and others', { fontSize: 24, color: TXTC })),
+      txt('Liked by mia.torres and 842,117 others', { fontSize: 24, color: TXTC })),
     row({ gap: 6 }, txt(p.username ?? 'daily.wander', { fontSize: 24, fontWeight: 700, color: TXTC }), txt(p.caption ?? 'she saw the camera… more', { fontSize: 24, color: TXTC })),
+    row({ gap: 6 }, txt('noahwrites', { fontSize: 23, fontWeight: 700, color: TXTC }), txt('the ending is NOT what I expected', { fontSize: 23, color: TXTC }), h('div', { display: 'flex', marginLeft: 'auto' }, icon('heart', 22, SEC))),
+    row({ gap: 6 }, txt('pink.pixel', { fontSize: 23, fontWeight: 700, color: TXTC }), txt('watched this 6 times already', { fontSize: 23, color: TXTC }), h('div', { display: 'flex', marginLeft: 'auto' }, icon('heart', 22, SEC))),
     txt('View all 2,391 comments', { fontSize: 23, color: SEC }),
-    txt('2 hours ago', { fontSize: 20, color: SEC }));
+    row({ gap: 10, alignItems: 'center' },
+      img(AV[1], 40, 40, { borderRadius: 20 }),
+      txt('Add a comment…', { fontSize: 22, color: SEC }),
+      h('div', { display: 'flex', marginLeft: 'auto', gap: 12, flexDirection: 'row' }, txt('2h', { fontSize: 20, color: SEC }))));
 
   const tabBar = row({ height: 118, backgroundColor: '#fff', borderTop: '1px solid #DBDBDB', alignItems: 'center', justifyContent: 'space-around' },
     icon('home', 46, TXTC, { fill: true }),

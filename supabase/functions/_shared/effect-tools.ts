@@ -271,20 +271,31 @@ export async function invokeTool(tool: ToolId, inputs: Record<string, unknown>, 
 
     // ── Rigid compositing ────────────────────────────────────────────────
     case 'composite.overlay': {
-      // Pixel-locked overlay/corner-pin. inputs: base (video|image), overlay
-      // (video|image), rect [x,y,w,h] in output pixels, durationSec, out size.
+      // Pixel-locked compositing, two modes:
+      //  'slot' (default): overlay (the video) is scaled INTO rect on base
+      //    (the UI still) — feed-style players where chrome surrounds video.
+      //  'chrome': base (the video) fills the frame; overlay (a transparent-
+      //    background UI PNG) is laid ON TOP full-frame — full-bleed screens
+      //    (TikTok/Reels/Netflix) where chrome floats over the video.
       const [x, y, w, h] = (inputs.rect as number[]) ?? [0, 0, 1920, 1080];
       const W = (inputs.width as number) ?? 1920, H = (inputs.height as number) ?? 1080;
       const dur = (inputs.durationSec as number) ?? 5;
+      const chrome = inputs.mode === 'chrome';
       const baseIsImage = String(inputs.base).match(/\.(png|jpe?g|webp)(\?|$)/i);
       const baseIn = baseIsImage ? `-loop 1 -t ${dur} -i file1` : `-i file1`;
-      // Base normalized to W×H; overlay scaled into rect, pixel-locked.
-      const command =
-        `ffmpeg -y ${baseIn} -i file2 -filter_complex "` +
-        `[0:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1,fps=24[base];` +
-        `[1:v]scale=${w}:${h},setsar=1[ovl];` +
-        `[base][ovl]overlay=${x}:${y}:shortest=0[v]" ` +
-        `-map "[v]" ${baseIsImage ? '' : '-map 0:a? '}-c:v libx264 -preset fast -crf 18 -pix_fmt yuv420p -t ${dur} output.mp4`;
+      const ovlIsImage = String(inputs.overlay).match(/\.(png|jpe?g|webp)(\?|$)/i);
+      const ovlIn = ovlIsImage ? `-loop 1 -t ${dur} -i file2` : `-i file2`;
+      const command = chrome
+        ? `ffmpeg -y ${baseIn} ${ovlIn} -filter_complex "` +
+          `[0:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1,fps=24[base];` +
+          `[1:v]scale=${W}:${H},setsar=1,format=rgba[ovl];` +
+          `[base][ovl]overlay=0:0:shortest=0[v]" ` +
+          `-map "[v]" ${baseIsImage ? '' : '-map 0:a? '}-c:v libx264 -preset fast -crf 18 -pix_fmt yuv420p -t ${dur} output.mp4`
+        : `ffmpeg -y ${baseIn} -i file2 -filter_complex "` +
+          `[0:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1,fps=24[base];` +
+          `[1:v]scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h},setsar=1[ovl];` +
+          `[base][ovl]overlay=${x}:${y}:shortest=0[v]" ` +
+          `-map "[v]" ${baseIsImage ? '' : '-map 0:a? '}-c:v libx264 -preset fast -crf 18 -pix_fmt yuv420p -t ${dur} output.mp4`;
       const url = await runFfmpeg(command, { file1: String(inputs.base), file2: String(inputs.overlay) }, `composite_${stageId}.mp4`);
       return { url: await persist(url, `effects/${stamp}.mp4`, 'video/mp4') };
     }

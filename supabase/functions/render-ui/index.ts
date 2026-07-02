@@ -41,7 +41,7 @@ function init() {
   return ready;
 }
 
-import { TEMPLATES } from './templates.ts';
+import { TEMPLATES } from './templates-2.ts';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
@@ -71,7 +71,7 @@ serve(async (req) => {
     if (error) throw new Error(`persist failed: ${error.message}`);
     const url = supabase.storage.from('video-clips').getPublicUrl(path).data.publicUrl;
 
-    return json(200, { url, width: tpl.width, height: tpl.height, slotRect: tpl.slotRect });
+    return json(200, { url, width: tpl.width, height: tpl.height, slotRect: tpl.slotRect, mode: tpl.mode ?? 'slot' });
   } catch (e) {
     console.error('[render-ui] error:', e);
     return json(500, { error: publicErrorMessage(e) });

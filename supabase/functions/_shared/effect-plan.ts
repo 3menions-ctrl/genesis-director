@@ -58,6 +58,11 @@ export interface Assertion {
   sampleAtSec?: number[];
   /** Reference image key (a prior stage output) for identity checks. */
   referenceKey?: string;
+  /** 'blocking' failures retry the stage; 'advisory' failures only flag.
+   *  DEFAULT: physics_plausible is ADVISORY on video stages (motion physics
+   *  cannot be judged reliably from still frames — false failures burn
+   *  expensive regenerations); everything else is blocking. */
+  severity?: 'blocking' | 'advisory';
 }
 
 /** One node of the DAG. `inputs` values support {{stageId}} refs, resolved to

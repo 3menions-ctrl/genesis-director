@@ -55,10 +55,13 @@ async function runCritic(
   out: ToolResult,
   outputs: RunState['outputs'],
   runId: string,
-): Promise<{ failures: string[]; fixHint: string } | null> {
+): Promise<{ failures: string[]; fixHint: string; advisoryOnly: boolean } | null> {
   if (!stage.assertions?.length || !out.url) return null;
   const url = String(out.url);
   const isVideo = /\.mp4(\?|$)/i.test(url);
+  const failures: string[] = [];
+  let fixHint = '';
+  let anyBlocking = false;
   for (const a of stage.assertions) {
     // Sample frames for video, or use the image directly.
     let images: string[] = [url];
@@ -81,13 +84,17 @@ async function runCritic(
       `\nJudge strictly. pass=false if the contract is visibly violated.`;
     const verdict = await invokeTool('critic.vision', { contract, images }, runId, `${stage.id}_critic`);
     if (!verdict.pass) {
-      return {
-        failures: (verdict.failures as string[]) ?? [a.contract],
-        fixHint: String(verdict.fix_hint ?? ''),
-      };
+      // Severity: physics judgments from still frames are unreliable →
+      // ADVISORY by default on video (flag, don't burn a regeneration).
+      const advisory = a.severity === 'advisory' ||
+        (a.severity !== 'blocking' && a.kind === 'physics_plausible' && isVideo);
+      failures.push(...(((verdict.failures as string[]) ?? [a.contract]).map((f) => `${advisory ? '[advisory] ' : ''}${f}`)));
+      if (!fixHint) fixHint = String(verdict.fix_hint ?? '');
+      if (!advisory) anyBlocking = true;
     }
   }
-  return null;
+  if (!failures.length) return null;
+  return { failures, fixHint, advisoryOnly: !anyBlocking };
 }
 
 serve(async (req) => {
@@ -200,16 +207,26 @@ serve(async (req) => {
       // ── Critic gate ─────────────────────────────────────────────────────
       const verdict = await runCritic(plan, stage, out, state.outputs, runId);
       if (verdict) {
-        const attempts = (state.attempts[stage.id] ?? 0) + 1;
-        state.attempts[stage.id] = attempts;
         state.critic[stage.id] = { pass: false, ...verdict };
-        if (attempts <= (stage.maxRetries ?? 1)) {
-          console.warn(`[effect-executor] stage ${stage.id} failed QC (${verdict.failures.join('; ')}) — retrying with fix hint`);
-          await save({ state });
-          continue;
+        // CREDIT GUARD: advisory-only failures never regenerate — flag and move on.
+        // Video regenerations are the expensive kind: hard-cap ONE video retry
+        // per RUN regardless of per-stage maxRetries.
+        const isVideoStage = stage.tool.startsWith('video.');
+        const videoRetriesUsed = Object.entries(state.attempts)
+          .filter(([sid]) => plan.stages.find((st) => st.id === sid)?.tool.startsWith('video.'))
+          .reduce((acc, [, n]) => acc + (n as number), 0);
+        const canRetry = !verdict.advisoryOnly &&
+          (!isVideoStage || videoRetriesUsed < 1);
+        if (canRetry) {
+          const attempts = (state.attempts[stage.id] ?? 0) + 1;
+          state.attempts[stage.id] = attempts;
+          if (attempts <= (stage.maxRetries ?? 1)) {
+            console.warn(`[effect-executor] stage ${stage.id} failed QC (${verdict.failures.join('; ')}) — retrying with fix hint`);
+            await save({ state });
+            continue;
+          }
         }
-        // Out of retries: accept-with-flag (deliver something; flag for review)
-        console.warn(`[effect-executor] stage ${stage.id} failed QC after retries — accepting with flag`);
+        console.warn(`[effect-executor] stage ${stage.id} QC: ${verdict.advisoryOnly ? 'advisory-only — accepting with flag (no regen)' : 'accepting with flag (retry budget spent)'}`);
       } else {
         state.critic[stage.id] = { pass: true };
       }

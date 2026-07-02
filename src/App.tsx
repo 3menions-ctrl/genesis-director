@@ -96,6 +96,7 @@ const StudioShowcase = lazy(() => import("./pages/StudioShowcase"));
 const BreakthroughLab = lazy(() => import("./pages/BreakthroughLab"));
 const FilmsGallery = lazy(() => import("./pages/FilmsGallery"));
 const Studio = lazy(() => import("./pages/Studio"));
+const BreakoutStudio = lazy(() => import("./pages/BreakoutStudio"));
 const Auth = lazy(() => import("./pages/Auth"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
@@ -454,6 +455,13 @@ const App = () => {
                       <RedirectBusinessToModule base="/studio" target="/business/create">
                         <Studio />
                       </RedirectBusinessToModule>
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+                <Route path="/studio/breakout/:runId?" element={
+                  <RouteContainer fallbackMessage="Opening Breakout Studio…">
+                    <ProtectedRoute>
+                      <BreakoutStudio />
                     </ProtectedRoute>
                   </RouteContainer>
                 } />

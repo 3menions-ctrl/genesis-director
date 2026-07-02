@@ -164,6 +164,7 @@ const STUDIO_EXITS: ReadonlyArray<{
   sub: string;
   Icon: typeof Film;
 }> = [
+  { to: "/studio/breakout",      label: "Breakout", sub: "Escape the feed",  Icon: Sparkles },
   { to: "/editor",               label: "Editor",  sub: "Cutting room",     Icon: Film },
   { to: "/library",              label: "Library", sub: "Your films",       Icon: LibraryIcon },
   { to: "/library?mode=theater", label: "Theater", sub: "Premiere a film",  Icon: TheaterIcon },

@@ -35,6 +35,7 @@ export type ToolId =
   | 'frame.extract'          // extract-video-frame edge fn (first/last frame)
   // Rigid compositing (ffmpeg cog — the ONLY place pixels get pasted)
   | 'composite.overlay'      // corner-pin / overlay / lock-region composite
+  | 'composite.concat'       // stitch clips (breakout + after-story chain)
   // Deterministic UI rendering (satori) — realistic platform chrome as CODE
   | 'ui.render'              // render-ui edge fn: template + props → exact PNG
   // Audio spine
@@ -107,7 +108,7 @@ const TOOL_IDS: ToolId[] = [
   'image.nano_banana','image.flux_ultra','image.kontext',
   'video.seedance','video.kling','video.veo','video.wan_i2v','video.motion_control',
   'video.aleph2','video.kling_o1','video.wan_edit',
-  'matte.sam2','depth.estimate','frame.extract','composite.overlay','ui.render',
+  'matte.sam2','depth.estimate','frame.extract','composite.overlay','composite.concat','ui.render',
   'audio.tts','audio.music','audio.sfx','critic.vision',
 ];
 

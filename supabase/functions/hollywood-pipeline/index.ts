@@ -1458,6 +1458,16 @@ async function runPreProduction(
           mood: shot.mood || request.mood || 'cinematic',
           // CRITICAL FIX: Always preserve dialogue — includeVoice only controls TTS audio, not prompts
           dialogue: shot.dialogue || '',
+          // CINEMATOGRAPHY (2026-07-02): the script authors these per shot but
+          // they were being DROPPED here — camera direction never reached the
+          // renderer. Preserve them so the cinematic compiler can honor the
+          // script's authored shot size / angle / move / motion.
+          cameraScale: shot.cameraScale,
+          cameraAngle: shot.cameraAngle,
+          movementType: shot.movementType,
+          motionDirection: shot.motionDirection,
+          lightingDescription: shot.lightingDescription,
+          locationDescription: shot.locationDescription,
           // Capture scene context
           sceneContext: shot.actionPhase ? {
             actionPhase: shot.actionPhase,
@@ -2694,7 +2704,12 @@ async function runProduction(
   
   // Build clip prompts from optimized shots OR script (for resume)
   // NEW: Include sceneContext for continuous flow
-  let clips: Array<{ index: number; prompt: string; sceneContext?: SceneContext }> = [];
+  let clips: Array<{
+    index: number; prompt: string; sceneContext?: SceneContext;
+    // Authored cinematography forwarded to the cinematic compiler (2026-07-02).
+    cameraScale?: string; cameraAngle?: string; movementType?: string;
+    motionDirection?: string; lightingDescription?: string; locationDescription?: string;
+  }> = [];
   
   if (state.auditResult && state.auditResult.optimizedShots && state.auditResult.optimizedShots.length > 0) {
     // Use optimized shots from audit - merge with script's sceneContext
@@ -2737,6 +2752,13 @@ async function runProduction(
         index: i,
         prompt: finalPrompt,
         sceneContext: shot.sceneContext || buildDefaultSceneContext(i, state),
+        // Carry the script's authored cinematography to the dispatch payload.
+        cameraScale: shot.cameraScale,
+        cameraAngle: shot.cameraAngle,
+        movementType: shot.movementType,
+        motionDirection: shot.motionDirection,
+        lightingDescription: shot.lightingDescription,
+        locationDescription: shot.locationDescription,
       };
     });
   } else {
@@ -3913,6 +3935,17 @@ async function runProduction(
             // CRITICAL: Pass engine so continue-production routes clips correctly
             videoEngine,
             isAvatarMode, // EXPLICIT flag — survives callback chain
+            // AUTHORED CINEMATOGRAPHY (2026-07-02): forward the script's per-shot
+            // camera direction so generate-single-clip's cinematic compiler
+            // honors it instead of only inferring from the sentence.
+            shotSpec: {
+              cameraScale: clip.cameraScale,
+              cameraAngle: clip.cameraAngle,
+              movementType: clip.movementType,
+              motionDirection: clip.motionDirection,
+              lightingDescription: clip.lightingDescription,
+              locationDescription: clip.locationDescription,
+            },
             // CRITICAL FIX: Pass identityBible with characterDescription to pipeline context
             identityBible: state.identityBible ? {
               ...state.identityBible,

@@ -216,6 +216,16 @@ export async function dispatchParallel(
         clipDuration: scriptShots[i]?.["durationSeconds" as any] ?? clipDuration,
         aspectRatio,
         sceneImageLookup,
+        // AUTHORED CINEMATOGRAPHY (2026-07-02): forward the script's per-shot
+        // camera direction to the cinematic compiler (parallel/seedance path).
+        shotSpec: {
+          cameraScale: (scriptShots[i] as any)?.cameraScale,
+          cameraAngle: (scriptShots[i] as any)?.cameraAngle,
+          movementType: (scriptShots[i] as any)?.movementType,
+          motionDirection: (scriptShots[i] as any)?.motionDirection,
+          lightingDescription: (scriptShots[i] as any)?.lightingDescription,
+          locationDescription: (scriptShots[i] as any)?.locationDescription,
+        },
       },
     });
 

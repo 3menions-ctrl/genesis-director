@@ -44,6 +44,8 @@ interface PipelineRequest {
   mood?: string;
   includeVoice?: boolean;
   includeMusic?: boolean;
+  /** 🧪 Dry-run: mock the Replicate video + stitch (no spend). */
+  dryRun?: boolean;
   musicMood?: string;
   voiceId?: string;
   colorGrading?: string;
@@ -3903,6 +3905,7 @@ async function runProduction(
           projectId: state.projectId,
           videoEngine,
           isAvatarMode, // EXPLICIT flag — generate-single-clip uses this, NOT videoEngine
+          dryRun: request.dryRun === true, // 🧪 mock the Replicate call (no spend)
           clipIndex: i,
           prompt: finalPrompt,
           totalClips: clips.length,

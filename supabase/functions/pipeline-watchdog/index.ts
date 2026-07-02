@@ -439,6 +439,45 @@ serve(async (req) => {
         audioUrl: string;
       }> = [];
       
+      // Hoisted from a nested block below (was defined inside one branch but
+      // ALSO called from the frame-chaining branch, where it was out of scope
+      // → a silent ReferenceError that killed last-frame continuity on the
+      // watchdog-recovery path). Defined once at the loop top so every branch
+      // in this iteration can use it.
+      const extractLastFrameFromVideo = async (videoUrl: string, forClipIndex: number): Promise<string | null> => {
+        try {
+          const frameResponse = await fetch(`${supabaseUrl}/functions/v1/extract-video-frame`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseKey}`,
+            },
+            body: JSON.stringify({
+              videoUrl,
+              projectId: project.id,
+              shotIndex: forClipIndex,
+            }),
+          });
+          if (frameResponse.ok) {
+            const frameResult = await frameResponse.json();
+            const extractedFrame = frameResult.frameUrl || frameResult.lastFrameUrl;
+            if (frameResult.success && extractedFrame) {
+              console.log(`[Watchdog] ✅ Extracted last frame from clip ${forClipIndex + 1} (${frameResult.method}): ${extractedFrame.substring(0, 60)}...`);
+              await supabase
+                .from('video_clips')
+                .update({ last_frame_url: extractedFrame, updated_at: new Date().toISOString() })
+                .eq('project_id', project.id)
+                .eq('shot_index', forClipIndex);
+              return extractedFrame;
+            }
+          }
+          console.warn(`[Watchdog] ⚠️ Frame extraction failed for clip ${forClipIndex + 1}`);
+        } catch (frameError) {
+          console.error(`[Watchdog] Frame extraction error for clip ${forClipIndex + 1}:`, frameError);
+        }
+        return null;
+      };
+
       for (const pred of tasks.predictions) {
         if (pred.status === 'completed') {
           completedClips.push({
@@ -526,42 +565,9 @@ serve(async (req) => {
           // FRAME EXTRACTION HELPER: Extract last frame from any video URL
           // Used for BOTH primary and secondary same-character continuity
           // ═══════════════════════════════════════════════════════════════════════
-          const extractLastFrameFromVideo = async (videoUrl: string, forClipIndex: number): Promise<string | null> => {
-            try {
-              const frameResponse = await fetch(`${supabaseUrl}/functions/v1/extract-video-frame`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${supabaseKey}`,
-                },
-                body: JSON.stringify({
-                  videoUrl,
-                  projectId: project.id,
-                  shotIndex: forClipIndex,
-                }),
-              });
-              
-              if (frameResponse.ok) {
-                const frameResult = await frameResponse.json();
-                const extractedFrame = frameResult.frameUrl || frameResult.lastFrameUrl;
-                if (frameResult.success && extractedFrame) {
-                  console.log(`[Watchdog] ✅ Extracted last frame from clip ${forClipIndex + 1} (${frameResult.method}): ${extractedFrame.substring(0, 60)}...`);
-                  // ROOT CAUSE FIX #5: Persist extracted frame to video_clips table
-                  await supabase
-                    .from('video_clips')
-                    .update({ last_frame_url: extractedFrame, updated_at: new Date().toISOString() })
-                    .eq('project_id', project.id)
-                    .eq('shot_index', forClipIndex);
-                  return extractedFrame;
-                }
-              }
-              console.warn(`[Watchdog] ⚠️ Frame extraction failed for clip ${forClipIndex + 1}`);
-            } catch (frameError) {
-              console.error(`[Watchdog] Frame extraction error for clip ${forClipIndex + 1}:`, frameError);
-            }
-            return null;
-          };
-          
+          // extractLastFrameFromVideo is now defined at the top of the pred loop
+          // (hoisted so the frame-chaining branch can also reach it).
+
           // ═══════════════════════════════════════════════════════════════════════
           // FIND MOST RECENT CLIP OF SAME CHARACTER (for identity anchoring)
           // ═══════════════════════════════════════════════════════════════════════
@@ -1083,7 +1089,13 @@ serve(async (req) => {
         // ═══════════════════════════════════════════════════════════════════════════
         let musicUrl: string | null = null;
         let musicSyncPlan: any = null;
-        try {
+        // FIX (stray-audio bug): this block ran UNCONDITIONALLY, so a render made
+        // with enableMusic:false still got a music track — a stray ~22s clip on
+        // sys:A2. `includeMusic` is persisted into pending_video_tasks by the
+        // dispatch strategy; honor it here exactly like hollywood-pipeline does.
+        if (tasks.includeMusic !== true) {
+          console.log(`[Watchdog] ⚡ Music generation SKIPPED (includeMusic=${tasks.includeMusic})`);
+        } else try {
           const totalDuration = completedClips.length * (tasks.clipDuration || 10); // Kling V3 default: 10s
           console.log(`[Watchdog] 🎵 Generating AI-enhanced music for avatar (${totalDuration}s)...`);
           

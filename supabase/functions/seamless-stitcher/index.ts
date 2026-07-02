@@ -67,6 +67,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import type { ColorGrade } from "../_shared/color-grade.ts";
 import { compileClipColorFilter } from "../_shared/color-grade-filters.ts";
+import { isDryRun, dryRunPlaceholderUrl } from "../_shared/dry-run.ts";
 import type { EffectInstance } from "../_shared/effects.ts";
 import { bakeClipEffects, type BakedClipEffects } from "../_shared/effects-bake.ts";
 import type { AudioMix, MasterLoudnessPreset } from "../_shared/audio-mix.ts";
@@ -133,6 +134,9 @@ const corsHeaders = {
 
 // ── Types ──────────────────────────────────────────────────────────────
 interface StitchRequest {
+  /** 🧪 Dry-run: skip the billable ffmpeg cog and return the placeholder as the
+   *  final. Also read from the project's pending_video_tasks.dryRun. */
+  dryRun?: boolean;
   /** Breakthrough-mode: layered 4-plane composite (chrome / inner / subject /
    *  aftermath) with an animating boundary mask. Bypasses the clip-xfade path
    *  entirely — the caller supplies already-generated layer URLs (see the
@@ -595,6 +599,30 @@ serve(async (req) => {
       // assigned to A2+ amix into the master audio output. Clips with
       // no trackId default to V1 (backwards-compatible).
       const allRows = clipRows as ClipRow[];
+
+      // 🧪 DRY RUN: skip the (billable) ffmpeg cog entirely. In a dry run every
+      // clip is the same placeholder mp4, so there's nothing to actually stitch
+      // — return the first clip as the final video. The caller (final-assembly)
+      // still runs the durable-URL persist + completion path, so the whole
+      // pipeline is exercised end-to-end for $0.
+      const stitchDry = isDryRun(
+        { dryRun: (body as { dryRun?: boolean }).dryRun } as Record<string, unknown>,
+        project as unknown as Record<string, unknown>,
+      );
+      if (stitchDry) {
+        const dryFinal = allRows.find((r) => r.video_url)?.video_url
+          || dryRunPlaceholderUrl(Deno.env.get("SUPABASE_URL"));
+        console.log(`[seamless-stitcher] 🧪 DRY RUN — skipping ffmpeg cog (no Replicate spend); final=${dryFinal.slice(0, 70)}`);
+        return ok({
+          url: dryFinal,
+          finalVideoUrl: dryFinal,
+          stitchedVideoUrl: allRows.length > 1 ? dryFinal : null,
+          clipUrls: allRows.map((r) => r.video_url).filter(Boolean),
+          mode: "dry_run",
+          dryRun: true,
+        });
+      }
+
       // Filter out clips on muted VIDEO tracks BEFORE routing — they
       // shouldn't appear anywhere in the render. For audio mute, we
       // keep the clip on V1 but null its audio chain later.

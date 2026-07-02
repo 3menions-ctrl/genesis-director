@@ -213,7 +213,10 @@ interface ModeRouterRequest {
   clipDuration: number;
   enableNarration: boolean;
   enableMusic: boolean;
-  
+  /** 🧪 Dry-run: exercise the whole pipeline with a mock clip (no Replicate
+   *  spend). Forwarded to hollywood-pipeline → generate-single-clip / stitcher. */
+  dryRun?: boolean;
+
   // Genre/mood for cinematic styling
   genre?: string;
   mood?: string;
@@ -290,7 +293,7 @@ serve(async (req) => {
     }
 
     const request: ModeRouterRequest = await req.json();
-    const { mode, prompt, imageUrl, videoUrl, stylePreset, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, genre, mood, isBreakout, breakoutStartImageUrl, breakoutPlatform, videoEngine, qualityOptions } = request;
+    const { mode, prompt, imageUrl, videoUrl, stylePreset, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, genre, mood, isBreakout, breakoutStartImageUrl, breakoutPlatform, videoEngine, qualityOptions, dryRun } = request;
     const referenceImageUrl = request.referenceImageUrl || request.avatarImageUrl || imageUrl;
     
     // SECURITY: end-user calls MUST use JWT identity; service-role internal calls may pass request.userId
@@ -747,6 +750,7 @@ serve(async (req) => {
           videoEngine, // CRITICAL: Forward engine selection to hollywood-pipeline
           cameraFixed: request.cameraFixed, // Seedance camera lock (breakout forces true downstream)
           qualityOptions, // 4K / 60fps intent → persisted for the finalizer
+          dryRun, // 🧪 forward dry-run so the mock reaches generate-single-clip + stitcher
           // Breakout template parameters - for platform UI shattering effect
           isBreakout,
           breakoutStartImageUrl,

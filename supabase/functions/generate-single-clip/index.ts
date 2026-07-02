@@ -322,6 +322,7 @@ async function createWan25Prediction(
   startImageUrl?: string | null,
   aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
   durationSeconds: number = DEFAULT_CLIP_DURATION,
+  negativePrompt: string = '',
 ): Promise<{ predictionId: string }> {
   const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
   if (!REPLICATE_API_KEY) {
@@ -341,7 +342,15 @@ async function createWan25Prediction(
     duration,
     size: wanSize,
     seed: Math.floor(Math.random() * 2147483647),
+    // ENGINE-PARAM AUDIT (2026-07-02): wan defaults enable_prompt_expansion=true,
+    // which REWRITES our carefully-compiled cinematic prompt with its own
+    // expansion — undoing the compiler. Disable for deterministic control.
+    enable_prompt_expansion: false,
   };
+  // wan supports negative_prompt (was never sent → wan got no negatives).
+  if (negativePrompt && negativePrompt.trim()) {
+    input.negative_prompt = negativePrompt.slice(0, 1500);
+  }
   if (startImageUrl && startImageUrl.startsWith("http")) {
     input.image = startImageUrl;
   }
@@ -403,7 +412,11 @@ async function createSeedancePrediction(
     duration,
     resolution: "1080p",
     aspect_ratio: aspectRatio,
-    fps: 24,
+    // ENGINE-PARAM AUDIT (2026-07-02): seedance defaults generate_audio=true,
+    // but in this pipeline voice/music are muxed onto the stitched film
+    // post-render (seedance has no useful native audio here) — generating it
+    // wastes provider compute and can inject unwanted sound. Disable.
+    generate_audio: false,
     // camera_fixed locks the virtual camera (no drift) — REQUIRED for breakout
     // 4th-wall shots and identity-locked sequences. Threaded from the
     // production_request so the orchestrator (not just the legacy seedance
@@ -1790,6 +1803,7 @@ serve(async (req) => {
         validatedStartImage,
         aspectRatio as '16:9' | '9:16' | '1:1',
         durationSeconds,
+        finalNegativeFor('wan'),
       );
       predictionId = wanResult.predictionId;
     } else if (videoEngine === 'seedance') {

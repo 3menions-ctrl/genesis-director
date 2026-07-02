@@ -16,6 +16,9 @@
 
 import { describe, it, expect } from 'vitest';
 import {
+  CREDIT_VALUE_FLOOR_USD,
+  CLIP_COST_USD,
+  BUNDLED_ADDON_COST_USD,
   ENGINES,
   engineToBackend,
   creditsForScene,
@@ -103,15 +106,20 @@ describe('creditsForScene — pricing sanity', () => {
     expect(Number.isFinite(cost)).toBe(true);
   });
 
-  it('cinema engines are strictly more expensive than standard kling at each default duration', () => {
-    // Engines support different duration tables (sora: 4/8/12, runway: 5/10,
-    // kling: 5/10/15), so compare each at its own recommended duration.
-    const klingCost = creditsForScene('kling-v3', ENGINES['kling-v3'].defaultDuration);
-    expect(
-      creditsForScene('runway-gen4', ENGINES['runway-gen4'].defaultDuration),
-    ).toBeGreaterThan(klingCost);
-    expect(
-      creditsForScene('sora-2', ENGINES['sora-2'].defaultDuration),
-    ).toBeGreaterThan(klingCost);
+  it('every engine is COST-BASED priced at ≥30% gross margin (tier labels do not set price)', () => {
+    // Pricing philosophy changed 2026-07-02: credits derive from ACTUAL
+    // provider COGS + the add-on bundle at the credit-value floor — a
+    // "cinema" badge no longer implies a higher price than "standard"
+    // (Veo 3.1 genuinely costs less to run than Kling 3.0 Pro).
+    for (const id of Object.keys(ENGINES) as Array<keyof typeof ENGINES>) {
+      const spec = ENGINES[id];
+      for (const d of spec.durations) {
+        const credits = spec.baseCreditsFor(d);
+        const revenueUsd = credits * CREDIT_VALUE_FLOOR_USD;
+        const costUsd = CLIP_COST_USD[id][d] + BUNDLED_ADDON_COST_USD;
+        const margin = (revenueUsd - costUsd) / revenueUsd;
+        expect(margin, `${id}@${d}s margin ${(margin * 100).toFixed(1)}%`).toBeGreaterThanOrEqual(0.30);
+      }
+    }
   });
 });

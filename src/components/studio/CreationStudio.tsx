@@ -242,11 +242,11 @@ function GenerateModule({ sel, setSel, onStartCreation, initialPrompt }: { sel: 
     const d = clampDurationForEngine(s.id, duration);
     const prof = s.qualityProfiles.find((q) => q.recommended) ?? s.qualityProfiles[0];
     // Base × scenes + quality surcharge ONCE (4K/60fps are final-film post).
-    return s.baseCreditsFor(d) * scenes + renderSurchargeCredits(s, prof.options);
+    return s.baseCreditsFor(d) * scenes + renderSurchargeCredits(s, prof.options, d * scenes);
   };
   // Quality cores (4K upscale / 60fps) are post-processing on the FINAL film,
   // billed once per render — not per clip. So: base × scenes + surcharge once.
-  const totalCost = spec && profile ? spec.baseCreditsFor(safeDuration) * scenes + renderSurchargeCredits(spec, profile.options) : 0;
+  const totalCost = spec && profile ? spec.baseCreditsFor(safeDuration) * scenes + renderSurchargeCredits(spec, profile.options, runtime) : 0;
   const runtime = safeDuration * scenes;
 
   const canCreate =

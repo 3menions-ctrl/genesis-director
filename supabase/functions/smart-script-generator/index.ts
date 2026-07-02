@@ -1001,8 +1001,11 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
           maxTokens: isSeedance
             ? calculateMaxTokens(clipCount, 800, 4500, 9000)
             : calculateMaxTokens(clipCount, 500, 3000, 6000),
-          temperature: isSeedance ? 0.75 : 0.8, // Slightly tighter for technical precision
+          temperature: isSeedance ? 0.75 : 0.8, // ignored by gpt-5 (reasoning model)
           json: true,
+          // Best-in-layer: GPT-5 first for screenwriting reasoning; the second
+          // attempt falls back to GPT-4o (faster, cheaper, still strong).
+          replicateModel: attempt === 0 ? 'openai/gpt-5' : 'openai/gpt-4o',
         });
       } catch (e) {
         llmError = e;

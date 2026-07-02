@@ -354,6 +354,8 @@ async function createWan25Prediction(
         duration,
         resolution: "1080p",
         aspect_ratio: aspectRatio,
+        // Wan's built-in prompt optimizer measurably improves output quality.
+        enable_prompt_expansion: true,
         seed: Math.floor(Math.random() * 2147483647),
       };
 

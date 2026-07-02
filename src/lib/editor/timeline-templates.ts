@@ -644,6 +644,148 @@ export const TIMELINE_TEMPLATES: TimelineTemplate[] = [
     ],
     introTitle: "my best friend", outroTitle: "🐾", music: "mountain", gradient: G.rose,
   }),
+
+  // ── Extra batch (2026-07-02) — fresh use-cases across existing categories.
+  //    All auto-bake their grade via LOOK_LUT in mk(). ─────────────────────────
+  mk({
+    id: "soc-podcast", name: "Podcast Clip", description: "Talking-head cut for shorts — clean, punchy, caption-ready.",
+    category: "social", aspectRatio: "9:16", vibe: "Punchy", filter: LOOK.clean, mobileFirst: true,
+    transition: "fadeblack", transitionDurationSec: 0.15, fadeInSec: 0.15, fadeOutSec: 0.15,
+    slots: [
+      { prompt: "Close-up host talking into a studio microphone, soft key light, vertical", durationSec: 4 },
+      { prompt: "Reaction cutaway, guest laughing, shallow depth of field", durationSec: 3 },
+      { prompt: "Punch-in on the host making a point, direct eye contact", durationSec: 3 },
+    ],
+    introTitle: "the clip", outroTitle: "full ep in bio", music: "swell", gradient: G.slate,
+  }),
+  mk({
+    id: "soc-gaming", name: "Gaming Montage", description: "High-energy neon cuts synced to the drop.",
+    category: "social", aspectRatio: "9:16", vibe: "Hype", filter: LOOK.neon, mobileFirst: true,
+    transition: "slideup", transitionDurationSec: 0.2, fadeInSec: 0.1, fadeOutSec: 0.1, speed: 1.05,
+    slots: [
+      { prompt: "First-person shooter gameplay, neon HUD, fast pan, vertical", durationSec: 2 },
+      { prompt: "Victory moment, explosion of confetti and light", durationSec: 2 },
+      { prompt: "Streamer reaction, RGB backlight, headset", durationSec: 2 },
+      { prompt: "Scoreboard MVP screen, glowing stats", durationSec: 2 },
+    ],
+    introTitle: "GG", outroTitle: "clip it 🎮", music: "strings", gradient: G.violet,
+  }),
+  mk({
+    id: "soc-unbox", name: "Unboxing", description: "Crisp product reveals with satisfying snap cuts.",
+    category: "social", aspectRatio: "9:16", vibe: "Crisp", filter: LOOK.punchy, mobileFirst: true,
+    transition: "circleopen", transitionDurationSec: 0.3, fadeInSec: 0.2, fadeOutSec: 0.2,
+    slots: [
+      { prompt: "Hands lifting the lid off a premium product box, top-down, vertical", durationSec: 3 },
+      { prompt: "Product hero rotating on a clean pedestal, studio light", durationSec: 3 },
+      { prompt: "Macro detail of the product texture and finish", durationSec: 3 },
+    ],
+    introTitle: "unboxing", outroTitle: "worth it?", music: "swell", gradient: G.gold,
+  }),
+  mk({
+    id: "com-saas", name: "App Demo", description: "Bright, confident product walkthrough for launch day.",
+    category: "commercial", aspectRatio: "16:9", vibe: "Sleek", filter: LOOK.clean,
+    transition: "smoothright", transitionDurationSec: 0.4, fadeInSec: 0.3, fadeOutSec: 0.3,
+    slots: [
+      { prompt: "Sleek app UI animating on a floating device mockup, soft gradient backdrop", durationSec: 4 },
+      { prompt: "Close-up of a finger tapping a clean interface, satisfying micro-motion", durationSec: 3 },
+      { prompt: "Happy user glancing at their phone in a bright modern office", durationSec: 3 },
+      { prompt: "Logo resolve on a minimal gradient, confident and calm", durationSec: 3 },
+    ],
+    introTitle: "MEET", outroTitle: "try it free", music: "swell", gradient: G.sky,
+  }),
+  mk({
+    id: "com-beauty", name: "Skincare Spot", description: "Dewy, soft, aspirational — glowing close-ups.",
+    category: "commercial", aspectRatio: "9:16", vibe: "Dewy", filter: LOOK.pastel, mobileFirst: true,
+    transition: "dissolve", transitionDurationSec: 0.5, fadeInSec: 0.5, fadeOutSec: 0.5, speed: 0.95,
+    slots: [
+      { prompt: "Serum drop falling onto glowing skin, macro, soft window light, vertical", durationSec: 3 },
+      { prompt: "Model applying cream, radiant complexion, gentle motion", durationSec: 3 },
+      { prompt: "Product bottle on marble with fresh petals, soft focus", durationSec: 3 },
+    ],
+    introTitle: "glow", outroTitle: "your ritual", music: "mountain", gradient: G.rose,
+  }),
+  mk({
+    id: "com-restaurant", name: "Restaurant", description: "Warm, mouth-watering food beats with steam and sizzle.",
+    category: "commercial", aspectRatio: "16:9", vibe: "Savory", filter: LOOK.warmVintage,
+    transition: "fade", transitionDurationSec: 0.4, fadeInSec: 0.4, fadeOutSec: 0.4,
+    slots: [
+      { prompt: "Steam rising off a fresh plated dish, warm restaurant light", durationSec: 3 },
+      { prompt: "Chef plating with tweezers, shallow depth of field", durationSec: 3 },
+      { prompt: "Guests toasting glasses in a cozy dining room, golden ambience", durationSec: 3 },
+      { prompt: "Exterior of a warm-lit bistro at dusk", durationSec: 3 },
+    ],
+    introTitle: "TONIGHT", outroTitle: "reserve a table", music: "mountain", gradient: G.ember,
+  }),
+  mk({
+    id: "cine-western", name: "Western", description: "Sun-baked golden vistas, slow standoff tension.",
+    category: "cinematic", aspectRatio: "21:9", vibe: "Dusty", filter: LOOK.goldenHour,
+    transition: "fadeblack", transitionDurationSec: 0.7, fadeInSec: 0.8, fadeOutSec: 0.8, speed: 0.92,
+    slots: [
+      { prompt: "Lone rider silhouetted against a vast desert sunset, dust in the air", durationSec: 5 },
+      { prompt: "Extreme close-up of narrowed eyes under a wide-brim hat", durationSec: 3 },
+      { prompt: "Hand hovering over a holster, high noon shadows", durationSec: 3 },
+      { prompt: "Wide standoff on an empty frontier street, tumbleweed", durationSec: 5 },
+    ],
+    introTitle: "HIGH NOON", outroTitle: "THE END", music: "strings", gradient: G.gold,
+  }),
+  mk({
+    id: "cine-heist", name: "Heist", description: "Slick, cold, precise — a countdown to the score.",
+    category: "cinematic", aspectRatio: "16:9", vibe: "Slick", filter: LOOK.coldThriller,
+    transition: "smoothleft", transitionDurationSec: 0.3, fadeInSec: 0.3, fadeOutSec: 0.4, speed: 1.02,
+    slots: [
+      { prompt: "Gloved hands cracking a vault dial, cold blue light", durationSec: 3 },
+      { prompt: "Crew moving in sync through a marble lobby, low angle", durationSec: 4 },
+      { prompt: "Close-up of a countdown timer ticking down", durationSec: 2 },
+      { prompt: "Getaway car pulling away through neon-lit streets at night", durationSec: 4 },
+    ],
+    introTitle: "THE JOB", outroTitle: "clean getaway", music: "strings", gradient: G.slate,
+  }),
+  mk({
+    id: "trav-winter", name: "Winter Escape", description: "Crisp snow-blue vistas, gentle drifting snow.",
+    category: "travel", aspectRatio: "16:9", vibe: "Frosted", filter: LOOK.coldThriller,
+    transition: "dissolve", transitionDurationSec: 0.6, fadeInSec: 0.6, fadeOutSec: 0.6,
+    slots: [
+      { prompt: "Snow-capped alpine peaks under a crisp blue sky, drifting snow", durationSec: 5 },
+      { prompt: "Skier carving fresh powder, spray catching the light", durationSec: 4 },
+      { prompt: "Cozy chalet window with warm light, snow falling outside", durationSec: 4 },
+    ],
+    introTitle: "WINTER", outroTitle: "escape", music: "mountain", gradient: G.sky,
+  }),
+  mk({
+    id: "trav-desert", name: "Desert Roam", description: "Vast dunes, heat haze, endless golden horizon.",
+    category: "travel", aspectRatio: "21:9", vibe: "Vast", filter: LOOK.goldenHour,
+    transition: "fade", transitionDurationSec: 0.6, fadeInSec: 0.7, fadeOutSec: 0.7, speed: 0.95,
+    slots: [
+      { prompt: "Endless sand dunes rippling to the horizon at golden hour", durationSec: 5 },
+      { prompt: "Lone 4x4 crossing the dunes, trailing dust", durationSec: 4 },
+      { prompt: "Silhouettes on a dune crest against a huge setting sun", durationSec: 5 },
+    ],
+    introTitle: "THE ROAM", outroTitle: "off the map", music: "strings", gradient: G.ember,
+  }),
+  mk({
+    id: "story-wedding", name: "Wedding Film", description: "Soft, timeless, tear-catching — the day in a breath.",
+    category: "story", aspectRatio: "16:9", vibe: "Timeless", filter: LOOK.warmVintage,
+    transition: "dissolve", transitionDurationSec: 0.7, fadeInSec: 0.8, fadeOutSec: 0.8, speed: 0.9,
+    slots: [
+      { prompt: "Bride's veil catching soft morning window light, macro detail", durationSec: 4 },
+      { prompt: "First look, both reacting emotionally, shallow focus", durationSec: 4 },
+      { prompt: "Slow push-in on clasped hands exchanging rings", durationSec: 3 },
+      { prompt: "Couple walking through golden confetti, guests cheering", durationSec: 4 },
+    ],
+    introTitle: "FOREVER", outroTitle: "the two of us", music: "strings", gradient: G.rose,
+  }),
+  mk({
+    id: "music-trap", name: "Hip-Hop / Trap", description: "Hard neon flexes and rapid strobe cuts.",
+    category: "music", aspectRatio: "9:16", vibe: "Hard", filter: LOOK.neon, mobileFirst: true,
+    transition: "slideleft", transitionDurationSec: 0.15, fadeInSec: 0.1, fadeOutSec: 0.1, speed: 1.05,
+    slots: [
+      { prompt: "Artist under harsh magenta strobes, low angle, haze, vertical", durationSec: 2 },
+      { prompt: "Close-up of iced jewelry catching light, macro", durationSec: 2 },
+      { prompt: "Crew walking toward camera in slow motion, neon alley", durationSec: 3 },
+      { prompt: "City skyline flexing at night from a rooftop", durationSec: 2 },
+    ],
+    introTitle: "NO HOOK", outroTitle: "out now", music: "strings", gradient: G.violet,
+  }),
 ];
 
 /** Lookup by id. */

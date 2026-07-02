@@ -37,6 +37,7 @@ import {
   Crosshair,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { promptAsync } from "@/components/ui/global-confirm";
 import { TYPE_META, EASE_PREMIUM } from "@/lib/design-system";
 import type { EditorClip, EditorProject } from "@/lib/editor/types";
 import {
@@ -708,14 +709,18 @@ export function PlayerCanvas({ project, selectedClipId, playheadSec }: Props) {
     }, "image/png");
   }, [playheadSec, project.title]);
 
-  // GOTO timecode — prompt and seek
-  const promptGoto = useCallback(() => {
-    const v = window.prompt(
-      "Go to timecode (MM:SS, MM:SS:FF, or seconds)",
-      `${Math.floor(playheadSec / 60).toString().padStart(2, "0")}:${Math.floor(playheadSec % 60)
+  // GOTO timecode — prompt and seek. Uses the in-app promptAsync (styled +
+  // Electron-safe) instead of window.prompt, which is a no-op in the desktop
+  // shell and off-brand in the browser.
+  const promptGoto = useCallback(async () => {
+    const v = await promptAsync({
+      title: "Go to timecode",
+      description: "Enter MM:SS, MM:SS:FF, or seconds",
+      defaultValue: `${Math.floor(playheadSec / 60).toString().padStart(2, "0")}:${Math.floor(playheadSec % 60)
         .toString()
         .padStart(2, "0")}`,
-    );
+      confirmLabel: "Go",
+    });
     if (!v) return;
     const parts = v.split(":").map((p) => parseFloat(p));
     let target = playheadSec;

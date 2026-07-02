@@ -20,6 +20,7 @@ import {
   TIMELINE_TEMPLATES,
   getTimelineTemplate,
 } from "@/lib/editor/timeline-templates";
+import { getLut } from "@/lib/editor/lut-library";
 import { makeProject, flatClips } from "@/test/store/fixtures";
 
 const AUDIO = new Set(["sys:A1", "sys:A2"]);
@@ -36,18 +37,27 @@ const a2Clips = () =>
 
 const EPIC = getTimelineTemplate("cine-epic") as TimelineTemplate;
 
-describe("TIMELINE_TEMPLATES — the 50", () => {
-  it("has exactly 50 templates with unique ids", () => {
-    expect(TIMELINE_TEMPLATES).toHaveLength(50);
+describe("TIMELINE_TEMPLATES", () => {
+  it("has 62 templates with unique ids", () => {
+    expect(TIMELINE_TEMPLATES.length).toBe(62);
     const ids = new Set(TIMELINE_TEMPLATES.map((t) => t.id));
-    expect(ids.size).toBe(50);
+    expect(ids.size).toBe(TIMELINE_TEMPLATES.length);
   });
 
-  it("covers all 10 categories, 5 each", () => {
+  it("covers all 10 categories, at least 5 each", () => {
     const byCat = new Map<string, number>();
     for (const t of TIMELINE_TEMPLATES) byCat.set(t.category, (byCat.get(t.category) ?? 0) + 1);
     expect(byCat.size).toBe(Object.keys(CATEGORY_LABELS).length);
-    for (const [, n] of byCat) expect(n).toBe(5);
+    for (const [, n] of byCat) expect(n).toBeGreaterThanOrEqual(5);
+  });
+
+  it("every template has a BAKEABLE grade (lutId resolves to a real LUT)", () => {
+    // The CSS filter is preview-only; the export bakes colorGrade.lutId. This
+    // locks the fix that made template looks actually reach the render.
+    for (const t of TIMELINE_TEMPLATES) {
+      expect(t.lutId, `${t.id} missing lutId`).toBeTruthy();
+      expect(getLut(t.lutId as string), `${t.id} lutId "${t.lutId}" does not resolve`).toBeDefined();
+    }
   });
 
   it("every template is well-formed and scored by a real bed", () => {
@@ -112,6 +122,15 @@ describe("applyTimelineTemplate — fill empty timeline", () => {
     for (const c of videoClips()) {
       expect(c.properties?.filter).toBe(EPIC.filter);
       expect(c.properties?.fadeInSec).toBe(EPIC.fadeInSec);
+    }
+  });
+
+  it("writes a BAKEABLE colorGrade (lutId) so the look reaches the export", () => {
+    applyTimelineTemplate(EPIC);
+    for (const c of videoClips()) {
+      // Preview CSS filter AND the real grade the stitcher bakes.
+      expect(c.properties?.colorGrade?.lutId).toBe(EPIC.lutId);
+      expect(c.properties?.colorGrade?.lutMix).toBe(1);
     }
   });
 

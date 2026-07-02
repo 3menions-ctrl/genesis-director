@@ -17,6 +17,7 @@ import { publicErrorMessage } from '../_shared/safe-error.ts';
 import { validateEffectPlan, resolveInputs, type EffectPlan, type EffectStage } from '../_shared/effect-plan.ts';
 import { invokeTool, resumeToolPrediction, PendingPrediction, setStageBudget, type ToolResult } from '../_shared/effect-tools.ts';
 import { preflightAiGate, chargeAiGate } from '../_shared/ai-credit-gate.ts';
+import { buildBreakoutPlan } from '../_shared/breakout-plan-builder.ts';
 
 // Flat price for one effect run, sized to WORST-CASE bounded spend (2 seedance
 // clips + 1 budgeted video retry + images/critic/ffmpeg ≈ $8 COGS) so the 30%
@@ -131,6 +132,17 @@ serve(async (req) => {
       runProjectId = (run.project_id as string) ?? null;
     } else {
       let rawPlan = body.plan;
+      let dynamicCost: number | null = null;
+      // Studio path: user story params → compiled plan + scaled price.
+      if (!rawPlan && body.breakout) {
+        try {
+          const built = buildBreakoutPlan(body.breakout);
+          rawPlan = built.plan;
+          dynamicCost = built.costCredits;
+        } catch (e) {
+          return json(400, { error: e instanceof Error ? e.message : 'invalid breakout params' });
+        }
+      }
       if (!rawPlan && body.recipeSlug) {
         const { data: recipe } = await supabase.from('effect_recipes').select('plan').eq('slug', body.recipeSlug).maybeSingle();
         if (!recipe) return json(404, { error: `recipe ${body.recipeSlug} not found` });
@@ -146,12 +158,13 @@ serve(async (req) => {
         userId: auth.userId ?? null,
         isServiceRole: auth.isServiceRole ?? false,
         projectId: body.projectId ?? null,
-        cost: EFFECT_RUN_COST_CREDITS,
+        cost: dynamicCost ?? EFFECT_RUN_COST_CREDITS,
         dailyCap: 20,
         corsHeaders,
       });
       if (blocked) return blocked;
-      state = { stageIdx: 0, outputs: {}, attempts: {}, pending: null, critic: {} };
+      state = { stageIdx: 0, outputs: {}, attempts: {}, pending: null, critic: {} } as RunState & { costCredits?: number };
+      (state as { costCredits?: number }).costCredits = dynamicCost ?? EFFECT_RUN_COST_CREDITS;
       const { data: created, error } = await supabase
         .from('effect_runs')
         .insert({ user_id: auth.userId, project_id: body.projectId ?? null, recipe_slug: plan.id, plan, state })
@@ -268,11 +281,27 @@ serve(async (req) => {
       fnName: 'effect-executor',
       userId: runUserId,
       projectId: runProjectId,
-      cost: EFFECT_RUN_COST_CREDITS,
+      cost: (state as { costCredits?: number }).costCredits ?? EFFECT_RUN_COST_CREDITS,
       dailyCap: 20,
       idempotencyKey: `effect-run-${runId}`,
       corsHeaders,
     });
+    // LIBRARY DELIVERY: the finished film lands in the user's projects so it
+    // appears in their library/Reel like any other creation.
+    if (runUserId && finalUrl) {
+      const { error: projErr } = await supabase.from('movie_projects').insert({
+        user_id: runUserId,
+        title: plan.name ?? 'Breakout',
+        genre: 'funny',
+        story_structure: 'three_act',
+        target_duration_minutes: 1,
+        include_narration: false,
+        status: 'completed',
+        video_url: finalUrl,
+        synopsis: plan.intent ?? null,
+      });
+      if (projErr) console.warn('[effect-executor] library delivery failed:', projErr.message);
+    }
     console.log(`[effect-executor] run=${runId} COMPLETED → ${finalUrl}`);
       } catch (e) {
         console.error('[effect-executor] slice fatal:', e);

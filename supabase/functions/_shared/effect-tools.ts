@@ -300,6 +300,27 @@ export async function invokeTool(tool: ToolId, inputs: Record<string, unknown>, 
       return { url: await persist(url, `effects/${stamp}.mp4`, 'video/mp4') };
     }
 
+    case 'composite.concat': {
+      // Stitch N clips into one film (re-encode; normalizes size + fps so
+      // heterogeneous seedance outputs concat cleanly). Audio carried per-clip.
+      const clips = (inputs.clips as string[]) ?? [];
+      if (clips.length < 2) return { url: clips[0] };
+      const W = (inputs.width as number) ?? 1080, H = (inputs.height as number) ?? 1920;
+      const files: Record<string, string> = {};
+      const norm: string[] = [];
+      clips.forEach((u, i) => {
+        files[`file${i + 1}`] = u;
+        norm.push(`[${i}:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1,fps=24[v${i}];[${i}:a]aresample=48000[a${i}]`);
+      });
+      const pairs = clips.map((_u, i) => `[v${i}][a${i}]`).join('');
+      const command =
+        `ffmpeg -y ${clips.map((_u, i) => `-i file${i + 1}`).join(' ')} -filter_complex "` +
+        `${norm.join(';')};${pairs}concat=n=${clips.length}:v=1:a=1[v][a]" ` +
+        `-map "[v]" -map "[a]" -c:v libx264 -preset fast -crf 18 -pix_fmt yuv420p -c:a aac output.mp4`;
+      const url = await runFfmpeg(command, files, `film_${stageId}.mp4`);
+      return { url: await persist(url, `effects/${stamp}.mp4`, 'video/mp4') };
+    }
+
     // ── Audio ────────────────────────────────────────────────────────────
     case 'audio.tts': {
       const res = await callEdgeFn('generate-voice', { text: inputs.text, voiceId: inputs.voiceId, projectId: inputs.projectId ?? 'effect-run', shotId: stageId });

@@ -263,6 +263,132 @@ export function resolveShotOperation(
   return 't2v';
 }
 
+// ─── Top-level normalizer ───────────────────────────────────────────────────
+// The single entry every surface's raw payload flows through. `mode-router`
+// calls this once and hands the canonical ProductionRequest down the pipeline,
+// so mode/engine/operation/gate are resolved in ONE place instead of being
+// re-derived per handler. (docs/PIPELINE.md §5 "One canonical request" / §6
+// Stage 1.) Pure + side-effect-free.
+
+/** The grab-bag of fields the legacy mode-router request carries. */
+export interface NormalizerInput {
+  mode?: string | null;
+  prompt?: string | null;
+  imageUrl?: string | null;
+  referenceImageUrl?: string | null;
+  avatarImageUrl?: string | null;
+  videoUrl?: string | null;
+  stylePreset?: string | null;
+  voiceId?: string | null;
+  aspectRatio?: string | null;
+  clipCount?: number | null;
+  clipDuration?: number | null;
+  enableNarration?: boolean | null;
+  enableMusic?: boolean | null;
+  isBreakout?: boolean | null;
+  breakoutPlatform?: string | null;
+  videoEngine?: string | null;
+  qualityOptions?: { upscale4k?: boolean; fps60?: boolean; autoRetake?: boolean } | null;
+  autoApprove?: boolean | null;
+  cinematicMode?: boolean | null;
+  avatarType?: string | null;
+  templateSlug?: string | null;
+  crossoverTemplateSlug?: string | null;
+  concept?: string | null;
+  sceneDescription?: string | null;
+}
+
+export interface NormalizerCtx {
+  userId?: string;
+  projectId?: string;
+}
+
+// Overrides main's minimal builder accepted — kept for golden-plan callers.
+export interface NormalizerOverrides {
+  isAvatarMode?: boolean;
+  /** Whether the flow generates a script (cinematic) vs runs verbatim/effect. */
+  hasScript?: boolean;
+}
+
+const KNOWN_ENGINES: readonly BackendEngine[] = ['wan', 'kling', 'veo', 'seedance', 'runway', 'sora'];
+
+function normalizeEngine(raw: string | null | undefined): RequestEngine {
+  if (!raw || raw === 'auto') return 'auto';
+  return KNOWN_ENGINES.includes(raw as BackendEngine) ? (raw as RequestEngine) : 'auto';
+}
+
+export function buildProductionRequest(raw: NormalizerInput & NormalizerOverrides, ctx: NormalizerCtx = {}): ProductionRequest {
+  const mode = normalizeMode(raw.mode);
+  const isBreakout = !!raw.isBreakout;
+  // pr.engine is the REQUESTED engine. The breakout→seedance force is applied
+  // by resolveEngine() — keeping request vs effective engine distinct so
+  // resolveHandlerKey can key on the raw request (legacy-switch parity).
+  const engine: RequestEngine = normalizeEngine(raw.videoEngine);
+
+  // script.generate is SERVER-DERIVED from the mode (never a client flag — this
+  // is what makes the gate fail-closed):
+  //  • video2video / motion-transfer → scriptless single-pass effects
+  //  • avatar: CINEMATIC (videoEngine==='seedance') generates a script;
+  //    verbatim avatar-direct does NOT (preserve the user's exact TTS words)
+  //  • text / image / broll → generate
+  const isCinematicAvatar = mode === 'avatar' && raw.videoEngine === 'seedance';
+  const scriptGenerate = raw.hasScript ??
+    (mode === 'video2video' || mode === 'motion-transfer'
+      ? false
+      : mode === 'avatar'
+        ? isCinematicAvatar
+        : true);
+
+  const imageRef = raw.referenceImageUrl ?? raw.imageUrl ?? null;
+  const avatarRef = raw.avatarImageUrl ?? (mode === 'avatar' ? raw.imageUrl ?? null : null);
+
+  return {
+    mode,
+    engine,
+    inputs: {
+      prompt: raw.prompt ?? null,
+      imageRef: mode === 'avatar' ? null : imageRef,
+      sourceVideo: raw.videoUrl ?? null,
+      targetImage: mode === 'motion-transfer' ? raw.imageUrl ?? null : null,
+      avatarRef,
+    },
+    script: {
+      generate: scriptGenerate,
+      preserveUserContent: mode === 'avatar' && !isCinematicAvatar, // verbatim TTS guard
+    },
+    continuity: {
+      carryFrame: true,
+      identityLock: 'loose',
+    },
+    format: {
+      aspect: raw.aspectRatio ?? '16:9',
+      clips: raw.clipCount ?? undefined,
+      duration: raw.clipDuration ?? undefined,
+      quality: {
+        upscale4k: !!raw.qualityOptions?.upscale4k,
+        fps60: !!raw.qualityOptions?.fps60,
+      },
+    },
+    audio: {
+      narration: raw.enableNarration ?? true,
+      music: raw.enableMusic ?? false,
+      voiceId: raw.voiceId ?? null,
+    },
+    breakout: { isBreakout, platform: raw.breakoutPlatform ?? null },
+    gate: {
+      requireApproval: true, // FAIL-CLOSED default (docs/PIPELINE.md §5)
+      autoApprove: raw.autoApprove === true ? true : undefined, // trusted opt-out only
+    },
+    isAvatarMode: raw.isAvatarMode ?? (mode === 'avatar'),
+    cinematicMode: isCinematicAvatar || (raw.cinematicMode ?? undefined),
+    avatarType: raw.avatarType ?? null,
+    templateSlug: raw.templateSlug ?? raw.crossoverTemplateSlug ?? null,
+    concept: raw.concept ?? null,
+    projectId: ctx.projectId,
+    userId: ctx.userId,
+  };
+}
+
 // ─── HANDLER_COLLAPSE assertion table ───────────────────────────────────────
 // Compile-time documentation: which legacy handler each (mode, engine) tuple
 // collapses into, and the resolved data fields. Used by the unit test to
@@ -301,41 +427,10 @@ export const HANDLER_COLLAPSE: Record<string, HandlerCollapseRow> = {
 
 export type HandlerKey = keyof typeof HANDLER_COLLAPSE;
 
-// ─── Builder + dispatch resolver (the keystone that ACTIVATES the normalizer) ──
-// mode-router builds a canonical ProductionRequest from its raw entry fields,
-// then resolveHandlerKey() decides which handler runs. This replaces the raw
-// `switch (mode)` selection with a single normalizer-owned decision (docs/PIPELINE.md).
-// Kept minimal for the handler-selection cutover; later phases fold each mode's
-// execution into the unified clip-loop and populate the full stage fields.
-
-export function buildProductionRequest(raw: {
-  mode?: string | null;
-  videoEngine?: string | null;
-  isBreakout?: boolean;
-  isAvatarMode?: boolean;
-  /** Whether the flow generates a script (cinematic) vs runs verbatim/effect. */
-  hasScript?: boolean;
-}): ProductionRequest {
-  const mode = normalizeMode(raw.mode);
-  const engine: RequestEngine = (raw.videoEngine as RequestEngine) || 'auto';
-  const isAvatar = raw.isAvatarMode ?? (mode === 'avatar');
-  // Avatar CINEMATIC (script-driven, hollywood clip-loop) vs DIRECT (verbatim
-  // single-pass) is keyed on the seedance engine in the legacy router.
-  const scriptGenerate = raw.hasScript ??
-    (mode === 'avatar' ? (raw.isBreakout || engine === 'seedance') : (mode !== 'video2video' && mode !== 'motion-transfer'));
-  return {
-    mode,
-    engine,
-    inputs: {} as ProductionInputs,
-    script: { generate: scriptGenerate } as ProductionScript,
-    continuity: {} as ProductionContinuity,
-    format: {} as ProductionFormat,
-    audio: {} as ProductionAudio,
-    breakout: { isBreakout: !!raw.isBreakout } as ProductionBreakout,
-    gate: {} as ProductionGate,
-    isAvatarMode: isAvatar,
-  };
-}
+// ─── Dispatch resolver (the keystone that ACTIVATES the normalizer) ──────────
+// mode-router builds a canonical ProductionRequest via buildProductionRequest
+// (the full normalizer above), then resolveHandlerKey() decides which handler
+// runs — replacing the raw `switch (mode)` selection (docs/PIPELINE.md).
 
 // Single source of truth for which legacy handler runs. EXACTLY reproduces the
 // mode-router switch: avatar cinematic-vs-direct keys on the (breakout-forced)

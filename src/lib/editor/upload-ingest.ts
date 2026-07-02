@@ -138,10 +138,19 @@ export async function validateUploadFile(
   if (probe.durationSec < 0.5 || probe.durationSec > 120) {
     throw new Error("duration-out-of-range" satisfies IngestValidationError);
   }
+  // A missed first-frame seek must not fail a valid upload — synthesize a 1x1
+  // placeholder so the pipeline (which expects a blob) doesn't NPE. The real
+  // thumbnail can be backfilled later; duration is what actually matters here.
+  const thumbnailBlob = probe.thumbnailBlob ?? new Blob(
+    [new Uint8Array([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+    ])],
+    { type: "image/png" },
+  );
   return {
     file,
     durationSec: probe.durationSec,
-    thumbnailBlob: probe.thumbnailBlob,
+    thumbnailBlob,
     inferredName: inferNameFromFile(file),
   };
 }
@@ -192,7 +201,7 @@ async function probeAudio(file: File): Promise<{ durationSec: number } | null> {
  */
 async function probeVideo(
   file: File,
-): Promise<{ durationSec: number; thumbnailBlob: Blob } | null> {
+): Promise<{ durationSec: number; thumbnailBlob: Blob | null } | null> {
   try {
     const url = URL.createObjectURL(file);
     const v = document.createElement("video");
@@ -207,29 +216,42 @@ async function probeVideo(
       window.setTimeout(() => reject(new Error("video probe timeout")), 8000);
     });
 
-    // Seek to frame 0 for the thumbnail.
-    await new Promise<void>((resolve, reject) => {
-      v.onseeked = () => resolve();
-      v.onerror = () => reject(new Error("video seek failed"));
-      v.currentTime = 0;
+    // Seek slightly INTO the clip (never to 0 — a same-value seek to the
+    // current time often does NOT re-fire `seeked` in Chromium/Firefox, which
+    // hung the whole upload forever). Bound it with a timeout, and treat the
+    // thumbnail as OPTIONAL: a missed seek must not fail an otherwise-valid
+    // upload — we still have the duration from loadedmetadata.
+    const seekTarget = Number.isFinite(v.duration) && v.duration > 0
+      ? Math.min(0.1, v.duration / 2)
+      : 0.1;
+    const seeked = await new Promise<boolean>((resolve) => {
+      v.onseeked = () => resolve(true);
+      v.onerror = () => resolve(false);
+      window.setTimeout(() => resolve(false), 4000); // seek is best-effort
+      try { v.currentTime = seekTarget; } catch { resolve(false); }
     });
 
-    const canvas = document.createElement("canvas");
-    canvas.width = v.videoWidth;
-    canvas.height = v.videoHeight;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      URL.revokeObjectURL(url);
-      return null;
-    }
-    ctx.drawImage(v, 0, 0);
-    const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, "image/jpeg", 0.85),
-    );
-    URL.revokeObjectURL(url);
-    if (!blob) return null;
+    // Duration must be a finite, sane number. Streamed/unknown-duration
+    // containers report Infinity — treat that as "could not probe" rather
+    // than wrongly failing the range check downstream.
+    const durationSec = Number.isFinite(v.duration) && v.duration > 0 ? v.duration : null;
 
-    return { durationSec: v.duration, thumbnailBlob: blob };
+    let thumbnailBlob: Blob | null = null;
+    if (seeked && v.videoWidth > 0 && v.videoHeight > 0) {
+      const canvas = document.createElement("canvas");
+      canvas.width = v.videoWidth;
+      canvas.height = v.videoHeight;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(v, 0, 0);
+        thumbnailBlob = await new Promise<Blob | null>((resolve) =>
+          canvas.toBlob(resolve, "image/jpeg", 0.85),
+        );
+      }
+    }
+    URL.revokeObjectURL(url);
+    if (durationSec === null) return null; // no usable duration → let caller fall back
+    return { durationSec, thumbnailBlob };
   } catch {
     return null;
   }

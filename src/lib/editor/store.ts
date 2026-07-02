@@ -58,6 +58,24 @@ function historize(
 }
 
 /**
+ * Coalesced historize for CONTINUOUS drags (trim/roll/slip/slide/etc.).
+ * A pointer-move drag fires this every frame; without coalescing each frame
+ * pushed a separate undo entry, so one Cmd-Z reverted ~1px and undoing a drag
+ * took 100+ presses. When the last history entry shares this `label` (an
+ * in-progress burst), we update the project WITHOUT pushing a new entry — so
+ * the whole gesture collapses to a single undo. Same pattern as
+ * updateTransition/updateTextOverlay.
+ */
+function historizeCoalesced(nextProject: EditorProject, label: string): void {
+  const last = state.history.past[state.history.past.length - 1];
+  if (last?.label === label) {
+    set({ project: nextProject });
+  } else {
+    historize(nextProject, undefined, label);
+  }
+}
+
+/**
  * Recompute every VIDEO clip's timelineStartSec after a reorder /
  * trim / delete. Title clips on V2 are independent — they keep their
  * own timelineStartSec untouched so their position is sticky relative
@@ -617,7 +635,7 @@ export function rollEdit(clipId: string, durationSecDelta: number): boolean {
       }),
     })),
   };
-  historize(recompute(project), undefined, `roll:${clipId}`);
+  historizeCoalesced(recompute(project), `roll:${clipId}`);
   return true;
 }
 
@@ -644,7 +662,7 @@ export function slipClip(clipId: string, deltaSec: number): boolean {
       ),
     })),
   };
-  historize(project, undefined, `slip:${clipId}`);
+  historizeCoalesced(project, `slip:${clipId}`);
   return true;
 }
 
@@ -679,7 +697,7 @@ export function slideClip(clipId: string, deltaSec: number): boolean {
       }),
     })),
   };
-  historize(recompute(project), undefined, `slide:${clipId}`);
+  historizeCoalesced(recompute(project), `slide:${clipId}`);
   return true;
 }
 
@@ -850,7 +868,7 @@ export function trimClip(clipId: string, durationSec: number): void {
       ),
     })),
   };
-  historize(recompute(project), undefined, `trim:${clipId}`);
+  historizeCoalesced(recompute(project), `trim:${clipId}`);
 }
 
 /**

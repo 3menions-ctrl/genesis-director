@@ -1,0 +1,30 @@
+# Deploy the Breakout VFX cog to Replicate.
+#
+# Manual-only: the cog build needs Docker, which the local dev environment
+# doesn't have — GitHub runners do. Pushes the CPU compositor model to
+# r8.im/3menions-ctrl/breakout-vfx; the apply-breakout-vfx edge function
+# consumes it via REPLICATE_BREAKOUT_MODEL.
+name: Deploy VFX Cog
+on:
+  workflow_dispatch: {}
+
+jobs:
+  push-cog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cog
+        run: |
+          sudo curl -o /usr/local/bin/cog -L "https://github.com/replicate/cog/releases/latest/download/cog_$(uname -s)_$(uname -m)"
+          sudo chmod +x /usr/local/bin/cog
+          cog --version
+
+      - name: Build and push
+        working-directory: python/breakout_pipeline
+        env:
+          REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
+        run: |
+          echo "$REPLICATE_API_TOKEN" | cog login --token-stdin
+          cog push r8.im/3menions-ctrl/breakout-vfx

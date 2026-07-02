@@ -591,6 +591,48 @@ export function moveClip(clipId: string, toIndex: number): void {
   historize(recompute(project));
 }
 
+/**
+ * Reorder the V1 video clips to the given id order in ONE commit.
+ *
+ * Replaces the fragile first-difference `moveClip(next[i].id, i)` the timeline
+ * drag used: (1) that computed a V1-array index but moveClip operates on the
+ * FLAT scene array which includes interleaved V2 title clips — so the target
+ * index was off by the number of preceding titles, landing the clip in the
+ * wrong slot; (2) first-difference only handled single adjacent swaps, so a
+ * fast multi-position drag moved the wrong clip. This reorders the V1 clips
+ * WITHIN their existing flat slots (titles/audio/overlays stay exactly where
+ * they are), so `recompute` re-sequences only the video track.
+ */
+export function setClipOrder(orderedV1Ids: string[]): void {
+  if (!state.project) return;
+  const flat: EditorClip[] = state.project.scenes.flatMap((s) => s.clips);
+  const isV1 = (c: EditorClip) => {
+    const t = c.properties?.trackId ?? null;
+    return c.kind !== "title" && (t === null || t === "sys:V1");
+  };
+  const v1Slots: number[] = [];
+  flat.forEach((c, i) => { if (isV1(c)) v1Slots.push(i); });
+  if (v1Slots.length === 0) return;
+  const byId = new Map(flat.map((c) => [c.id, c]));
+  const orderedV1 = orderedV1Ids
+    .map((id) => byId.get(id))
+    .filter((c): c is EditorClip => !!c && isV1(c));
+  // Only accept a complete, same-set permutation of the current V1 clips —
+  // never drop or duplicate a clip because of a stale id list.
+  if (orderedV1.length !== v1Slots.length) return;
+  // Locked-track clips can't be reordered.
+  if (orderedV1.some((c) => isClipOnLockedTrack(c))) return;
+  const next = [...flat];
+  v1Slots.forEach((slot, k) => { next[slot] = orderedV1[k]; });
+  const project: EditorProject = {
+    ...state.project,
+    scenes: state.project.scenes.map((s, i) =>
+      i === 0 ? { ...s, clips: next } : { ...s, clips: [] },
+    ),
+  };
+  historize(recompute(project));
+}
+
 /** Update a clip's duration (trim). Maintains all later clips' positions
  *  through recompute. Clamps to a minimum of 0.5s.
  *

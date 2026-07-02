@@ -65,7 +65,7 @@ import type {
 } from "@/lib/editor/types";
 import { TRANSITION_KINDS, TRANSITION_LABELS } from "@/lib/editor/types";
 import {
-  moveClip as moveClipMut,
+  setClipOrder as setClipOrderMut,
   trimClip as trimClipMut,
   deleteClip as deleteClipMut,
   splitAtPlayhead as splitAtPlayheadMut,
@@ -273,13 +273,10 @@ export function Timeline({
 
   const onReorder = (next: EditorClip[]) => {
     setLocalOrder(next); // optimistic — frame-motion drives the visual
-    // Compute first-difference move and commit.
-    for (let i = 0; i < next.length; i++) {
-      if (next[i].id !== clips[i]?.id) {
-        moveClipMut(next[i].id, i);
-        return;
-      }
-    }
+    // Commit the FULL new order in one shot. (The old first-difference
+    // moveClip used a V1 index against the flat scene array — which includes
+    // title clips — so multi-position drags landed the wrong clip.)
+    setClipOrderMut(next.map((c) => c.id));
   };
 
   // Click on empty track scrubs

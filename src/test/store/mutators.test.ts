@@ -18,6 +18,7 @@ import {
   trimClip,
   splitAtPlayhead,
   moveClip,
+  setClipOrder,
   deleteClip,
   rollEdit,
   slipClip,
@@ -143,6 +144,52 @@ describe("moveClip", () => {
       "c1",
       "c2",
       "c3",
+    ]);
+  });
+});
+
+describe("setClipOrder (drag reorder)", () => {
+  it("reorders V1 clips to the given order in one commit", () => {
+    setProject(makeProject(specs3()));
+    setClipOrder(["c3", "c1", "c2"]);
+    expect(flatClips(getEditorState().project).map((c) => c.id)).toEqual([
+      "c3", "c1", "c2",
+    ]);
+  });
+
+  it("handles a multi-position move (not just adjacent swaps)", () => {
+    setProject(makeProject(specs3()));
+    setClipOrder(["c2", "c3", "c1"]); // c1 jumps from front to back
+    const ids = flatClips(getEditorState().project).map((c) => c.id);
+    expect(ids).toEqual(["c2", "c3", "c1"]);
+    // and re-sequences time by the new order
+    const clips = flatClips(getEditorState().project);
+    expect(clips[0].timelineStartSec).toBe(0);
+  });
+
+  it("reorders V1 correctly even with an interleaved TITLE clip (index-space bug)", () => {
+    // A title interleaved among the video clips used to shift the target
+    // index by the title count, landing the clip in the wrong slot.
+    setProject(makeProject([
+      { id: "v1", durationSec: 5 },
+      { id: "t1", durationSec: 3, kind: "title" },
+      { id: "v2", durationSec: 4 },
+      { id: "v3", durationSec: 3 },
+    ]));
+    setClipOrder(["v3", "v1", "v2"]);
+    const videoIds = flatClips(getEditorState().project)
+      .filter((c) => c.kind !== "title")
+      .map((c) => c.id);
+    expect(videoIds).toEqual(["v3", "v1", "v2"]);
+    // The title clip is preserved.
+    expect(flatClips(getEditorState().project).some((c) => c.id === "t1")).toBe(true);
+  });
+
+  it("rejects an incomplete/mismatched id list (never drops a clip)", () => {
+    setProject(makeProject(specs3()));
+    setClipOrder(["c3", "c1"]); // missing c2 → reject wholesale
+    expect(flatClips(getEditorState().project).map((c) => c.id)).toEqual([
+      "c1", "c2", "c3",
     ]);
   });
 });

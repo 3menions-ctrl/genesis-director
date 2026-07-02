@@ -907,8 +907,14 @@ serve(async (req: Request) => {
     // Call generate-single-clip with COMPLETE data handoff
     // CRITICAL: Pass ALL continuity and identity data
     // BUG FIX: Ensure durationSeconds is passed through callback chain!
-    const clipDuration = context?.clipDuration || 10; // Kling V3 default: 10s
-    const videoEngine = context?.videoEngine || 'kling'; // DEFAULT: Kling V3 (all modes)
+    const clipDuration = context?.clipDuration || 10;
+    // NO DEFAULT MODEL: the DB-recovery block above (movie_projects.video_engine)
+    // already ran; if the engine is STILL unknown this is a broken row — refuse
+    // rather than silently continuing the chain on Kling.
+    const videoEngine = context?.videoEngine;
+    if (!videoEngine) {
+      throw new Error('ENGINE_REQUIRED: no videoEngine in context and none persisted on the project — refusing to continue the chain on a default model.');
+    }
     const isAvatarMode = !!context?.isAvatarMode; // EXPLICIT flag from pipeline context
     console.log(`[ContinueProduction] Clip ${nextClipIndex + 1} will use duration: ${clipDuration}s, isAvatarMode: ${isAvatarMode}`);
     

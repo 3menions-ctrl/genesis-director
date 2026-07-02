@@ -119,7 +119,7 @@ interface SmartScriptRequest {
   // 'veo'      → Veo 3 Fast (native audio / physics)
   // 'runway'   → Runway Gen-4 Turbo (character consistency / concise action)
   // 'sora'     → Sora 2 (narrative coherence / longer cinematic beats)
-  videoEngine?: 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
+  videoEngine?: 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
 }
 
 interface SceneClip {
@@ -468,7 +468,16 @@ ${si.allNegatives.slice(0, 10).map((n: string) => `• ${n}`).join('\n')}` : ''}
     //   • Seedance 2.0 → physics-grade motion, lens & camera vocabulary IS interpreted,
     //                    end-frame chaining critical, native 1080p 24fps cinematic
     // ═══════════════════════════════════════════════════════════════════
-    const targetEngine: 'kling' | 'veo' | 'seedance' | 'runway' | 'sora' = request.videoEngine || 'kling';
+    // NO DEFAULT MODEL: the orchestrator always names the engine (post-gate),
+    // and the script dialect below is engine-specific — refusing beats writing
+    // a Kling-shaped script for a Seedance project.
+    const targetEngine = request.videoEngine;
+    if (!targetEngine) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'ENGINE_REQUIRED', message: 'videoEngine is required — scripting is engine-dialect-specific (no default model).' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
     const isSeedance = targetEngine === 'seedance';
     const enginePersona = isSeedance
       ? 'Seedance 2.0 cinematic mode'

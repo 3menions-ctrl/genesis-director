@@ -376,7 +376,11 @@ async function chainContinueProduction(
     
     const pipelineContext: Record<string, any> = {
       isAvatarMode,
-      videoEngine: isAvatarMode ? 'kling' : (tasks.videoEngine || 'kling'),
+      // NO DEFAULT MODEL: forward exactly what the task recorded — downstream
+      // (continue-production / generate-single-clip) recovers from the DB
+      // engine lock and refuses if genuinely absent. The old
+      // `isAvatarMode ? 'kling'` force mislabeled Seedance-avatar projects.
+      videoEngine: tasks.videoEngine ?? undefined,
       clipDuration: tasks.clipDuration || 10,
       pendingVideoTasks: tasks, // CRITICAL: contains predictions[].segmentText
       identityBible: proFeatures.identityBible || null,

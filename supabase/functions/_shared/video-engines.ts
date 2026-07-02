@@ -20,6 +20,10 @@ export interface CanonicalVideoRequest {
   duration: number;          // Seconds (caller-requested; engine clamps to its legal range)
   aspectRatio: "16:9" | "9:16" | "1:1" | "4:3" | string;
   startImageUrl: string | null;
+  /** End-frame interpolation target (`last_frame_image`) — Seedance only. */
+  endImageUrl?: string | null;
+  /** Lock the virtual camera (`camera_fixed`) — Seedance only. */
+  cameraFixed?: boolean;
   referenceImages: string[];
   enableAudio: boolean;
   isAvatarMode: boolean;
@@ -209,11 +213,11 @@ export const ENGINES: Record<VideoEngineKey, EngineDefinition> = {
   },
   seedance: {
     key: "seedance",
-    label: "Seedance 1 Pro",
+    label: "Seedance 2.0",
     modelOwner: "bytedance",
-    modelName: "seedance-1-pro",
-    modelId: "bytedance/seedance-1-pro",
-    endpoint: "https://api.replicate.com/v1/models/bytedance/seedance-1-pro/predictions",
+    modelName: "seedance-2.0",
+    modelId: "bytedance/seedance-2.0",
+    endpoint: "https://api.replicate.com/v1/models/bytedance/seedance-2.0/predictions",
     durations: [3, 5, 10, 12],
     defaultDuration: 10,
     minDuration: 3,
@@ -233,9 +237,12 @@ export const ENGINES: Record<VideoEngineKey, EngineDefinition> = {
         resolution: "1080p",
         aspect_ratio: ar,
         fps: 24,
-        camera_fixed: false,
+        camera_fixed: req.cameraFixed === true,
       };
       if (req.startImageUrl) input.image = req.startImageUrl;
+      // End-frame interpolation target — keyframe-pair continuity (parity
+      // with the spine's createSeedancePrediction).
+      if (req.endImageUrl) input.last_frame_image = req.endImageUrl;
       return input;
     },
   },

@@ -59,7 +59,9 @@ describe("Quality surcharge delivery chain", () => {
   });
 
   // Project ENTRY pipelines must READ + PERSIST the quality intent.
-  for (const fn of ["hollywood-pipeline", "seedance-pipeline"]) {
+  // (seedance-pipeline was the legacy dedicated entry — deleted after the
+  // orchestrator unification; seedance now enters via hollywood-pipeline.)
+  for (const fn of ["hollywood-pipeline"]) {
     it(`${fn} reads qualityOptions and persists the intent`, () => {
       const found = fnSource(fn);
       expect(found, `${fn}/index.ts missing`).not.toBeNull();

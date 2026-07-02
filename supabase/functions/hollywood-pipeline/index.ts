@@ -474,16 +474,15 @@ function calculatePipelineParams(
     console.log(`[Hollywood] Reduced clip count to ${clipCount} due to ${maxDuration}s duration limit`);
   }
   
-  // Kling V3 credit pricing: all modes use Kling V3
-  // avatarMode (videoEngine='kling') = native audio lip-sync → higher cost
-  // Default engine is 'kling' (Kling V3 / 3.1) for ALL modes including I2V.
-  // Avatar mode is determined by the isAvatarMode flag, not by the engine key.
-  const videoEngine: 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 'sora' = (request as any).videoEngine || 'kling';
+  // NO DEFAULT MODEL: the serve-handler gate guarantees request.videoEngine
+  // is set before any of this runs. Avatar mode is determined by the
+  // isAvatarMode flag, not by the engine key.
+  const videoEngine = (request as any).videoEngine as 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
+  if (!videoEngine) throw new Error('ENGINE_REQUIRED: calculatePipelineParams reached without an engine (gate bypassed?)');
   const isAvatarMode = !!(request as any).isAvatarMode;
   const totalCredits = calculateTotalCredits(clipCount, clipDuration, isAvatarMode, videoEngine);
 
   console.log(`[Hollywood] Pipeline params: ${clipCount} clips × ${clipDuration}s = ${clipCount * clipDuration}s total (max: ${maxDuration}s, engine: ${videoEngine}, avatarMode: ${isAvatarMode}, credits: ${totalCredits})`);
-  console.log(`[Hollywood] 🎬 ENGINE LOCK: ${videoEngine} (received from caller: ${(request as any).videoEngine ?? 'UNSET → defaulted to kling'})`);
   
   return { clipCount, clipDuration, totalCredits };
 }
@@ -1296,7 +1295,7 @@ async function runPreProduction(
         // SCENE IDENTITY: Full DNA for character/environment aware scripting
         sceneIdentityContext: sceneIdentityContextStory,
         // ENGINE TARGET: Tailors scripting style (Seedance vs Kling) for max quality
-        videoEngine: request.videoEngine || 'kling',
+        videoEngine: request.videoEngine,
       });
       
       if (scriptResult.shots || scriptResult.clips) {
@@ -1440,7 +1439,7 @@ async function runPreProduction(
         // SCENE IDENTITY: Pass comprehensive extraction data for character/environment aware scripting
         sceneIdentityContext,
         // ENGINE TARGET: Tailors scripting style (Seedance vs Kling) for max quality
-        videoEngine: request.videoEngine || 'kling',
+        videoEngine: request.videoEngine,
       });
       
       if (scriptResult.shots || scriptResult.clips) {
@@ -3401,7 +3400,7 @@ async function runProduction(
   //     invocation and the watchdog finishes (completion, audio mux, stitch).
   // =====================================================
   {
-    const _seamEngine = (request.videoEngine || 'kling') as 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
+    const _seamEngine = request.videoEngine as 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 'sora';
     const _seamIsAvatar = !!request.isAvatarMode;
     const _dispatchKind = selectDispatchStrategy(_seamEngine);
     (state as any)._dispatchKind = _dispatchKind;
@@ -3836,7 +3835,7 @@ async function runProduction(
         
         // Determine engine: ALL modes use Kling V3 (kwaivgi/kling-v3-video)
         // isAvatarMode is an EXPLICIT flag — not derived from videoEngine
-        const videoEngine = request.videoEngine || 'kling'; // DEFAULT: Kling V3 (all modes)
+        const videoEngine = request.videoEngine; // gate-guaranteed — no default model
         const isAvatarMode = !!request.isAvatarMode;
         
         const clipResult = await callEdgeFunction('generate-single-clip', {
@@ -4413,7 +4412,7 @@ async function runProduction(
                 sharedCastCount: continuityBoundary.sharedCast.length,
                 attempt: retryCount,
                 maxAttempts: qualityMaxRetries,
-                currentEngine: request.videoEngine || (state as any).videoEngine || 'kling-2-master',
+                currentEngine: request.videoEngine || (state as any).videoEngine,
                 availableEngines: ['seedance-1-pro', 'kling-2-master', 'kling-1-6-pro', 'runway-gen-4', 'veo-3-pro', 'sora-2'],
               });
               console.log(`[Hollywood] Continuity gate clip ${i + 1}: ${continuityBoundary.type} → ${audit.score.verdict} (composite ${audit.score.composite}, admit=${audit.admit})${audit.correction ? ` next=${audit.correction.step}` : ''}`);

@@ -73,6 +73,12 @@ function tuneForEngine(
          // Strip dialogue/lip-sync/audio directives — Seedance can't voice them.
          .replace(/\[(LIP-SYNC|AUDIO|DIALOGUE|VOICE|SOUND)\][^\n]*/gi, '')
          .replace(/\b(lip[- ]sync|mouth shapes precisely match[^.]*\.|spoken dialogue|natural diegetic sound|ambient room tone)\b/gi, '')
+         // Vendor guidance (BytePlus ModelArk Seedance guide, 2026-06): the
+         // model's support for explicit per-segment second-marks ("0-3
+         // seconds", "at 5s") is UNSTABLE and causes abnormal outputs — strip
+         // any timing annotations the director may have emitted.
+         .replace(/\b(?:at\s+)?\d{1,2}\s*(?:-|–|to)\s*\d{1,2}\s*s(?:ec(?:ond)?s?)?\b/gi, '')
+         .replace(/\(\s*\d{1,2}\s*s(?:ec(?:ond)?s?)?\s*\)/gi, '')
          .replace(/\s{2,}/g, ' ').trim();
     if (!has(/\bphysics|inertia|specular|subsurface\b/i)) {
       p += `\n\nMotion: fluid hyperreal physics, weight and inertia honored. Lighting: photographic, motivated, believable specular highlights and skin subsurface scattering. Texture: filmic grain, no plastic CGI sheen.`;

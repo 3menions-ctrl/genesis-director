@@ -91,7 +91,9 @@ serve(async (req) => {
       sharedCastCount: body.sharedCastCount ?? 1,
       attempt: body.attempt ?? 0,
       maxAttempts: body.maxAttempts ?? 3,
-      currentEngine: body.currentEngine ?? "seedance-1-pro",
+      // NO DEFAULT MODEL: an empty currentEngine just disables the (advisory)
+      // swap-engine recommendation instead of pretending we run seedance-1-pro.
+      currentEngine: body.currentEngine ?? "",
       availableEngines: body.availableEngines?.length ? body.availableEngines : ALL_ENGINES,
       alreadyShortened: body.alreadyShortened ?? false,
     });

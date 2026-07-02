@@ -13,6 +13,8 @@
 // code branch.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { getEngineProfile } from './engine-profiles.ts';
+
 // ─── Engines ────────────────────────────────────────────────────────────────
 // Backend engine keys — these are the ONLY values the spine (generate-single-clip)
 // routes on. Mirror of generate-single-clip:1229.
@@ -23,15 +25,15 @@ export type BackendEngine = 'wan' | 'kling' | 'veo' | 'seedance' | 'runway' | 's
 // rejects it (NO DEFAULT MODEL policy).
 export type RequestEngine = BackendEngine | 'auto';
 
-// Live Replicate route labels. Mirror of generate-single-clip:1275 — DO NOT
-// change these slugs; they are audited-live (docs/PIPELINE.md §1).
+// Live Replicate route labels — DERIVED from the engine-profiles registry so
+// the slug is pinned in exactly ONE place (engine-profiles.ts).
 export const ENGINE_ROUTE_LABEL: Record<BackendEngine, string> = {
-  wan:      'wan-video/wan-2.5-t2v',
-  kling:    'kwaivgi/kling-v3-video',
-  seedance: 'bytedance/seedance-2.0',
-  veo:      'google/veo-3-fast',
-  runway:   'runwayml/gen4-turbo',
-  sora:     'openai/sora-2',
+  wan:      getEngineProfile('wan').replicateSlug,
+  kling:    getEngineProfile('kling').replicateSlug,
+  seedance: getEngineProfile('seedance').replicateSlug,
+  veo:      getEngineProfile('veo').replicateSlug,
+  runway:   getEngineProfile('runway').replicateSlug,
+  sora:     getEngineProfile('sora').replicateSlug,
 };
 
 // ─── Modes ──────────────────────────────────────────────────────────────────
@@ -192,17 +194,21 @@ export function resolveEngine(pr: ProductionRequest): BackendEngine {
   throw new EngineRequiredError();
 }
 
-// Seedance dispatches its clips as a PARALLEL batch (Promise.allSettled +
-// last_frame_image continuity + post-render audio mux). Every other engine
-// uses the SEQUENTIAL callback-chained loop (native audio per clip).
+// Dispatch mode is a PROFILE FIELD (engine-profiles.ts), not an engine
+// special-case: parallel = Promise.allSettled batch + keyframe-pair continuity
+// + post-render audio mux (seedance today); sequential = callback-chained loop.
 export function resolveDispatchStrategy(engine: BackendEngine): DispatchStrategyKind {
-  return engine === 'seedance' ? 'parallel' : 'sequential';
+  return getEngineProfile(engine).dispatch;
 }
 
-// Audio strategy follows the engine's capability:
-//  - native: kling/veo/sora/runway/wan render audio inline.
-//  - post-mux: seedance has no audio → voice/music muxed post-stitch.
-//  - overlay: avatar TTS overlaid on a no-native-audio engine (seedance avatar).
+// Audio strategy follows the engine profile:
+//  - native: the engine renders audio inline (kling/veo/sora).
+//  - post-mux: no in-clip audio → voice/music muxed post-stitch.
+//  - overlay: avatar TTS overlaid on a post-mux engine (seedance avatar).
+// NOTE: wan/runway are audio:'post-mux' in the profile, but the legacy
+// contract treated every non-seedance engine as 'native' (their silent tracks
+// flow through the same in-clip lane). Preserve that wire behavior here —
+// the stitcher decides what to mux from postProduction flags, not from this.
 export function resolveAudioStrategy(pr: ProductionRequest): AudioStrategy {
   const engine = resolveEngine(pr);
   if (engine === 'seedance') {

@@ -106,10 +106,10 @@ function RunView({ runId }: { runId: string }) {
         setRun(data);
         // SELF-HEAL: a continuation can die between slices (deploys, isolate
         // recycling). If the run claims "running" but hasn't advanced in 3+
-        // minutes, nudge the executor — it resumes from persisted state.
+        // minutes (above the slice budget + heartbeats), nudge the executor.
         if (
           data.status === "running" &&
-          Date.now() - new Date(data.updated_at).getTime() > 180_000 &&
+          Date.now() - new Date(data.updated_at).getTime() > 300_000 &&
           Date.now() - lastNudge.current > 120_000
         ) {
           lastNudge.current = Date.now();

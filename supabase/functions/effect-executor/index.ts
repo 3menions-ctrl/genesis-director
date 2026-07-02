@@ -132,6 +132,14 @@ serve(async (req) => {
       state = run.state as RunState;
       runUserId = (run.user_id as string) ?? null;
       runProjectId = (run.project_id as string) ?? null;
+      // SLICE LOCK: with heartbeat saves, a healthy slice touches the row at
+      // least every stage-start and every budget boundary (~4min). A resume
+      // arriving while the row is fresh would DOUBLE-RUN the current stage
+      // (duplicate paid generations) — refuse it.
+      const ageMs = Date.now() - new Date(run.updated_at as string).getTime();
+      if (!state.pending && ageMs < 300_000) {
+        return json(200, { runId, status: 'running', note: `slice alive (${Math.round(ageMs / 1000)}s ago) — not resuming` });
+      }
     } else {
       // Raw plans are INTERNAL ONLY: an arbitrary plan could chain unlimited
       // paid generations for a flat charge. Users go through breakout params
@@ -211,6 +219,9 @@ serve(async (req) => {
 
       const stage = plan.stages[state.stageIdx];
       console.log(`[effect-executor] run=${runId} stage ${state.stageIdx + 1}/${plan.stages.length}: ${stage.id} (${stage.tool})`);
+      // Heartbeat: mark liveness BEFORE a long tool call so stall detectors
+      // (UI self-heal) don't misread an in-flight stage as dead.
+      await save({ state });
 
       let out: ToolResult;
       try {

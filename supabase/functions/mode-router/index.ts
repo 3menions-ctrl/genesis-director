@@ -489,6 +489,11 @@ serve(async (req) => {
           pipeline_state: {
             stage: 'init',
             progress: 0,
+            // 🧪 Dry-run source of truth: stamped once at creation so EVERY
+            // clip-dispatch path (parallel/sequential/retry/regen/continue)
+            // sees it via the project row — a per-payload flag can be dropped
+            // by a caller, this can't.
+            dryRun: dryRun === true,
             startedAt: new Date().toISOString(),
             message: 'Initializing pipeline...',
             // EFFECTS PHASE params — final-assembly's breakout-VFX stage reads

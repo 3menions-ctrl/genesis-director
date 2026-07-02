@@ -1851,7 +1851,20 @@ serve(async (req) => {
     // credits, clip registration, the poller) so the full pipeline is exercised;
     // only the Replicate spend is avoided. poll-replicate-prediction recognises
     // the mock_dryrun_* id and completes the clip with the placeholder URL.
-    const isDry = isDryRun(
+    // Authoritative dry-run signal: the project row (mode-router stamps
+    // pipeline_state.dryRun once). This BACKSTOPS every dispatch path — a
+    // per-payload `dryRun` can be dropped by a caller (parallel/retry/regen/
+    // continue-production all dispatch here), but the project flag can't be.
+    let projectDryRun = false;
+    try {
+      const { data: drRow } = await supabase
+        .from('movie_projects')
+        .select('pipeline_state, pending_video_tasks')
+        .eq('id', projectId)
+        .maybeSingle();
+      projectDryRun = isDryRun(drRow as Record<string, unknown> | null);
+    } catch (_e) { /* non-fatal — fall back to payload/env below */ }
+    const isDry = projectDryRun || isDryRun(
       { dryRun } as Record<string, unknown>,
       { pipelineContext } as Record<string, unknown>,
     );

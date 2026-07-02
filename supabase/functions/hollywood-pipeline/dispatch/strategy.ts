@@ -199,6 +199,7 @@ export async function dispatchParallel(
       durationSeconds: scriptShots[i]?.["durationSeconds" as any] ?? clipDuration,
       videoEngine: "seedance",
       isAvatarMode: ctx.isAvatarMode,
+      dryRun: request?.dryRun === true, // 🧪 mock the Replicate call (no spend) — the PARALLEL (seedance) path
       cameraFixed,
       skipPolling: true,
       triggerNextClip: false,

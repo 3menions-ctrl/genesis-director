@@ -394,7 +394,7 @@ serve(async (req) => {
     if (isProjectMode) {
       const { data: project, error: projectErr } = await supabase
         .from("movie_projects")
-        .select("id, user_id, title, video_url, editor_state, video_engine, pending_video_tasks")
+        .select("id, user_id, title, video_url, editor_state, video_engine, pending_video_tasks, pipeline_state")
         .eq("id", body.projectId)
         .maybeSingle();
       if (projectErr || !project) {

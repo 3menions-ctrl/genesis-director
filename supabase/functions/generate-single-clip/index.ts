@@ -3,6 +3,7 @@ import { publicErrorMessage } from "../_shared/safe-error.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { checkContentSafety } from "../_shared/content-safety.ts";
 import { compileCinematicPrompt, inferShotSpec, shotSpecFromScript, type Engine as CineEngine, type ShotSpec } from "../_shared/cinematic-prompt.ts";
+import { isDryRun, dryRunPlaceholderUrl, mockPredictionId, assertNotDryRunAtSpend } from "../_shared/dry-run.ts";
 import {
   acquireGenerationLock,
   releaseGenerationLock,
@@ -1177,6 +1178,7 @@ serve(async (req) => {
       skipPolling = false,
       triggerNextClip = false,
       totalClips,
+      dryRun = false, // 🧪 dry-run: mock the Replicate video call (no spend)
       pipelineContext,
       // Additional continuity data
       previousMotionVectors,
@@ -1844,8 +1846,20 @@ serve(async (req) => {
       console.log(`[SingleClip] ✓ Atomic claim acquired for clip ${shotIndex}, token: ${claimToken}`);
     }
 
+    // 🧪 DRY RUN — swap the (billable) Replicate video call for a mock. The
+    // rest of the function runs UNCHANGED (credit hold/consume of in-app test
+    // credits, clip registration, the poller) so the full pipeline is exercised;
+    // only the Replicate spend is avoided. poll-replicate-prediction recognises
+    // the mock_dryrun_* id and completes the clip with the placeholder URL.
+    const isDry = isDryRun(
+      { dryRun } as Record<string, unknown>,
+      { pipelineContext } as Record<string, unknown>,
+    );
     let predictionId: string;
-    if (videoEngine === 'wan') {
+    if (isDry) {
+      predictionId = mockPredictionId(shotIndex);
+      console.log(`[SingleClip] 🧪 DRY RUN — mocking ${videoEngine} prediction (NO Replicate spend): ${predictionId}`);
+    } else if (videoEngine === 'wan') {
       console.log(`[SingleClip] ══ ROUTING TO WAN 2.7 (wan-video/wan-2.7-t2v) ══`);
       const wanResult = await createWan25Prediction(
         finalPromptFor('wan'),
@@ -1937,7 +1951,9 @@ serve(async (req) => {
             return p;
           });
           await supabase.from('movie_projects').update({
-            pending_video_tasks: { ...tasks, predictions: updatedPredictions, lastProgressAt: new Date().toISOString() },
+            // Stamp dryRun so the downstream stitcher (which reads the project's
+            // pending_video_tasks) also skips its billable cog.
+            pending_video_tasks: { ...tasks, predictions: updatedPredictions, lastProgressAt: new Date().toISOString(), ...(isDry ? { dryRun: true } : {}) },
           }).eq('id', projectId);
           console.log(`[SingleClip] ✓ predictionId ${predictionId} registered in pending_video_tasks for clip ${shotIndex}`);
         }

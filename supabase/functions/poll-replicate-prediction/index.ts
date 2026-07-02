@@ -6,6 +6,7 @@ import {
 } from "../_shared/pipeline-guard-rails.ts";
 import { requireServiceRole } from "../_shared/auth-guard.ts";
 import { publicErrorMessage } from "../_shared/safe-error.ts";
+import { isMockPredictionId, dryRunPlaceholderUrl } from "../_shared/dry-run.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -99,6 +100,16 @@ serve(async (req) => {
     let errorMsg: string | null = null;
 
     while (Date.now() - startTime < MAX_POLL_DURATION_MS) {
+      // 🧪 DRY RUN: a mock prediction (mock_dryrun_*) never touched Replicate —
+      // complete it immediately with the placeholder clip and fall through to
+      // the normal success handling (persist → update clip → chain
+      // continue-production), so the mock exercises the real completion path.
+      if (isMockPredictionId(predictionId)) {
+        videoUrl = dryRunPlaceholderUrl(Deno.env.get("SUPABASE_URL"));
+        finalStatus = "succeeded";
+        console.log(`[PollReplicate] 🧪 DRY RUN — mock prediction ${predictionId}, using placeholder clip (no Replicate poll)`);
+        break;
+      }
       try {
         const response = await fetch(`${REPLICATE_PREDICTIONS_URL}/${predictionId}`, {
           headers: { "Authorization": `Bearer ${REPLICATE_API_KEY}` },

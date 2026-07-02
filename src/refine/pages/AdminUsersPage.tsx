@@ -308,11 +308,22 @@ export default function AdminUsersPage() {
                         className="h-7 w-7 p-0 text-warning hover:text-warning hover:bg-warning/10"
                         title="Force Logout"
                         onClick={async () => {
-                          if (!confirm(`Force logout ${u.display_name || u.email}?`)) return;
+                          if (!(await confirmAsync({
+                            title: "Force logout",
+                            description: `Force logout ${u.display_name || u.email}? Their active sessions will be revoked server-side.`,
+                            confirmLabel: "Force logout",
+                            destructive: true,
+                          }))) return;
                           try {
-                            const { error } = await supabase.functions.invoke('admin-force-logout', {
-                              body: { scope: 'user', target_user_id: u.id },
-                            });
+                            // admin_revoke_user_sessions (PR #190) hard-deletes
+                            // auth.sessions (cascades refresh tokens). The old
+                            // admin-force-logout edge fn's signOut call errors
+                            // on every invocation (the SDK treats the userId
+                            // arg as a JWT) and only soft-bumped security_version.
+                            const { error } = await supabase.rpc("admin_revoke_user_sessions" as never, {
+                              p_target_user: u.id,
+                              p_reason: "admin_users_page_force_logout",
+                            } as never);
                             if (error) throw error;
                             toast.success(`${u.display_name || u.email} logged out`);
                           } catch { toast.error("Failed to force logout"); }

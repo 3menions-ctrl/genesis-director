@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ListPagination, usePagination } from "@/components/ui/list-pagination";
 import { supabase } from "@/integrations/supabase/client";
+import { confirmAsync } from "@/components/ui/global-confirm";
 import { toast } from "sonner";
 
 type Row = {
@@ -52,8 +53,16 @@ export default function AdminSessionsPage() {
   const pg = usePagination(filtered, 25);
 
   async function killAll() {
-    if (!confirm("Force-revoke every active session across the platform? Users will be signed out.")) return;
+    if (!(await confirmAsync({
+      title: "Kill fleet",
+      description: "Force-revoke every active session across the platform? Users will be signed out on their next request.",
+      confirmLabel: "Revoke all",
+      destructive: true,
+    }))) return;
     setBulkBusy(true);
+    // Fleet-wide soft revoke: bumps every security_version so all clients
+    // die on their next authenticated call (no fleet-wide hard-delete RPC
+    // exists).
     const { error } = await supabase.rpc("admin_force_logout_all");
     setBulkBusy(false);
     if (error) toast.error(error.message);
@@ -61,8 +70,19 @@ export default function AdminSessionsPage() {
   }
 
   async function killOne(userId: string) {
-    if (!confirm("Force-revoke this user's sessions?")) return;
-    const { error } = await supabase.rpc("admin_force_logout_user", { p_target_user_id: userId });
+    if (!(await confirmAsync({
+      title: "Revoke sessions",
+      description: "Force-revoke this user's sessions? They will be signed out immediately.",
+      confirmLabel: "Revoke",
+      destructive: true,
+    }))) return;
+    // Hard revoke (PR #190): deletes auth.sessions server-side, cascading
+    // refresh tokens. The old admin_force_logout_user only soft-bumped
+    // security_version, leaving live sessions working until their next call.
+    const { error } = await supabase.rpc("admin_revoke_user_sessions" as never, {
+      p_target_user: userId,
+      p_reason: "admin_sessions_page_revoke",
+    } as never);
     if (error) toast.error(error.message);
     else { toast.success("User signed out"); load(); }
   }

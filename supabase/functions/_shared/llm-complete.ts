@@ -27,6 +27,8 @@ export interface LLMCompleteOptions {
   json?: boolean;
   /** Replicate model slug for the fallback provider. */
   replicateModel?: string;
+  /** Vision: image URLs (or data URIs) the model should look at. */
+  images?: string[];
 }
 
 export interface LLMCompleteResult {
@@ -46,6 +48,7 @@ export async function completeLLM(opts: LLMCompleteOptions): Promise<LLMComplete
     temperature = 0.8,
     json = false,
     replicateModel = REPLICATE_DEFAULT_LLM,
+    images = [],
   } = opts;
 
   const openaiKey = Deno.env.get('OPENAI_API_KEY');
@@ -57,7 +60,15 @@ export async function completeLLM(opts: LLMCompleteOptions): Promise<LLMComplete
         model: 'gpt-4o',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
+          {
+            role: 'user',
+            content: images.length
+              ? [
+                  { type: 'text', text: userPrompt },
+                  ...images.map((url) => ({ type: 'image_url', image_url: { url, detail: 'high' } })),
+                ]
+              : userPrompt,
+          },
         ],
         max_tokens: maxTokens,
         temperature,
@@ -99,6 +110,7 @@ export async function completeLLM(opts: LLMCompleteOptions): Promise<LLMComplete
       input: {
         prompt: userPrompt,
         system_prompt: sys,
+        ...(images.length ? { image_input: images } : {}),
         max_completion_tokens: maxTokens,
         // Reasoning models (gpt-5 family) reject `temperature` — mirror
         // OpenAI's own API constraint.

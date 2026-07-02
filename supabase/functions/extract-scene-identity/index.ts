@@ -1,3 +1,4 @@
+import { completeLLM } from '../_shared/llm-complete.ts';
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { publicErrorMessage } from "../_shared/safe-error.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
@@ -210,10 +211,8 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-
-    if (!OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY not configured");
+    if (!Deno.env.get("OPENAI_API_KEY") && !Deno.env.get("REPLICATE_API_KEY")) {
+      throw new Error("No LLM provider configured (need OPENAI_API_KEY or REPLICATE_API_KEY)");
     }
 
     const {
@@ -380,39 +379,21 @@ You MUST return valid JSON exactly matching this schema:
   "identitySummary": "One compact sentence for prompt injection, 30 words max"
 }`;
 
-    const characterResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o",
-        messages: [
-          { role: "system", content: characterSystemPrompt },
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: "Analyze this reference image and extract exhaustive character identity data. Be extremely precise and detailed — this will be used to maintain perfect visual consistency across all video clips.",
-              },
-              { type: "image_url", image_url: { url: imageUrl, detail: "high" } },
-            ],
-          },
-        ],
-        max_tokens: 3000,
+    let characterText = '';
+    try {
+      const r = await completeLLM({
+        systemPrompt: characterSystemPrompt,
+        userPrompt: "Analyze this reference image and extract exhaustive character identity data. Be extremely precise and detailed — this will be used to maintain perfect visual consistency across all video clips.",
+        images: [imageUrl],
+        maxTokens: 3000,
         temperature: 0.1, // Very low temp for precision
-        response_format: { type: "json_object" },
-      }),
-    });
-
-    if (!characterResponse.ok) {
-      const err = await characterResponse.text();
+        json: true,
+      });
+      characterText = r.text;
+    } catch (provErr) {
       // Provider error (rate-limit / 5xx / timeout / policy) is the COMMON
       // failure — refund the up-front charge so the user isn't billed for a
-      // result they never got. Mirrors the malformed-output refund below;
-      // creditsCharged=0 is the double-refund guard.
+      // result they never got. creditsCharged=0 is the double-refund guard.
       if (creditsCharged > 0 && userId) {
         await supabase.rpc("refund_credits", {
           p_user_id: userId,
@@ -422,13 +403,12 @@ You MUST return valid JSON exactly matching this schema:
         }).catch((e: unknown) => console.error("[extract-scene-identity] refund failed", e));
         creditsCharged = 0;
       }
-      throw new Error(`Character DNA extraction failed: ${err}`);
+      throw new Error(`Character DNA extraction failed: ${provErr instanceof Error ? provErr.message : String(provErr)}`);
     }
 
-    const characterData = await characterResponse.json();
     let characterDNA: CharacterDNA;
     try {
-      characterDNA = JSON.parse(characterData.choices[0].message.content);
+      characterDNA = JSON.parse(characterText.match(/\{[\s\S]*\}/)?.[0] ?? characterText);
     } catch (_parseErr) {
       // We charged up front (creditsCharged) but the model returned content we
       // can't parse (empty choices / truncation / non-JSON). Refund so the user
@@ -544,35 +524,18 @@ Return valid JSON exactly matching this schema:
   }
 }`;
 
-    const environmentResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o",
-        messages: [
-          { role: "system", content: environmentSystemPrompt },
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: "Analyze this reference image and extract exhaustive environment, lighting, color science, and cinematic style data. Be extremely precise — this locks the visual atmosphere for the entire video production.",
-              },
-              { type: "image_url", image_url: { url: imageUrl, detail: "high" } },
-            ],
-          },
-        ],
-        max_tokens: 3500,
+    let environmentText = '';
+    try {
+      const r = await completeLLM({
+        systemPrompt: environmentSystemPrompt,
+        userPrompt: "Analyze this reference image and extract exhaustive environment, lighting, color science, and cinematic style data. Be extremely precise — this locks the visual atmosphere for the entire video production.",
+        images: [imageUrl],
+        maxTokens: 3500,
         temperature: 0.1,
-        response_format: { type: "json_object" },
-      }),
-    });
-
-    if (!environmentResponse.ok) {
-      const err = await environmentResponse.text();
+        json: true,
+      });
+      environmentText = r.text;
+    } catch (provErr) {
       // Same as the character-DNA provider-error path: refund the up-front
       // charge on a provider failure (the environment step runs after the paid
       // character step, so creditsCharged may still be > 0 here).
@@ -585,13 +548,12 @@ Return valid JSON exactly matching this schema:
         }).catch((e: unknown) => console.error("[extract-scene-identity] refund failed", e));
         creditsCharged = 0;
       }
-      throw new Error(`Environment DNA extraction failed: ${err}`);
+      throw new Error(`Environment DNA extraction failed: ${provErr instanceof Error ? provErr.message : String(provErr)}`);
     }
 
-    const environmentData = await environmentResponse.json();
     let envParsed: { environmentDNA: EnvironmentDNA; lightingProfile: LightingProfile; colorScience: ColorScience; cinematicStyle: CinematicStyle };
     try {
-      envParsed = JSON.parse(environmentData.choices[0].message.content);
+      envParsed = JSON.parse(environmentText.match(/\{[\s\S]*\}/)?.[0] ?? environmentText);
     } catch (_parseErr) {
       if (creditsCharged > 0 && userId) {
         await supabase.rpc("refund_credits", {

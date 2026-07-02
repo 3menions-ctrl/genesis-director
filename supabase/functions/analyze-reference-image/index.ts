@@ -1,3 +1,4 @@
+import { completeLLM } from '../_shared/llm-complete.ts';
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { assertSafeFetchUrl, SSRFError } from "../_shared/ssrf-guard.ts";
@@ -285,15 +286,15 @@ serve(async (req) => {
       }
     }
 
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    if (!OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY is not configured');
+const hasProvider = Deno.env.get('OPENAI_API_KEY') || Deno.env.get('REPLICATE_API_KEY');
+    if (!hasProvider) {
+      throw new Error('No LLM provider configured (need OPENAI_API_KEY or REPLICATE_API_KEY)');
     }
 
-    // Prepare image content for vision model
-    const imageContent = imageBase64 
-      ? { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
-      : { type: 'image_url', image_url: { url: imageUrl } };
+    // Vision input: prefer the durable URL; data-URI when we only have bytes.
+    const visionImage = imageBase64
+      ? `data:image/jpeg;base64,${imageBase64}`
+      : imageUrl;
 
     const systemPrompt = `You are a professional cinematographer and visual effects supervisor analyzing a reference image for an AI video production pipeline.
 
@@ -365,49 +366,27 @@ Return ONLY valid JSON in this exact format:
 
     console.log('[analyze-reference-image] Sending image to vision model for analysis');
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { 
-            role: 'user', 
-            content: [
-              { type: 'text', text: 'Analyze this reference image and extract all visual features for production consistency.' },
-              imageContent
-            ]
-          }
-        ],
-        max_tokens: 2000,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[analyze-reference-image] OpenAI API error:', response.status, errorText);
-      
-      if (response.status === 429) {
+    let content = '';
+    try {
+      const r = await completeLLM({
+        systemPrompt,
+        userPrompt: 'Analyze this reference image and extract all visual features for production consistency.',
+        images: [visionImage],
+        maxTokens: 2000,
+        json: true,
+      });
+      content = r.text;
+      console.log(`[analyze-reference-image] vision analysis via ${r.provider}/${r.model}`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes('429')) {
         return new Response(
           JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      if (response.status === 401) {
-        return new Response(
-          JSON.stringify({ error: 'Invalid OpenAI API key.' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      throw new Error(`OpenAI API error: ${response.status}`);
+      throw e;
     }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || '';
 
     // Parse JSON from response (handle markdown wrapping)
     let parsedAnalysis;

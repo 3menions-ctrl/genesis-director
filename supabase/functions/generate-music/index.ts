@@ -351,32 +351,26 @@ async function generateWorldClassMusic(
     console.log(`[Music-WorldClass] Generating ${duration}s Hans Zimmer-level score`);
     console.log(`[Music-WorldClass] Prompt: ${prompt.substring(0, 200)}...`);
     
-    // MusicGen Stereo Large - best quality model for cinematic music
-    const createResponse = await fetch("https://api.replicate.com/v1/predictions", {
+    // BEST-IN-LAYER: Google Lyria 2 — a full class above MusicGen for
+    // cinematic scores (fidelity, structure, dynamics). MusicGen remains the
+    // fallback path if Lyria errors.
+    const createResponse = await fetch("https://api.replicate.com/v1/models/google/lyria-2/predictions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${REPLICATE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        version: "b05b1dff1d8c6dc63d14b0cdb42135378dcb87f6373b0d3d341ede46e59e2b38", // MusicGen Stereo Large
         input: {
           prompt: prompt,
-          duration: Math.min(30, Math.max(5, duration)),
-          output_format: "mp3",
-          normalization_strategy: "loudness",
-          // World-class generation settings
-          top_k: options.topK || 250,
-          top_p: options.topP || 0.95,
-          temperature: options.temperature || 1.0,
-          classifier_free_guidance: options.guidance || 4, // Higher for more prompt adherence
+          negative_prompt: "low quality, noise, distortion, abrupt ending",
         },
       }),
     });
     
     if (!createResponse.ok) {
       const errorText = await createResponse.text();
-      console.error("[Music-WorldClass] Create failed:", errorText);
+      console.error("[Music-WorldClass] Lyria-2 create failed:", errorText);
       return await generateWithMusicGenMelody(prompt, duration);
     }
     

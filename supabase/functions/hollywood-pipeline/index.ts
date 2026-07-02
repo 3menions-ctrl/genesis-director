@@ -3418,14 +3418,29 @@ async function runProduction(
       // cases intentionally SHARE one image (universal fallback already filled
       // the lookup; strategy.ts:165 nextImg!==imageUrl suppresses endImageUrl) —
       // so skip them.
+      // VISUAL BIBLE EXTENSION: reference-locked (i2v) narrative projects now
+      // ALSO get per-shot keyframes — generated identity-locked via Flux
+      // Kontext (characterReferenceUrl) so every keyframe carries the SAME
+      // person placed into that shot's environment, instead of every clip
+      // starting from one static reference image with identical framing.
+      // Avatar mode (face IS the start frame, lip-sync) and breakout
+      // (template owns the start frame) keep their existing behavior.
+      // A lookup filled entirely with the ONE reference image (the universal
+      // fallback at ~2856) is degenerate — every clip would open on the same
+      // static frame and endImageUrl chaining stays suppressed. Treat it as
+      // "no per-shot keyframes yet" so the identity-locked generation runs.
+      const lookupValues = Object.values(sceneImageLookup);
+      const lookupIsDegenerateReferenceFill =
+        !!referenceImageUrl &&
+        lookupValues.length >= clips.length &&
+        lookupValues.every((u) => u === referenceImageUrl);
       if (
         !request.isBreakout &&
         !_seamIsAvatar &&
-        !referenceImageUrl &&
-        Object.keys(sceneImageLookup).length < clips.length
+        (Object.keys(sceneImageLookup).length < clips.length || lookupIsDegenerateReferenceFill)
       ) {
         try {
-          console.log(`[Hollywood][Parallel] No reference/scene images → generating ${clips.length} per-shot keyframes for last_frame chaining`);
+          console.log(`[Hollywood][Parallel] Generating ${clips.length} per-shot keyframes for last_frame chaining${referenceImageUrl ? ' (identity-locked via character reference)' : ''}`);
           // generate-scene-images destructures `scenes` (NOT `shots`) and each
           // scene needs { sceneNumber, visualDescription, mood?, characters? }
           // (it throws "Scenes array is required" otherwise). It returns
@@ -3446,6 +3461,7 @@ async function runProduction(
             scenes: scenesForImages,
             globalStyle: request.templateStyleAnchor,
             globalEnvironment: request.templateEnvironmentLock,
+            characterReferenceUrl: referenceImageUrl || undefined,
           });
           const imgs: Array<{ sceneNumber?: number; imageUrl?: string }> = imgRes?.images ?? [];
           let populated = 0;

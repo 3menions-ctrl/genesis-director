@@ -22,6 +22,13 @@ interface SceneImageRequest {
   globalCharacters?: string;
   globalEnvironment?: string;
   triggerNextStage?: boolean;
+  /** VISUAL BIBLE (continuity): a locked character reference image
+   *  (clean headshot or full-body — NOT a multi-view sheet). When present,
+   *  scenes that feature characters are generated with Flux Kontext
+   *  (identity-preserving edit: same person placed into the scene) instead
+   *  of pure text-to-image — so the keyframes that drive i2v carry the SAME
+   *  character in every shot. */
+  characterReferenceUrl?: string;
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -259,6 +266,54 @@ async function generateWithFluxPro(
   return await pollForResult(prediction.id, apiKey, 120);
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// FLUX Kontext Pro — identity-preserving scene keyframes.
+// Takes the locked character reference + a scene instruction and renders
+// the SAME person inside the new environment/lighting. This is the visual
+// bible's continuity anchor: every i2v keyframe carries one identity.
+// ═══════════════════════════════════════════════════════════════════
+async function generateWithFluxKontext(
+  prompt: string,
+  characterReferenceUrl: string,
+  aspectRatio: string,
+  apiKey: string,
+): Promise<string> {
+  const response = await fetch(
+    "https://api.replicate.com/v1/models/black-forest-labs/flux-kontext-pro/predictions",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        input: {
+          // Kontext follows edit instructions against the input image —
+          // phrase the scene as a placement instruction, and pin identity.
+          prompt:
+            `Place this exact person — identical face, hair, body and wardrobe — into the following scene. ` +
+            `Do not alter their identity in any way. Scene: ${prompt}`,
+          input_image: characterReferenceUrl,
+          aspect_ratio: aspectRatio,
+          output_format: "png",
+          safety_tolerance: 5,
+        },
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`FLUX Kontext API error: ${response.status} - ${err}`);
+  }
+
+  const prediction = await response.json();
+  if (prediction.status === "succeeded" && prediction.output) {
+    return Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+  }
+  return await pollForResult(prediction.id, apiKey, 120);
+}
+
 /**
  * Poll Replicate for prediction completion
  */
@@ -312,6 +367,7 @@ serve(async (req) => {
       globalCharacters,
       globalEnvironment,
       triggerNextStage,
+      characterReferenceUrl,
     }: SceneImageRequest = await req.json();
 
     if (!scenes || scenes.length === 0) {
@@ -395,17 +451,37 @@ serve(async (req) => {
         // Determine aspect ratio from project context
         const aspectRatio = "16:9"; // Default cinematic widescreen
 
-        // Try FLUX Ultra first, fall back to Pro
+        // VISUAL BIBLE: character scenes with a locked reference render via
+        // Flux Kontext (same person placed into the scene) so every i2v
+        // keyframe carries ONE identity. Pure-environment scenes (no
+        // characters) and reference-less projects keep text-to-image.
+        const characterRef = characterReferenceUrl;
+        const sceneHasCharacter =
+          (scene.characters?.length ?? 0) > 0 ||
+          /\b(person|man|woman|character|presenter|he |she |they )\b/i.test(scene.visualDescription);
         let imageUrl: string;
         let engine = "flux-ultra";
-        try {
-          imageUrl = await generateWithFluxUltra(cinematicPrompt, aspectRatio, REPLICATE_API_KEY);
-          console.log(`[SceneImages] ✅ FLUX Ultra succeeded for scene ${scene.sceneNumber}`);
-        } catch (ultraError) {
-          console.warn(`[SceneImages] FLUX Ultra failed, trying Pro: ${ultraError}`);
-          engine = "flux-pro";
-          imageUrl = await generateWithFluxPro(cinematicPrompt, aspectRatio, REPLICATE_API_KEY);
-          console.log(`[SceneImages] ✅ FLUX Pro fallback succeeded for scene ${scene.sceneNumber}`);
+        if (characterRef && characterRef.startsWith("http") && sceneHasCharacter) {
+          try {
+            engine = "flux-kontext";
+            imageUrl = await generateWithFluxKontext(cinematicPrompt, characterRef, aspectRatio, REPLICATE_API_KEY);
+            console.log(`[SceneImages] ✅ FLUX Kontext (identity-locked) succeeded for scene ${scene.sceneNumber}`);
+          } catch (kontextError) {
+            console.warn(`[SceneImages] FLUX Kontext failed, falling back to Ultra: ${kontextError}`);
+            engine = "flux-ultra";
+            imageUrl = await generateWithFluxUltra(cinematicPrompt, aspectRatio, REPLICATE_API_KEY);
+          }
+        } else {
+          // Try FLUX Ultra first, fall back to Pro
+          try {
+            imageUrl = await generateWithFluxUltra(cinematicPrompt, aspectRatio, REPLICATE_API_KEY);
+            console.log(`[SceneImages] ✅ FLUX Ultra succeeded for scene ${scene.sceneNumber}`);
+          } catch (ultraError) {
+            console.warn(`[SceneImages] FLUX Ultra failed, trying Pro: ${ultraError}`);
+            engine = "flux-pro";
+            imageUrl = await generateWithFluxPro(cinematicPrompt, aspectRatio, REPLICATE_API_KEY);
+            console.log(`[SceneImages] ✅ FLUX Pro fallback succeeded for scene ${scene.sceneNumber}`);
+          }
         }
 
         // Download and persist to Supabase storage (FLUX URLs expire)

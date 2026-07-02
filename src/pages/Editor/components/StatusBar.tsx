@@ -15,6 +15,7 @@ import type { EditorProject } from "@/lib/editor/types";
 import { ASPECT_RATIOS } from "@/lib/editor/types";
 import { useEditor } from "@/hooks/editor/useEditor";
 import { useRenderQueue } from "@/hooks/editor/useRenderQueue";
+import { undo as undoMut, redo as redoMut } from "@/lib/editor/store";
 
 interface Props {
   project: EditorProject;
@@ -116,27 +117,43 @@ export function StatusBar({
           <Magnet className="h-3 w-3" strokeWidth={1.5} />
         </span>
 
-        <span
-          className={cn(
-            "inline-flex items-center gap-0.5",
-            history.past.length > 0 ? "text-foreground/75" : "text-muted-foreground/30",
-          )}
-          title={`${history.past.length} undo · ${history.future.length} redo`}
-        >
-          <Undo2 className="h-3 w-3" strokeWidth={1.5} />
-          <span className={cn(TYPE_META, "font-mono tabular-nums")}>
-            {history.past.length}
-          </span>
-          <Redo2
+        <span className="inline-flex items-center gap-0.5">
+          <button
+            type="button"
+            onClick={() => undoMut()}
+            disabled={history.past.length === 0}
+            title="Undo (⌘Z)"
+            aria-label="Undo"
             className={cn(
-              "h-3 w-3 ml-1",
-              history.future.length > 0 ? "text-foreground/75" : "text-muted-foreground/30",
+              "inline-flex items-center gap-0.5 rounded px-1 py-0.5 transition-colors",
+              history.past.length > 0
+                ? "text-foreground/75 hover:bg-white/[0.06] hover:text-foreground cursor-pointer"
+                : "text-muted-foreground/30 cursor-not-allowed",
             )}
-            strokeWidth={1.5}
-          />
-          <span className={cn(TYPE_META, "font-mono tabular-nums")}>
-            {history.future.length}
-          </span>
+          >
+            <Undo2 className="h-3 w-3" strokeWidth={1.5} />
+            <span className={cn(TYPE_META, "font-mono tabular-nums")}>
+              {history.past.length}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => redoMut()}
+            disabled={history.future.length === 0}
+            title="Redo (⌘⇧Z)"
+            aria-label="Redo"
+            className={cn(
+              "inline-flex items-center gap-0.5 rounded px-1 py-0.5 transition-colors",
+              history.future.length > 0
+                ? "text-foreground/75 hover:bg-white/[0.06] hover:text-foreground cursor-pointer"
+                : "text-muted-foreground/30 cursor-not-allowed",
+            )}
+          >
+            <Redo2 className="h-3 w-3" strokeWidth={1.5} />
+            <span className={cn(TYPE_META, "font-mono tabular-nums")}>
+              {history.future.length}
+            </span>
+          </button>
         </span>
 
         <span className={cn(TYPE_META, "text-muted-foreground/55 font-mono tabular-nums")}>

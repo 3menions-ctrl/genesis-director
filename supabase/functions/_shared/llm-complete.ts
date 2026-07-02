@@ -100,7 +100,9 @@ export async function completeLLM(opts: LLMCompleteOptions): Promise<LLMComplete
         prompt: userPrompt,
         system_prompt: sys,
         max_completion_tokens: maxTokens,
-        temperature,
+        // Reasoning models (gpt-5 family) reject `temperature` — mirror
+        // OpenAI's own API constraint.
+        ...(replicateModel.includes('gpt-5') ? {} : { temperature }),
       },
     }),
   });

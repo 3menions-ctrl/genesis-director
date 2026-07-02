@@ -16,6 +16,7 @@ import {
   type UserIntent,
 } from "../_shared/script-utils.ts";
 import { aiRateLimit, preflightAiGate, chargeAiGate } from "../_shared/ai-credit-gate.ts";
+import { completeLLM } from "../_shared/llm-complete.ts";
 
 interface CharacterInput {
   name: string;
@@ -118,9 +119,11 @@ serve(async (req) => {
     
     console.log("[generate-script] Request received, topic length:", requestData.topic?.length || 0);
 
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-    if (!OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY is not configured");
+    // LLM provider: direct OpenAI when keyed, else Replicate-hosted model via
+    // REPLICATE_API_KEY (see _shared/llm-complete.ts). Prod lost its direct
+    // LLM keys in the Lovable migration — this fn was hard-down until now.
+    if (!Deno.env.get("OPENAI_API_KEY") && !Deno.env.get("REPLICATE_API_KEY")) {
+      throw new Error("No LLM provider configured (need OPENAI_API_KEY or REPLICATE_API_KEY)");
     }
 
     // ═══ AI CREDIT GATE context (built early so it covers BOTH the user-script
@@ -390,43 +393,30 @@ Write the script now:`;
     const gateBlocked = await preflightAiGate(gateCtx);
     if (gateBlocked) return gateBlocked;
 
-    // Use retry with exponential backoff
-    const response = await fetchWithRetry(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [
-            { role: "system", content: systemPrompt + (brandKitGuidance || "") },
-            { role: "user", content: userPrompt },
-          ],
-          max_tokens: calculateMaxTokens(clipCount, 120),
-        }),
-      },
-      { maxRetries: 3, baseDelayMs: 1000 }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("[generate-script] OpenAI API error after retries:", response.status, errorText);
-      
-      if (response.status === 429) {
-        return errorResponse("Rate limit exceeded after retries. Please try again later.", 429);
+    // Provider-agnostic completion with one retry (completeLLM picks
+    // direct OpenAI or Replicate-hosted GPT-4o automatically).
+    let llmResult: Awaited<ReturnType<typeof completeLLM>> | null = null;
+    let llmError: unknown = null;
+    for (let attempt = 0; attempt < 3 && !llmResult; attempt++) {
+      try {
+        llmResult = await completeLLM({
+          systemPrompt: systemPrompt + (brandKitGuidance || ""),
+          userPrompt,
+          maxTokens: calculateMaxTokens(clipCount, 120),
+        });
+      } catch (e) {
+        llmError = e;
+        console.warn(`[generate-script] LLM attempt ${attempt + 1} failed:`, e instanceof Error ? e.message : String(e));
+        if (attempt < 2) await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
       }
-      if (response.status === 401) {
-        return errorResponse("Invalid OpenAI API key.", 401);
-      }
-      
-      throw new Error(`OpenAI API error: ${response.status}`);
     }
-
-    const data = await response.json();
-    const script = data.choices?.[0]?.message?.content;
+    if (!llmResult) {
+      const msg = llmError instanceof Error ? llmError.message : "LLM completion failed";
+      console.error("[generate-script] LLM failed after retries:", msg);
+      if (msg.includes("429")) return errorResponse("Rate limit exceeded after retries. Please try again later.", 429);
+      throw new Error(msg);
+    }
+    const script = llmResult.text;
     
     // Validate response content
     if (!script || script.trim().length < 50) {
@@ -475,8 +465,8 @@ Write the script now:`;
         coreAction: userIntent.coreAction,
         keyElements: userIntent.keyElements,
       },
-      model: "gpt-4o-mini",
-      usage: data.usage,
+      model: llmResult.model,
+      usage: llmResult.usage,
       generationTimeMs,
     });
 

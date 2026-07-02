@@ -12,13 +12,14 @@
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { requireServiceRole } from "../_shared/auth-guard.ts";
+import { completeLLM } from "../_shared/llm-complete.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const LOVABLE_API = "https://ai.gateway.lovable.dev/v1/chat/completions";
+// (Lovable gateway removed — LLM calls go through _shared/llm-complete.ts)
 
 interface DirectorRequest {
   concept: string;
@@ -238,81 +239,39 @@ serve(async (req) => {
 
     const clipCount = clamp(body.clipCount ?? 6, 1, 12);
     const clipDuration = clamp(body.clipDuration ?? 10, 2, 12);
-    // Upgrade default to GPT-5 for top-tier screenwriting reasoning.
-    const model = body.model ?? 'openai/gpt-5';
 
-    const apiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!apiKey) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'LOVABLE_API_KEY not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
+    // Provider chain via _shared/llm-complete.ts (direct OpenAI when keyed,
+    // else Replicate-hosted models — the Lovable gateway key died with the
+    // Lovable migration and this worker was hard-down until now). Server-fixed
+    // models only (M-8: never caller-chosen): GPT-5 for screenwriting
+    // reasoning, Gemini 3 Pro as the soft fallback.
+    const userPromptText = buildUserPrompt({ ...body, clipCount, clipDuration });
+    let content = '';
+    let usedModel = 'openai/gpt-5';
+    try {
+      const r = await completeLLM({
+        systemPrompt: DIRECTOR_SYSTEM_PROMPT,
+        userPrompt: userPromptText,
+        maxTokens: 9000,
+        json: true,
+        replicateModel: 'openai/gpt-5',
+      });
+      content = r.text;
+      usedModel = r.model;
+    } catch (primaryErr) {
+      console.warn('[SeedanceDirector] primary LLM failed, falling back to Gemini 3 Pro:', primaryErr instanceof Error ? primaryErr.message : String(primaryErr));
+      const r = await completeLLM({
+        systemPrompt: DIRECTOR_SYSTEM_PROMPT,
+        userPrompt: userPromptText,
+        maxTokens: 9000,
+        temperature: 0.85,
+        json: true,
+        replicateModel: 'google/gemini-3-pro',
+      });
+      content = r.text;
+      usedModel = r.model;
     }
 
-    const aiRes = await fetch(LOVABLE_API, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: DIRECTOR_SYSTEM_PROMPT },
-          { role: 'user', content: buildUserPrompt({ ...body, clipCount, clipDuration }) },
-        ],
-        response_format: { type: 'json_object' },
-      }),
-    });
-
-    if (!aiRes.ok) {
-      const errText = await aiRes.text();
-      console.error('[SeedanceDirector] LLM error', aiRes.status, errText.slice(0, 400));
-      if (aiRes.status === 429) {
-        return new Response(
-          JSON.stringify({ success: false, error: 'RATE_LIMIT', retryAfter: 30 }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
-      }
-      if (aiRes.status === 402) {
-        return new Response(
-          JSON.stringify({ success: false, error: 'AI_CREDITS_EXHAUSTED' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
-      }
-      // Soft fallback to Gemini 2.5 Pro if GPT-5 path errors out.
-      try {
-        const fallback = await fetch(LOVABLE_API, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-pro',
-            messages: [
-              { role: 'system', content: DIRECTOR_SYSTEM_PROMPT },
-              { role: 'user', content: buildUserPrompt({ ...body, clipCount, clipDuration }) },
-            ],
-            response_format: { type: 'json_object' },
-            temperature: 0.85,
-          }),
-        });
-        if (fallback.ok) {
-          const fd = await fallback.json();
-          const fc = fd?.choices?.[0]?.message?.content ?? '{}';
-          const fp = (() => { try { return JSON.parse(fc); } catch { const m = String(fc).match(/\{[\s\S]*\}/); return m ? JSON.parse(m[0]) : { shots: [] }; } })();
-          const fs = normalizeShots(fp, clipCount, clipDuration);
-          if (fs.length) {
-            return new Response(
-              JSON.stringify({ success: true, director: 'seedance-script-director', model: 'google/gemini-2.5-pro', logline: fp?.logline, theme: fp?.theme, dramatic_question: fp?.dramatic_question, tone_reference: fp?.tone_reference, tension_arc: fp?.tension_arc, shots: fs }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-            );
-          }
-        }
-      } catch (_) { /* fall through */ }
-      throw new Error(`LLM error ${aiRes.status}`);
-    }
-
-    const data = await aiRes.json();
-    const content = data?.choices?.[0]?.message?.content ?? '{}';
     let parsed: any;
     try {
       parsed = JSON.parse(content);
@@ -326,13 +285,13 @@ serve(async (req) => {
       throw new Error('Director returned zero shots');
     }
 
-    console.log(`[SeedanceDirector] ✓ ${model} produced ${shots.length} shots — "${parsed?.logline ?? ''}"`);
+    console.log(`[SeedanceDirector] ✓ ${usedModel} produced ${shots.length} shots — "${parsed?.logline ?? ''}"`);
 
     return new Response(
       JSON.stringify({
         success: true,
         director: 'seedance-script-director',
-        model,
+        model: usedModel,
         logline: parsed?.logline,
         theme: parsed?.theme,
         dramatic_question: parsed?.dramatic_question,

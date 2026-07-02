@@ -516,6 +516,8 @@ ${si.allNegatives.slice(0, 10).map((n: string) => `• ${n}`).join('\n')}` : ''}
 
 Create ${clipCount} clips (${clipDuration}s each, ${targetSeconds}s total). Every clip must be of EPIC CINEMATIC PROPORTIONS — the kind of shot that wins at Cannes, that opens a Villeneuve film, that lives rent-free in the audience's head.
 
+TONE DNA: Match the concept's natural energy — a playful concept gets precision VISUAL COMEDY (comic timing in the blocking: anticipation → beat → payoff, sight gags, absurd scale contrast played straight); a dramatic concept gets full gravity; a surreal concept escalates with deadpan confidence. Whatever the tone, land at least ONE moment of pure delight per script — a surprise beat or hyper-specific living detail. Fun lives in TIMING, CONTRAST and SPECIFICITY — never in mood adjectives.
+
 ━━━ WHY SEEDANCE IS DIFFERENT (READ CAREFULLY) ━━━
 Unlike other models, Seedance 2.0:
 ✅ READS lens specs ("85mm anamorphic", "24mm wide", "macro lens") and applies them
@@ -647,6 +649,14 @@ OUTPUT FORMAT (strict JSON):
 
 YOUR MANDATE: Every clip must be a painting that MOVES. The kind of shot that makes someone stop scrolling and whisper "how is this real." Ruthlessly cinematic. Zero filler.
 ${modelBoundDirectives}
+
+━━━ TONE DNA — READ THE USER'S CONCEPT AND MATCH ITS ENERGY ━━━
+Cinematic ≠ solemn. Diagnose the concept's natural tone and commit to it:
+• PLAYFUL/COMEDIC concept → write VISUAL COMEDY: comic timing in the blocking (anticipation → beat → payoff), sight gags, absurd scale contrasts, deadpan reaction cuts, physics played for laughs (the cat DOES knock it off the shelf). Chaplin/Wes Anderson/Aardman energy — precise, never sloppy.
+• EPIC/DRAMATIC concept → full cinematic gravity (the default below).
+• HEARTWARMING concept → warmth beats grandeur: small human details, imperfect charming moments, earned smiles.
+• WEIRD/SURREAL concept → lean IN. Escalate the strangeness with total straight-faced confidence.
+EVERY script regardless of tone gets at least ONE moment of DELIGHT — a surprise, a wink, a detail so specific it feels alive (a pigeon judging the hero, a reflection doing something impossible, perfect comic timing on a slam). Fun is a craft, not a mood word: it lives in TIMING, CONTRAST, and SPECIFICITY, never in adjectives like "fun" or "quirky".
 
 ━━━ BANNED CONTENT (will break the pipeline) ━━━
 Never use: "intimate moment", "getting intimate", "in bed together", "making love", "having sex", "passionate kiss", "seductive", "sensual", "provocative", "revealing" (clothing), "lingerie", "underwear", "topless", "aroused"

@@ -138,9 +138,10 @@ serve(async (req) => {
     // video_url, and the render must include everything the user can
     // see on the timeline. The old filter dropped library-imported
     // and user-uploaded clips that weren't flagged 'completed' yet.
-    const { data: clips, error: clipsError } = await supabase
+    const clipSelect = 'id, shot_index, video_url, duration_seconds, status, created_at, properties';
+    let { data: clips, error: clipsError } = await supabase
       .from('video_clips')
-      .select('id, shot_index, video_url, duration_seconds, status, created_at')
+      .select(clipSelect)
       .eq('project_id', projectId)
       .not('video_url', 'is', null)
       .order('created_at', { ascending: true });
@@ -149,8 +150,55 @@ serve(async (req) => {
       throw new Error(`Failed to fetch clips: ${clipsError.message}`);
     }
 
-    const completedCount = clips?.length || 0;
-    console.log(`[FinalAssembly] Validated: ${completedCount}/${expectedClipCount} clips with video_url`);
+    // Count VIDEO clips only — audio rows (music on sys:A2, voice on sys:A1)
+    // also carry a video_url and must not inflate the readiness check.
+    const isAudioClip = (c: { properties?: unknown } | null): boolean => {
+      const t = (c?.properties as { trackId?: string } | null)?.trackId;
+      return typeof t === 'string' && t.startsWith('sys:A');
+    };
+    const videoClipCount = (rows: typeof clips): number =>
+      (rows || []).filter((c) => !isAudioClip(c)).length;
+
+    let completedCount = videoClipCount(clips);
+    console.log(`[FinalAssembly] Validated: ${completedCount}/${expectedClipCount} video clips with video_url`);
+
+    // ── PARTIAL-FILM GUARD (fixes silent clip-dropping) ─────────────────────
+    // A 2-clip seedance render was shipping as a 5-second SINGLE clip: this
+    // function is triggered by the last clip's completion (continue-production),
+    // but if that clip's `video_url` write hasn't propagated — or the trigger
+    // fired with a stale totalClips — we'd stitch whatever exists and silently
+    // drop the rest (mode became 'single_clip'). Refuse to build a partial
+    // film: re-query briefly for write-lag, then HOLD. The watchdog finalizes
+    // stuck projects (it calls seamless-stitcher directly, bypassing this
+    // guard), so a genuinely-failed clip still gets a partial render on the
+    // timeout path — this only blocks the PREMATURE case. `forceReconcile`
+    // (manual reconciliation) always bypasses.
+    if (!forceReconcile && completedCount < expectedClipCount) {
+      for (let attempt = 0; attempt < 3 && completedCount < expectedClipCount; attempt++) {
+        await new Promise((r) => setTimeout(r, 1500));
+        const requery = await supabase
+          .from('video_clips')
+          .select(clipSelect)
+          .eq('project_id', projectId)
+          .not('video_url', 'is', null)
+          .order('created_at', { ascending: true });
+        if (requery.data) {
+          clips = requery.data;
+          completedCount = videoClipCount(clips);
+        }
+      }
+      if (completedCount < expectedClipCount) {
+        console.warn(
+          `[FinalAssembly] HOLDING: only ${completedCount}/${expectedClipCount} video clips ready — ` +
+          `refusing to stitch a partial film (would silently drop clips). The watchdog will finalize ` +
+          `when the remaining clips land (or time out).`,
+        );
+        return new Response(
+          JSON.stringify({ success: false, held: true, reason: 'awaiting_clips', completedCount, expectedClipCount }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+    }
 
     if (completedCount === 0) {
       throw new Error('No clips with a video_url found - the timeline has nothing to render');

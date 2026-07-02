@@ -24,7 +24,11 @@ export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
   retries: 0,
-  reporter: [["list"]],
+  // html (open:never) writes playwright-report/ so the CI failure artifact
+  // actually contains something — with list-only, that upload was empty and
+  // the retain-on-failure traces in test-results/ were discarded, which is
+  // why the intermittent editor-controls 6-min hang was never diagnosable.
+  reporter: [["list"], ["html", { open: "never" }]],
   // The editor specs reload the full NLE per assertion and gate on real
   // hydration; on CI hardware a single test runs 15–35s, and the 16-panel
   // sweep reloads 16×. The 30s Playwright default is too tight there (passes

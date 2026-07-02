@@ -2,7 +2,7 @@
  * Engine-slug FE↔BE parity guard (docs/PIPELINE.md §6 Stage 4).
  *
  * The live Replicate slugs are the single source of truth and were the source of
- * a real prod bug (the `wan-ai/...` → 404 on the free tier). This test locks the
+ * a real prod bug (the `wan-ai/...` → 404 on Wan). This test locks the
  * canonical slugs and asserts the FE engine taxonomy reconciles onto the same 6
  * backend engines, so the FE and BE can't silently drift apart again.
  *
@@ -27,11 +27,11 @@ import { engineToBackend, type EngineId, type BackendEngine as FeBackendEngine }
 // The live, audited Replicate route labels (PIPELINE.md §1). If a value changes
 // upstream, this test must be updated DELIBERATELY — that's the guard.
 const CANONICAL_SLUGS: Record<BeBackendEngine, string> = {
-  wan: 'wan-video/wan-2.5-t2v',
+  wan: 'wan-video/wan-2.7-t2v',
   kling: 'kwaivgi/kling-v3-video',
   seedance: 'bytedance/seedance-2.0',
-  veo: 'google/veo-3-fast',
-  runway: 'runwayml/gen4-turbo',
+  veo: 'google/veo-3.1-fast',
+  runway: 'runwayml/gen-4.5',
   sora: 'openai/sora-2',
 };
 
@@ -47,7 +47,7 @@ describe('BE canonical slugs (ENGINE_ROUTE_LABEL) are locked to the live-audited
   });
 
   it('contains NO stale slug fragments (regression guard for the wan-ai/seedance-1/kling-2 class)', () => {
-    const forbidden = ['wan-ai/', 'seedance-1', 'kling-2-', 'kling-1', 'veo-2', 'gen3', 'gen-3'];
+    const forbidden = ['wan-ai/', 'wan-2.5', 'seedance-1', 'kling-2-', 'kling-1', 'veo-2', 'veo-3-fast', 'gen3', 'gen-3', 'gen4-turbo'];
     for (const slug of Object.values(ENGINE_ROUTE_LABEL)) {
       for (const bad of forbidden) {
         expect(slug.includes(bad), `slug "${slug}" must not contain stale "${bad}"`).toBe(false);

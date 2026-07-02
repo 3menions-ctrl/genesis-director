@@ -91,15 +91,16 @@ export interface EngineProfile {
 export const ENGINE_PROFILES: Record<EngineKey, EngineProfile> = {
   wan: {
     key: 'wan',
-    replicateSlug: 'wan-video/wan-2.5-t2v',
-    durations: [5, 10],
+    // t2v slug; chained clips route to wan-video/wan-2.7-i2v (image input).
+    replicateSlug: 'wan-video/wan-2.7-t2v',
+    durations: [5, 10, 15],
     defaultDuration: 5,
     fps: 24,
-    aspectRatios: ['16:9', '9:16', '1:1'],
+    aspectRatios: ['16:9', '9:16', '1:1', '4:3', '3:4'],
     conditioning: { startImage: true, endImage: false, referenceImages: 0, cameraFixed: false },
-    promptDialect: { grammar: 'compact-action', maxChars: 700, negativePrompt: false, dialogueInPrompt: false, stripSecondMarks: false },
+    promptDialect: { grammar: 'compact-action', maxChars: 900, negativePrompt: true, dialogueInPrompt: true, stripSecondMarks: false },
     dispatch: 'sequential',
-    audio: 'post-mux',
+    audio: 'native', // Wan 2.7 generates synchronized audio natively
     supportsLipSync: false,
     continuity: 'lastframe-carry',
   },
@@ -125,10 +126,9 @@ export const ENGINE_PROFILES: Record<EngineKey, EngineProfile> = {
     fps: 24,
     aspectRatios: ['16:9', '9:16', '1:1', '4:3', '3:4', '21:9', '9:21'],
     conditioning: { startImage: true, endImage: true, referenceImages: 9, cameraFixed: true },
-    // dialogueInPrompt stays FALSE until SEEDANCE_NATIVE_AUDIO is verified
-    // live: the endpoint documents joint audio+video generation (research
-    // finding, 3-0 verified), but our post-mux voice path assumes silence.
-    promptDialect: { grammar: 'motion-first', maxChars: 2400, negativePrompt: false, dialogueInPrompt: false, stripSecondMarks: true },
+    // Native audio is ON (endpoint schema verified live 2026-07-02):
+    // dialogue in double quotes drives generated speech per vendor docs.
+    promptDialect: { grammar: 'motion-first', maxChars: 2400, negativePrompt: false, dialogueInPrompt: true, stripSecondMarks: true },
     dispatch: 'parallel',
     audio: 'post-mux',
     supportsLipSync: false,
@@ -136,17 +136,18 @@ export const ENGINE_PROFILES: Record<EngineKey, EngineProfile> = {
   },
   veo: {
     key: 'veo',
-    replicateSlug: 'google/veo-3-fast',
+    replicateSlug: 'google/veo-3.1-fast',
     durations: [4, 6, 8],
     defaultDuration: 8,
     fps: 30,
     aspectRatios: ['16:9', '9:16'],
-    conditioning: { startImage: true, endImage: false, referenceImages: 0, cameraFixed: false },
+    // Veo 3.1 adds last_frame — keyframe-pair interpolation like Seedance.
+    conditioning: { startImage: true, endImage: true, referenceImages: 0, cameraFixed: false },
     promptDialect: { grammar: 'audio-inline', maxChars: 1900, negativePrompt: true, dialogueInPrompt: true, stripSecondMarks: false },
     dispatch: 'sequential',
     audio: 'native',
     supportsLipSync: false,
-    continuity: 'prompt-anchor',
+    continuity: 'keyframe-pair',
   },
   sora: {
     key: 'sora',
@@ -164,11 +165,11 @@ export const ENGINE_PROFILES: Record<EngineKey, EngineProfile> = {
   },
   runway: {
     key: 'runway',
-    replicateSlug: 'runwayml/gen4-turbo',
+    replicateSlug: 'runwayml/gen-4.5',
     durations: [5, 10],
     defaultDuration: 5,
     fps: 30,
-    aspectRatios: ['16:9', '9:16', '1:1', '4:3', '3:4'],
+    aspectRatios: ['16:9', '9:16', '4:3', '3:4', '1:1', '21:9'],
     conditioning: { startImage: true, endImage: false, referenceImages: 0, cameraFixed: false },
     promptDialect: { grammar: 'reference-terse', maxChars: 1900, negativePrompt: false, dialogueInPrompt: false, stripSecondMarks: false },
     dispatch: 'sequential',
@@ -192,6 +193,7 @@ export function getEngineProfile(key: string | undefined | null): EngineProfile 
 // schema (version a6dcbae88b15): the endpoint exposes `reference_images`
 // (up to 9, character consistency), `generate_audio` (joint A/V incl.
 // dialogue), `reference_audios`, `reference_videos`, `last_frame_image`.
-export const SEEDANCE_NATIVE_AUDIO = false;          // exists live — OFF until the
-// post-mux voice path learns to skip TTS when native audio is on (else double audio).
+export const SEEDANCE_NATIVE_AUDIO = true;           // joint A/V generation — ON.
+// The TTS combined-voice step is skipped for seedance when this is on (the
+// model voices the dialogue itself); music stays post-mux per user toggle.
 export const SEEDANCE_REFERENCE_CONDITIONING = true; // 9-image identity refs — LIVE

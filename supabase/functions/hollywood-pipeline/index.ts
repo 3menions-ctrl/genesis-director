@@ -426,7 +426,7 @@ async function getUserTierLimits(supabase: any, userId: string): Promise<{
     const { data, error } = await supabase.rpc('get_user_tier_limits', { p_user_id: userId });
     
     if (error || !data) {
-      console.warn(`[Hollywood] Failed to fetch tier limits, using free tier defaults:`, error);
+      console.warn(`[Hollywood] Failed to fetch tier limits, using base-plan defaults:`, error);
       return { tier: 'free', ...TIER_CLIP_LIMITS['free'] };
     }
     
@@ -2224,11 +2224,15 @@ async function runAssetCreation(
       // set state.assets.voiceUrl. Do NOT also run the per-segment loop — that
       // would double-charge.
       if (request.videoEngine === 'seedance') {
-        const voiceLines = (state.script?.shots || [])
+        // NATIVE AUDIO: Seedance 2.0 voices dialogue itself (generate_audio in
+        // the prediction input) — running TTS too would double the speech.
+        // Skip the combined-voice track entirely when the flag is on.
+        const { SEEDANCE_NATIVE_AUDIO } = await import('../_shared/engine-profiles.ts');
+        const voiceLines = SEEDANCE_NATIVE_AUDIO ? [] : (state.script?.shots || [])
           .map((s: any) => s.dialogue ?? s.voiceover ?? s.narration ?? null)
           .filter((l: any): l is string => !!l && String(l).trim().length > 0);
         if (voiceLines.length === 0) {
-          console.log(`[Hollywood] 🅿️ Seedance voice: no dialogue lines — skipping voice`);
+          console.log(`[Hollywood] 🅿️ Seedance voice: ${SEEDANCE_NATIVE_AUDIO ? 'native audio ON — model voices dialogue, TTS skipped' : 'no dialogue lines — skipping voice'}`);
         } else {
           console.log(`[Hollywood] 🅿️ Seedance combined-voice: ${voiceLines.length} lines → single track`);
           try {
@@ -3445,7 +3449,42 @@ async function runProduction(
         (Object.keys(sceneImageLookup).length < clips.length || lookupIsDegenerateReferenceFill)
       ) {
         try {
-          console.log(`[Hollywood][Parallel] Generating ${clips.length} per-shot keyframes for last_frame chaining${referenceImageUrl ? ' (identity-locked via character reference)' : ''}`);
+          // CHARACTER SHEET FROM CONCEPT: when the user gave NO reference image
+          // but the script has a character, synthesize ONE clean reference
+          // (single full-body view — never multi-view; Seedance reads multiple
+          // angles as different people) and identity-lock every keyframe to it.
+          let characterSheetUrl: string | null = referenceImageUrl || null;
+          if (!characterSheetUrl) {
+            const charDesc =
+              (request as any).characterDescription ||
+              (state.identityBible as any)?.characterIdentity?.description ||
+              (state.script?.shots?.[0] as any)?.characterDescription ||
+              null;
+            if (charDesc && String(charDesc).trim().length > 10) {
+              try {
+                const sheetRes = await callEdgeFunction('generate-scene-images', {
+                  projectId: state.projectId,
+                  userId: request.userId,
+                  scenes: [{
+                    sceneNumber: 1,
+                    title: 'Character sheet',
+                    visualDescription:
+                      `Character reference sheet: one full-body photograph of ${String(charDesc).slice(0, 400)}. ` +
+                      `Standing, facing camera, neutral studio background, even soft lighting, ` +
+                      `entire body and face clearly visible, photorealistic, no text, single person only.`,
+                  }],
+                });
+                const sheetUrl = sheetRes?.images?.[0]?.imageUrl;
+                if (sheetUrl) {
+                  characterSheetUrl = sheetUrl;
+                  console.log(`[Hollywood][Parallel] 🪪 Character sheet synthesized from concept — keyframes will identity-lock to it`);
+                }
+              } catch (e: any) {
+                console.warn(`[Hollywood][Parallel] Character-sheet generation failed (keyframes stay unlocked):`, e?.message);
+              }
+            }
+          }
+          console.log(`[Hollywood][Parallel] Generating ${clips.length} per-shot keyframes for last_frame chaining${characterSheetUrl ? ' (identity-locked via character reference)' : ''}`);
           // generate-scene-images destructures `scenes` (NOT `shots`) and each
           // scene needs { sceneNumber, visualDescription, mood?, characters? }
           // (it throws "Scenes array is required" otherwise). It returns
@@ -3466,7 +3505,7 @@ async function runProduction(
             scenes: scenesForImages,
             globalStyle: request.templateStyleAnchor,
             globalEnvironment: request.templateEnvironmentLock,
-            characterReferenceUrl: referenceImageUrl || undefined,
+            characterReferenceUrl: characterSheetUrl || undefined,
           });
           const imgs: Array<{ sceneNumber?: number; imageUrl?: string }> = imgRes?.images ?? [];
           let populated = 0;
@@ -6998,11 +7037,34 @@ serve(async (req) => {
     // Store tier info in request for downstream stages
     (request as any)._tierLimits = tierLimits;
     
-    const { clipCount, clipDuration, totalCredits } = calculatePipelineParams(request, {
+    let { clipCount, clipDuration, totalCredits } = calculatePipelineParams(request, {
       maxClips: tierLimits.maxClips,
       maxDuration: tierLimits.maxDuration,
     });
-    
+
+    // ═══ FIRST VIDEO FREE (the ONLY freebie — there is no free tier) ═══
+    // A user's FIRST 5-second Wan render costs 0 credits, ONCE. Eligibility:
+    // wan engine, single clip ≤5s, and the user has never produced a video
+    // (no project with a stored video_url). Server-enforced — the UI only
+    // advertises it. Everything else is paid.
+    if (totalCredits > 0 && incomingEngine === 'wan' && clipCount === 1 && clipDuration <= 5) {
+      try {
+        const { data: prior } = await supabase
+          .from('movie_projects')
+          .select('id')
+          .eq('user_id', request.userId)
+          .not('video_url', 'is', null)
+          .limit(1)
+          .maybeSingle();
+        if (!prior) {
+          console.log(`[Hollywood] 🎁 FIRST-VIDEO-FREE: user ${request.userId} — first 5s Wan render, 0 credits (was ${totalCredits})`);
+          totalCredits = 0;
+        }
+      } catch (e) {
+        console.warn('[Hollywood] first-video-free eligibility check failed (charging normally):', e);
+      }
+    }
+
     console.log(`[Hollywood] Pipeline params: ${clipCount} clips × ${clipDuration}s = ${clipCount * clipDuration}s, ${totalCredits} credits`);
     console.log(`[Hollywood] Is resuming: ${isResuming}, resumeFrom: ${request.resumeFrom}`);
     

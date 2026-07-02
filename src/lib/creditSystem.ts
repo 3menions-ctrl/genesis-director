@@ -134,9 +134,10 @@ export function calculateCreditsPerClip(clipDuration: number, clipIndex: number 
     return creditsForScene(toEngineId(videoEngine), clipDuration);
   } catch {
     const extended = isExtendedPricing(0, clipDuration);
-    // Wan = free tier. Base render is 0; only optional 4k/60fps surcharges cost.
+    // Wan is the budget engine — priced like everything else (the ONLY
+    // freebie is a user's first 5s render, enforced server-side).
     if (videoEngine === 'wan') {
-      return 0;
+      return 13; // ≈ registry price for a 5s Wan 2.7 clip
     }
     if (videoEngine === 'seedance') {
       return extended ? CREDIT_SYSTEM.SEEDANCE_EXTENDED_CREDITS_PER_CLIP : CREDIT_SYSTEM.SEEDANCE_BASE_CREDITS_PER_CLIP;

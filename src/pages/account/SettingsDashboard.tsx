@@ -1834,11 +1834,11 @@ function PlaybackModule({
 
       <Card>
         <h3 className="font-mono text-[11px] uppercase tracking-[0.30em] text-muted-foreground/75 mb-3">Generation</h3>
-        <FieldRow label="Default engine" hint="Wan is free-tier; Kling charges credits per second.">
+        <FieldRow label="Default engine" hint="Pre-fills your engine pick in the studio — every render is paid in credits.">
           <Select value={merged.defaultEngine} onValueChange={(v) => set({ defaultEngine: v as PrefsState["defaultEngine"] })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="wan">Wan · free tier</SelectItem>
+              <SelectItem value="wan">Wan 2.7 · budget</SelectItem>
               <SelectItem value="kling">Kling · premium</SelectItem>
             </SelectContent>
           </Select>

@@ -80,7 +80,7 @@ export function useTierLimits() {
   const canCreate2MinuteVideo = (tierLimits?.max_duration_minutes ?? 0) >= 2;
   // Fall back to the SAFE (free) tier while loading/on error, not the most
   // generous values — under-granting is recoverable, over-granting isn't.
-  const maxClips = tierLimits?.max_clips_per_video ?? 6; // Free tier default
+  const maxClips = tierLimits?.max_clips_per_video ?? 6; // Base-plan default
   const maxRetries = tierLimits?.max_retries_per_clip ?? 1;
   const hasChunkedStitching = tierLimits?.chunked_stitching ?? false;
   const hasPriorityQueue = tierLimits?.priority_queue ?? false;

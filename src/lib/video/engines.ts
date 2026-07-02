@@ -118,11 +118,11 @@ export const TARGET_GROSS_MARGIN = 0.30;
 export const BUNDLED_ADDON_COST_USD = 0.205;
 
 export const CLIP_COST_USD: Record<string, Record<number, number>> = {
-  'wan-25':      { 5: 0.15,  10: 0.30 },
+  'wan-25':      { 5: 0.50,  10: 1.00, 15: 1.50 },   // Wan 2.7 ~$0.10/s (VERIFY vs Replicate billing)
   'kling-v3':    { 5: 1.385, 10: 2.692, 15: 4.077 },
   'seedance-2':  { 5: 2.692, 10: 5.385, 12: 6.538 },
   'veo-3':       { 4: 1.923, 6: 2.923,  8: 3.846 },
-  'runway-gen4': { 5: 1.538, 10: 3.0 },
+  'runway-gen4': { 5: 2.0,   10: 4.0 },              // Gen-4.5 (VERIFY vs Replicate billing)
   'sora-2':      { 4: 2.385, 8: 4.846,  12: 7.231 },
 };
 
@@ -141,22 +141,20 @@ function clipCredits(engineId: string, duration: number): number {
 }
 
 export const ENGINES: Record<EngineId, EngineSpec> = {
-  // -------- FREE --------
-  // Alibaba Wan 2.5 — the free-tier engine. Generous baseline quality,
-  // low credit cost so we can hand it to users on signup-grant credits
-  // without breaching the platform budget.
+  // Alibaba Wan 2.7 — the budget engine. A user's FIRST 5-second render is
+  // free (one-time, server-enforced); every other render is paid.
   'wan-25': {
     id: 'wan-25',
     provider: 'wan',
     tier: 'standard',
-    label: 'Wan 2.5 — Free',
-    shortLabel: 'Wan 2.5',
+    label: 'Wan 2.7',
+    shortLabel: 'Wan 2.7',
     description:
-      "Alibaba's Wan 2.5 — the free engine. Smooth motion, good prompt adherence; your first 5-second video is free.",
-    durations: [5, 10],
-    maxDuration: 10,
+      "Alibaba's Wan 2.7 — fast, sharp and budget-friendly with native audio. Your first 5-second video is on us.",
+    durations: [5, 10, 15],
+    maxDuration: 15,
     supportsImageInput: true,
-    supportsAudio: false,
+    supportsAudio: true,
     supportsAvatar: false,
     etaSeconds: 110,
     healthy: true,
@@ -168,10 +166,10 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     recommendedScenes: 5,
     defaultDuration: 5,
     qualityProfiles: [
-      { id: 'hd24',  label: 'HD 1080p',         description: 'Wan 2.5 native, 1080p · 24fps',           resolution: '1080p', fps: 24, options: {},                                  recommended: true },
+      { id: 'hd24',  label: 'HD 1080p',         description: 'Wan 2.7 native, 1080p · 24fps + audio',   resolution: '1080p', fps: 24, options: {},                                  recommended: true },
       { id: 'hd60',  label: 'HD 1080p · 60fps', description: 'Smooth motion via RIFE interpolation',     resolution: '1080p', fps: 60, options: { fps60: true } },
     ],
-    // Priced at Replicate compute (~$0.03/s) + storage + ops, marked up 30%.
+    // Priced at Wan 2.7 Replicate compute (~$0.10/s) + ops, marked up 30%.
     baseCreditsFor: (d) => clipCredits('wan-25', d),
   },
 
@@ -245,10 +243,10 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     id: 'veo-3',
     provider: 'veo3',
     tier: 'cinema',
-    label: 'Veo 3 Fast — Cinema',
-    shortLabel: 'Veo 3',
+    label: 'Veo 3.1 Fast — Cinema',
+    shortLabel: 'Veo 3.1',
     description:
-      'Google Veo 3 Fast. Excellent physics and natural motion with native audio.',
+      'Google Veo 3.1 Fast. Higher-fidelity video, context-aware audio, and end-frame control.',
     durations: [4, 6, 8],
     maxDuration: 8,
     supportsImageInput: true,
@@ -265,7 +263,7 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     recommendedScenes: 5,
     defaultDuration: 6,
     qualityProfiles: [
-      { id: 'hd24',  label: 'HD 1080p',         description: 'Veo 3 Fast native, 1080p · 24fps + native audio',   resolution: '1080p', fps: 24, options: {},                                                  recommended: true },
+      { id: 'hd24',  label: 'HD 1080p',         description: 'Veo 3.1 Fast native, 1080p + native audio',         resolution: '1080p', fps: 24, options: {},                                                  recommended: true },
       { id: 'uhd24', label: '4K Cinema',        description: 'Topaz upscale to 4K · 24fps',                       resolution: '4K',    fps: 24, options: { upscale4k: true } },
       { id: 'uhd60', label: '4K Cinema · 60fps',description: 'Topaz 4K + RIFE 60fps + auto retake',               resolution: '4K',    fps: 60, options: { upscale4k: true, fps60: true, autoRetake: true } },
     ],
@@ -276,10 +274,10 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     id: 'runway-gen4',
     provider: 'runway',
     tier: 'cinema',
-    label: 'Runway Gen-4 Turbo — Cinema',
-    shortLabel: 'Runway Gen-4',
+    label: 'Runway Gen-4.5 — Cinema',
+    shortLabel: 'Runway 4.5',
     description:
-      'Best-in-class character consistency and stylized control. Max 10s per clip.',
+      'State-of-the-art motion quality and prompt adherence. Max 10s per clip.',
     durations: [5, 10],
     maxDuration: 10,
     supportsImageInput: true,
@@ -296,7 +294,7 @@ export const ENGINES: Record<EngineId, EngineSpec> = {
     recommendedScenes: 5,
     defaultDuration: 10,
     qualityProfiles: [
-      { id: 'hd24',  label: 'HD 1080p',          description: 'Runway Gen-4 Turbo native, 1080p · 24fps (no audio)', resolution: '1080p', fps: 24, options: {},                                  recommended: true },
+      { id: 'hd24',  label: 'HD 1080p',          description: 'Runway Gen-4.5 native, 1080p · 24fps (no audio)',     resolution: '1080p', fps: 24, options: {},                                  recommended: true },
       { id: 'uhd24', label: '4K Cinema',         description: 'Topaz upscale to 4K · 24fps',                         resolution: '4K',    fps: 24, options: { upscale4k: true } },
       { id: 'uhd60', label: '4K Cinema · 60fps', description: 'Topaz 4K + RIFE 60fps interpolation',                 resolution: '4K',    fps: 60, options: { upscale4k: true, fps60: true } },
     ],

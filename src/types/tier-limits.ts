@@ -48,7 +48,7 @@ export const DEFAULT_TIER_LIMITS: Record<AccountTier, TierLimits> = {
   free: {
     tier: 'free',
     max_duration_minutes: 1, // 60 seconds (6 clips × 10 sec max)
-    max_clips_per_video: 6, // Free tier limit
+    max_clips_per_video: 6, // Base-plan limit
     max_concurrent_projects: 2,
     max_retries_per_clip: 1,
     priority_queue: false,

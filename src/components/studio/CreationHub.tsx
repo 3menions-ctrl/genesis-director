@@ -77,12 +77,13 @@ type EngineCapabilities = {
   durations: number[];
 };
 const ENGINE_CAPS: Record<EngineKey, EngineCapabilities> = {
-  // Alibaba's Wan 2.5 — the free-tier engine. Always shown first.
+  // Alibaba's Wan 2.7 — the budget engine. Always shown first.
+  // A user's FIRST 5-second render is free (one-time, server-enforced).
   wan: {
-    label: 'Wan 2.5', model: 'wan-video/wan-2.5-t2v',
-    tagline: 'Free tier · Alibaba Wan', badge: 'FREE',
-    supportsT2V: true, supportsI2V: true, supportsLipSync: false, supportsNativeAudio: false,
-    aspectRatios: ['16:9', '9:16', '1:1'], durations: [5, 10],
+    label: 'Wan 2.7', model: 'wan-video/wan-2.7-t2v',
+    tagline: 'Budget · Native audio', badge: '1st FREE',
+    supportsT2V: true, supportsI2V: true, supportsLipSync: false, supportsNativeAudio: true,
+    aspectRatios: ['16:9', '9:16', '1:1'], durations: [5, 10, 15],
   },
   kling: {
     label: 'Kling V3', model: 'kwaivgi/kling-v3-video',
@@ -200,15 +201,10 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   const { navigateTo: navigate } = useNavigationWithLoading();
   const { profile } = useAuth();
   const credits = useCredits();
-  // Free-tier rule: users who have never purchased credits can only use the
-  // baseline engine (Alibaba's Wan 2.5). The premium engines (kling /
-  // seedance / veo / sora) remain visible but locked, with a clear
-  // "upgrade to unlock" hint. The admin role bypasses this lock so
-  // internal testing isn't hampered.
-  const FREE_TIER_ENGINE: EngineKey = 'wan';
-  const isFreeTier = !!profile
-    && profile.account_type !== 'admin'
-    && (profile.total_credits_purchased ?? 0) === 0;
+  // NO FREE TIER: every engine is open to every user — renders are paid
+  // with credits. The single freebie (a user's FIRST 5-second Wan render)
+  // is enforced server-side by the pipeline's credit hold, not by locking
+  // engines in the UI.
 
   const [selectedMode, setSelectedMode] = useState<VideoGenerationMode>('text-to-video');
   // Engine is an INDEPENDENT axis from mode. The capability matrix
@@ -817,28 +813,21 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
             {(Object.keys(ENGINE_CAPS) as EngineKey[]).map((k) => {
               const caps = ENGINE_CAPS[k];
               const compatible = engineSupportsMode(k, selectedMode as CreationModeId);
-              const freeLocked = isFreeTier && k !== FREE_TIER_ENGINE;
-              const available = compatible && !freeLocked;
+              const available = compatible;
               const active = videoEngine === k && available;
               return (
                 <button
                   key={k}
                   onClick={() => {
-                    if (freeLocked) {
-                      toast.error(`${caps.label} unlocks once you've purchased credits. Your free 5-second video runs on Wan.`);
-                      return;
-                    }
                     if (compatible) setVideoEngine(k);
                   }}
                   disabled={!available}
                   title={
-                    freeLocked
-                      ? `${caps.label} requires purchased credits. Your free 5-second video runs on Wan.`
-                      : !compatible
-                        ? selectedMode === 'avatar'
-                          ? `${caps.label} doesn't support lip-sync — Avatar mode requires Kling V3.`
-                          : `${caps.label} isn't compatible with this mode.`
-                        : caps.tagline
+                    !compatible
+                      ? selectedMode === 'avatar'
+                        ? `${caps.label} doesn't support lip-sync — Avatar mode requires Kling V3.`
+                        : `${caps.label} isn't compatible with this mode.`
+                      : caps.tagline
                   }
                   className={cn(
                     'group relative inline-flex items-center gap-2 pl-2 pr-3.5 py-1.5 rounded-full transition-all duration-400',
